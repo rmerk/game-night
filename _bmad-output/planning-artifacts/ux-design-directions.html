@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mahjong Night — Design Direction Showcase</title>
+<style>
+  :root {
+    /* Core palette */
+    --felt-teal: #2A6B6B;
+    --felt-teal-light: #357878;
+    --chrome-surface: #F5F0E8;
+    --chrome-surface-alt: #EDE8DF;
+    --chrome-border: #D4CFC5;
+    --chrome-elevated: #FAF7F2;
+    --gold-accent: #C4A35A;
+    --gold-accent-hover: #D4B36A;
+    --gold-arriving: #CFA852; /* warmer amber */
+    --gold-playing: #B8A060; /* cooler brass */
+    --gold-lingering: #C9B07A; /* softer muted */
+    --text-primary: #2C2420;
+    --text-secondary: #7A7268;
+    --text-on-felt: #F0EDE6;
+    --suit-bam: #2D8B5E;
+    --suit-crak: #C44D4D;
+    --suit-dot: #3A6FA5;
+    --state-turn-active: #F5E6C8;
+    --state-call-window: #E8A84C;
+    --state-success: #5BA87A;
+    --state-error: #E07A5F;
+    --state-warning: #D4A843;
+    --celebration-gold: #D4B36A;
+    --celebration-dim: rgba(0,0,0,0.25);
+    --shadow-tile: 0 2px 4px rgba(44,36,32,0.15);
+    --shadow-panel: 0 4px 12px rgba(44,36,32,0.1);
+    --shadow-modal: 0 8px 32px rgba(44,36,32,0.2);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --timing-tactile: 120ms;
+    --timing-expressive: 400ms;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Source Sans 3', system-ui, -apple-system, sans-serif;
+    background: #1a1a1a;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  /* ===== NAV ===== */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--chrome-surface);
+    border-bottom: 1px solid var(--chrome-border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow-panel);
+  }
+  .nav h1 {
+    font-size: 18px; font-weight: 700; color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .nav-pills {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .nav-pill {
+    padding: 6px 16px; border-radius: 20px; border: 2px solid var(--chrome-border);
+    background: transparent; cursor: pointer; font-size: 14px; font-weight: 600;
+    color: var(--text-secondary); transition: all var(--timing-tactile) ease-out;
+    white-space: nowrap;
+  }
+  .nav-pill:hover { border-color: var(--gold-accent); color: var(--text-primary); }
+  .nav-pill.active {
+    background: var(--gold-accent); border-color: var(--gold-accent);
+    color: white;
+  }
+
+  /* ===== SECTIONS ===== */
+  .showcase { padding-top: 72px; }
+  .direction {
+    display: none; min-height: 100vh;
+    padding: 32px 24px;
+  }
+  .direction.active { display: block; }
+
+  .direction-header {
+    max-width: 960px; margin: 0 auto 32px;
+    background: var(--chrome-surface); border-radius: var(--radius-lg);
+    padding: 24px 32px; box-shadow: var(--shadow-panel);
+  }
+  .direction-header h2 {
+    font-size: 24px; font-weight: 700; margin-bottom: 8px;
+    color: var(--text-primary);
+  }
+  .direction-header .subtitle {
+    font-size: 16px; color: var(--text-secondary); margin-bottom: 16px;
+  }
+  .direction-header .tags {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .tag {
+    padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    background: var(--chrome-surface-alt); color: var(--text-secondary);
+    border: 1px solid var(--chrome-border);
+  }
+  .tag.highlight { background: var(--gold-accent); color: white; border-color: var(--gold-accent); }
+
+  /* ===== MOCKUP FRAME ===== */
+  .mockup-frame {
+    max-width: 1024px; margin: 0 auto;
+    aspect-ratio: 4/3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-modal);
+    position: relative;
+  }
+
+  /* ===== SHARED GAME ELEMENTS ===== */
+  .felt-surface {
+    width: 100%; height: 100%;
+    background:
+      repeating-radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 0, rgba(255,255,255,0) 1px),
+      var(--felt-teal);
+    background-size: 3px 3px, 100% 100%;
+    position: relative;
+  }
+
+  /* Player seats */
+  .seat {
+    position: absolute; display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+  }
+  .seat-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: var(--text-on-felt);
+    background: rgba(255,255,255,0.1);
+  }
+  .seat-avatar.active-turn {
+    border-color: var(--gold-accent);
+    box-shadow: 0 0 12px rgba(196,163,90,0.4);
+  }
+  .seat-name {
+    font-size: 12px; font-weight: 600; color: var(--text-on-felt);
+    opacity: 0.9;
+  }
+  .seat-video {
+    width: 120px; height: 80px; border-radius: var(--radius-md);
+    background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: rgba(255,255,255,0.4);
+  }
+  .seat-video.active-turn {
+    border-color: var(--gold-accent);
+    box-shadow: 0 0 12px rgba(196,163,90,0.3);
+  }
+
+  /* Tiles */
+  .tile {
+    width: 36px; height: 48px; border-radius: 4px;
+    background: #FAFAF5; border: 1px solid #D8D4CC;
+    box-shadow: var(--shadow-tile);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: transform var(--timing-tactile) ease-out;
+    position: relative;
+  }
+  .tile:hover { transform: translateY(-4px); }
+  .tile.selected {
+    transform: translateY(-8px);
+    box-shadow: 0 4px 8px rgba(196,163,90,0.3);
+    border-color: var(--gold-accent);
+  }
+  .tile .suit-bam { color: var(--suit-bam); }
+  .tile .suit-crak { color: var(--suit-crak); }
+  .tile .suit-dot { color: var(--suit-dot); }
+  .tile-sm {
+    width: 28px; height: 38px; font-size: 11px;
+  }
+
+  /* Rack */
+  .rack {
+    display: flex; gap: 3px; padding: 8px 12px;
+    background: rgba(0,0,0,0.15); border-radius: var(--radius-md);
+    justify-content: center;
+  }
+
+  /* Discard pool */
+  .discard-pool {
+    display: flex; flex-wrap: wrap; gap: 2px;
+    max-width: 200px; justify-content: center;
+  }
+  .discard-tile {
+    width: 24px; height: 32px; border-radius: 3px;
+    background: #FAFAF5; border: 1px solid #D8D4CC;
+    font-size: 9px; display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+  }
+
+  /* Exposed group */
+  .exposed-group {
+    display: flex; gap: 2px;
+  }
+
+  /* Action buttons */
+  .action-btn {
+    padding: 10px 20px; border-radius: var(--radius-md);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    border: none; transition: all var(--timing-tactile) ease-out;
+    min-height: 44px; min-width: 44px;
+  }
+  .action-btn.gold {
+    background: var(--gold-accent); color: white;
+  }
+  .action-btn.gold:hover { background: var(--gold-accent-hover); }
+  .action-btn.outline {
+    background: transparent; color: var(--text-on-felt);
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  .action-btn.outline:hover {
+    border-color: var(--gold-accent); color: var(--gold-accent);
+  }
+  .action-btn.chrome {
+    background: var(--chrome-surface); color: var(--text-primary);
+    border: 1px solid var(--chrome-border);
+  }
+  .action-btn.chrome:hover { border-color: var(--gold-accent); }
+  .action-btn.call {
+    background: var(--state-call-window); color: white;
+    font-size: 18px;
+  }
+
+  /* Wall counter */
+  .wall-counter {
+    padding: 6px 14px; border-radius: 16px;
+    font-size: 13px; font-weight: 700;
+    background: rgba(0,0,0,0.25); color: var(--text-on-felt);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .wall-counter.warning { background: rgba(212,168,67,0.3); color: var(--state-warning); }
+
+  /* NMJL sidebar */
+  .nmjl-sidebar {
+    background: var(--chrome-surface);
+    border-left: 1px solid var(--chrome-border);
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .nmjl-header {
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    padding-bottom: 8px; border-bottom: 1px solid var(--chrome-border);
+    margin-bottom: 12px;
+  }
+  .nmjl-hand {
+    padding: 8px; border-radius: var(--radius-sm);
+    margin-bottom: 6px; font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--text-secondary);
+    background: var(--chrome-elevated);
+    border: 1px solid transparent;
+  }
+  .nmjl-hand.achievable {
+    background: rgba(196,163,90,0.1);
+    border-color: rgba(196,163,90,0.3);
+    color: var(--text-primary);
+  }
+  .nmjl-hand .hand-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 2px; display: block;
+  }
+
+  /* Chat panel */
+  .chat-panel {
+    background: var(--chrome-surface);
+    border-top: 1px solid var(--chrome-border);
+    padding: 12px;
+  }
+  .chat-msg {
+    font-size: 13px; margin-bottom: 6px;
+  }
+  .chat-msg .name { font-weight: 700; color: var(--gold-accent); }
+  .chat-msg .text { color: var(--text-primary); }
+  .chat-input {
+    width: 100%; padding: 8px 12px; border-radius: var(--radius-md);
+    border: 1px solid var(--chrome-border); font-size: 14px;
+    background: var(--chrome-elevated);
+  }
+  .chat-input:focus { outline: 2px solid var(--gold-accent); outline-offset: 2px; }
+
+  /* Reactions */
+  .reactions {
+    display: flex; gap: 6px;
+  }
+  .reaction-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--chrome-border); background: var(--chrome-elevated);
+    font-size: 16px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: transform var(--timing-tactile) ease-out;
+  }
+  .reaction-btn:hover { transform: scale(1.15); border-color: var(--gold-accent); }
+
+  /* Turn indicator */
+  .turn-indicator {
+    padding: 6px 16px; border-radius: 16px;
+    font-size: 14px; font-weight: 700;
+    background: var(--gold-accent); color: white;
+  }
+
+  /* Bottom bar (mobile) */
+  .bottom-bar {
+    display: flex; justify-content: space-around; padding: 8px 16px;
+    background: var(--chrome-surface);
+    border-top: 1px solid var(--chrome-border);
+  }
+  .bottom-bar-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 10px; color: var(--text-secondary); cursor: pointer;
+    background: none; border: none; font-weight: 600;
+  }
+  .bottom-bar-btn .icon { font-size: 20px; }
+  .bottom-bar-btn.active { color: var(--gold-accent); }
+
+  /* ===== DIRECTION-SPECIFIC LAYOUTS ===== */
+
+  /* Direction A: Balanced Panoramic */
+  .dir-a .felt-surface {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto;
+  }
+  .dir-a .top-zone {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 16px 24px;
+  }
+  .dir-a .center-zone {
+    display: flex; justify-content: center; align-items: center;
+    position: relative;
+  }
+  .dir-a .action-zone {
+    display: flex; justify-content: center; gap: 12px;
+    padding: 8px 24px;
+  }
+  .dir-a .bottom-zone {
+    display: flex; justify-content: center;
+    padding: 0 24px 16px;
+  }
+
+  /* Direction frames with sidebar */
+  .dir-with-sidebar {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+  }
+  .dir-with-sidebar .felt-surface {
+    grid-column: 1;
+  }
+  .dir-with-sidebar .nmjl-sidebar {
+    grid-column: 2;
+    height: 100%;
+  }
+
+  /* Direction without sidebar */
+  .dir-no-sidebar .felt-surface {
+    width: 100%; height: 100%;
+  }
+
+  /* ===== EVALUATION PANEL ===== */
+  .eval-panel {
+    max-width: 960px; margin: 32px auto;
+    background: var(--chrome-surface); border-radius: var(--radius-lg);
+    padding: 24px 32px; box-shadow: var(--shadow-panel);
+  }
+  .eval-panel h3 {
+    font-size: 18px; font-weight: 700; margin-bottom: 16px;
+  }
+  .eval-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .eval-item {
+    padding: 12px 16px; border-radius: var(--radius-md);
+    background: var(--chrome-elevated); border: 1px solid var(--chrome-border);
+  }
+  .eval-item .label {
+    font-size: 12px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .eval-item .value {
+    font-size: 14px; color: var(--text-primary); font-weight: 600;
+  }
+
+  /* ===== MOOD DEMOS ===== */
+  .mood-strip {
+    max-width: 960px; margin: 24px auto;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .mood-card {
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-panel); height: 200px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 16px; position: relative;
+  }
+  .mood-card.arriving {
+    background: linear-gradient(135deg, var(--chrome-surface) 0%, var(--chrome-surface-alt) 100%);
+  }
+  .mood-card.playing {
+    background:
+      repeating-radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 0, rgba(255,255,255,0) 1px),
+      var(--felt-teal);
+    background-size: 3px 3px, 100% 100%;
+    color: var(--text-on-felt);
+  }
+  .mood-card.lingering {
+    background: linear-gradient(135deg, var(--chrome-elevated) 0%, var(--chrome-surface) 100%);
+  }
+  .mood-card .mood-label {
+    font-size: 20px; font-weight: 700; margin-bottom: 4px;
+  }
+  .mood-card .mood-desc {
+    font-size: 13px; opacity: 0.7;
+  }
+  .mood-card .mood-accent {
+    position: absolute; top: 16px; right: 16px;
+    width: 24px; height: 24px; border-radius: 50%;
+  }
+  .mood-card.arriving .mood-accent { background: var(--gold-arriving); }
+  .mood-card.playing .mood-accent { background: var(--gold-playing); }
+  .mood-card.lingering .mood-accent { background: var(--gold-lingering); }
+
+  /* ===== COMPARISON VIEW ===== */
+  .comparison {
+    max-width: 960px; margin: 32px auto;
+    background: var(--chrome-surface); border-radius: var(--radius-lg);
+    padding: 24px 32px; box-shadow: var(--shadow-panel);
+  }
+  .comparison h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  .comparison table {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  .comparison th {
+    text-align: left; padding: 10px 12px;
+    border-bottom: 2px solid var(--chrome-border);
+    font-weight: 700; color: var(--text-secondary); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .comparison td {
+    padding: 10px 12px; border-bottom: 1px solid var(--chrome-border);
+    color: var(--text-primary);
+  }
+  .comparison tr:last-child td { border-bottom: none; }
+  .check { color: var(--state-success); font-weight: 700; }
+  .partial { color: var(--state-warning); font-weight: 700; }
+
+  /* ===== COLOR SWATCHES ===== */
+  .swatch-grid {
+    max-width: 960px; margin: 24px auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    border-radius: var(--radius-md); overflow: hidden;
+    box-shadow: var(--shadow-tile);
+  }
+  .swatch-color {
+    height: 64px;
+  }
+  .swatch-label {
+    padding: 8px 10px; background: white;
+    font-size: 11px; font-weight: 600;
+  }
+  .swatch-label .name { color: var(--text-primary); display: block; }
+  .swatch-label .hex { color: var(--text-secondary); font-family: monospace; font-size: 10px; }
+
+  /* ===== COMPONENT DEMO ===== */
+  .component-demos {
+    max-width: 960px; margin: 24px auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;
+  }
+  .component-demo {
+    background: var(--chrome-surface); border-radius: var(--radius-lg);
+    padding: 20px; box-shadow: var(--shadow-panel);
+  }
+  .component-demo h4 {
+    font-size: 14px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--chrome-border);
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <h1>Mahjong Night</h1>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="showDirection('overview')">Overview</button>
+    <button class="nav-pill" onclick="showDirection('a')">A: Balanced Panoramic</button>
+    <button class="nav-pill" onclick="showDirection('b')">B: Immersive Table</button>
+    <button class="nav-pill" onclick="showDirection('c')">C: Social-Forward</button>
+    <button class="nav-pill" onclick="showDirection('d')">D: Compact Efficient</button>
+    <button class="nav-pill" onclick="showDirection('compare')">Compare</button>
+  </div>
+</nav>
+
+<div class="showcase">
+
+  <!-- ===== OVERVIEW ===== -->
+  <div class="direction active" id="dir-overview">
+    <div class="direction-header">
+      <h2>Design Direction Exploration</h2>
+      <p class="subtitle">Four layout approaches for Mahjong Night, all sharing the same visual foundation: warm modern elegance with felt teal, cream chrome, and brushed gold. Each direction explores different trade-offs in information density, social prominence, and NMJL card accessibility.</p>
+      <div class="tags">
+        <span class="tag highlight">iPad-first (1024px)</span>
+        <span class="tag">Felt + Chrome + Gold</span>
+        <span class="tag">44px min tap targets</span>
+        <span class="tag">Three Moods</span>
+      </div>
+    </div>
+
+    <!-- Mood demos -->
+    <div class="mood-strip">
+      <div class="mood-card arriving">
+        <div class="mood-accent"></div>
+        <div class="mood-label">Arriving</div>
+        <div class="mood-desc">Warm cream dominates. Gold is amber. Faces and names prominent. "Welcome to game night."</div>
+      </div>
+      <div class="mood-card playing">
+        <div class="mood-accent"></div>
+        <div class="mood-label" style="color: var(--text-on-felt);">Playing</div>
+        <div class="mood-desc">Felt teal dominates. Gold is brass. Tiles and actions prominent. "Focus and flow."</div>
+      </div>
+      <div class="mood-card lingering">
+        <div class="mood-accent"></div>
+        <div class="mood-label">Lingering</div>
+        <div class="mood-desc">Soft cream returns. Gold is muted. Scores and conversation prominent. "One more game?"</div>
+      </div>
+    </div>
+
+    <!-- Color swatches -->
+    <div class="direction-header" style="margin-top: 24px;">
+      <h2>Color Token Reference</h2>
+      <p class="subtitle">The shared palette across all four directions. ~ values are reference targets tuned during implementation.</p>
+    </div>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--felt-teal);"></div>
+        <div class="swatch-label"><span class="name">felt-teal</span><span class="hex">~#2A6B6B</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--chrome-surface);"></div>
+        <div class="swatch-label"><span class="name">chrome-surface</span><span class="hex">~#F5F0E8</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--gold-accent);"></div>
+        <div class="swatch-label"><span class="name">gold-accent</span><span class="hex">~#C4A35A</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--chrome-border);"></div>
+        <div class="swatch-label"><span class="name">chrome-border</span><span class="hex">~#D4CFC5</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--suit-bam);"></div>
+        <div class="swatch-label"><span class="name">suit-bam</span><span class="hex">#2D8B5E</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--suit-crak);"></div>
+        <div class="swatch-label"><span class="name">suit-crak</span><span class="hex">#C44D4D</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--suit-dot);"></div>
+        <div class="swatch-label"><span class="name">suit-dot</span><span class="hex">#3A6FA5</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--state-error);"></div>
+        <div class="swatch-label"><span class="name">state-error</span><span class="hex">~#E07A5F</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--state-success);"></div>
+        <div class="swatch-label"><span class="name">state-success</span><span class="hex">#5BA87A</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--gold-arriving);"></div>
+        <div class="swatch-label"><span class="name">gold-arriving</span><span class="hex">#CFA852</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--gold-playing);"></div>
+        <div class="swatch-label"><span class="name">gold-playing</span><span class="hex">#B8A060</span></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--gold-lingering);"></div>
+        <div class="swatch-label"><span class="name">gold-lingering</span><span class="hex">#C9B07A</span></div>
+      </div>
+    </div>
+
+    <!-- Component demos -->
+    <div class="direction-header" style="margin-top: 24px;">
+      <h2>Shared Components</h2>
+      <p class="subtitle">Interactive elements shared across all directions. Hover tiles to see lift animation.</p>
+    </div>
+    <div class="component-demos">
+      <div class="component-demo">
+        <h4>Tiles</h4>
+        <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+          <div class="tile"><span class="suit-bam">3</span></div>
+          <div class="tile"><span class="suit-crak">7</span></div>
+          <div class="tile selected"><span class="suit-dot">5</span></div>
+          <div class="tile"><span class="suit-bam">8</span></div>
+          <div class="tile" style="font-size: 12px;">N</div>
+          <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary);">
+          Tile 3 is selected (lifted). Hover any tile to preview the lift. 30px min-width enforced.
+        </div>
+      </div>
+      <div class="component-demo">
+        <h4>Action Buttons</h4>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <button class="action-btn gold">Mahjong</button>
+          <button class="action-btn call">Pung</button>
+          <button class="action-btn chrome">Pass</button>
+          <button class="action-btn outline" style="color: var(--text-primary);">Sort</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary);">
+          All buttons 44px min-height. Gold = primary action. Call = time-sensitive.
+        </div>
+      </div>
+      <div class="component-demo">
+        <h4>Reactions</h4>
+        <div class="reactions" style="margin-bottom: 12px;">
+          <button class="reaction-btn">👍</button>
+          <button class="reaction-btn">😂</button>
+          <button class="reaction-btn">😱</button>
+          <button class="reaction-btn">😭</button>
+          <button class="reaction-btn">🎉</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary);">
+          One-tap reactions. Always visible. Never behind a menu.
+        </div>
+      </div>
+      <div class="component-demo">
+        <h4>Wall Counter</h4>
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+          <span class="wall-counter">Wall: 72</span>
+          <span class="wall-counter warning">Wall: 18</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary);">
+          Normal → Warning (≤20) → Critical (≤10). Organic pressure, not a timer.
+        </div>
+      </div>
+      <div class="component-demo">
+        <h4>NMJL Hand Patterns</h4>
+        <div>
+          <div class="nmjl-hand achievable">
+            <span class="hand-label">2468 #1 (25 pts) — 2 tiles away</span>
+            FF 2222 4444 66 88
+          </div>
+          <div class="nmjl-hand">
+            <span class="hand-label">Quints #3 (30 pts)</span>
+            FFFFF DDDD DDDD
+          </div>
+        </div>
+      </div>
+      <div class="component-demo">
+        <h4>Chat</h4>
+        <div style="margin-bottom: 8px;">
+          <div class="chat-msg"><span class="name">Linda: </span><span class="text">I can't BELIEVE you passed me that!</span></div>
+          <div class="chat-msg"><span class="name">Sarah: </span><span class="text">😂 you're welcome</span></div>
+        </div>
+        <input class="chat-input" placeholder="Type a message..." readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DIRECTION A: Balanced Panoramic ===== -->
+  <div class="direction" id="dir-a">
+    <div class="direction-header">
+      <h2>Direction A: Balanced Panoramic</h2>
+      <p class="subtitle">NMJL sidebar always visible. Generous table space. Balanced information density. This is the "reference" layout from the spatial specification — the safest, most conventional approach.</p>
+      <div class="tags">
+        <span class="tag highlight">Reference Layout</span>
+        <span class="tag">Sidebar NMJL</span>
+        <span class="tag">Video at seats</span>
+        <span class="tag">Balanced density</span>
+      </div>
+    </div>
+    <div class="mockup-frame dir-with-sidebar">
+      <div class="felt-surface" style="display: flex; flex-direction: column;">
+        <!-- Top: opponent + wall -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 20px;">
+          <div class="seat">
+            <div class="seat-video">cam</div>
+            <div class="seat-name">Linda</div>
+            <div class="exposed-group" style="margin-top: 4px;">
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+            </div>
+          </div>
+          <div style="text-align: center;">
+            <div class="wall-counter">Wall: 52</div>
+            <div class="turn-indicator" style="margin-top: 8px; font-size: 12px;">Sarah's Turn</div>
+          </div>
+          <div class="seat">
+            <div class="seat-video active-turn">cam</div>
+            <div class="seat-name" style="color: var(--gold-accent);">Sarah ★</div>
+          </div>
+        </div>
+        <!-- Center: left opponent + table + right opponent -->
+        <div style="flex: 1; display: flex; align-items: center; padding: 0 20px;">
+          <div class="seat" style="margin-right: 16px;">
+            <div class="seat-video">cam</div>
+            <div class="seat-name">Diane</div>
+          </div>
+          <div style="flex: 1; display: flex; justify-content: center;">
+            <div class="discard-pool">
+              <div class="discard-tile"><span class="suit-bam">2</span></div>
+              <div class="discard-tile"><span class="suit-crak">9</span></div>
+              <div class="discard-tile"><span class="suit-dot">4</span></div>
+              <div class="discard-tile">N</div>
+              <div class="discard-tile"><span class="suit-bam">6</span></div>
+              <div class="discard-tile"><span class="suit-crak">1</span></div>
+              <div class="discard-tile"><span class="suit-dot">8</span></div>
+              <div class="discard-tile">W</div>
+              <div class="discard-tile"><span class="suit-bam">3</span></div>
+              <div class="discard-tile"><span class="suit-crak">5</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Bottom: actions + rack -->
+        <div style="padding: 8px 20px;">
+          <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;">
+            <button class="action-btn gold" style="font-size: 14px; padding: 8px 16px;">Mahjong</button>
+            <button class="action-btn chrome" style="font-size: 14px; padding: 8px 16px;">Sort</button>
+          </div>
+          <div class="rack">
+            <div class="tile"><span class="suit-bam">2</span></div>
+            <div class="tile"><span class="suit-bam">4</span></div>
+            <div class="tile"><span class="suit-bam">4</span></div>
+            <div class="tile"><span class="suit-crak">6</span></div>
+            <div class="tile"><span class="suit-crak">6</span></div>
+            <div class="tile selected"><span class="suit-dot">8</span></div>
+            <div class="tile"><span class="suit-dot">8</span></div>
+            <div class="tile"><span class="suit-dot">8</span></div>
+            <div class="tile">E</div>
+            <div class="tile">E</div>
+            <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+            <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+            <div class="tile"><span class="suit-bam">9</span></div>
+          </div>
+          <div style="display: flex; justify-content: center; margin-top: 6px;">
+            <button class="action-btn gold" style="font-size: 13px; padding: 6px 24px;">Discard</button>
+          </div>
+        </div>
+      </div>
+      <div class="nmjl-sidebar">
+        <div class="nmjl-header">NMJL Card 2025</div>
+        <div class="nmjl-hand achievable">
+          <span class="hand-label">2468 #1 (25 pts) — 2 away</span>
+          FF 2222 4444 66 88
+        </div>
+        <div class="nmjl-hand achievable">
+          <span class="hand-label">Like Numbers #2 (25 pts) — 3 away</span>
+          FF 4444 6666 88
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">Consecutive Run #1 (25 pts)</span>
+          FF 1111 2222 33
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">Consecutive Run #3 (30 pts)</span>
+          FF 33 444 555 6666
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">13579 #2 (25 pts)</span>
+          FF 1111 33 5555 99
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">Winds-Dragons #1 (25 pts)</span>
+          NN EE WW SS DD DD
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">369 #1 (25 pts)</span>
+          FF 3333 66 9999
+        </div>
+        <div class="nmjl-hand">
+          <span class="hand-label">Singles & Pairs #1 (30 pts)</span>
+          NN EE WW 1 3 5 7 9 DD
+        </div>
+      </div>
+    </div>
+    <div class="eval-panel">
+      <h3>Direction A Evaluation</h3>
+      <div class="eval-grid">
+        <div class="eval-item">
+          <div class="label">NMJL Card Access</div>
+          <div class="value">Always visible — no toggle needed</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Table Space</div>
+          <div class="value">~740px after sidebar. Adequate but tight on iPad.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Social Presence</div>
+          <div class="value">Video at seat positions. Clear but compact.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Information Density</div>
+          <div class="value">Balanced. All info visible without scrolling.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Trade-off</div>
+          <div class="value">Sidebar takes 280px from table. Collapsible as escape valve.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Best For</div>
+          <div class="value">Players who reference the card constantly.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DIRECTION B: Immersive Table ===== -->
+  <div class="direction" id="dir-b">
+    <div class="direction-header">
+      <h2>Direction B: Immersive Table</h2>
+      <p class="subtitle">No persistent sidebar. Full-width felt table. NMJL card via floating overlay toggle. Maximum felt immersion — closest to the physical table experience. Video frames larger.</p>
+      <div class="tags">
+        <span class="tag highlight">Maximum Felt</span>
+        <span class="tag">Overlay NMJL</span>
+        <span class="tag">Large video</span>
+        <span class="tag">Spacious</span>
+      </div>
+    </div>
+    <div class="mockup-frame dir-no-sidebar">
+      <div class="felt-surface" style="display: flex; flex-direction: column;">
+        <!-- Top -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 32px;">
+          <div class="seat">
+            <div class="seat-video" style="width: 140px; height: 96px;">cam</div>
+            <div class="seat-name">Diane</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="seat">
+              <div class="seat-video active-turn" style="width: 140px; height: 96px;">cam</div>
+              <div class="seat-name" style="color: var(--gold-accent);">Sarah ★</div>
+            </div>
+            <div class="wall-counter" style="margin-top: 8px;">Wall: 52</div>
+          </div>
+          <div class="seat">
+            <div class="seat-video" style="width: 140px; height: 96px;">cam</div>
+            <div class="seat-name">Linda</div>
+            <div class="exposed-group" style="margin-top: 4px;">
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+              <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Center: generous discard area -->
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+          <div style="text-align: center;">
+            <div class="discard-pool" style="max-width: 280px;">
+              <div class="discard-tile"><span class="suit-bam">2</span></div>
+              <div class="discard-tile"><span class="suit-crak">9</span></div>
+              <div class="discard-tile"><span class="suit-dot">4</span></div>
+              <div class="discard-tile">N</div>
+              <div class="discard-tile"><span class="suit-bam">6</span></div>
+              <div class="discard-tile"><span class="suit-crak">1</span></div>
+              <div class="discard-tile"><span class="suit-dot">8</span></div>
+              <div class="discard-tile">W</div>
+              <div class="discard-tile"><span class="suit-bam">3</span></div>
+              <div class="discard-tile"><span class="suit-crak">5</span></div>
+              <div class="discard-tile"><span class="suit-dot">2</span></div>
+              <div class="discard-tile"><span class="suit-bam">7</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- NMJL floating toggle -->
+        <div style="position: absolute; right: 16px; bottom: 100px;">
+          <button class="action-btn chrome" style="font-size: 13px; padding: 8px 14px; border-radius: 20px; box-shadow: var(--shadow-panel);">
+            📋 Card
+          </button>
+        </div>
+        <!-- Reactions floating -->
+        <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%);">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button class="reaction-btn">👍</button>
+            <button class="reaction-btn">😂</button>
+            <button class="reaction-btn">😱</button>
+            <button class="reaction-btn">😭</button>
+          </div>
+        </div>
+        <!-- Bottom: actions + rack -->
+        <div style="padding: 8px 32px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; gap: 8px;">
+              <button class="action-btn gold" style="font-size: 14px; padding: 8px 20px;">Mahjong</button>
+              <span class="turn-indicator" style="font-size: 12px;">Your Turn</span>
+            </div>
+            <button class="action-btn chrome" style="font-size: 13px; padding: 8px 14px;">Sort</button>
+          </div>
+          <div class="rack">
+            <div class="tile"><span class="suit-bam">2</span></div>
+            <div class="tile"><span class="suit-bam">4</span></div>
+            <div class="tile"><span class="suit-bam">4</span></div>
+            <div class="tile"><span class="suit-crak">6</span></div>
+            <div class="tile"><span class="suit-crak">6</span></div>
+            <div class="tile selected"><span class="suit-dot">8</span></div>
+            <div class="tile"><span class="suit-dot">8</span></div>
+            <div class="tile"><span class="suit-dot">8</span></div>
+            <div class="tile">E</div>
+            <div class="tile">E</div>
+            <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+            <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+            <div class="tile"><span class="suit-bam">9</span></div>
+          </div>
+          <div style="display: flex; justify-content: center; margin-top: 6px;">
+            <button class="action-btn gold" style="font-size: 13px; padding: 6px 24px;">Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="eval-panel">
+      <h3>Direction B Evaluation</h3>
+      <div class="eval-grid">
+        <div class="eval-item">
+          <div class="label">NMJL Card Access</div>
+          <div class="value">Floating toggle → overlay. One tap, but not always visible.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Table Space</div>
+          <div class="value">Full 1024px. Maximum room for tiles, discards, video.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Social Presence</div>
+          <div class="value">Larger video frames (140x96). Strongest social presence.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Information Density</div>
+          <div class="value">Lower density. More breathing room. Closest to physical table.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Trade-off</div>
+          <div class="value">NMJL card hidden by default. Players must toggle to check hands.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Best For</div>
+          <div class="value">Experienced players who check the card less often.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DIRECTION C: Social-Forward ===== -->
+  <div class="direction" id="dir-c">
+    <div class="direction-header">
+      <h2>Direction C: Social-Forward</h2>
+      <p class="subtitle">Chat and reactions integrated into the main view. Video frames prominent at seat positions. NMJL collapsible sidebar. Maximizes social co-presence — the defining experience front and center.</p>
+      <div class="tags">
+        <span class="tag highlight">Social First</span>
+        <span class="tag">Integrated chat</span>
+        <span class="tag">Prominent video</span>
+        <span class="tag">Collapsible NMJL</span>
+      </div>
+    </div>
+    <div class="mockup-frame dir-no-sidebar">
+      <div class="felt-surface" style="display: grid; grid-template-columns: 1fr auto; grid-template-rows: 1fr auto;">
+        <!-- Main game area -->
+        <div style="display: flex; flex-direction: column; padding: 12px 16px;">
+          <!-- Top: opponents with video -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="seat">
+              <div class="seat-video">cam</div>
+              <div class="seat-name">Diane</div>
+            </div>
+            <div class="seat">
+              <div class="seat-video active-turn">cam</div>
+              <div class="seat-name" style="color: var(--gold-accent);">Sarah ★</div>
+            </div>
+            <div class="seat">
+              <div class="seat-video">cam</div>
+              <div class="seat-name">Linda</div>
+            </div>
+          </div>
+          <!-- Center -->
+          <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+            <div style="text-align: center;">
+              <div class="wall-counter" style="margin-bottom: 12px;">Wall: 52</div>
+              <div class="discard-pool" style="max-width: 240px;">
+                <div class="discard-tile"><span class="suit-bam">2</span></div>
+                <div class="discard-tile"><span class="suit-crak">9</span></div>
+                <div class="discard-tile"><span class="suit-dot">4</span></div>
+                <div class="discard-tile">N</div>
+                <div class="discard-tile"><span class="suit-bam">6</span></div>
+                <div class="discard-tile"><span class="suit-crak">1</span></div>
+                <div class="discard-tile"><span class="suit-dot">8</span></div>
+                <div class="discard-tile">W</div>
+              </div>
+            </div>
+          </div>
+          <!-- Actions + rack -->
+          <div>
+            <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 6px;">
+              <button class="action-btn gold" style="font-size: 13px; padding: 8px 16px;">Mahjong</button>
+              <span class="turn-indicator" style="font-size: 11px;">Your Turn</span>
+              <button class="action-btn chrome" style="font-size: 12px; padding: 6px 12px;">📋</button>
+            </div>
+            <div class="rack">
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-bam">2</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-bam">4</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-bam">4</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-crak">6</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-crak">6</span></div>
+              <div class="tile selected" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-dot">8</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-dot">8</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-dot">8</span></div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;">E</div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;">E</div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 11px; color: var(--suit-crak);">J</div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 11px; color: var(--suit-crak);">J</div>
+              <div class="tile" style="width: 32px; height: 44px; font-size: 13px;"><span class="suit-bam">9</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Right: chat + reactions panel -->
+        <div style="width: 200px; background: rgba(0,0,0,0.2); border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; padding: 12px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-on-felt); margin-bottom: 8px; opacity: 0.7;">CHAT</div>
+          <div style="flex: 1; overflow-y: auto;">
+            <div style="font-size: 12px; color: var(--text-on-felt); margin-bottom: 6px;">
+              <span style="color: var(--gold-accent); font-weight: 700;">Linda:</span> I can't BELIEVE you passed me that!
+            </div>
+            <div style="font-size: 12px; color: var(--text-on-felt); margin-bottom: 6px;">
+              <span style="color: var(--gold-accent); font-weight: 700;">Sarah:</span> 😂 you're welcome
+            </div>
+            <div style="font-size: 12px; color: var(--text-on-felt); margin-bottom: 6px;">
+              <span style="color: var(--gold-accent); font-weight: 700;">Diane:</span> Stop helping her!!
+            </div>
+            <div style="font-size: 12px; color: var(--text-on-felt); margin-bottom: 6px;">
+              <span style="color: var(--gold-accent); font-weight: 700;">You:</span> lol no promises
+            </div>
+          </div>
+          <div style="margin-top: 8px;">
+            <div class="reactions" style="margin-bottom: 8px; justify-content: center;">
+              <button class="reaction-btn" style="width: 30px; height: 30px; font-size: 14px;">👍</button>
+              <button class="reaction-btn" style="width: 30px; height: 30px; font-size: 14px;">😂</button>
+              <button class="reaction-btn" style="width: 30px; height: 30px; font-size: 14px;">😱</button>
+              <button class="reaction-btn" style="width: 30px; height: 30px; font-size: 14px;">😭</button>
+            </div>
+            <input class="chat-input" style="font-size: 12px; padding: 6px 8px;" placeholder="Message..." readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="eval-panel">
+      <h3>Direction C Evaluation</h3>
+      <div class="eval-grid">
+        <div class="eval-item">
+          <div class="label">NMJL Card Access</div>
+          <div class="value">Button toggle → overlay. Quick access but not persistent.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Table Space</div>
+          <div class="value">~824px (chat panel takes ~200px). Moderate.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Social Presence</div>
+          <div class="value">Chat always visible. Conversation is front and center.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Information Density</div>
+          <div class="value">Higher on the social side, moderate on game side.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Trade-off</div>
+          <div class="value">Chat panel competes with NMJL for sidebar real estate.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Best For</div>
+          <div class="value">Groups that rely on text chat over voice. Social-first priority.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DIRECTION D: Compact Efficient ===== -->
+  <div class="direction" id="dir-d">
+    <div class="direction-header">
+      <h2>Direction D: Compact Efficient</h2>
+      <p class="subtitle">Chrome header bar with turn state and controls. Compact seat indicators (avatars, not video). NMJL sidebar. Maximum game information density. Closest to a "power user" layout.</p>
+      <div class="tags">
+        <span class="tag highlight">Information Dense</span>
+        <span class="tag">Chrome header</span>
+        <span class="tag">Avatar seats</span>
+        <span class="tag">Sidebar NMJL</span>
+      </div>
+    </div>
+    <div class="mockup-frame" style="display: flex; flex-direction: column;">
+      <!-- Chrome header bar -->
+      <div style="background: var(--chrome-surface); padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--chrome-border);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Mahjong Night</span>
+          <span class="wall-counter" style="font-size: 11px; padding: 4px 10px; background: var(--chrome-surface-alt); color: var(--text-secondary);">Wall: 52</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Compact player indicators -->
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <div class="seat-avatar" style="width: 28px; height: 28px; font-size: 11px; border-color: var(--chrome-border); color: var(--text-secondary); background: var(--chrome-surface-alt);">D</div>
+            <div class="seat-avatar active-turn" style="width: 28px; height: 28px; font-size: 11px;">S</div>
+            <div class="seat-avatar" style="width: 28px; height: 28px; font-size: 11px; border-color: var(--chrome-border); color: var(--text-secondary); background: var(--chrome-surface-alt);">L</div>
+          </div>
+          <span class="turn-indicator" style="font-size: 11px; padding: 4px 10px;">Sarah's Turn</span>
+          <button class="action-btn chrome" style="font-size: 11px; padding: 4px 10px; min-height: 28px;">⚙️</button>
+        </div>
+      </div>
+      <!-- Main area -->
+      <div style="flex: 1; display: flex;">
+        <!-- Felt table -->
+        <div class="felt-surface" style="flex: 1; display: flex; flex-direction: column;">
+          <!-- Opponent exposed groups at top -->
+          <div style="display: flex; justify-content: space-around; padding: 12px 16px;">
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: var(--text-on-felt); opacity: 0.6; margin-bottom: 4px;">Diane</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: var(--gold-accent); margin-bottom: 4px;">Sarah ★</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: var(--text-on-felt); opacity: 0.6; margin-bottom: 4px;">Linda</div>
+              <div class="exposed-group">
+                <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+                <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+                <div class="tile-sm tile"><span class="suit-dot" style="font-size:10px;">7</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- Discards center -->
+          <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+            <div class="discard-pool" style="max-width: 260px;">
+              <div class="discard-tile"><span class="suit-bam">2</span></div>
+              <div class="discard-tile"><span class="suit-crak">9</span></div>
+              <div class="discard-tile"><span class="suit-dot">4</span></div>
+              <div class="discard-tile">N</div>
+              <div class="discard-tile"><span class="suit-bam">6</span></div>
+              <div class="discard-tile"><span class="suit-crak">1</span></div>
+              <div class="discard-tile"><span class="suit-dot">8</span></div>
+              <div class="discard-tile">W</div>
+              <div class="discard-tile"><span class="suit-bam">3</span></div>
+              <div class="discard-tile"><span class="suit-crak">5</span></div>
+              <div class="discard-tile"><span class="suit-dot">2</span></div>
+              <div class="discard-tile"><span class="suit-bam">7</span></div>
+            </div>
+          </div>
+          <!-- Actions + rack -->
+          <div style="padding: 6px 16px 12px;">
+            <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 6px;">
+              <button class="action-btn gold" style="font-size: 13px; padding: 6px 16px;">Mahjong</button>
+              <button class="action-btn chrome" style="font-size: 12px; padding: 6px 12px;">Sort</button>
+            </div>
+            <div class="rack">
+              <div class="tile"><span class="suit-bam">2</span></div>
+              <div class="tile"><span class="suit-bam">4</span></div>
+              <div class="tile"><span class="suit-bam">4</span></div>
+              <div class="tile"><span class="suit-crak">6</span></div>
+              <div class="tile"><span class="suit-crak">6</span></div>
+              <div class="tile selected"><span class="suit-dot">8</span></div>
+              <div class="tile"><span class="suit-dot">8</span></div>
+              <div class="tile"><span class="suit-dot">8</span></div>
+              <div class="tile">E</div>
+              <div class="tile">E</div>
+              <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+              <div class="tile" style="font-size: 12px; color: var(--suit-crak);">J</div>
+              <div class="tile"><span class="suit-bam">9</span></div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 6px;">
+              <button class="action-btn gold" style="font-size: 13px; padding: 6px 24px;">Discard</button>
+            </div>
+          </div>
+        </div>
+        <!-- NMJL sidebar -->
+        <div class="nmjl-sidebar" style="width: 260px;">
+          <div class="nmjl-header">NMJL Card 2025</div>
+          <div class="nmjl-hand achievable">
+            <span class="hand-label">2468 #1 (25 pts) — 2 away</span>
+            FF 2222 4444 66 88
+          </div>
+          <div class="nmjl-hand achievable">
+            <span class="hand-label">Like Numbers #2 (25 pts) — 3 away</span>
+            FF 4444 6666 88
+          </div>
+          <div class="nmjl-hand">
+            <span class="hand-label">Consecutive Run #1 (25 pts)</span>
+            FF 1111 2222 33
+          </div>
+          <div class="nmjl-hand">
+            <span class="hand-label">Consecutive Run #3 (30 pts)</span>
+            FF 33 444 555 6666
+          </div>
+          <div class="nmjl-hand">
+            <span class="hand-label">13579 #2 (25 pts)</span>
+            FF 1111 33 5555 99
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="eval-panel">
+      <h3>Direction D Evaluation</h3>
+      <div class="eval-grid">
+        <div class="eval-item">
+          <div class="label">NMJL Card Access</div>
+          <div class="value">Always visible sidebar (260px).</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Table Space</div>
+          <div class="value">~764px. Chrome header saves vertical space.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Social Presence</div>
+          <div class="value">Minimal — avatar initials only. Relies on voice chat.</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Information Density</div>
+          <div class="value">Highest. All game info visible. Most "app-like."</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Trade-off</div>
+          <div class="value">Sacrifices social presence for information density. Feels less like "game night."</div>
+        </div>
+        <div class="eval-item">
+          <div class="label">Best For</div>
+          <div class="value">Competitive players focused on efficiency over social warmth.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COMPARISON ===== -->
+  <div class="direction" id="dir-compare">
+    <div class="direction-header">
+      <h2>Design Direction Comparison</h2>
+      <p class="subtitle">Side-by-side evaluation across key criteria. All four directions share the same visual foundation — they differ in layout strategy, information hierarchy, and social prominence.</p>
+    </div>
+    <div class="comparison">
+      <h3>Feature Comparison</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Criteria</th>
+            <th>A: Balanced</th>
+            <th>B: Immersive</th>
+            <th>C: Social</th>
+            <th>D: Compact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>NMJL always visible</td>
+            <td><span class="check">Yes</span></td>
+            <td>No (overlay)</td>
+            <td>No (toggle)</td>
+            <td><span class="check">Yes</span></td>
+          </tr>
+          <tr>
+            <td>Video at seats</td>
+            <td><span class="check">Yes</span></td>
+            <td><span class="check">Yes (large)</span></td>
+            <td><span class="check">Yes</span></td>
+            <td>Avatars only</td>
+          </tr>
+          <tr>
+            <td>Chat always visible</td>
+            <td>No (panel)</td>
+            <td>No (panel)</td>
+            <td><span class="check">Yes</span></td>
+            <td>No (panel)</td>
+          </tr>
+          <tr>
+            <td>Table space (at 1024px)</td>
+            <td>~740px</td>
+            <td><span class="check">~1024px</span></td>
+            <td>~824px</td>
+            <td>~764px</td>
+          </tr>
+          <tr>
+            <td>Felt immersion</td>
+            <td><span class="partial">Moderate</span></td>
+            <td><span class="check">Maximum</span></td>
+            <td><span class="partial">Moderate</span></td>
+            <td>Low (chrome header)</td>
+          </tr>
+          <tr>
+            <td>"Game night" feel</td>
+            <td><span class="check">Strong</span></td>
+            <td><span class="check">Strongest</span></td>
+            <td><span class="check">Strong (social)</span></td>
+            <td><span class="partial">Weak</span></td>
+          </tr>
+          <tr>
+            <td>Information density</td>
+            <td>Balanced</td>
+            <td>Low (spacious)</td>
+            <td>Social-biased</td>
+            <td><span class="check">Highest</span></td>
+          </tr>
+          <tr>
+            <td>Mobile adaptation</td>
+            <td><span class="check">Clean</span></td>
+            <td><span class="check">Cleanest</span></td>
+            <td><span class="partial">Chat panel issue</span></td>
+            <td><span class="partial">Header stacks</span></td>
+          </tr>
+          <tr>
+            <td>Aligns with defining experience</td>
+            <td><span class="check">Yes</span></td>
+            <td><span class="check">Yes</span></td>
+            <td><span class="check">Most directly</span></td>
+            <td><span class="partial">Partially</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="comparison" style="margin-top: 24px;">
+      <h3>Recommendation</h3>
+      <p style="font-size: 15px; line-height: 1.6; color: var(--text-primary); margin-bottom: 16px;">
+        <strong>Direction A (Balanced Panoramic)</strong> is the strongest starting point. It's the reference layout from our spatial specification, provides always-visible NMJL access (critical for players who reference the card constantly), maintains video at seat positions for social presence, and adapts cleanly to mobile.
+      </p>
+      <p style="font-size: 15px; line-height: 1.6; color: var(--text-primary); margin-bottom: 16px;">
+        <strong>Elements worth borrowing from other directions:</strong>
+      </p>
+      <ul style="font-size: 14px; line-height: 1.8; color: var(--text-primary); padding-left: 20px;">
+        <li><strong>From B:</strong> The collapsible sidebar as escape valve — when a player wants maximum felt immersion, they can collapse the NMJL sidebar and access it via overlay instead.</li>
+        <li><strong>From C:</strong> The persistent reaction bar concept — reactions should be always-visible near the rack area, not behind a panel. Chat remains a slide-up panel.</li>
+        <li><strong>From B:</strong> Larger video frames when sidebar is collapsed — the freed space goes to video and table, not whitespace.</li>
+      </ul>
+      <p style="font-size: 15px; line-height: 1.6; color: var(--text-primary); margin-top: 16px;">
+        <strong>Direction D is explicitly excluded</strong> — the chrome header and avatar-only seats contradict the "social first, game second" principle and the "game night" feel that defines Mahjong Night.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showDirection(id) {
+  document.querySelectorAll('.direction').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('dir-' + id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: 72, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
