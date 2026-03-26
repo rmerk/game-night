@@ -1,0 +1,17 @@
+{
+  "name": "mahjong-game",
+  "private": true,
+  "scripts": {
+    "test": "pnpm -r test",
+    "build": "tsc --build",
+    "lint": "pnpm -r lint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
