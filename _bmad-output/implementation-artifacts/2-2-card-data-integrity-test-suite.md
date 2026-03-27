@@ -1,6 +1,6 @@
 # Story 2.2: Card Data Integrity Test Suite
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -19,32 +19,32 @@ so that **the card data is proven correct and the test suite defines the "done" 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Card data integrity tests — `shared/src/card/card-integrity.test.ts` (AC: 1, 2, 3, 4)
-  - [ ] 1.1 Structural integrity: all 54 hands parseable, no duplicate IDs, every hand has positive points
-  - [ ] 1.2 Group size validation: each group's type matches its expected size via `GROUP_SIZES`
-  - [ ] 1.3 Joker eligibility: groups of 3+ have `jokerEligible: true`, pairs/singles have `jokerEligible: false`
-  - [ ] 1.4 Tile count: every hand sums to exactly 14 tiles
-  - [ ] 1.5 Category completeness: all 7 categories present, each has at least 1 hand, total ≥ 50
-  - [ ] 1.6 Exposure validation: every hand has `exposure` of `"C"` or `"X"`, concealed hands have `concealed: true` on all groups
-  - [ ] 1.7 `news` and `dragon_set` groups have no `tile` field (composition is implicit)
-  - [ ] 1.8 Non-NEWS/dragon_set groups have a `tile` field with valid `TileRequirement`
-  - [ ] 1.9 Color consistency: within a hand, same color letter always means same suit (A≠B≠C)
-  - [ ] 1.10 Value wildcard validity: N+2 patterns constrain N ≤ 7
-- [ ] Task 2: Red pattern-matcher tests — `shared/src/card/pattern-matcher.test.ts` (AC: 5, 6)
-  - [ ] 2.1 Create test helper: `buildTilesForHand(handId, suitMapping, valueMapping)` → generates a valid 14-tile array for a given hand pattern
-  - [ ] 2.2 Write one `test` per hand (all 54 hands from 2026 card) calling a not-yet-implemented `validateHand(tiles, card)` → these tests must compile but FAIL at runtime
-  - [ ] 2.3 Edge case tests: wildcard suit resolution across all 6 permutations
-  - [ ] 2.4 Edge case tests: consecutive value boundary (N=7 with N+2=9, N=8 with N+1=9 only)
-  - [ ] 2.5 Edge case tests: mixed-tile groups (NEWS with 4 winds, dragon_set with 3 dragons)
-  - [ ] 2.6 Edge case tests: quint/sextet hands requiring Joker substitution (only 4 natural copies exist)
-  - [ ] 2.7 Edge case tests: Joker in eligible positions accepted, Joker in pairs/singles rejected
-  - [ ] 2.8 Edge case tests: concealed hand validation (reject if any group is exposed)
-  - [ ] 2.9 Negative tests: 14 random tiles that match NO pattern → returns null
-  - [ ] 2.10 Stub `validateHand` function in `pattern-matcher.ts` that returns `null` (makes red tests compile)
-- [ ] Task 3: Exports and integration (AC: all)
-  - [ ] 3.1 Export `validateHand` from `shared/src/card/pattern-matcher.ts` (stub only)
-  - [ ] 3.2 Add `validateHand` to barrel exports in `shared/src/index.ts`
-  - [ ] 3.3 Run full test suite: integrity tests pass (green), pattern-matcher tests fail (red)
+- [x] Task 1: Card data integrity tests — `shared/src/card/card-integrity.test.ts` (AC: 1, 2, 3, 4)
+  - [x] 1.1 Structural integrity: all 54 hands parseable, no duplicate IDs, every hand has positive points
+  - [x] 1.2 Group size validation: each group's type matches its expected size via `GROUP_SIZES`
+  - [x] 1.3 Joker eligibility: groups of 3+ have `jokerEligible: true`, pairs/singles have `jokerEligible: false`
+  - [x] 1.4 Tile count: every hand sums to exactly 14 tiles
+  - [x] 1.5 Category completeness: all 7 categories present, each has at least 1 hand, total ≥ 50
+  - [x] 1.6 Exposure validation: every hand has `exposure` of `"C"` or `"X"`, concealed hands have `concealed: true` on all groups
+  - [x] 1.7 `news` and `dragon_set` groups have no `tile` field (composition is implicit)
+  - [x] 1.8 Non-NEWS/dragon_set groups have a `tile` field with valid `TileRequirement`
+  - [x] 1.9 Color consistency: within a hand, same color letter always means same suit (A≠B≠C)
+  - [x] 1.10 Value wildcard validity: N+2 patterns constrain N ≤ 7
+- [x] Task 2: Red pattern-matcher tests — `shared/src/card/pattern-matcher.test.ts` (AC: 5, 6)
+  - [x] 2.1 Create test helper: `buildTilesForHand(handId, suitMapping, valueMapping)` → generates a valid 14-tile array for a given hand pattern
+  - [x] 2.2 Write one `test` per hand (all 54 hands from 2026 card) calling a not-yet-implemented `validateHand(tiles, card)` → these tests must compile but FAIL at runtime
+  - [x] 2.3 Edge case tests: wildcard suit resolution across all 6 permutations
+  - [x] 2.4 Edge case tests: consecutive value boundary (N=7 with N+2=9, N=8 with N+1=9 only)
+  - [x] 2.5 Edge case tests: mixed-tile groups (NEWS with 4 winds, dragon_set with 3 dragons)
+  - [x] 2.6 Edge case tests: quint/sextet hands requiring Joker substitution (only 4 natural copies exist)
+  - [x] 2.7 Edge case tests: Joker in eligible positions accepted, Joker in pairs/singles rejected
+  - [x] 2.8 Edge case tests: concealed hand validation (reject if any group is exposed)
+  - [x] 2.9 Negative tests: 14 random tiles that match NO pattern → returns null
+  - [x] 2.10 Stub `validateHand` function in `pattern-matcher.ts` that returns `null` (makes red tests compile)
+- [x] Task 3: Exports and integration (AC: all)
+  - [x] 3.1 Export `validateHand` from `shared/src/card/pattern-matcher.ts` (stub only)
+  - [x] 3.2 Add `validateHand` to barrel exports in `shared/src/index.ts`
+  - [x] 3.3 Run full test suite: integrity tests pass (green), pattern-matcher tests fail (red)
 
 ## Dev Notes
 
@@ -156,9 +156,23 @@ This story does NOT implement:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+No issues encountered.
 
 ### Completion Notes List
+- Task 1: Created `card-integrity.test.ts` with 18 green tests validating all 54 hands across 10 categories of checks (structural integrity, group sizes, joker eligibility, tile count, category completeness, exposure, implicit groups, explicit groups, color consistency, value wildcards).
+- Task 2: Created `pattern-matcher.ts` stub returning null and `pattern-matcher.test.ts` with 72 red tests (using `test.fails`) covering all 54 hand patterns, 6 suit permutations, value boundary cases, mixed-tile groups (NEWS/dragon_set), Joker substitution for quints/sextets, Joker eligibility enforcement, concealed hand validation, and negative tests. Also includes `buildTilesForHand` helper with 4 green validation tests.
+- Task 3: Added `validateHand` and `MatchResult` exports to barrel `index.ts`.
+- Backpressure gate: 215 tests passed + 72 expected fail, typecheck clean, lint 0 errors (5 warnings in test helper type assertions).
+
+### Change Log
+- 2026-03-27: Story 2-2 implementation complete. Created card-integrity.test.ts (green), pattern-matcher.ts (stub), pattern-matcher.test.ts (red), updated barrel exports.
 
 ### File List
+- packages/shared/src/card/card-integrity.test.ts (new)
+- packages/shared/src/card/pattern-matcher.ts (new)
+- packages/shared/src/card/pattern-matcher.test.ts (new)
+- packages/shared/src/index.ts (modified)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified)
