@@ -64,6 +64,8 @@ export {
 
 // Card
 export { loadCard } from "./card/card-loader";
+export { validateHand } from "./card/pattern-matcher";
+export type { MatchResult } from "./card/pattern-matcher";
 
 // Engine
 export { createAllTiles, createWall } from "./engine/state/wall";
