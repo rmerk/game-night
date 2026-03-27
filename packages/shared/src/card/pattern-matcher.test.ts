@@ -818,8 +818,14 @@ describe("Pattern Matcher - Joker Eligibility Enforcement (Red Tests)", () => {
 
   test("Joker rejected in a pair position (ineligible)", () => {
     const tiles = buildTilesForHand("ev-2");
-    const pairIdx = tiles.length - 1;
-    tiles[pairIdx] = { id: "joker-8", category: "joker", copy: 8 } as Tile;
+    // Find pair-position tile by calculating offsets from hand structure
+    const hand = handMap.get("ev-2")!;
+    let pairStart = 0;
+    for (const group of hand.groups) {
+      if (group.type === "pair") break;
+      pairStart += GROUP_SIZES[group.type];
+    }
+    tiles[pairStart] = { id: "joker-8", category: "joker", copy: 8 } as Tile;
 
     const result = validateHand(tiles, card);
     expect(result?.patternId).not.toBe("ev-2");
@@ -846,11 +852,9 @@ describe("Pattern Matcher - Concealed Hand Validation (Red Tests)", () => {
     expect(result!.patternId).toBe("ev-5");
   });
 
-  test.fails("concealed hand rejected if any group is exposed", () => {
-    const tiles = buildTilesForHand("ev-5");
-    const result = validateHand(tiles, card);
-    expect(result).not.toBeNull();
-  });
+  // Concealed hand rejection requires exposure context in validateHand signature.
+  // Deferred to Story 2.5 (concealed/exposed hand validation).
+  test.todo("concealed hand rejected if any group is exposed (Story 2.5)");
 });
 
 // ---------------------------------------------------------------------------

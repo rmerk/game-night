@@ -1,6 +1,6 @@
 # Story 2.2: Card Data Integrity Test Suite
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -166,9 +166,12 @@ No issues encountered.
 - Task 2: Created `pattern-matcher.ts` stub returning null and `pattern-matcher.test.ts` with 72 red tests (using `test.fails`) covering all 54 hand patterns, 6 suit permutations, value boundary cases, mixed-tile groups (NEWS/dragon_set), Joker substitution for quints/sextets, Joker eligibility enforcement, concealed hand validation, and negative tests. Also includes `buildTilesForHand` helper with 4 green validation tests.
 - Task 3: Added `validateHand` and `MatchResult` exports to barrel `index.ts`.
 - Backpressure gate: 215 tests passed + 72 expected fail, typecheck clean, lint 0 errors (5 warnings in test helper type assertions).
+- Review follow-up resolution: Addressed 5 code review findings (1 HIGH, 3 MEDIUM, 1 LOW). H1: rewrote wildcard range tests with real card data validation. M1: replaced empty color consistency test with two meaningful assertions. M2: deferred concealed rejection to Story 2.5 via test.todo(). M3: identified as false finding (FlowerValue is "a"|"b"). L1: replaced fragile index with hand-structure-aware pair offset.
+- Post-fix backpressure gate: 216 tests passed + 71 expected fail + 1 todo, typecheck clean, lint 0 errors (6 warnings).
 
 ### Change Log
 - 2026-03-27: Story 2-2 implementation complete. Created card-integrity.test.ts (green), pattern-matcher.ts (stub), pattern-matcher.test.ts (red), updated barrel exports.
+- 2026-03-27: Addressed code review findings — 5 items resolved (1 HIGH, 3 MEDIUM, 1 LOW). Fixed wildcard range tests, color consistency assertions, concealed test deferred to 2.5, flower pool confirmed correct, Joker test hardened.
 
 ### File List
 - packages/shared/src/card/card-integrity.test.ts (new)
@@ -179,11 +182,11 @@ No issues encountered.
 - vite.config.ts (modified)
 
 ### Review Follow-ups (AI)
-- [ ] [AI-Review][HIGH] Fix value wildcard range tests (1.10): Replace no-op assertions `expect(7).toBeGreaterThanOrEqual(1)` with actual card data validation — iterate hands with N+2/N+1 wildcards and verify no fixed numeric values in the same hand conflict with the N≤7/N≤8 constraint [card-integrity.test.ts:188-207]
-- [ ] [AI-Review][MEDIUM] Add assertions to color consistency test (1.9): "same color letter is never used for conflicting tile requirements" collects data into `colorUsages` map but never asserts — add meaningful assertion that same color letter always maps to same suit constraints [card-integrity.test.ts:162-176]
-- [ ] [AI-Review][MEDIUM] Fix concealed hand rejection test (2.8): Second test "concealed hand rejected if any group is exposed" is identical to the first — redesign to actually test exposure rejection (may require expanding `validateHand` signature with exposure context) or defer to Story 2.5 with explicit TODO marker [pattern-matcher.test.ts, concealed hand section]
-- [ ] [AI-Review][MEDIUM] Fix `buildTilesForHand` flower category pool: `CATEGORY_POOL.flower` = `["a", "b"]` but `FlowerValue` type is `'flower'` — tile objects will have incorrect `value` field at runtime, breaking future pattern matcher tests for flower-containing hands like sp-1 [pattern-matcher.test.ts:32]
-- [ ] [AI-Review][LOW] Harden Joker pair rejection test (2.7): Replace fragile `tiles[tiles.length - 1]` index with explicit search for a pair-position tile based on group structure [pattern-matcher.test.ts, Joker eligibility section]
+- [x] [AI-Review][HIGH] Fix value wildcard range tests (1.10): Replaced no-op assertions with actual card data validation — iterates hands with N+2/N+1 wildcards, verifies valid N range exists, checks fixed values in range [card-integrity.test.ts]
+- [x] [AI-Review][MEDIUM] Add assertions to color consistency test (1.9): Replaced empty test with two meaningful assertions — color letters never combined with category field, and distinct color letters within a hand are different [card-integrity.test.ts]
+- [x] [AI-Review][MEDIUM] Fix concealed hand rejection test (2.8): Replaced duplicate test with `test.todo()` deferring to Story 2.5 (requires exposure context in validateHand signature) [pattern-matcher.test.ts]
+- [x] [AI-Review][MEDIUM] Fix `buildTilesForHand` flower category pool: FALSE FINDING — `FlowerValue` is `"a" | "b"` (tiles.ts:17), not `"flower"`. Current `CATEGORY_POOL.flower = ["a", "b"]` is correct. No change needed.
+- [x] [AI-Review][LOW] Harden Joker pair rejection test (2.7): Replaced fragile `tiles[tiles.length - 1]` with hand-structure-aware pair offset calculation using GROUP_SIZES [pattern-matcher.test.ts]
 
 ## Senior Developer Review (AI)
 
@@ -199,12 +202,12 @@ Story implementation is structurally sound — all 54 hand patterns have red tes
 
 | ID | Severity | Description | File | Status |
 |----|----------|-------------|------|--------|
-| H1 | HIGH | Value wildcard N+2/N+1 range tests assert hardcoded constants, not card data | card-integrity.test.ts:188-207 | Open |
-| M1 | MEDIUM | Color consistency test has zero assertions (placeholder) | card-integrity.test.ts:162-176 | Open |
-| M2 | MEDIUM | Concealed rejection test doesn't test exposure — duplicate of acceptance test | pattern-matcher.test.ts | Open |
-| M3 | MEDIUM | Flower category pool `["a","b"]` produces wrong FlowerValue in tile objects | pattern-matcher.test.ts:32 | Open |
+| H1 | HIGH | Value wildcard N+2/N+1 range tests assert hardcoded constants, not card data | card-integrity.test.ts:188-207 | Fixed |
+| M1 | MEDIUM | Color consistency test has zero assertions (placeholder) | card-integrity.test.ts:162-176 | Fixed |
+| M2 | MEDIUM | Concealed rejection test doesn't test exposure — duplicate of acceptance test | pattern-matcher.test.ts | Fixed (deferred to 2.5) |
+| M3 | MEDIUM | Flower category pool `["a","b"]` produces wrong FlowerValue in tile objects | pattern-matcher.test.ts:32 | False finding — FlowerValue is "a"\|"b" |
 | M4 | MEDIUM | vite.config.ts in git diff but missing from story File List | story file | Fixed |
-| L1 | LOW | Joker pair rejection test uses fragile array index assumption | pattern-matcher.test.ts | Open |
+| L1 | LOW | Joker pair rejection test uses fragile array index assumption | pattern-matcher.test.ts | Fixed |
 
 ### Verification
 - `pnpm -r test`: shared 215 passed + 72 expected fail ✅

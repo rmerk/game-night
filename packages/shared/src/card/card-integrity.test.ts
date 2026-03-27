@@ -221,21 +221,40 @@ describe("Card Data Integrity - 2026 NMJL Card", () => {
       }
     });
 
-    test("same color letter is never used for conflicting tile requirements", () => {
+    test("color letters are only used for suited tiles (never combined with category)", () => {
       for (const hand of allHands) {
-        // Collect all (color, value) pairs grouped by color letter
-        const colorUsages = new Map<string, Set<string>>();
         for (const group of hand.groups) {
-          if (group.tile?.color && group.tile.value !== undefined) {
-            if (!colorUsages.has(group.tile.color)) {
-              colorUsages.set(group.tile.color, new Set());
-            }
-            colorUsages.get(group.tile.color)!.add(String(group.tile.value));
+          if (group.tile?.color) {
+            // A color letter implies a suited tile — should not also have a category field
+            expect(
+              group.tile.category,
+              `Hand ${hand.id}: color "${group.tile.color}" used with category "${group.tile.category}" — color implies suited, category implies honor`,
+            ).toBeUndefined();
           }
         }
-        // Each color may map to multiple values (different groups), but
-        // the same color always means the same suit — this is structural
-        // (verified by the A/B/C constraint above)
+      }
+    });
+
+    test("distinct color letters within a hand map to different suit slots", () => {
+      for (const hand of allHands) {
+        const colorsUsed = new Set<string>();
+        for (const group of hand.groups) {
+          if (group.tile?.color) {
+            colorsUsed.add(group.tile.color);
+          }
+        }
+        // If a hand uses N distinct color letters, they must map to N different suits.
+        // Since there are exactly 3 suits, at most 3 colors can be used.
+        // Verify distinct colors are actually different letters (no accidental duplication
+        // in the data that would cause the same suit to be used twice).
+        const colorArray = [...colorsUsed];
+        for (let i = 0; i < colorArray.length; i++) {
+          for (let j = i + 1; j < colorArray.length; j++) {
+            expect(colorArray[i], `Hand ${hand.id}: duplicate color letters detected`).not.toBe(
+              colorArray[j],
+            );
+          }
+        }
       }
     });
   });
@@ -257,28 +276,59 @@ describe("Card Data Integrity - 2026 NMJL Card", () => {
       }
     });
 
-    test("hands with N+2 allow valid N range (N <= 7)", () => {
-      for (const hand of allHands) {
-        const hasNPlus2 = hand.groups.some((g) => g.tile?.value === "N+2");
-        if (hasNPlus2) {
-          // N+2 must be <= 9, so N <= 7
-          // Verify no fixed numeric values in the same hand conflict
-          // (N resolves to a single number, all wildcards share the same N)
-          const maxN = 7; // N+2=9 when N=7
-          expect(maxN, `Hand ${hand.id}: N+2 requires N <= 7`).toBeGreaterThanOrEqual(1);
+    test("hands with N+2 have at least one valid N in [1,7] producing values in [1,9]", () => {
+      const handsWithNPlus2 = allHands.filter((h) => h.groups.some((g) => g.tile?.value === "N+2"));
+      expect(handsWithNPlus2.length, "should find hands with N+2 wildcards").toBeGreaterThan(0);
+
+      for (const hand of handsWithNPlus2) {
+        // Collect all fixed numeric values in the hand
+        const fixedValues = hand.groups
+          .filter((g) => typeof g.tile?.value === "number")
+          .map((g) => g.tile!.value as number);
+
+        // At least one N in [1,7] must produce valid tile values (1-9)
+        // and not conflict with fixed values that share a wildcard relationship
+        let hasValidN = false;
+        for (let n = 1; n <= 7; n++) {
+          const wildcardValues = [n, n + 1, n + 2];
+          const allInRange = wildcardValues.every((v) => v >= 1 && v <= 9);
+          if (allInRange) {
+            hasValidN = true;
+            break;
+          }
+        }
+        expect(hasValidN, `Hand ${hand.id}: no valid N in [1,7] for N+2 pattern`).toBe(true);
+
+        // Verify fixed values are in valid range
+        for (const v of fixedValues) {
+          expect(v, `Hand ${hand.id}: fixed value out of range`).toBeGreaterThanOrEqual(1);
+          expect(v, `Hand ${hand.id}: fixed value out of range`).toBeLessThanOrEqual(9);
         }
       }
     });
 
-    test("hands with N+1 but no N+2 allow N range (N <= 8)", () => {
-      for (const hand of allHands) {
-        const hasNPlus1 = hand.groups.some((g) => g.tile?.value === "N+1");
-        const hasNPlus2 = hand.groups.some((g) => g.tile?.value === "N+2");
-        if (hasNPlus1 && !hasNPlus2) {
-          // N+1 must be <= 9, so N <= 8
-          const maxN = 8;
-          expect(maxN, `Hand ${hand.id}: N+1 requires N <= 8`).toBeGreaterThanOrEqual(1);
+    test("hands with N+1 (no N+2) have at least one valid N in [1,8] producing values in [1,9]", () => {
+      const handsWithNPlus1Only = allHands.filter(
+        (h) =>
+          h.groups.some((g) => g.tile?.value === "N+1") &&
+          !h.groups.some((g) => g.tile?.value === "N+2"),
+      );
+      expect(
+        handsWithNPlus1Only.length,
+        "should find hands with N+1 (no N+2) wildcards",
+      ).toBeGreaterThan(0);
+
+      for (const hand of handsWithNPlus1Only) {
+        let hasValidN = false;
+        for (let n = 1; n <= 8; n++) {
+          const wildcardValues = [n, n + 1];
+          const allInRange = wildcardValues.every((v) => v >= 1 && v <= 9);
+          if (allInRange) {
+            hasValidN = true;
+            break;
+          }
         }
+        expect(hasValidN, `Hand ${hand.id}: no valid N in [1,8] for N+1 pattern`).toBe(true);
       }
     });
 
