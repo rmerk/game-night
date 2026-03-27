@@ -20,7 +20,7 @@ describe('handleStartGame', () => {
   it('rejects START_GAME when not in lobby phase', () => {
     const state = createLobbyState()
     // Simulate already in play phase
-    ;(state as Record<string, unknown>).gamePhase = 'play'
+    state.gamePhase = 'play'
     const result = handleStartGame(state, START_ACTION)
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('WRONG_PHASE')
@@ -28,7 +28,7 @@ describe('handleStartGame', () => {
 
   it('does not mutate state when rejected', () => {
     const state = createLobbyState()
-    ;(state as Record<string, unknown>).gamePhase = 'play'
+    state.gamePhase = 'play'
     const originalPlayers = state.players
     handleStartGame(state, START_ACTION)
     expect(state.players).toBe(originalPlayers)

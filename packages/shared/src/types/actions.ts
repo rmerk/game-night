@@ -2,6 +2,7 @@
 export type GameAction =
   | StartGameAction
   | DrawTileAction
+  | DiscardTileAction
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -14,4 +15,11 @@ export interface StartGameAction {
 export interface DrawTileAction {
   readonly type: 'DRAW_TILE'
   readonly playerId: string
+}
+
+/** Action for the current player to discard a tile from their rack */
+export interface DiscardTileAction {
+  readonly type: 'DISCARD_TILE'
+  readonly playerId: string
+  readonly tileId: string
 }

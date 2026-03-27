@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createLobbyState, handleAction } from './game-engine'
+import { getPlayerBySeat } from '../testing/helpers'
 
 describe('createLobbyState', () => {
   it('creates a state in lobby phase', () => {
@@ -37,7 +38,7 @@ describe('handleAction', () => {
 
   it('rejects START_GAME when not in lobby', () => {
     const state = createLobbyState()
-    ;(state as Record<string, unknown>).gamePhase = 'play'
+    state.gamePhase = 'play'
     const result = handleAction(state, {
       type: 'START_GAME',
       playerIds: ['p1', 'p2', 'p3', 'p4'],
@@ -45,6 +46,33 @@ describe('handleAction', () => {
     })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('WRONG_PHASE')
+  })
+
+  it('dispatches DRAW_TILE to draw handler', () => {
+    const state = createLobbyState()
+    handleAction(state, { type: 'START_GAME', playerIds: ['p1', 'p2', 'p3', 'p4'], seed: 42 })
+    // East starts in 'discard' phase — put South in draw phase
+    const southId = getPlayerBySeat(state, 'south')
+    state.currentTurn = southId
+    state.turnPhase = 'draw'
+
+    const result = handleAction(state, { type: 'DRAW_TILE', playerId: southId })
+    expect(result.accepted).toBe(true)
+    expect(result.resolved).toEqual({ type: 'DRAW_TILE', playerId: southId })
+    expect(state.turnPhase).toBe('discard')
+  })
+
+  it('dispatches DISCARD_TILE to discard handler', () => {
+    const state = createLobbyState()
+    handleAction(state, { type: 'START_GAME', playerIds: ['p1', 'p2', 'p3', 'p4'], seed: 42 })
+    // East starts in 'discard' phase with 14 tiles — discard immediately
+    const eastId = getPlayerBySeat(state, 'east')
+    const tileId = state.players[eastId]!.rack[0]!.id
+
+    const result = handleAction(state, { type: 'DISCARD_TILE', playerId: eastId, tileId })
+    expect(result.accepted).toBe(true)
+    expect(result.resolved).toEqual({ type: 'DISCARD_TILE', playerId: eastId, tileId })
+    expect(state.currentTurn).not.toBe(eastId)
   })
 
   it('produces correct initial state through full action flow', () => {

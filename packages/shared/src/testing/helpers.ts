@@ -26,6 +26,13 @@ export function buildHand(tileIds: string[]): Tile[] {
   })
 }
 
+/** Get the player ID for a given seat wind from a GameState. Throws if not found. */
+export function getPlayerBySeat(state: GameState, seat: string): string {
+  const player = Object.values(state.players).find((p) => p.seatWind === seat)
+  if (!player) throw new Error(`No player found for seat ${seat}`)
+  return player.id
+}
+
 /**
  * Create a test game state with default player IDs and seed.
  * Useful for tests that need a fully initialized game state.

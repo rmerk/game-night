@@ -1,3 +1,4 @@
+import type { Tile } from '../../types/tiles'
 import type { GameState, ActionResult } from '../../types/game-state'
 import type { DrawTileAction } from '../../types/actions'
 import { SEATS } from '../../constants'
@@ -17,11 +18,16 @@ export function handleDrawTile(state: GameState, action: DrawTileAction): Action
   if (state.turnPhase !== 'draw') {
     return { accepted: false, reason: 'ALREADY_DRAWN' }
   }
+  if (state.wall.length === 0) {
+    return { accepted: false, reason: 'WALL_EMPTY' }
+  }
 
   // 2. Mutate — only reached if all validation passed
-  const tile = state.wall.shift()!
-  state.players[action.playerId].rack.push(tile)
-  state.wallRemaining -= 1
+  const player = state.players[action.playerId]
+  if (!player) throw new Error(`handleDrawTile: no player found for id '${action.playerId}'`)
+  const tile = state.wall.shift() as Tile
+  player.rack.push(tile)
+  state.wallRemaining = state.wall.length
   state.turnPhase = 'discard'
 
   // 3. Return result
@@ -35,10 +41,12 @@ export function handleDrawTile(state: GameState, action: DrawTileAction): Action
  */
 export function advanceTurn(state: GameState): void {
   const currentPlayer = state.players[state.currentTurn]
+  if (!currentPlayer) throw new Error(`advanceTurn: no player found for currentTurn '${state.currentTurn}'`)
   const currentSeatIndex = SEATS.indexOf(currentPlayer.seatWind)
   const nextSeatWind = SEATS[(currentSeatIndex + 1) % SEATS.length]
 
-  const nextPlayer = Object.values(state.players).find((p) => p.seatWind === nextSeatWind)!
+  const nextPlayer = Object.values(state.players).find((p) => p.seatWind === nextSeatWind)
+  if (!nextPlayer) throw new Error(`advanceTurn: no player found with seatWind '${nextSeatWind}'`)
   state.currentTurn = nextPlayer.id
   state.turnPhase = 'draw'
 }

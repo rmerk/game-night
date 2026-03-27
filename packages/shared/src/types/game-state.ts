@@ -24,6 +24,15 @@ export interface PlayerState {
   readonly discardPool: Tile[]
 }
 
+/** Result of a wall game (draw) — no winner, no payments */
+export interface WallGameResult {
+  readonly winnerId: null
+  readonly points: 0
+}
+
+/** Game result — currently only wall game; Mahjong result added in later epic */
+export type GameResult = WallGameResult
+
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
 export interface GameState {
   gamePhase: GamePhase
@@ -32,9 +41,10 @@ export interface GameState {
   wallRemaining: number
   currentTurn: string
   turnPhase: TurnPhase
-  lastDiscard: null
+  lastDiscard: { tile: Tile; discarderId: string } | null
   callWindow: null
   scores: Record<string, number>
+  gameResult: GameResult | null
 }
 
 /** Result of processing a game action */
@@ -48,3 +58,5 @@ export interface ActionResult {
 export type ResolvedAction =
   | { readonly type: 'GAME_STARTED' }
   | { readonly type: 'DRAW_TILE'; readonly playerId: string }
+  | { readonly type: 'DISCARD_TILE'; readonly playerId: string; readonly tileId: string }
+  | { readonly type: 'WALL_GAME' }

@@ -9,7 +9,7 @@ import type {
   ResolvedAction,
   ExposedGroup,
 } from './game-state'
-import type { GameAction, StartGameAction } from './actions'
+import type { GameAction, StartGameAction, DrawTileAction, DiscardTileAction } from './actions'
 import type { Tile } from './tiles'
 
 describe('GameState types', () => {
@@ -54,14 +54,15 @@ describe('GameState types', () => {
     expectTypeOf<GameState>().toHaveProperty('lastDiscard')
     expectTypeOf<GameState>().toHaveProperty('callWindow')
     expectTypeOf<GameState>().toHaveProperty('scores')
+    expectTypeOf<GameState>().toHaveProperty('gameResult')
   })
 
   it('GameState.callWindow is null', () => {
     expectTypeOf<GameState['callWindow']>().toEqualTypeOf<null>()
   })
 
-  it('GameState.lastDiscard is null', () => {
-    expectTypeOf<GameState['lastDiscard']>().toEqualTypeOf<null>()
+  it('GameState.lastDiscard is tile-discarder pair or null', () => {
+    expectTypeOf<GameState['lastDiscard']>().toEqualTypeOf<{ tile: Tile; discarderId: string } | null>()
   })
 
   it('ActionResult has accepted and optional reason/resolved', () => {
@@ -83,5 +84,13 @@ describe('GameAction types', () => {
 
   it('GameAction includes StartGameAction', () => {
     expectTypeOf<StartGameAction>().toMatchTypeOf<GameAction>()
+  })
+
+  it('GameAction includes DrawTileAction', () => {
+    expectTypeOf<DrawTileAction>().toMatchTypeOf<GameAction>()
+  })
+
+  it('GameAction includes DiscardTileAction', () => {
+    expectTypeOf<DiscardTileAction>().toMatchTypeOf<GameAction>()
   })
 })

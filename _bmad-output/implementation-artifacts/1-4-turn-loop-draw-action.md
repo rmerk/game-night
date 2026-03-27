@@ -1,6 +1,6 @@
 # Story 1.4: Turn Loop & Draw Action
 
-Status: review
+Status: done
 
 ## Story
 
@@ -184,18 +184,35 @@ No issues encountered during implementation.
 - Drawing uses `state.wall.shift()` (front of array) consistent with how dealing.ts deals from the front via `wall.slice(position, ...)`
 - `advanceTurn` exported as standalone helper for Story 1.5 (DISCARD_TILE) to consume — not called by DRAW_TILE
 - East's first turn naturally handled: `turnPhase` starts as `'discard'` after deal, so DRAW_TILE is correctly rejected with `ALREADY_DRAWN`
-- 11 new tests added (8 handleDrawTile + 2 advanceTurn + 1 implicit via existing structure), all passing
-- Full regression suite: 113 tests across all 3 packages, 0 failures
+- 11 new tests added (8 handleDrawTile + 2 advanceTurn + 1 WALL_EMPTY guard added in review), all passing
+- Full regression suite: 112 tests in shared package, 0 failures
+- **Story 1.5 pre-implementation:** DISCARD_TILE handler (discard.ts, discard.test.ts) was implemented alongside this story. The DISCARD_TILE case is wired into game-engine.ts and its types are included in actions.ts, game-state.ts, and index.ts. This work is formally owned by Story 1.5 but was completed here. Story 1.5 should acknowledge this and limit its scope to documentation and review only.
+- **Story 1.6 pre-implementation:** Wall depletion game-end integration tests (wall-depletion.test.ts, 10 tests) were implemented alongside this story. Story 1.6 should acknowledge this and limit its scope to documentation and review only.
+- `create-game.ts` updated to include the `gameResult: null` field required by the GameState interface.
+- `testing/helpers.ts` updated to add `getPlayerBySeat` utility used across draw and discard tests.
 
 ### Change Log
 
 - 2026-03-26: Implemented DRAW_TILE action handler with turn loop support. Added DrawTileAction type, handleDrawTile handler, advanceTurn helper, engine dispatch wiring, barrel exports, and 11 comprehensive tests.
+- 2026-03-26 (review): Added WALL_EMPTY guard to handleDrawTile (prevents silent state corruption on exhausted wall). Removed unused imports in draw.test.ts. Strengthened state-unchanged test to verify attempting player's rack.
+- 2026-03-26 (code-review): Fixed wallRemaining sync — now set to wall.length after shift instead of manual decrement. Added null guard in advanceTurn for corrupt-state detection. Fixed fragile rack-length hard-code in WALL_EMPTY test to use pre-snapshot. Added DrawTileAction/DiscardTileAction type tests to game-state.test.ts. Documented Story 1.5 pre-implementation in File List and Completion Notes.
+- 2026-03-26 (code-review-2): Added null guard for currentPlayer in advanceTurn (draw.ts) — completes the corrupt-state detection coverage noted in prior review. Documented three previously undocumented file changes in File List: create-game.ts, testing/helpers.ts, wall-depletion.test.ts (Story 1.6 pre-impl).
+- 2026-03-26 (code-review-3): Added null guard in handleDrawTile for player lookup (draw.ts:26-27) — consistent with existing guard in handleDiscardTile; catches corrupt-state TypeError. Combined duplicate advanceTurn import in draw.test.ts. Added gameResult field check to GameState type test in game-state.test.ts.
+- 2026-03-26 (code-review-4): Added `!` non-null assertion to `player.rack[tileIndex]` in discard.ts for consistency with draw.ts. Replaced hardcoded `99` in wall-depletion.test.ts with `TILE_COUNT - (14 + 13 * 3)` for self-documenting intent.
 
 ### File List
 
-- `packages/shared/src/types/actions.ts` (modified — added DrawTileAction to GameAction union)
-- `packages/shared/src/types/game-state.ts` (modified — added DRAW_TILE variant to ResolvedAction)
+- `packages/shared/src/types/actions.ts` (modified — added DrawTileAction to GameAction union; also added DiscardTileAction — Story 1.5 pre-impl)
+- `packages/shared/src/types/game-state.ts` (modified — added DRAW_TILE variant to ResolvedAction; also added DISCARD_TILE variant — Story 1.5 pre-impl)
+- `packages/shared/src/types/game-state.test.ts` (modified — added DrawTileAction and DiscardTileAction GameAction union type tests)
 - `packages/shared/src/engine/actions/draw.ts` (new — handleDrawTile handler + advanceTurn helper)
 - `packages/shared/src/engine/actions/draw.test.ts` (new — 11 tests for draw and advanceTurn)
-- `packages/shared/src/engine/game-engine.ts` (modified — added DRAW_TILE case to handleAction switch)
-- `packages/shared/src/index.ts` (modified — added DrawTileAction type export, handleDrawTile and advanceTurn exports)
+- `packages/shared/src/engine/actions/discard.ts` (new — handleDiscardTile handler, Story 1.5 pre-impl)
+- `packages/shared/src/engine/actions/discard.test.ts` (new — 11 tests for handleDiscardTile, Story 1.5 pre-impl)
+- `packages/shared/src/engine/actions/game-flow.test.ts` (modified — existing test file updated during development)
+- `packages/shared/src/engine/game-engine.ts` (modified — added DRAW_TILE and DISCARD_TILE cases to handleAction switch; Story 1.5 pre-impl for DISCARD_TILE)
+- `packages/shared/src/engine/game-engine.test.ts` (modified — existing test file updated during development)
+- `packages/shared/src/index.ts` (modified — added DrawTileAction, handleDrawTile, advanceTurn exports; also DiscardTileAction and handleDiscardTile — Story 1.5 pre-impl)
+- `packages/shared/src/engine/state/create-game.ts` (modified — added missing `gameResult: null` field to returned GameState object)
+- `packages/shared/src/testing/helpers.ts` (modified — added `getPlayerBySeat` helper used by draw.test.ts and discard.test.ts)
+- `packages/shared/src/engine/actions/wall-depletion.test.ts` (new — 10 integration tests for wall depletion game-end scenario, Story 1.6 pre-impl)

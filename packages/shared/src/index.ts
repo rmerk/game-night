@@ -24,12 +24,15 @@ export type {
   ExposedGroup,
   ActionResult,
   ResolvedAction,
+  WallGameResult,
+  GameResult,
 } from './types/game-state'
 
 export type {
   GameAction,
   StartGameAction,
   DrawTileAction,
+  DiscardTileAction,
 } from './types/actions'
 
 // Constants
@@ -53,3 +56,4 @@ export { dealTiles } from './engine/state/dealing'
 export { createGame } from './engine/state/create-game'
 export { createLobbyState, handleAction } from './engine/game-engine'
 export { handleDrawTile, advanceTurn } from './engine/actions/draw'
+export { handleDiscardTile } from './engine/actions/discard'

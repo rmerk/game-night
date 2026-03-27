@@ -1,28 +1,17 @@
 import { describe, test, expect } from 'vitest'
-import { handleDrawTile } from './draw'
-import { createPlayState, TEST_PLAYER_IDS } from '../../testing/fixtures'
-import { createTestState } from '../../testing/helpers'
+import { handleDrawTile, advanceTurn } from './draw'
+import { createPlayState } from '../../testing/fixtures'
+import { getPlayerBySeat } from '../../testing/helpers'
 import type { GameState } from '../../types/game-state'
 import type { DrawTileAction } from '../../types/actions'
 import { SEATS } from '../../constants'
-import { advanceTurn } from './draw'
 
 function makeDrawAction(playerId: string): DrawTileAction {
   return { type: 'DRAW_TILE', playerId }
 }
 
-/** Get the player ID for East seat */
 function getEastPlayerId(state: GameState): string {
-  const east = Object.values(state.players).find((p) => p.seatWind === 'east')
-  if (!east) throw new Error('No east player found')
-  return east.id
-}
-
-/** Get the player ID for a given seat wind */
-function getPlayerBySeat(state: GameState, seat: string): string {
-  const player = Object.values(state.players).find((p) => p.seatWind === seat)
-  if (!player) throw new Error(`No player found for seat ${seat}`)
-  return player.id
+  return getPlayerBySeat(state, 'east')
 }
 
 describe('handleDrawTile', () => {
@@ -122,10 +111,12 @@ describe('handleDrawTile', () => {
 
     // Wrong player tries to draw
     const westId = getPlayerBySeat(state, 'west')
+    const westRackBefore = [...state.players[westId].rack]
     handleDrawTile(state, makeDrawAction(westId))
 
     expect(state.wall).toEqual(wallBefore)
     expect(state.players[southId].rack).toEqual(rackBefore)
+    expect(state.players[westId].rack).toEqual(westRackBefore)
     expect(state.wallRemaining).toBe(wallRemainingBefore)
     expect(state.turnPhase).toBe(turnPhaseBefore)
   })
@@ -140,6 +131,21 @@ describe('handleDrawTile', () => {
     const result = handleDrawTile(state, makeDrawAction(southId))
 
     expect(result).toEqual({ accepted: false, reason: 'WRONG_PHASE' })
+  })
+
+  test('rejects WALL_EMPTY when wall has no tiles', () => {
+    const state = createPlayState()
+    const southId = getPlayerBySeat(state, 'south')
+    state.currentTurn = southId
+    state.turnPhase = 'draw'
+    state.wall = []
+    state.wallRemaining = 0
+
+    const rackLengthBefore = state.players[southId].rack.length
+    const result = handleDrawTile(state, makeDrawAction(southId))
+
+    expect(result).toEqual({ accepted: false, reason: 'WALL_EMPTY' })
+    expect(state.players[southId].rack.length).toBe(rackLengthBefore)
   })
 })
 

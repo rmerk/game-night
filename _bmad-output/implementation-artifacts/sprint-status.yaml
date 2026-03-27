@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-03-26T00:00:00Z
+# last_updated: 2026-03-26
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-26
+last_updated: 2026-03-26  # dev-story: 1-6 promoted to review
 project: mahjong-game
 
 project_key: NOKEY
@@ -48,9 +48,9 @@ development_status:
   1-1-monorepo-setup-development-tooling: done
   1-2-tile-definitions-wall-creation: done
   1-3-game-state-machine-dealing: done
-  1-4-turn-loop-draw-action: review
-  1-5-discard-action-with-joker-restrictions: backlog
-  1-6-wall-depletion-game-end: backlog
+  1-4-turn-loop-draw-action: done
+  1-5-discard-action-with-joker-restrictions: done
+  1-6-wall-depletion-game-end: review
   1-7-minimal-visual-test-harness: backlog
   epic-1-retrospective: optional
 

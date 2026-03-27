@@ -52,5 +52,6 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     lastDiscard: null,
     callWindow: null,
     scores,
+    gameResult: null,
   }
 }
