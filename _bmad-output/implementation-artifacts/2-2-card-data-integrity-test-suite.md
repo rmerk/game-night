@@ -1,6 +1,6 @@
 # Story 2.2: Card Data Integrity Test Suite
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -176,3 +176,38 @@ No issues encountered.
 - packages/shared/src/card/pattern-matcher.test.ts (new)
 - packages/shared/src/index.ts (modified)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified)
+- vite.config.ts (modified)
+
+### Review Follow-ups (AI)
+- [ ] [AI-Review][HIGH] Fix value wildcard range tests (1.10): Replace no-op assertions `expect(7).toBeGreaterThanOrEqual(1)` with actual card data validation — iterate hands with N+2/N+1 wildcards and verify no fixed numeric values in the same hand conflict with the N≤7/N≤8 constraint [card-integrity.test.ts:188-207]
+- [ ] [AI-Review][MEDIUM] Add assertions to color consistency test (1.9): "same color letter is never used for conflicting tile requirements" collects data into `colorUsages` map but never asserts — add meaningful assertion that same color letter always maps to same suit constraints [card-integrity.test.ts:162-176]
+- [ ] [AI-Review][MEDIUM] Fix concealed hand rejection test (2.8): Second test "concealed hand rejected if any group is exposed" is identical to the first — redesign to actually test exposure rejection (may require expanding `validateHand` signature with exposure context) or defer to Story 2.5 with explicit TODO marker [pattern-matcher.test.ts, concealed hand section]
+- [ ] [AI-Review][MEDIUM] Fix `buildTilesForHand` flower category pool: `CATEGORY_POOL.flower` = `["a", "b"]` but `FlowerValue` type is `'flower'` — tile objects will have incorrect `value` field at runtime, breaking future pattern matcher tests for flower-containing hands like sp-1 [pattern-matcher.test.ts:32]
+- [ ] [AI-Review][LOW] Harden Joker pair rejection test (2.7): Replace fragile `tiles[tiles.length - 1]` index with explicit search for a pair-position tile based on group structure [pattern-matcher.test.ts, Joker eligibility section]
+
+## Senior Developer Review (AI)
+
+**Reviewer:** AI Code Reviewer (Opus 4.6)
+**Date:** 2026-03-27
+**Review Cycle:** 1
+**Outcome:** Changes Requested
+
+### Summary
+Story implementation is structurally sound — all 54 hand patterns have red tests, the card integrity suite covers the right categories, the stub + barrel exports are correct, and the backpressure gate passes (215 green + 72 expected fail, typecheck clean, lint 0 errors). However, several tests contain no-op or placeholder assertions that create false confidence in data validation.
+
+### Findings
+
+| ID | Severity | Description | File | Status |
+|----|----------|-------------|------|--------|
+| H1 | HIGH | Value wildcard N+2/N+1 range tests assert hardcoded constants, not card data | card-integrity.test.ts:188-207 | Open |
+| M1 | MEDIUM | Color consistency test has zero assertions (placeholder) | card-integrity.test.ts:162-176 | Open |
+| M2 | MEDIUM | Concealed rejection test doesn't test exposure — duplicate of acceptance test | pattern-matcher.test.ts | Open |
+| M3 | MEDIUM | Flower category pool `["a","b"]` produces wrong FlowerValue in tile objects | pattern-matcher.test.ts:32 | Open |
+| M4 | MEDIUM | vite.config.ts in git diff but missing from story File List | story file | Fixed |
+| L1 | LOW | Joker pair rejection test uses fragile array index assumption | pattern-matcher.test.ts | Open |
+
+### Verification
+- `pnpm -r test`: shared 215 passed + 72 expected fail ✅
+- `pnpm run typecheck`: clean ✅
+- `vp lint`: 0 errors, 5 warnings (type assertions in test helpers) ✅
+- Pre-existing client failure (TestHarness draw button) unrelated to this story
