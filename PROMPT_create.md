@@ -18,9 +18,9 @@ Study @_bmad/gds/config.yaml for GDS configuration values.
 
 <!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel Sonnet subagents to verify before writing new code.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel subagents to verify before writing new code.
 
-**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to Sonnet subagents to avoid polluting main context.
+**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to subagents to avoid polluting main context.
 
 **[999999999]** When updating sprint-status.yaml, preserve ALL comments and STATUS DEFINITIONS in the file header. Never overwrite or truncate the file. Read the FULL file first, then make targeted edits.
 
@@ -40,7 +40,7 @@ and validate against @.claude/skills/gds-create-story/checklist.md
 - Target: the first `backlog` story in the current in-progress epic
 - Auto-select the story — do NOT ask the user for input at any `<ask>` step
 - If this is the first story in the epic, update epic status `backlog` → `in-progress`
-- Use parallel Sonnet subagents to study the epics file, architecture, GDD, and UX docs
+- Use parallel subagents to study the epics file, architecture, GDD, and UX docs
 - Output: story file in `_bmad-output/implementation-artifacts/`
 - Update sprint-status.yaml: `backlog` → `ready-for-dev`
 - Commit the new story file with: `chore(story): create story {story_key}`

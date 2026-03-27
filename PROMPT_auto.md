@@ -18,9 +18,9 @@ Study @_bmad/gds/config.yaml for GDS configuration values.
 
 <!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel Sonnet subagents to verify before writing new code. This is the most common failure mode. Always confirm with code search.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use subagents to verify before writing new code. This is the most common failure mode. Always confirm with code search.
 
-**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to Sonnet subagents to avoid polluting main context. Only 1 subagent for running build/tests (backpressure control). Use Opus subagents when complex reasoning is needed (debugging, architectural decisions).
+**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to subagents to avoid polluting main context. Only 1 subagent for running build/tests (backpressure control).
 
 **[9999999]** Backpressure gate — run before every commit: `pnpm -r test && pnpm run typecheck && vp lint` — all must pass. If any fail, fix before committing. Never skip tests.
 
@@ -62,7 +62,7 @@ and validate against @.claude/skills/gds-create-story/checklist.md
 - Target: the first `backlog` story in the current in-progress epic
 - Auto-select the story — do NOT ask the user for input at any `<ask>` step
 - If this is the first story in the epic, update epic status `backlog` → `in-progress`
-- Use parallel Sonnet subagents to study the epics file, architecture, GDD, and UX docs
+- Use parallel subagents to study the epics file, architecture, GDD, and UX docs
 - Output: story file in `_bmad-output/implementation-artifacts/`
 - Update sprint-status.yaml: `backlog` → `ready-for-dev`
 - Commit the new story file with: `chore(story): create story {story_key}`
@@ -83,7 +83,7 @@ and validate against @.claude/skills/gds-dev-story/checklist.md
   prioritize `[AI-Review]` tagged tasks before regular tasks.
   When resolving review items, dual-mark: checkbox in "Review Follow-ups (AI)"
   subsection AND the corresponding action item in "Senior Developer Review (AI) → Action Items".
-- Use parallel Sonnet subagents for codebase searches and file reads
+- Use parallel subagents for codebase searches and file reads
 - Use only 1 subagent for running build/test commands
 - Run the backpressure gate before every commit
 - Step 4: update sprint-status.yaml `ready-for-dev` → `in-progress`
@@ -121,4 +121,7 @@ and validate against @.claude/skills/gds-code-review/checklist.md
   existing "Senior Developer Review (AI)" sections). If this is the 3rd+ review cycle,
   add "CONVERGENCE WARNING: review cycle #N" to the story file Dev Agent Record.
   The operator should monitor and intervene if this pattern persists.
+- **IMPORTANT: Commit all changes before exiting.** After writing review findings and updating
+  sprint-status.yaml, run `git add -A && git commit -m "chore(story): code review {story_key} — {outcome}"`.
+  The outcome should be "changes requested" or "approved". Do NOT exit with uncommitted changes.
 - Exit after reviewing one story

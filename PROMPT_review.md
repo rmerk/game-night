@@ -18,9 +18,9 @@ Study @_bmad/gds/config.yaml for GDS configuration values.
 
 <!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel Sonnet subagents to verify before writing new code.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel subagents to verify before writing new code.
 
-**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to Sonnet subagents to avoid polluting main context.
+**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to subagents to avoid polluting main context.
 
 **[999999999]** When updating sprint-status.yaml, preserve ALL comments and STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
 
@@ -50,4 +50,7 @@ and validate against @.claude/skills/gds-code-review/checklist.md
 - **Convergence guard:** Count how many times this story has been through review (check for
   existing "Senior Developer Review (AI)" sections). If this is the 3rd+ review cycle,
   add "CONVERGENCE WARNING: review cycle #N" to the story file Dev Agent Record.
+- **IMPORTANT: Commit all changes before exiting.** After writing review findings and updating
+  sprint-status.yaml, run `git add -A && git commit -m "chore(story): code review {story_key} — {outcome}"`.
+  The outcome should be "changes requested" or "approved". Do NOT exit with uncommitted changes.
 - Exit after reviewing one story
