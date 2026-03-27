@@ -1,25 +1,22 @@
 /** Discriminated union of all game actions */
-export type GameAction =
-  | StartGameAction
-  | DrawTileAction
-  | DiscardTileAction
+export type GameAction = StartGameAction | DrawTileAction | DiscardTileAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
-  readonly type: 'START_GAME'
-  readonly playerIds: string[]
-  readonly seed?: number
+  readonly type: "START_GAME";
+  readonly playerIds: string[];
+  readonly seed?: number;
 }
 
 /** Action for the current player to draw a tile from the wall */
 export interface DrawTileAction {
-  readonly type: 'DRAW_TILE'
-  readonly playerId: string
+  readonly type: "DRAW_TILE";
+  readonly playerId: string;
 }
 
 /** Action for the current player to discard a tile from their rack */
 export interface DiscardTileAction {
-  readonly type: 'DISCARD_TILE'
-  readonly playerId: string
-  readonly tileId: string
+  readonly type: "DISCARD_TILE";
+  readonly playerId: string;
+  readonly tileId: string;
 }

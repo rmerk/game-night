@@ -1,16 +1,16 @@
-import type { Tile } from '../../types/tiles'
-import type { SeatWind } from '../../types/game-state'
-import { SEATS } from '../../constants'
+import type { Tile } from "../../types/tiles";
+import type { SeatWind } from "../../types/game-state";
+import { SEATS } from "../../constants";
 
 /** Number of tiles dealt to East (dealer) */
-const EAST_HAND_SIZE = 14
+const EAST_HAND_SIZE = 14;
 
 /** Number of tiles dealt to non-dealer seats */
-const STANDARD_HAND_SIZE = 13
+const STANDARD_HAND_SIZE = 13;
 
 export interface DealResult {
-  readonly hands: Record<SeatWind, Tile[]>
-  readonly remainingWall: Tile[]
+  readonly hands: Record<SeatWind, Tile[]>;
+  readonly remainingWall: Tile[];
 }
 
 /**
@@ -19,17 +19,19 @@ export interface DealResult {
  * Tiles are dealt from the front of the wall array.
  */
 export function dealTiles(wall: Tile[]): DealResult {
-  let position = 0
-  const hands = {} as Record<SeatWind, Tile[]>
-
-  for (const seat of SEATS) {
-    const count = seat === 'east' ? EAST_HAND_SIZE : STANDARD_HAND_SIZE
-    hands[seat] = wall.slice(position, position + count)
-    position += count
-  }
+  let position = 0;
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- SEATS covers all SeatWind values
+  const hands = Object.fromEntries(
+    SEATS.map((seat) => {
+      const count = seat === "east" ? EAST_HAND_SIZE : STANDARD_HAND_SIZE;
+      const hand = wall.slice(position, position + count);
+      position += count;
+      return [seat, hand];
+    }),
+  ) as Record<SeatWind, Tile[]>;
 
   return {
     hands,
     remainingWall: wall.slice(position),
-  }
+  };
 }

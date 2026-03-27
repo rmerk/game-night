@@ -10,10 +10,30 @@
           "points": 25,
           "exposure": "C",
           "groups": [
-            { "type": "kong", "tile": { "color": "A", "value": 2 }, "jokerEligible": true, "concealed": true },
-            { "type": "kong", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true, "concealed": true },
-            { "type": "kong", "tile": { "color": "B", "value": 2 }, "jokerEligible": true, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": 6 }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "kong",
+              "tile": { "color": "A", "value": 2 },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "kong",
+              "tile": { "color": "B", "value": 2 },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -58,13 +78,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": 2 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 4 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 6 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 8 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 2 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 4 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 6 }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 2 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 4 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 8 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 2 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 4 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -77,7 +132,11 @@
             { "type": "pung", "tile": { "color": "A", "value": 4 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "A", "value": 6 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "A", "value": 8 }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -90,7 +149,11 @@
             { "type": "pung", "tile": { "color": "B", "value": 4 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "A", "value": 6 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "B", "value": 8 }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -162,8 +225,16 @@
           "groups": [
             { "type": "quint", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any_different:2" }, "jokerEligible": false }
+            {
+              "type": "pung",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any_different:2" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -172,9 +243,24 @@
           "points": 60,
           "exposure": "C",
           "groups": [
-            { "type": "quint", "tile": { "color": "A", "value": 2 }, "jokerEligible": true, "concealed": true },
-            { "type": "quint", "tile": { "color": "B", "value": 6 }, "jokerEligible": true, "concealed": true },
-            { "type": "kong", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true, "concealed": true }
+            {
+              "type": "quint",
+              "tile": { "color": "A", "value": 2 },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "quint",
+              "tile": { "color": "B", "value": 6 },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": true,
+              "concealed": true
+            }
           ]
         }
       ]
@@ -191,7 +277,11 @@
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "C", "value": "N+2" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -203,7 +293,11 @@
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": "N+2" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -238,13 +332,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": "N+2" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N+2" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": "N" }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N+2" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N+2" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -256,7 +385,11 @@
             { "type": "sextet", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": true },
             { "type": "pair", "tile": { "color": "A", "value": "N+2" }, "jokerEligible": false },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -345,13 +478,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": 1 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 3 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 5 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 7 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 9 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 1 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 3 }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 1 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 5 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 7 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 9 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 1 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -403,7 +571,11 @@
             { "type": "news", "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -412,11 +584,31 @@
           "points": 30,
           "exposure": "X",
           "groups": [
-            { "type": "pung", "tile": { "category": "wind", "specific": "north" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "wind", "specific": "east" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "wind", "specific": "west" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "wind", "specific": "south" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pung",
+              "tile": { "category": "wind", "specific": "north" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pung",
+              "tile": { "category": "wind", "specific": "east" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pung",
+              "tile": { "category": "wind", "specific": "west" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pung",
+              "tile": { "category": "wind", "specific": "south" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -425,9 +617,21 @@
           "points": 30,
           "exposure": "X",
           "groups": [
-            { "type": "pung", "tile": { "category": "dragon", "specific": "red" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "dragon", "specific": "green" }, "jokerEligible": true },
-            { "type": "pung", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true },
+            {
+              "type": "pung",
+              "tile": { "category": "dragon", "specific": "red" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pung",
+              "tile": { "category": "dragon", "specific": "green" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pung",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": true
+            },
             { "type": "pung", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "pair", "tile": { "color": "A", "value": "N" }, "jokerEligible": false }
           ]
@@ -450,9 +654,21 @@
           "points": 35,
           "exposure": "X",
           "groups": [
-            { "type": "kong", "tile": { "category": "dragon", "specific": "red" }, "jokerEligible": true },
-            { "type": "kong", "tile": { "category": "dragon", "specific": "green" }, "jokerEligible": true },
-            { "type": "kong", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true },
+            {
+              "type": "kong",
+              "tile": { "category": "dragon", "specific": "red" },
+              "jokerEligible": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "dragon", "specific": "green" },
+              "jokerEligible": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": true
+            },
             { "type": "pair", "tile": { "color": "A", "value": "N" }, "jokerEligible": false }
           ]
         },
@@ -462,10 +678,26 @@
           "points": 35,
           "exposure": "X",
           "groups": [
-            { "type": "kong", "tile": { "category": "wind", "specific": "north" }, "jokerEligible": true },
-            { "type": "kong", "tile": { "category": "wind", "specific": "south" }, "jokerEligible": true },
-            { "type": "kong", "tile": { "category": "wind", "specific": "east" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "wind", "specific": "west" }, "jokerEligible": false }
+            {
+              "type": "kong",
+              "tile": { "category": "wind", "specific": "north" },
+              "jokerEligible": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "wind", "specific": "south" },
+              "jokerEligible": true
+            },
+            {
+              "type": "kong",
+              "tile": { "category": "wind", "specific": "east" },
+              "jokerEligible": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "wind", "specific": "west" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -486,13 +718,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "category": "wind", "specific": "north" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "wind", "specific": "east" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "wind", "specific": "west" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "wind", "specific": "south" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "red" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "green" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "category": "wind", "specific": "north" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "wind", "specific": "east" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "wind", "specific": "west" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "wind", "specific": "south" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "red" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "green" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         }
       ]
@@ -510,7 +777,11 @@
             { "type": "pung", "tile": { "color": "A", "value": 3 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "A", "value": 6 }, "jokerEligible": true },
             { "type": "pung", "tile": { "color": "A", "value": 9 }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -522,7 +793,11 @@
             { "type": "kong", "tile": { "color": "A", "value": 3 }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": 6 }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": 9 }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -534,7 +809,11 @@
             { "type": "kong", "tile": { "color": "A", "value": 3 }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": 6 }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "C", "value": 9 }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -556,13 +835,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": 3 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 6 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 9 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 3 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 6 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": 9 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": 3 }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 9 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": 9 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -612,11 +926,36 @@
           "points": 30,
           "exposure": "X",
           "groups": [
-            { "type": "kong", "tile": { "category": "flower", "specific": "any" }, "jokerEligible": true, "concealed": false },
-            { "type": "pung", "tile": { "color": "A", "value": "N" }, "jokerEligible": true, "concealed": true },
-            { "type": "pung", "tile": { "color": "B", "value": "N" }, "jokerEligible": true, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "flower", "specific": "any_different:2" }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "kong",
+              "tile": { "category": "flower", "specific": "any" },
+              "jokerEligible": true,
+              "concealed": false
+            },
+            {
+              "type": "pung",
+              "tile": { "color": "A", "value": "N" },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "pung",
+              "tile": { "color": "B", "value": "N" },
+              "jokerEligible": true,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "flower", "specific": "any_different:2" },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -626,12 +965,20 @@
           "exposure": "X",
           "groups": [
             { "type": "single", "tile": { "color": "A", "value": 2 }, "jokerEligible": false },
-            { "type": "single", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": false },
+            {
+              "type": "single",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": false
+            },
             { "type": "single", "tile": { "color": "A", "value": 2 }, "jokerEligible": false },
             { "type": "single", "tile": { "color": "A", "value": 6 }, "jokerEligible": false },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "C", "value": "N" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -640,13 +987,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -655,13 +1037,48 @@
           "points": 50,
           "exposure": "C",
           "groups": [
-            { "type": "pair", "tile": { "color": "A", "value": 1 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 2 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 3 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 4 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 5 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 6 }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": 7 }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 1 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 2 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 3 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 4 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 5 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 6 },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": 7 },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -670,12 +1087,24 @@
           "points": 25,
           "exposure": "X",
           "groups": [
-            { "type": "single", "tile": { "category": "flower", "specific": "any" }, "jokerEligible": false },
-            { "type": "single", "tile": { "category": "flower", "specific": "any_different:2" }, "jokerEligible": false },
+            {
+              "type": "single",
+              "tile": { "category": "flower", "specific": "any" },
+              "jokerEligible": false
+            },
+            {
+              "type": "single",
+              "tile": { "category": "flower", "specific": "any_different:2" },
+              "jokerEligible": false
+            },
             { "type": "dragon_set", "jokerEligible": true },
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
-            { "type": "single", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "single",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -684,16 +1113,66 @@
           "points": 30,
           "exposure": "C",
           "groups": [
-            { "type": "single", "tile": { "color": "A", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "single", "tile": { "color": "B", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "single", "tile": { "color": "C", "value": "N" }, "jokerEligible": false, "concealed": true },
-            { "type": "single", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "single", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "single", "tile": { "color": "C", "value": "N+1" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "A", "value": "N+2" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "B", "value": "N+2" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "color": "C", "value": "N+2" }, "jokerEligible": false, "concealed": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false, "concealed": true }
+            {
+              "type": "single",
+              "tile": { "color": "A", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "single",
+              "tile": { "color": "B", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "single",
+              "tile": { "color": "C", "value": "N" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "single",
+              "tile": { "color": "A", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "single",
+              "tile": { "color": "B", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "single",
+              "tile": { "color": "C", "value": "N+1" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "A", "value": "N+2" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "B", "value": "N+2" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "color": "C", "value": "N+2" },
+              "jokerEligible": false,
+              "concealed": true
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false,
+              "concealed": true
+            }
           ]
         },
         {
@@ -702,13 +1181,33 @@
           "points": 25,
           "exposure": "X",
           "groups": [
-            { "type": "single", "tile": { "category": "wind", "specific": "north" }, "jokerEligible": false },
-            { "type": "single", "tile": { "category": "wind", "specific": "east" }, "jokerEligible": false },
-            { "type": "single", "tile": { "category": "wind", "specific": "west" }, "jokerEligible": false },
-            { "type": "single", "tile": { "category": "wind", "specific": "south" }, "jokerEligible": false },
+            {
+              "type": "single",
+              "tile": { "category": "wind", "specific": "north" },
+              "jokerEligible": false
+            },
+            {
+              "type": "single",
+              "tile": { "category": "wind", "specific": "east" },
+              "jokerEligible": false
+            },
+            {
+              "type": "single",
+              "tile": { "category": "wind", "specific": "west" },
+              "jokerEligible": false
+            },
+            {
+              "type": "single",
+              "tile": { "category": "wind", "specific": "south" },
+              "jokerEligible": false
+            },
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "any" },
+              "jokerEligible": false
+            }
           ]
         },
         {
@@ -717,9 +1216,21 @@
           "points": 25,
           "exposure": "X",
           "groups": [
-            { "type": "pair", "tile": { "category": "dragon", "specific": "red" }, "jokerEligible": false },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "green" }, "jokerEligible": false },
-            { "type": "pair", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": false },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "red" },
+              "jokerEligible": false
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "green" },
+              "jokerEligible": false
+            },
+            {
+              "type": "pair",
+              "tile": { "category": "dragon", "specific": "soap" },
+              "jokerEligible": false
+            },
             { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
             { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true }
           ]

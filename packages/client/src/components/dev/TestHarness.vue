@@ -1,73 +1,75 @@
 <script setup lang="ts">
-import { shallowRef, triggerRef, computed } from 'vue'
-import { createLobbyState, handleAction } from '@mahjong-game/shared'
-import type { GameState, GameAction, ActionResult } from '@mahjong-game/shared'
+import { shallowRef, triggerRef, computed } from "vue";
+import { createLobbyState, handleAction } from "@mahjong-game/shared";
+import type { GameState, GameAction, ActionResult } from "@mahjong-game/shared";
 
 // ── State ────────────────────────────────────────────────────────────────────
 
-const gameState = shallowRef<GameState>(createLobbyState())
-const lastResult = shallowRef<ActionResult | null>(null)
-const PLAYER_IDS = ['p1', 'p2', 'p3', 'p4']
+const gameState = shallowRef<GameState>(createLobbyState());
+const lastResult = shallowRef<ActionResult | null>(null);
+const PLAYER_IDS = ["p1", "p2", "p3", "p4"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function dispatch(action: GameAction): ActionResult {
-  const result = handleAction(gameState.value, action)
-  lastResult.value = result
-  triggerRef(gameState)
-  return result
+  const result = handleAction(gameState.value, action);
+  lastResult.value = result;
+  triggerRef(gameState);
+  return result;
 }
 
 function initGame(): void {
-  const fresh = createLobbyState()
-  gameState.value = fresh
-  triggerRef(gameState)
-  dispatch({ type: 'START_GAME', playerIds: PLAYER_IDS })
+  const fresh = createLobbyState();
+  gameState.value = fresh;
+  triggerRef(gameState);
+  dispatch({ type: "START_GAME", playerIds: PLAYER_IDS });
 }
 
 // ── Computed ─────────────────────────────────────────────────────────────────
 
-const state = computed(() => gameState.value)
-const isGameOver = computed(() => state.value.gamePhase === 'scoreboard')
-const isWallGame = computed(
-  () => isGameOver.value && state.value.gameResult?.winnerId === null,
-)
+const state = computed(() => gameState.value);
+const isGameOver = computed(() => state.value.gamePhase === "scoreboard");
+const isWallGame = computed(() => isGameOver.value && state.value.gameResult?.winnerId === null);
 const orderedPlayers = computed(() =>
   PLAYER_IDS.map((id) => state.value.players[id]).filter(Boolean),
-)
+);
 
 function isCurrentPlayer(playerId: string): boolean {
-  return state.value.currentTurn === playerId
+  return state.value.currentTurn === playerId;
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 function drawTile(): void {
-  dispatch({ type: 'DRAW_TILE', playerId: state.value.currentTurn })
+  dispatch({ type: "DRAW_TILE", playerId: state.value.currentTurn });
 }
 
 function discardTile(playerId: string, tileId: string): void {
-  dispatch({ type: 'DISCARD_TILE', playerId, tileId })
+  dispatch({ type: "DISCARD_TILE", playerId, tileId });
 }
 
 // ── Suit colors ──────────────────────────────────────────────────────────────
 
 const SUIT_COLOR: Record<string, string> = {
-  bam: 'text-green-600',
-  crak: 'text-red-600',
-  dot: 'text-blue-600',
-  wind: 'text-gray-700',
-  dragon: 'text-purple-700',
-  flower: 'text-yellow-600',
-  joker: 'text-pink-600',
+  bam: "text-green-600",
+  crak: "text-red-600",
+  dot: "text-blue-600",
+  wind: "text-gray-700",
+  dragon: "text-purple-700",
+  flower: "text-yellow-600",
+  joker: "text-pink-600",
+};
+
+function tileSuitKey(tile: { category: string; suit?: string }): string {
+  return tile.category === "suited" && tile.suit ? tile.suit : tile.category;
 }
 
-function tileColor(suit: string): string {
-  return SUIT_COLOR[suit] ?? 'text-gray-800'
+function tileColor(tile: { category: string; suit?: string }): string {
+  return SUIT_COLOR[tileSuitKey(tile)] ?? "text-gray-800";
 }
 
 // Initialise on mount
-initGame()
+initGame();
 </script>
 
 <template>
@@ -75,10 +77,7 @@ initGame()
     <!-- Header -->
     <div class="flex items-center gap-4 mb-4">
       <h1 class="text-xl font-bold">🀄 Test Harness</h1>
-      <button
-        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-        @click="initGame"
-      >
+      <button class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" @click="initGame">
         New Game
       </button>
       <span class="text-gray-500">
@@ -120,7 +119,9 @@ initGame()
         v-for="player in orderedPlayers"
         :key="player.id"
         class="border-2 rounded p-3"
-        :class="isCurrentPlayer(player.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'"
+        :class="
+          isCurrentPlayer(player.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
+        "
       >
         <!-- Player header -->
         <div class="flex items-center gap-2 mb-2">
@@ -143,14 +144,24 @@ initGame()
               :key="tile.id"
               class="px-1.5 py-0.5 border rounded text-xs"
               :class="[
-                tileColor(tile.suit),
-                isCurrentPlayer(player.id) && state.turnPhase === 'discard' && tile.suit !== 'joker'
+                tileColor(tile),
+                isCurrentPlayer(player.id) &&
+                state.turnPhase === 'discard' &&
+                tile.category !== 'joker'
                   ? 'border-blue-400 hover:bg-blue-100 cursor-pointer'
                   : 'border-gray-300 cursor-default',
               ]"
-              :disabled="!(isCurrentPlayer(player.id) && state.turnPhase === 'discard' && tile.suit !== 'joker')"
+              :disabled="
+                !(
+                  isCurrentPlayer(player.id) &&
+                  state.turnPhase === 'discard' &&
+                  tile.category !== 'joker'
+                )
+              "
               @click="
-                isCurrentPlayer(player.id) && state.turnPhase === 'discard' && tile.suit !== 'joker'
+                isCurrentPlayer(player.id) &&
+                state.turnPhase === 'discard' &&
+                tile.category !== 'joker'
                   ? discardTile(player.id, tile.id)
                   : undefined
               "
@@ -169,7 +180,7 @@ initGame()
               v-for="tile in player.discardPool"
               :key="tile.id"
               class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs"
-              :class="tileColor(tile.suit)"
+              :class="tileColor(tile)"
             >
               {{ tile.id }}
             </span>

@@ -1831,7 +1831,7 @@ Each room holds its own timer instances (call window timer, grace period timer, 
 | No optimistic updates | Client renders ONLY from STATE_UPDATE — never local prediction | Architecture hard rule, `Readonly<Ref>` enforcement |
 | Input sanitization | All user strings via `{{ }}` — never `v-html` | eslint-plugin-vue `vue/no-v-html` set to error |
 | Tile references | By tile ID (`bam-3-2`) — never by index or object reference | Tile ID system (Cross-cutting) |
-| Linting | Oxlint (primary) + ESLint with eslint-plugin-vue (supplementary until Oxlint Vue template support Q2 2026) | CI runs both; eslint-plugin-oxlint prevents duplicate rules |
+| Linting | Oxlint (primary, all packages via root `.oxlintrc.json`) + ESLint with eslint-plugin-vue (client only) | CI runs both in client; eslint-plugin-oxlint prevents duplicate rules; server/shared use oxlint only |
 | No v-html | eslint-plugin-vue `vue/no-v-html` rule set to error | Blocks any use of v-html without explicit disable comment |
 
 ---
@@ -1895,7 +1895,8 @@ echo 'packages:\n  - "packages/*"' > pnpm-workspace.yaml
 # Install shared dependencies
 pnpm --filter @mahjong-game/shared add -D vitest typescript
 pnpm --filter @mahjong-game/client add vue vue-router pinia @vueuse/core motion-v @vue-dnd-kit/core
-pnpm --filter @mahjong-game/client add -D vite @vitejs/plugin-vue unocss vitest typescript oxlint eslint eslint-plugin-vue eslint-plugin-oxlint
+pnpm --filter @mahjong-game/client add -D vite @vitejs/plugin-vue unocss vitest typescript eslint eslint-plugin-vue
+pnpm add -Dw oxlint eslint-plugin-oxlint @typescript-eslint/parser
 pnpm --filter @mahjong-game/server add fastify ws pino
 pnpm --filter @mahjong-game/server add -D tsx vitest typescript @types/ws @types/node
 

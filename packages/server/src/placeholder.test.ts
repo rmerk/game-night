@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from "vite-plus/test";
 
-describe('server package', () => {
-  it('should be properly configured', () => {
-    expect(true).toBe(true)
-  })
-})
+describe("server package", () => {
+  it("should be properly configured", () => {
+    expect(true).toBe(true);
+  });
+});

@@ -1,4 +1,4 @@
-import type { Tile } from '../../types/tiles'
+import type { Tile } from "../../types/tiles";
 import {
   SUITS,
   TILE_VALUES,
@@ -8,21 +8,21 @@ import {
   COPIES_PER_TILE,
   COPIES_PER_FLOWER,
   JOKER_COUNT,
-} from '../../constants'
+} from "../../constants";
 
 /**
  * Mulberry32 seeded PRNG — lightweight, deterministic, good distribution.
  * Returns a function that produces numbers in [0, 1).
  */
 function mulberry32(seed: number): () => number {
-  let s = seed
+  let s = seed;
   return () => {
-    s |= 0
-    s = (s + 0x6d2b79f5) | 0
-    let t = Math.imul(s ^ (s >>> 15), 1 | s)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**
@@ -31,17 +31,17 @@ function mulberry32(seed: number): () => number {
  */
 function shuffle<T>(array: T[], random: () => number): T[] {
   for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    const temp = array[i]!
-    array[i] = array[j]!
-    array[j] = temp
+    const j = Math.floor(random() * (i + 1));
+    const temp = array[i];
+    array[i] = array[j]!;
+    array[j] = temp;
   }
-  return array
+  return array;
 }
 
 /** Create all 152 tiles in a deterministic (unshuffled) order. */
 export function createAllTiles(): Tile[] {
-  const tiles: Tile[] = []
+  const tiles: Tile[] = [];
 
   // 108 suited tiles: 3 suits x 9 values x 4 copies
   for (const suit of SUITS) {
@@ -49,11 +49,11 @@ export function createAllTiles(): Tile[] {
       for (let copy = 1; copy <= COPIES_PER_TILE; copy++) {
         tiles.push({
           id: `${suit}-${value}-${copy}`,
-          category: 'suited',
+          category: "suited",
           suit,
           value,
           copy,
-        })
+        });
       }
     }
   }
@@ -63,10 +63,10 @@ export function createAllTiles(): Tile[] {
     for (let copy = 1; copy <= COPIES_PER_TILE; copy++) {
       tiles.push({
         id: `wind-${wind}-${copy}`,
-        category: 'wind',
+        category: "wind",
         value: wind,
         copy,
-      })
+      });
     }
   }
 
@@ -75,10 +75,10 @@ export function createAllTiles(): Tile[] {
     for (let copy = 1; copy <= COPIES_PER_TILE; copy++) {
       tiles.push({
         id: `dragon-${dragon}-${copy}`,
-        category: 'dragon',
+        category: "dragon",
         value: dragon,
         copy,
-      })
+      });
     }
   }
 
@@ -87,10 +87,10 @@ export function createAllTiles(): Tile[] {
     for (let copy = 1; copy <= COPIES_PER_FLOWER; copy++) {
       tiles.push({
         id: `flower-${flower}-${copy}`,
-        category: 'flower',
+        category: "flower",
         value: flower,
         copy,
-      })
+      });
     }
   }
 
@@ -98,12 +98,12 @@ export function createAllTiles(): Tile[] {
   for (let copy = 1; copy <= JOKER_COUNT; copy++) {
     tiles.push({
       id: `joker-${copy}`,
-      category: 'joker',
+      category: "joker",
       copy,
-    })
+    });
   }
 
-  return tiles
+  return tiles;
 }
 
 /**
@@ -111,8 +111,8 @@ export function createAllTiles(): Tile[] {
  * @param seed - Optional seed for deterministic shuffle (for tests). If omitted, uses Math.random().
  */
 export function createWall(seed?: number): Tile[] {
-  const tiles = createAllTiles()
-  const actualSeed = seed ?? Math.floor(Math.random() * 0xffffffff)
-  const random = mulberry32(actualSeed)
-  return shuffle(tiles, random)
+  const tiles = createAllTiles();
+  const actualSeed = seed ?? Math.floor(Math.random() * 0xffffffff);
+  const random = mulberry32(actualSeed);
+  return shuffle(tiles, random);
 }

@@ -5,20 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "test": "vitest run",
-    "lint": "echo 'no lint configured yet'"
+    "test": "vp test run",
+    "lint": "vp lint src/"
   },
   "dependencies": {
     "@mahjong-game/shared": "workspace:*",
     "fastify": "^5.8.0",
-    "ws": "^8.20.0",
-    "pino": "^9.0.0"
+    "pino": "^9.0.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/ws": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.8.0",
-    "vitest": "^4.1.0"
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   }
 }

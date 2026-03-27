@@ -51,7 +51,7 @@ So that **all subsequent stories have a solid, tested project foundation to buil
   - [x] `packages/shared/src/index.ts` — barrel export (initially empty or placeholder types)
   - [x] `packages/shared/src/placeholder.test.ts` — minimal passing test to verify Vitest runs
 - [x] Task 4: Create client/ package (AC: #1, #2, #4)
-  - [x] `packages/client/package.json` — name: `@mahjong-game/client`, deps: vue, vue-router, pinia, @vueuse/core, motion-v, @vue-dnd-kit/core; devDeps: vite, @vitejs/plugin-vue, unocss, vitest, typescript, oxlint, eslint, eslint-plugin-vue, eslint-plugin-oxlint
+  - [x] `packages/client/package.json` — name: `@mahjong-game/client`, deps: vue, vue-router, pinia, @vueuse/core, motion-v, @vue-dnd-kit/core; devDeps: vite, @vitejs/plugin-vue, unocss, vitest, typescript, eslint, eslint-plugin-vue (oxlint and eslint-plugin-oxlint at workspace root)
   - [x] `packages/client/tsconfig.json` — extends base, `types: ["vite/client"]`, references: `[{ "path": "../shared" }]`
   - [x] `packages/client/vite.config.ts` — Vue plugin, UnoCSS plugin
   - [x] `packages/client/vitest.config.ts` — include `src/**/*.test.ts`, same mock reset config as shared
@@ -115,8 +115,8 @@ So that **all subsequent stories have a solid, tested project foundation to buil
 | WebSocket | ws | ^8.0 |
 | Unit testing | Vitest | ^4.0 |
 | E2E testing | Playwright | ^1.58 |
-| Linting (primary) | Oxlint | ^1.0 |
-| Linting (supplementary) | ESLint + eslint-plugin-vue | latest |
+| Linting (primary) | Oxlint (all packages, workspace root) | ^1.0 |
+| Linting (supplementary) | ESLint + eslint-plugin-vue (client only) | latest |
 
 **Version Constraints:**
 - `strict: true` in ALL tsconfigs — no exceptions

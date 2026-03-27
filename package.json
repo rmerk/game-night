@@ -4,14 +4,20 @@
   "scripts": {
     "test": "pnpm -r test",
     "build": "tsc --build",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "typecheck": "tsc --build && pnpm -r --if-present typecheck",
+    "prepare": "vp config"
   },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.57.2",
+    "eslint-plugin-oxlint": "latest",
+    "typescript": "^5.9.3",
+    "vite-plus": "catalog:"
+  },
+  "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3"
   }
 }

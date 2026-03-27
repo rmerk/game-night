@@ -1,7 +1,7 @@
-import type { GameState, PlayerState, SeatWind } from '../../types/game-state'
-import { SEATS, MAX_PLAYERS } from '../../constants'
-import { createWall } from './wall'
-import { dealTiles } from './dealing'
+import type { GameState, PlayerState, SeatWind } from "../../types/game-state";
+import { SEATS, MAX_PLAYERS } from "../../constants";
+import { createWall } from "./wall";
+import { dealTiles } from "./dealing";
 
 /**
  * Create a new game with 4 players, assign winds, deal tiles, and return initial state.
@@ -13,45 +13,45 @@ import { dealTiles } from './dealing'
  */
 export function createGame(playerIds: string[], seed?: number): GameState {
   if (playerIds.length !== MAX_PLAYERS) {
-    throw new Error(`Expected ${MAX_PLAYERS} players, got ${playerIds.length}`)
+    throw new Error(`Expected ${MAX_PLAYERS} players, got ${playerIds.length}`);
   }
 
-  const uniqueIds = new Set(playerIds)
+  const uniqueIds = new Set(playerIds);
   if (uniqueIds.size !== playerIds.length) {
-    throw new Error('Player IDs must be unique')
+    throw new Error("Player IDs must be unique");
   }
 
-  const wall = createWall(seed)
-  const { hands, remainingWall } = dealTiles(wall)
+  const wall = createWall(seed);
+  const { hands, remainingWall } = dealTiles(wall);
 
-  const players: Record<string, PlayerState> = {}
-  const scores: Record<string, number> = {}
+  const players: Record<string, PlayerState> = {};
+  const scores: Record<string, number> = {};
 
   for (let i = 0; i < MAX_PLAYERS; i++) {
-    const playerId = playerIds[i]!
-    const seatWind = SEATS[i] as SeatWind
+    const playerId = playerIds[i];
+    const seatWind = SEATS[i] as SeatWind;
     players[playerId] = {
       id: playerId,
       seatWind,
       rack: hands[seatWind],
       exposedGroups: [],
       discardPool: [],
-    }
-    scores[playerId] = 0
+    };
+    scores[playerId] = 0;
   }
 
-  const eastPlayerId = playerIds[0]!
+  const eastPlayerId = playerIds[0];
 
   return {
-    gamePhase: 'play',
+    gamePhase: "play",
     players,
     wall: remainingWall,
     wallRemaining: remainingWall.length,
     currentTurn: eastPlayerId,
-    turnPhase: 'discard',
+    turnPhase: "discard",
     lastDiscard: null,
     callWindow: null,
     scores,
     gameResult: null,
-  }
+  };
 }

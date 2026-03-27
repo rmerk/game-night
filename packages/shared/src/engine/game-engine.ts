@@ -1,25 +1,25 @@
-import type { GameState, ActionResult } from '../types/game-state'
-import type { GameAction } from '../types/actions'
-import { handleStartGame } from './actions/game-flow'
-import { handleDrawTile } from './actions/draw'
-import { handleDiscardTile } from './actions/discard'
+import type { GameState, ActionResult } from "../types/game-state";
+import type { GameAction } from "../types/actions";
+import { handleStartGame } from "./actions/game-flow";
+import { handleDrawTile } from "./actions/draw";
+import { handleDiscardTile } from "./actions/discard";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
  */
 export function createLobbyState(): GameState {
   return {
-    gamePhase: 'lobby',
+    gamePhase: "lobby",
     players: {},
     wall: [],
     wallRemaining: 0,
-    currentTurn: '',
-    turnPhase: 'draw',
+    currentTurn: "",
+    turnPhase: "draw",
     lastDiscard: null,
     callWindow: null,
     scores: {},
     gameResult: null,
-  }
+  };
 }
 
 /**
@@ -29,15 +29,15 @@ export function createLobbyState(): GameState {
  */
 export function handleAction(state: GameState, action: GameAction): ActionResult {
   switch (action.type) {
-    case 'START_GAME':
-      return handleStartGame(state, action)
-    case 'DRAW_TILE':
-      return handleDrawTile(state, action)
-    case 'DISCARD_TILE':
-      return handleDiscardTile(state, action)
+    case "START_GAME":
+      return handleStartGame(state, action);
+    case "DRAW_TILE":
+      return handleDrawTile(state, action);
+    case "DISCARD_TILE":
+      return handleDiscardTile(state, action);
     default: {
-      const _exhaustive: never = action
-      return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` }
+      const _exhaustive: never = action;
+      return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };
     }
   }
 }

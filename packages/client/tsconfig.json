@@ -4,12 +4,10 @@
     "rootDir": ".",
     "outDir": "dist",
     "composite": true,
-    "types": ["vite/client"],
+    "types": ["vite-plus/client"],
     "jsx": "preserve",
     "jsxImportSource": "vue"
   },
   "include": ["src", "env.d.ts"],
-  "references": [
-    { "path": "../shared" }
-  ]
+  "references": [{ "path": "../shared" }]
 }

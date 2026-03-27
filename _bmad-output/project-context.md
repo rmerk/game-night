@@ -47,8 +47,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - CI command: `pnpm -r test` (runs all three packages)
 
 ### Linting
-- Oxlint v1.x (primary)
-- ESLint + eslint-plugin-vue (supplementary for template rules until Oxlint Q2 2026)
+- Oxlint v1.x (primary, all packages) — configured via root `.oxlintrc.json` with typescript + import plugins
+- ESLint + eslint-plugin-vue (client only, supplementary for Vue template rules)
+- `eslint-plugin-oxlint` disables overlapping ESLint rules
+- Lint command: `pnpm lint` runs `pnpm -r lint` across all packages
 
 ### Cut-line (Epic 6B)
 - LiveKit v2.18.0 (`livekit-client`)

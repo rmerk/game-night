@@ -6,11 +6,12 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "test": "vitest run",
-    "lint": "echo 'no lint configured yet'"
+    "test": "vp test run",
+    "lint": "vp lint src/"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
-    "vitest": "^4.1.0"
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   }
 }
