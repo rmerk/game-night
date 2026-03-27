@@ -1,0 +1,114 @@
+{
+  "year": 2025,
+  "categories": [
+    {
+      "name": "2468",
+      "hands": [
+        {
+          "id": "ev-1",
+          "name": "2025 Year Hand",
+          "points": 25,
+          "exposure": "C",
+          "groups": [
+            { "type": "kong", "tile": { "color": "A", "value": 2 }, "jokerEligible": true, "concealed": true },
+            { "type": "kong", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true, "concealed": true },
+            { "type": "kong", "tile": { "color": "B", "value": 2 }, "jokerEligible": true, "concealed": true },
+            { "type": "pair", "tile": { "color": "C", "value": 5 }, "jokerEligible": false, "concealed": true }
+          ]
+        },
+        {
+          "id": "ev-2",
+          "name": "Even Kongs",
+          "points": 25,
+          "exposure": "X",
+          "groups": [
+            { "type": "kong", "tile": { "color": "A", "value": 2 }, "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "A", "value": 4 }, "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "A", "value": 8 }, "jokerEligible": true },
+            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Consecutive Run",
+      "hands": [
+        {
+          "id": "cr-1",
+          "name": "Run Kongs",
+          "points": 25,
+          "exposure": "X",
+          "groups": [
+            { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "C", "value": "N+2" }, "jokerEligible": true },
+            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+          ]
+        },
+        {
+          "id": "cr-2",
+          "name": "Run Pungs",
+          "points": 25,
+          "exposure": "X",
+          "groups": [
+            { "type": "pung", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "color": "A", "value": "N+1" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "color": "A", "value": "N+2" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
+            { "type": "pair", "tile": { "color": "B", "value": "N+1" }, "jokerEligible": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Winds-Dragons",
+      "hands": [
+        {
+          "id": "wd-1",
+          "name": "NEWS Kongs",
+          "points": 25,
+          "exposure": "X",
+          "groups": [
+            { "type": "news", "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
+            { "type": "kong", "tile": { "color": "B", "value": "N" }, "jokerEligible": true },
+            { "type": "pair", "tile": { "category": "dragon", "specific": "any" }, "jokerEligible": false }
+          ]
+        },
+        {
+          "id": "wd-2",
+          "name": "Dragon Pungs",
+          "points": 30,
+          "exposure": "X",
+          "groups": [
+            { "type": "pung", "tile": { "category": "dragon", "specific": "red" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "category": "dragon", "specific": "green" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "category": "dragon", "specific": "soap" }, "jokerEligible": true },
+            { "type": "pung", "tile": { "color": "A", "value": "N" }, "jokerEligible": true },
+            { "type": "pair", "tile": { "color": "A", "value": "N" }, "jokerEligible": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Singles and Pairs",
+      "hands": [
+        {
+          "id": "sp-1",
+          "name": "Seven Pairs",
+          "points": 50,
+          "exposure": "C",
+          "groups": [
+            { "type": "pair", "tile": { "color": "A", "value": 1 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 2 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 3 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 4 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 5 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 6 }, "jokerEligible": false, "concealed": true },
+            { "type": "pair", "tile": { "color": "A", "value": 7 }, "jokerEligible": false, "concealed": true }
+          ]
+        }
+      ]
+    }
+  ]
+}

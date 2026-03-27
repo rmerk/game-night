@@ -35,6 +35,16 @@ export type {
   DiscardTileAction,
 } from './types/actions'
 
+export type {
+  NMJLCard,
+  CardCategory,
+  HandPattern,
+  GroupPattern,
+  GroupType,
+  TileRequirement,
+  TileSpecific,
+} from './types/card'
+
 // Constants
 export {
   TILE_COUNT,
@@ -48,7 +58,12 @@ export {
   DRAGONS,
   FLOWERS,
   TILE_VALUES,
+  GROUP_TYPES,
+  GROUP_SIZES,
 } from './constants'
+
+// Card
+export { loadCard } from './card/card-loader'
 
 // Engine
 export { createAllTiles, createWall } from './engine/state/wall'

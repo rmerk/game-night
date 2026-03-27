@@ -30,3 +30,27 @@ export const FLOWERS = ['a', 'b'] as const
 
 /** Suited tile values */
 export const TILE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+
+/** All valid group types for hand patterns */
+export const GROUP_TYPES = [
+  'single',
+  'pair',
+  'pung',
+  'kong',
+  'quint',
+  'sextet',
+  'news',
+  'dragon_set',
+] as const
+
+/** Number of tiles each group type contributes to a hand */
+export const GROUP_SIZES: Record<(typeof GROUP_TYPES)[number], number> = {
+  single: 1,
+  pair: 2,
+  pung: 3,
+  kong: 4,
+  quint: 5,
+  sextet: 6,
+  news: 4,
+  dragon_set: 3,
+}
