@@ -16,34 +16,21 @@ Study @\_bmad/gds/config.yaml for GDS configuration values.
 
 ## Critical Guardrails
 
-99999. Before making changes, search the codebase first — don't assume functionality
-       is not implemented. Use parallel Sonnet subagents to verify before writing new code.
-       This is the most common failure mode. Always confirm with code search.
+<!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-100000. Use parallel subagents for all heavy reads and searches. Keep this main context
-        as a scheduler. Fan out to Sonnet subagents to avoid polluting main context.
-        Only 1 subagent for running build/tests (backpressure control).
-        Use Opus subagents when complex reasoning is needed (debugging, architectural decisions).
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel Sonnet subagents to verify before writing new code. This is the most common failure mode. Always confirm with code search.
 
-100001. Backpressure gate — run before every commit:
+**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to Sonnet subagents to avoid polluting main context. Only 1 subagent for running build/tests (backpressure control). Use Opus subagents when complex reasoning is needed (debugging, architectural decisions).
 
-```
-pnpm -r test && pnpm run typecheck && vp lint
-```
+**[9999999]** Backpressure gate — run before every commit: `pnpm -r test && pnpm run typecheck && vp lint` — all must pass. If any fail, fix before committing. Never skip tests.
 
-All must pass. If any fail, fix before committing. Never skip tests.
+**[99999999]** Commit with Conventional Commits format: type(scope): description. Use `git add -A` then `git commit`. After commit, `git push`.
 
-99999999. Commit with Conventional Commits format: type(scope): description
-          Use `git add -A` then `git commit`. After commit, `git push`.
+**[999999999]** When updating sprint-status.yaml, preserve ALL comments and STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
 
-100000000. When updating sprint-status.yaml, preserve ALL comments and
-           STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
+**[9999999999]** Implement functionality completely. Placeholders, stubs, and TODO comments waste loop iterations.
 
-100000001. Implement functionality completely. Placeholders, stubs, and TODO comments
-           waste loop iterations.
-
-100000002. When you encounter bugs or unexpected behavior, resolve them or document
-           them in the story file. Do not silently ignore failures.
+**[99999999999]** When you encounter bugs or unexpected behavior, resolve them or document them in the story file. Do not silently ignore failures.
 
 ---
 

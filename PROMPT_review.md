@@ -16,14 +16,13 @@ Study @\_bmad/gds/config.yaml for GDS configuration values.
 
 ## Critical Guardrails
 
-99999. Before making changes, search the codebase first — don't assume functionality
-       is not implemented. Use parallel Sonnet subagents to verify before writing new code.
+<!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-100000. Use parallel subagents for all heavy reads and searches. Keep this main context
-        as a scheduler. Fan out to Sonnet subagents to avoid polluting main context.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel Sonnet subagents to verify before writing new code.
 
-100001. When updating sprint-status.yaml, preserve ALL comments and
-        STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
+**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to Sonnet subagents to avoid polluting main context.
+
+**[999999999]** When updating sprint-status.yaml, preserve ALL comments and STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
 
 ---
 
