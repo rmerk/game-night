@@ -8,9 +8,9 @@ Your job: determine the current phase needed and execute ONE phase for ONE story
 ## Orientation
 
 Study @AGENTS.md for project commands and operational learnings.
-Study @\_bmad-output/project-context.md for the 85 critical project rules.
-Study @\_bmad-output/implementation-artifacts/sprint-status.yaml for current story states.
-Study @\_bmad/gds/config.yaml for GDS configuration values.
+Study @_bmad-output/project-context.md for the 85 critical project rules.
+Study @_bmad-output/implementation-artifacts/sprint-status.yaml for current story states.
+Study @_bmad/gds/config.yaml for GDS configuration values.
 
 ---
 
@@ -36,7 +36,7 @@ Study @\_bmad/gds/config.yaml for GDS configuration values.
 
 ## Phase Detection
 
-Study @\_bmad-output/implementation-artifacts/sprint-status.yaml and find the
+Study @_bmad-output/implementation-artifacts/sprint-status.yaml and find the
 FIRST story in the CURRENT epic (in file order) matching each priority level.
 Only consider stories in epics with status "in-progress".
 

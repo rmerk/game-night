@@ -8,9 +8,9 @@ Your job: create ONE story file for the next backlog story, then exit.
 ## Orientation
 
 Study @AGENTS.md for project commands and operational learnings.
-Study @\_bmad-output/project-context.md for the 85 critical project rules.
-Study @\_bmad-output/implementation-artifacts/sprint-status.yaml for current story states.
-Study @\_bmad/gds/config.yaml for GDS configuration values.
+Study @_bmad-output/project-context.md for the 85 critical project rules.
+Study @_bmad-output/implementation-artifacts/sprint-status.yaml for current story states.
+Study @_bmad/gds/config.yaml for GDS configuration values.
 
 ---
 
