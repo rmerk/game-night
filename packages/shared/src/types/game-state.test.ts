@@ -8,6 +8,7 @@ import type {
   ActionResult,
   ResolvedAction,
   ExposedGroup,
+  GroupIdentity,
 } from "./game-state";
 import type { GameAction, StartGameAction, DrawTileAction, DiscardTileAction } from "./actions";
 import type { Tile } from "./tiles";
@@ -42,6 +43,22 @@ describe("GameState types", () => {
     expectTypeOf<PlayerState>().toHaveProperty("discardPool");
     expectTypeOf<PlayerState["rack"]>().toMatchTypeOf<Tile[]>();
     expectTypeOf<PlayerState["exposedGroups"]>().toMatchTypeOf<ExposedGroup[]>();
+  });
+
+  it("ExposedGroup has type, tiles, and identity fields", () => {
+    expectTypeOf<ExposedGroup>().toHaveProperty("type");
+    expectTypeOf<ExposedGroup>().toHaveProperty("tiles");
+    expectTypeOf<ExposedGroup>().toHaveProperty("identity");
+    expectTypeOf<ExposedGroup["tiles"]>().toMatchTypeOf<Tile[]>();
+    expectTypeOf<ExposedGroup["identity"]>().toMatchTypeOf<GroupIdentity>();
+  });
+
+  it("GroupIdentity has type and optional suit/value/wind/dragon", () => {
+    expectTypeOf<GroupIdentity>().toHaveProperty("type");
+    expectTypeOf<GroupIdentity["suit"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<GroupIdentity["value"]>().toEqualTypeOf<number | string | undefined>();
+    expectTypeOf<GroupIdentity["wind"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<GroupIdentity["dragon"]>().toEqualTypeOf<string | undefined>();
   });
 
   it("GameState has all required fields", () => {

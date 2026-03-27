@@ -22,6 +22,7 @@ export type {
   SeatWind,
   PlayerState,
   ExposedGroup,
+  GroupIdentity,
   ActionResult,
   ResolvedAction,
   WallGameResult,
@@ -66,6 +67,12 @@ export {
 export { loadCard } from "./card/card-loader";
 export { validateHand } from "./card/pattern-matcher";
 export type { MatchResult } from "./card/pattern-matcher";
+export {
+  isJokerEligibleGroup,
+  canSubstituteJoker,
+  validateJokerExchange,
+} from "./card/joker-eligibility";
+export type { ExchangeResult } from "./card/joker-eligibility";
 
 // Engine
 export { createAllTiles, createWall } from "./engine/state/wall";

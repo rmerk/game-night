@@ -1,4 +1,5 @@
 import type { Tile } from "./tiles";
+import type { GroupType } from "./card";
 
 /** Game-level phase */
 export type GamePhase = "lobby" | "charleston" | "play" | "scoreboard" | "rematch";
@@ -9,10 +10,20 @@ export type TurnPhase = "draw" | "discard" | "callWindow";
 /** Seat wind assignment (counterclockwise play order) */
 export type SeatWind = "east" | "south" | "west" | "north";
 
-/** Stub for exposed groups — full implementation in Epic 3A */
+/** Identity of an exposed group — fixed at exposure time, never changes */
+export interface GroupIdentity {
+  readonly type: GroupType;
+  readonly suit?: string;
+  readonly value?: number | string;
+  readonly wind?: string;
+  readonly dragon?: string;
+}
+
+/** Exposed group on a player's table — populated in Epic 3A when groups are called */
 export interface ExposedGroup {
-  readonly type: string;
+  readonly type: GroupType;
   readonly tiles: Tile[];
+  readonly identity: GroupIdentity;
 }
 
 /** Per-player state within a game */
