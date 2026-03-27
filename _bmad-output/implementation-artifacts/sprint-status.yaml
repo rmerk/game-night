@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-26  # dev-story: 1-6 promoted to review
+last_updated: 2026-03-26  # code-review: 1-7 done
 project: mahjong-game
 
 project_key: NOKEY
@@ -50,8 +50,8 @@ development_status:
   1-3-game-state-machine-dealing: done
   1-4-turn-loop-draw-action: done
   1-5-discard-action-with-joker-restrictions: done
-  1-6-wall-depletion-game-end: review
-  1-7-minimal-visual-test-harness: backlog
+  1-6-wall-depletion-game-end: done
+  1-7-minimal-visual-test-harness: done
   epic-1-retrospective: optional
 
   # Epic 2: Card Rules & Validation

@@ -1,6 +1,6 @@
 # Story 1.6: Wall Depletion & Game End
 
-Status: review
+Status: done
 
 ## Story
 

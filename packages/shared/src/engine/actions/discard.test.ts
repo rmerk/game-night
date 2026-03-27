@@ -4,10 +4,17 @@ import { createPlayState, TEST_PLAYER_IDS } from '../../testing/fixtures'
 import { getPlayerBySeat } from '../../testing/helpers'
 import { jokerTile, suitedTile } from '../../testing/tile-builders'
 import type { DiscardTileAction } from '../../types/actions'
+import type { GameState } from '../../types/game-state'
 import { SEATS } from '../../constants'
 
 function makeDiscardAction(playerId: string, tileId: string): DiscardTileAction {
   return { type: 'DISCARD_TILE', playerId, tileId }
+}
+
+function getDiscardableTile(state: GameState, playerId: string) {
+  const tile = state.players[playerId]!.rack.find((t) => t.category !== 'joker')
+  if (!tile) throw new Error(`No discardable tile in rack for player '${playerId}'`)
+  return tile
 }
 
 describe('handleDiscardTile', () => {
@@ -19,7 +26,7 @@ describe('handleDiscardTile', () => {
     expect(state.currentTurn).toBe(eastId)
     expect(state.turnPhase).toBe('discard')
 
-    const tileToDiscard = state.players[eastId].rack[0]
+    const tileToDiscard = getDiscardableTile(state, eastId)
     const rackBefore = state.players[eastId].rack.length
     const discardPoolBefore = state.players[eastId].discardPool.length
 
@@ -37,7 +44,7 @@ describe('handleDiscardTile', () => {
   test('successful discard returns accepted with DISCARD_TILE resolved action', () => {
     const state = createPlayState()
     const eastId = getPlayerBySeat(state, 'east')
-    const tileToDiscard = state.players[eastId].rack[0]
+    const tileToDiscard = getDiscardableTile(state, eastId)
 
     const result = handleDiscardTile(state, makeDiscardAction(eastId, tileToDiscard.id))
 
@@ -89,7 +96,7 @@ describe('handleDiscardTile', () => {
     expect(state.turnPhase).toBe('discard')
     expect(state.players[eastId].rack.length).toBe(14)
 
-    const tile = state.players[eastId].rack[0]
+    const tile = getDiscardableTile(state, eastId)
     const result = handleDiscardTile(state, makeDiscardAction(eastId, tile.id))
 
     expect(result.accepted).toBe(true)
@@ -180,8 +187,7 @@ describe('handleDiscardTile', () => {
     state.players[eastId].rack.push(joker)
 
     // Discard a non-Joker tile — should succeed even though rack contains a Joker
-    const regularTile = state.players[eastId].rack[0]
-    expect(regularTile.category).not.toBe('joker')
+    const regularTile = getDiscardableTile(state, eastId)
 
     const result = handleDiscardTile(state, makeDiscardAction(eastId, regularTile.id))
 
