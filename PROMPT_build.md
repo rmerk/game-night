@@ -18,9 +18,9 @@ Study @_bmad/gds/config.yaml for GDS configuration values.
 
 <!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use subagents to verify before writing new code. This is the most common failure mode. Always confirm with code search.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use Grep and Glob to verify before writing new code. This is the most common failure mode. Always confirm with code search.
 
-**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to subagents to avoid polluting main context. Only 1 subagent for running build/tests (backpressure control).
+**[999999]** Prefer direct tool calls (Read, Grep, Glob) over subagents for file reads and searches. This is a small codebase — subagents add overhead. Only use subagents when studying large planning docs (epics.md, architecture, GDD) that exceed 1000 lines. Only 1 subagent for running build/tests.
 
 **[9999999]** Backpressure gate — run before every commit: `pnpm -r test && pnpm run typecheck && vp lint` — all must pass. If any fail, fix before committing. Never skip tests.
 
@@ -47,8 +47,8 @@ and validate against @.claude/skills/gds-dev-story/checklist.md
   prioritize `[AI-Review]` tagged tasks before regular tasks.
   When resolving review items, dual-mark: checkbox in "Review Follow-ups (AI)"
   subsection AND the corresponding action item in "Senior Developer Review (AI) → Action Items".
-- Use parallel subagents for codebase searches and file reads
-- Use only 1 subagent for running build/test commands
+- Use direct Read/Grep/Glob for codebase searches — do NOT spawn subagents for simple file reads
+- Use only 1 subagent for running build/test commands if needed
 - Run the backpressure gate before every commit
 - Step 4: update sprint-status.yaml `ready-for-dev` → `in-progress`
 - Step 9: update sprint-status.yaml `in-progress` → `review`

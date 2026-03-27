@@ -18,9 +18,9 @@ Study @_bmad/gds/config.yaml for GDS configuration values.
 
 <!-- Guardrail numbers use escalating 9s to signal priority — higher = more critical -->
 
-**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use parallel subagents to verify before writing new code.
+**[99999]** Before making changes, search the codebase first — don't assume functionality is not implemented. Use Grep and Glob to verify before writing new code.
 
-**[999999]** Use parallel subagents for all heavy reads and searches. Keep this main context as a scheduler. Fan out to subagents to avoid polluting main context.
+**[999999]** Prefer direct tool calls (Read, Grep, Glob) over subagents. This is a small codebase — subagents add overhead. Only use subagents when studying large planning docs (epics.md, architecture, GDD) that exceed 1000 lines.
 
 **[999999999]** When updating sprint-status.yaml, preserve ALL comments and STATUS DEFINITIONS in the file header. Never overwrite or truncate the file. Read the FULL file first, then make targeted edits.
 
