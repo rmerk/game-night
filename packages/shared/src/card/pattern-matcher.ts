@@ -79,7 +79,7 @@ interface TileSummary {
 function categorizePlayerTiles(tiles: Tile[]): TileSummary {
   const s: TileSummary = { suited: 0, wind: 0, dragon: 0, flower: 0, joker: 0 };
   for (const t of tiles) {
-    s[t.category === "suited" ? "suited" : t.category]++;
+    s[t.category]++;
   }
   return s;
 }
@@ -372,7 +372,7 @@ export function validateHand(tiles: Tile[], card: NMJLCard): MatchResult | null 
   const feasible = filterFeasibleHands(summary, card);
   const pool = buildTilePool(tiles);
 
-  let best: (MatchResult & { groupCount: number }) | null = null;
+  let best: MatchResult | null = null;
 
   for (const hand of feasible) {
     if (best && hand.points < best.points) continue;
@@ -402,7 +402,6 @@ export function validateHand(tiles: Tile[], card: NMJLCard): MatchResult | null 
               patternId: hand.id,
               patternName: hand.name ?? hand.id,
               points: hand.points,
-              groupCount: hand.groups.length,
             };
           }
           matched = true;
@@ -412,6 +411,5 @@ export function validateHand(tiles: Tile[], card: NMJLCard): MatchResult | null 
     }
   }
 
-  if (!best) return null;
-  return { patternId: best.patternId, patternName: best.patternName, points: best.points };
+  return best;
 }
