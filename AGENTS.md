@@ -87,3 +87,21 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 - [ ] Run `vp check` and `vp test` to validate changes.
 - [ ] Run `pnpm typecheck` to catch Vue template type errors (`vp check` does not type-check `.vue` templates — only `vue-tsc` does).
 <!--VITE PLUS END-->
+
+<!-- RALPH OPERATIONAL GUIDE -->
+
+## Backpressure Gate (run before every commit)
+
+```
+pnpm -r test && pnpm run typecheck && vp lint
+```
+
+## Key Locations
+
+- Project rules: \_bmad-output/project-context.md
+- Story files: \_bmad-output/implementation-artifacts/
+- Sprint tracking: \_bmad-output/implementation-artifacts/sprint-status.yaml
+
+## Learnings
+
+<!-- Append operational discoveries here. Keep brief. No status or progress notes. -->
