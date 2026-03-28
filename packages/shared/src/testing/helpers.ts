@@ -49,3 +49,29 @@ export function createTestState(overrides?: Partial<GameState>, seed: number = 4
   }
   return state;
 }
+
+/** Get all player IDs that are NOT the current discarder. Requires an open call window. */
+export function getNonDiscarders(state: GameState): string[] {
+  if (!state.callWindow) throw new Error("No call window open");
+  return Object.keys(state.players).filter((id) => id !== state.callWindow!.discarderId);
+}
+
+/** Inject tiles into a player's rack (removes them from the wall or other racks if present). */
+export function injectTilesIntoRack(state: GameState, playerId: string, tiles: Tile[]): void {
+  const player = state.players[playerId];
+  for (const tile of tiles) {
+    const wallIdx = state.wall.findIndex((t) => t.id === tile.id);
+    if (wallIdx >= 0) {
+      state.wall.splice(wallIdx, 1);
+      state.wallRemaining = state.wall.length;
+    }
+    for (const p of Object.values(state.players)) {
+      if (p.id === playerId) continue;
+      const rackIdx = p.rack.findIndex((t) => t.id === tile.id);
+      if (rackIdx >= 0) {
+        p.rack.splice(rackIdx, 1);
+      }
+    }
+    player.rack.push(tile);
+  }
+}

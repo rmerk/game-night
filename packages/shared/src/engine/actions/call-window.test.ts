@@ -20,7 +20,12 @@ import {
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { createPlayState } from "../../testing/fixtures";
-import { getPlayerBySeat, buildHand } from "../../testing/helpers";
+import {
+  getPlayerBySeat,
+  buildHand,
+  getNonDiscarders,
+  injectTilesIntoRack,
+} from "../../testing/helpers";
 import { WINDS, DRAGONS, SEATS } from "../../constants";
 import type { GameState, CallRecord, SeatWind } from "../../types/game-state";
 import type { Tile } from "../../types/tiles";
@@ -32,12 +37,6 @@ function discardTile(state: GameState, playerId: string) {
   if (!tile) throw new Error(`No discardable tile in rack for player '${playerId}'`);
   handleDiscardTile(state, { type: "DISCARD_TILE", playerId, tileId: tile.id });
   return tile;
-}
-
-/** Get all non-discarder player IDs (those who can pass). */
-function getNonDiscarders(state: GameState): string[] {
-  if (!state.callWindow) throw new Error("No call window open");
-  return Object.keys(state.players).filter((id) => id !== state.callWindow!.discarderId);
 }
 
 describe("Call Window — Open after discard", () => {
@@ -322,31 +321,6 @@ function findMatchingTiles(state: GameState, targetTile: Tile, count: number): T
 /** Find Joker tiles from the wall. */
 function findJokers(state: GameState, count: number): Tile[] {
   return state.wall.filter((t) => t.category === "joker").slice(0, count);
-}
-
-/**
- * Inject tiles into a player's rack (removes them from the wall if present).
- */
-function injectTilesIntoRack(state: GameState, playerId: string, tiles: Tile[]): void {
-  const player = state.players[playerId];
-  for (const tile of tiles) {
-    // Remove from wall if present
-    const wallIdx = state.wall.findIndex((t) => t.id === tile.id);
-    if (wallIdx >= 0) {
-      state.wall.splice(wallIdx, 1);
-      state.wallRemaining = state.wall.length;
-    }
-    // Remove from other players' racks if present
-    for (const p of Object.values(state.players)) {
-      if (p.id === playerId) continue;
-      const rackIdx = p.rack.findIndex((t) => t.id === tile.id);
-      if (rackIdx >= 0) {
-        p.rack.splice(rackIdx, 1);
-      }
-    }
-    // Add to target player's rack
-    player.rack.push(tile);
-  }
 }
 
 /**
