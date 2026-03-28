@@ -111,5 +111,7 @@ export {
   handleCallAction,
   tilesMatch,
   isPatternDefinedCall,
+  validateNewsGroup,
+  validateDragonSetGroup,
   getValidCallOptions,
 } from "./engine/actions/call-window";

@@ -701,11 +701,12 @@ describe("isPatternDefinedCall", () => {
 // ============================================================================
 
 /**
- * Set up a call window where a specific wind tile is discarded by East,
- * and inject specific tiles into South's rack for NEWS call testing.
+ * Set up a call window where a specific tile is discarded by East,
+ * and inject specific tiles into South's rack for pattern-defined call testing.
+ * Works for both NEWS and Dragon set scenarios.
  */
-function setupNewsScenario(
-  discardWindValue: string,
+function setupPatternCallScenario(
+  discardTileId: string,
   rackTileIds: string[],
 ): {
   state: GameState;
@@ -716,29 +717,24 @@ function setupNewsScenario(
   const eastId = getPlayerBySeat(state, "east");
   const southId = getPlayerBySeat(state, "south");
 
-  // Find a wind tile of the desired value in East's rack or inject one
-  const windTileId = `wind-${discardWindValue}-1`;
-  const windTile = buildHand([windTileId])[0];
+  const discardedTile = buildHand([discardTileId])[0];
+  injectTilesIntoRack(state, eastId, [discardedTile]);
+  handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: discardTileId });
 
-  // Inject the wind tile into East's rack and discard it
-  injectTilesIntoRack(state, eastId, [windTile]);
-  handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: windTileId });
-
-  // Inject the specified tiles into South's rack
   const rackTiles = buildHand(rackTileIds);
   injectTilesIntoRack(state, southId, rackTiles);
 
   return {
     state,
     callerId: southId,
-    discardedTile: windTile,
+    discardedTile,
   };
 }
 
 describe("handleCallAction — NEWS call validation", () => {
   test("valid NEWS call — player has 3 other wind tiles, discard is a wind → accepted", () => {
     // Discard North, rack has East + West + South
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "wind-south-2",
@@ -761,7 +757,7 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("valid NEWS call with 1 Joker substitution — player has 2 winds + 1 Joker → accepted", () => {
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "joker-1",
@@ -782,7 +778,11 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("valid NEWS call with 2 Jokers — player has 1 wind + 2 Jokers → accepted", () => {
-    const { state, callerId } = setupNewsScenario("north", ["wind-east-2", "joker-1", "joker-2"]);
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
+      "wind-east-2",
+      "joker-1",
+      "joker-2",
+    ]);
 
     const result = handleCallAction(
       state,
@@ -800,7 +800,7 @@ describe("handleCallAction — NEWS call validation", () => {
 
   test("invalid NEWS call — player has 3 wind tiles but all same wind as discard → INVALID_GROUP", () => {
     // Discard North, rack has 3 more North tiles (not distinct winds)
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-north-2",
       "wind-north-3",
       "wind-north-4",
@@ -851,7 +851,7 @@ describe("handleCallAction — NEWS call validation", () => {
 
   test("invalid NEWS call — player missing a wind and no Joker to substitute → INVALID_GROUP", () => {
     // Discard North, rack has East + West + a suited tile (not South, no Joker)
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "bam-1-1",
@@ -890,7 +890,11 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("NEWS call inherits common validations — rejects discarder", () => {
-    const { state } = setupNewsScenario("north", ["wind-east-2", "wind-west-2", "wind-south-2"]);
+    const { state } = setupPatternCallScenario("wind-north-1", [
+      "wind-east-2",
+      "wind-west-2",
+      "wind-south-2",
+    ]);
     const eastId = getPlayerBySeat(state, "east");
 
     const result = handleCallAction(
@@ -908,7 +912,7 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("NEWS call inherits common validations — rejects duplicate tile IDs", () => {
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "wind-south-2",
@@ -929,7 +933,7 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("NEWS call inherits common validations — rejects tiles not in rack", () => {
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "wind-south-2",
@@ -950,7 +954,7 @@ describe("handleCallAction — NEWS call validation", () => {
   });
 
   test("NEWS call inherits common validations — rejects player who already passed", () => {
-    const { state, callerId } = setupNewsScenario("north", [
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
       "wind-east-2",
       "wind-west-2",
       "wind-south-2",
@@ -977,37 +981,12 @@ describe("handleCallAction — NEWS call validation", () => {
 // Pattern-Defined Group Calls — Dragon Set (Story 3A.3)
 // ============================================================================
 
-function setupDragonScenario(
-  discardDragonValue: string,
-  rackTileIds: string[],
-): {
-  state: GameState;
-  callerId: string;
-  discardedTile: Tile;
-} {
-  const state = createPlayState();
-  const eastId = getPlayerBySeat(state, "east");
-  const southId = getPlayerBySeat(state, "south");
-
-  const dragonTileId = `dragon-${discardDragonValue}-1`;
-  const dragonTile = buildHand([dragonTileId])[0];
-
-  injectTilesIntoRack(state, eastId, [dragonTile]);
-  handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: dragonTileId });
-
-  const rackTiles = buildHand(rackTileIds);
-  injectTilesIntoRack(state, southId, rackTiles);
-
-  return {
-    state,
-    callerId: southId,
-    discardedTile: dragonTile,
-  };
-}
-
 describe("handleCallAction — Dragon set call validation", () => {
   test("valid Dragon set call — player has 2 other dragon tiles, discard is a dragon → accepted", () => {
-    const { state, callerId } = setupDragonScenario("red", ["dragon-green-2", "dragon-soap-2"]);
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-soap-2",
+    ]);
 
     const result = handleCallAction(
       state,
@@ -1026,7 +1005,10 @@ describe("handleCallAction — Dragon set call validation", () => {
   });
 
   test("valid Dragon set with Joker — player has 1 dragon + 1 Joker → accepted", () => {
-    const { state, callerId } = setupDragonScenario("red", ["dragon-green-2", "joker-3"]);
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "joker-3",
+    ]);
 
     const result = handleCallAction(
       state,
@@ -1071,7 +1053,10 @@ describe("handleCallAction — Dragon set call validation", () => {
 
   test("invalid Dragon set — player has duplicate dragons instead of distinct → INVALID_GROUP", () => {
     // Discard Red, rack has 2 Green (not distinct — missing Soap)
-    const { state, callerId } = setupDragonScenario("red", ["dragon-green-2", "dragon-green-3"]);
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-green-3",
+    ]);
 
     const result = handleCallAction(
       state,
@@ -1087,6 +1072,23 @@ describe("handleCallAction — Dragon set call validation", () => {
     expect(result.reason).toBe("INVALID_GROUP");
   });
 
+  test("valid Dragon set with max Joker substitution — 2 Jokers + dragon discard → accepted", () => {
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", ["joker-3", "joker-4"]);
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: callerId,
+        tileIds: ["joker-3", "joker-4"],
+      },
+      "dragon_set",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(state.callWindow!.calls[0].callType).toBe("dragon_set");
+  });
+
   test("Dragon set inherits common validations — rejects when call window not open", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
@@ -1099,6 +1101,86 @@ describe("handleCallAction — Dragon set call validation", () => {
 
     expect(result.accepted).toBe(false);
     expect(result.reason).toBe("NO_CALL_WINDOW");
+  });
+
+  test("Dragon set inherits common validations — rejects discarder", () => {
+    const { state } = setupPatternCallScenario("dragon-red-1", ["dragon-green-2", "dragon-soap-2"]);
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: eastId,
+        tileIds: ["dragon-green-2", "dragon-soap-2"],
+      },
+      "dragon_set",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("DISCARDER_CANNOT_CALL");
+  });
+
+  test("Dragon set inherits common validations — rejects duplicate tile IDs", () => {
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-soap-2",
+    ]);
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: callerId,
+        tileIds: ["dragon-green-2", "dragon-green-2"],
+      },
+      "dragon_set",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("DUPLICATE_TILE_IDS");
+  });
+
+  test("Dragon set inherits common validations — rejects tiles not in rack", () => {
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-soap-2",
+    ]);
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: callerId,
+        tileIds: ["dragon-green-2", "fake-tile-id"],
+      },
+      "dragon_set",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("TILE_NOT_IN_RACK");
+  });
+
+  test("Dragon set inherits common validations — rejects player who already passed", () => {
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-soap-2",
+    ]);
+
+    handlePassCall(state, { type: "PASS_CALL", playerId: callerId });
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: callerId,
+        tileIds: ["dragon-green-2", "dragon-soap-2"],
+      },
+      "dragon_set",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("ALREADY_PASSED");
   });
 });
 
@@ -1221,6 +1303,29 @@ describe("getValidCallOptions", () => {
     expect(options).toContain("pung");
     expect(options).toContain("kong");
   });
+
+  test("wind discard + rack has zero wind tiles and zero Jokers → empty array (no news)", () => {
+    const [discard] = buildHand(["wind-north-1"]);
+    const rack = buildHand(["bam-1-1", "dot-5-1", "crak-9-1"]);
+
+    const options = getValidCallOptions(rack, discard);
+
+    expect(options).not.toContain("news");
+    expect(options).toEqual([]);
+  });
+
+  test("Jokers listed for both same-tile and pattern calls — options are individually valid but mutually exclusive", () => {
+    const [discard] = buildHand(["wind-north-1"]);
+    // 3 Jokers: individually valid for kong (0 natural + 3 Jokers) AND news (3 Jokers fill 3 missing winds)
+    const rack = buildHand(["joker-1", "joker-2", "joker-3"]);
+
+    const options = getValidCallOptions(rack, discard);
+
+    // Both are individually valid — player picks one
+    expect(options).toContain("pung");
+    expect(options).toContain("kong");
+    expect(options).toContain("news");
+  });
 });
 
 // ============================================================================
@@ -1228,9 +1333,11 @@ describe("getValidCallOptions", () => {
 // ============================================================================
 
 describe("validateNewsGroup", () => {
-  test("valid: 3 distinct non-discard winds cover all 4", () => {
-    const [discard] = buildHand(["wind-north-1"]);
-    const rack = buildHand(["wind-east-1", "wind-west-1", "wind-south-1"]);
+  test("valid: 3 distinct non-discard winds cover all 4 (derived from WINDS)", () => {
+    const discardWind = WINDS[0]; // "north"
+    const otherWinds = WINDS.filter((w) => w !== discardWind);
+    const [discard] = buildHand([`wind-${discardWind}-1`]);
+    const rack = buildHand(otherWinds.map((w) => `wind-${w}-1`));
 
     expect(validateNewsGroup(rack, discard)).toBe(true);
   });
@@ -1273,9 +1380,11 @@ describe("validateNewsGroup", () => {
 });
 
 describe("validateDragonSetGroup", () => {
-  test("valid: 2 distinct non-discard dragons cover all 3", () => {
-    const [discard] = buildHand(["dragon-red-1"]);
-    const rack = buildHand(["dragon-green-1", "dragon-soap-1"]);
+  test("valid: 2 distinct non-discard dragons cover all 3 (derived from DRAGONS)", () => {
+    const discardDragon = DRAGONS[0]; // "red"
+    const otherDragons = DRAGONS.filter((d) => d !== discardDragon);
+    const [discard] = buildHand([`dragon-${discardDragon}-1`]);
+    const rack = buildHand(otherDragons.map((d) => `dragon-${d}-1`));
 
     expect(validateDragonSetGroup(rack, discard)).toBe(true);
   });
@@ -1307,5 +1416,83 @@ describe("validateDragonSetGroup", () => {
     const rack = buildHand(["dragon-green-1", "dragon-green-2"]);
 
     expect(validateDragonSetGroup(rack, discard)).toBe(false);
+  });
+});
+
+// ============================================================================
+// Zero-mutation-on-rejection tests (Story 3A.3 — Review R1)
+// ============================================================================
+
+describe("handleCallAction — zero mutations on rejection", () => {
+  test("rejected NEWS call does not mutate state", () => {
+    // Invalid NEWS: missing a wind, no Joker
+    const { state, callerId } = setupPatternCallScenario("wind-north-1", [
+      "wind-east-2",
+      "wind-west-2",
+      "bam-1-1",
+    ]);
+
+    const stateBefore = JSON.stringify(state);
+
+    handleCallAction(
+      state,
+      {
+        type: "CALL_NEWS",
+        playerId: callerId,
+        tileIds: ["wind-east-2", "wind-west-2", "bam-1-1"],
+      },
+      "news",
+    );
+
+    expect(JSON.stringify(state)).toBe(stateBefore);
+  });
+
+  test("rejected Dragon set call does not mutate state", () => {
+    // Invalid Dragon set: duplicate dragons
+    const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+      "dragon-green-2",
+      "dragon-green-3",
+    ]);
+
+    const stateBefore = JSON.stringify(state);
+
+    handleCallAction(
+      state,
+      {
+        type: "CALL_DRAGON_SET",
+        playerId: callerId,
+        tileIds: ["dragon-green-2", "dragon-green-3"],
+      },
+      "dragon_set",
+    );
+
+    expect(JSON.stringify(state)).toBe(stateBefore);
+  });
+
+  test("rejected NEWS call with non-wind discard does not mutate state", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    const suitedTile = state.players[eastId].rack.find((t) => t.category === "suited");
+    if (!suitedTile) throw new Error("No suited tile in rack");
+    handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: suitedTile.id });
+
+    const windTiles = buildHand(["wind-north-2", "wind-east-2", "wind-west-2"]);
+    injectTilesIntoRack(state, southId, windTiles);
+
+    const stateBefore = JSON.stringify(state);
+
+    handleCallAction(
+      state,
+      {
+        type: "CALL_NEWS",
+        playerId: southId,
+        tileIds: ["wind-north-2", "wind-east-2", "wind-west-2"],
+      },
+      "news",
+    );
+
+    expect(JSON.stringify(state)).toBe(stateBefore);
   });
 });

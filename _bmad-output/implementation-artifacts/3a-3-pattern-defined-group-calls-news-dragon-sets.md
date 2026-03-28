@@ -1,6 +1,6 @@
 # Story 3A.3: Pattern-Defined Group Calls (NEWS, Dragon Sets)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -54,14 +54,14 @@ so that all valid call types on the NMJL card are supported (FR31).
 
 ### Review Follow-ups (AI)
 
-- [ ] [AI-Review][HIGH] `getValidCallOptions` double-counts Jokers — `jokerCount` is shared between same-tile and pattern-defined paths, so a player with 3+ Jokers and a wind discard sees both "pung" and "news" advertised when the same Jokers cannot serve both. Fix: compute separate Joker budgets per call-type path, or document that options are individually valid but mutually exclusive. [call-window.ts:282-323]
-- [ ] [AI-Review][HIGH] Task 4.5 claims "Dragon set inherits common validations" but only 1 of 5 common validation cases is tested (NO_CALL_WINDOW). Missing: DISCARDER_CANNOT_CALL, DUPLICATE_TILE_IDS, TILE_NOT_IN_RACK, ALREADY_PASSED. Add the 4 missing Dragon set inheritance tests. [call-window.test.ts]
-- [ ] [AI-Review][HIGH] No zero-mutation-on-rejection tests for any new test (NEWS, Dragon set, getValidCallOptions). Story Dev Notes explicitly require "Verify zero mutations on rejection (read state before, assert unchanged after)". Add at least one mutation-guard test per rejection path. [call-window.test.ts]
-- [ ] [AI-Review][MED] WINDS and DRAGONS constants imported but never used in test file — all tests hardcode string literals like "wind-north-1", "dragon-red". Story requires using constants from constants.ts. Remove dead imports or refactor tests to derive tile IDs from WINDS/DRAGONS constants. [call-window.test.ts:16]
-- [ ] [AI-Review][MED] Dragon set missing max-Joker-substitution test (2 Jokers + dragon discard). NEWS tests cover 1-wind + 2-Jokers (subtask 3.3) but no symmetric test exists for Dragon set. Add test: `setupDragonScenario("red", ["joker-3", "joker-4"])` → accepted. [call-window.test.ts]
-- [ ] [AI-Review][MED] `setupNewsScenario` and `setupDragonScenario` are near-duplicate helpers — both inject a discard tile and rack tiles for a specific player. Extract to a shared `setupPatternCallScenario(category, discardValue, rackTileIds)` helper to avoid copy-paste. [call-window.test.ts]
-- [ ] [AI-Review][LOW] Missing `getValidCallOptions` test: wind discard + rack has zero wind tiles and zero Jokers → should return empty array (no "news"). Currently only tested with suited discard for "no pattern calls". [call-window.test.ts]
-- [ ] [AI-Review][LOW] `validateNewsGroup` and `validateDragonSetGroup` are exported from call-window.ts but not re-exported from index.ts, unlike `tilesMatch`. Add to barrel export for consistency or make them non-exported internal helpers. [index.ts]
+- [x] [AI-Review][HIGH] `getValidCallOptions` double-counts Jokers — `jokerCount` is shared between same-tile and pattern-defined paths, so a player with 3+ Jokers and a wind discard sees both "pung" and "news" advertised when the same Jokers cannot serve both. Fix: compute separate Joker budgets per call-type path, or document that options are individually valid but mutually exclusive. [call-window.ts:282-323]
+- [x] [AI-Review][HIGH] Task 4.5 claims "Dragon set inherits common validations" but only 1 of 5 common validation cases is tested (NO_CALL_WINDOW). Missing: DISCARDER_CANNOT_CALL, DUPLICATE_TILE_IDS, TILE_NOT_IN_RACK, ALREADY_PASSED. Add the 4 missing Dragon set inheritance tests. [call-window.test.ts]
+- [x] [AI-Review][HIGH] No zero-mutation-on-rejection tests for any new test (NEWS, Dragon set, getValidCallOptions). Story Dev Notes explicitly require "Verify zero mutations on rejection (read state before, assert unchanged after)". Add at least one mutation-guard test per rejection path. [call-window.test.ts]
+- [x] [AI-Review][MED] WINDS and DRAGONS constants imported but never used in test file — all tests hardcode string literals like "wind-north-1", "dragon-red". Story requires using constants from constants.ts. Remove dead imports or refactor tests to derive tile IDs from WINDS/DRAGONS constants. [call-window.test.ts:16]
+- [x] [AI-Review][MED] Dragon set missing max-Joker-substitution test (2 Jokers + dragon discard). NEWS tests cover 1-wind + 2-Jokers (subtask 3.3) but no symmetric test exists for Dragon set. Add test: `setupDragonScenario("red", ["joker-3", "joker-4"])` → accepted. [call-window.test.ts]
+- [x] [AI-Review][MED] `setupNewsScenario` and `setupDragonScenario` are near-duplicate helpers — both inject a discard tile and rack tiles for a specific player. Extract to a shared `setupPatternCallScenario(category, discardValue, rackTileIds)` helper to avoid copy-paste. [call-window.test.ts]
+- [x] [AI-Review][LOW] Missing `getValidCallOptions` test: wind discard + rack has zero wind tiles and zero Jokers → should return empty array (no "news"). Currently only tested with suited discard for "no pattern calls". [call-window.test.ts]
+- [x] [AI-Review][LOW] `validateNewsGroup` and `validateDragonSetGroup` are exported from call-window.ts but not re-exported from index.ts, unlike `tilesMatch`. Add to barrel export for consistency or make them non-exported internal helpers. [index.ts]
 
 - [x] Task 5: Implement and test `getValidCallOptions` utility (AC: 5)
   - [x] 5.1 Create `getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType[]` in `call-window.ts` — returns all valid call types given a player's rack and the discarded tile
@@ -175,11 +175,14 @@ claude-opus-4-6
 - getValidCallOptions: pure function returning all valid CallType[] given rack and discarded tile
 - 30+ new tests added covering valid calls, Joker substitution, invalid groups, common validation inheritance, and getValidCallOptions edge cases
 - All 425 tests pass, typecheck clean, lint 0 errors
+- R1 review follow-ups resolved (8/8): documented Joker mutual exclusivity in getValidCallOptions, added 4 Dragon set common validation tests, added 3 zero-mutation-on-rejection tests, refactored tests to use WINDS/DRAGONS constants, added Dragon set max-Joker test, extracted shared setupPatternCallScenario helper, added getValidCallOptions wind-no-winds edge case, added barrel exports for validateNewsGroup/validateDragonSetGroup
+- All 435 tests pass, typecheck clean, lint 0 errors
 
 ### Change Log
 
 - 2026-03-27: Implemented pattern-defined group calls (NEWS, Dragon sets) with full test coverage
 - 2026-03-27: Code review R1 — Changes Requested (3 High, 3 Med, 2 Low). Key: getValidCallOptions Joker double-counting, Dragon set test gaps, missing mutation-guard assertions
+- 2026-03-27: Addressed code review R1 findings — 8/8 items resolved (3 High, 3 Med, 2 Low)
 
 ### Senior Developer Review (AI)
 
@@ -195,14 +198,14 @@ Issues found are concentrated in test quality gaps and one semantic defect in `g
 
 **Action Items:**
 
-- [ ] [HIGH] `getValidCallOptions` Joker double-counting — shared `jokerCount` between same-tile and pattern-defined paths advertises phantom mutually-exclusive options [call-window.ts:282-323]
-- [ ] [HIGH] Dragon set common validation inheritance tests incomplete — only 1/5 tested (NO_CALL_WINDOW) [call-window.test.ts]
-- [ ] [HIGH] No zero-mutation-on-rejection assertions in any new tests — required by story Dev Notes [call-window.test.ts]
-- [ ] [MED] WINDS/DRAGONS constants dead imports — tests hardcode strings instead of using constants [call-window.test.ts:16]
-- [ ] [MED] Missing Dragon set max-Joker test (2 Jokers + dragon discard) [call-window.test.ts]
-- [ ] [MED] Near-duplicate test helpers `setupNewsScenario`/`setupDragonScenario` — extract shared helper [call-window.test.ts]
-- [ ] [LOW] Missing `getValidCallOptions` edge case test: wind discard + no winds in rack [call-window.test.ts]
-- [ ] [LOW] `validateNewsGroup`/`validateDragonSetGroup` export inconsistency vs `tilesMatch` [index.ts]
+- [x] [HIGH] `getValidCallOptions` Joker double-counting — shared `jokerCount` between same-tile and pattern-defined paths advertises phantom mutually-exclusive options [call-window.ts:282-323]
+- [x] [HIGH] Dragon set common validation inheritance tests incomplete — only 1/5 tested (NO_CALL_WINDOW) [call-window.test.ts]
+- [x] [HIGH] No zero-mutation-on-rejection assertions in any new tests — required by story Dev Notes [call-window.test.ts]
+- [x] [MED] WINDS/DRAGONS constants dead imports — tests hardcode strings instead of using constants [call-window.test.ts:16]
+- [x] [MED] Missing Dragon set max-Joker test (2 Jokers + dragon discard) [call-window.test.ts]
+- [x] [MED] Near-duplicate test helpers `setupNewsScenario`/`setupDragonScenario` — extract shared helper [call-window.test.ts]
+- [x] [LOW] Missing `getValidCallOptions` edge case test: wind discard + no winds in rack [call-window.test.ts]
+- [x] [LOW] `validateNewsGroup`/`validateDragonSetGroup` export inconsistency vs `tilesMatch` [index.ts]
 
 **Severity Breakdown:** 3 High, 3 Medium, 2 Low — Total: 8 action items
 

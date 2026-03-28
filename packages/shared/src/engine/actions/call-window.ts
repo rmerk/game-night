@@ -274,6 +274,12 @@ export function closeCallWindow(
 /**
  * Determine all valid call types a player can make given their rack and the discarded tile.
  * Pure function — no game state dependency beyond rack and discard.
+ *
+ * NOTE: Options are individually valid but mutually exclusive — the player will choose
+ * exactly one call. Jokers in the rack are counted for each call-type path independently
+ * because the same Jokers could serve different roles depending on which call is chosen.
+ * For example, with 3 Jokers and a wind discard, both "kong" and "news" may appear;
+ * the player picks one, and the Jokers are committed to that single call.
  */
 export function getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType[] {
   const options: CallType[] = [];
