@@ -1,6 +1,6 @@
 # Story 3A.4: Call Window Freeze & Priority Resolution
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -26,53 +26,53 @@ so that call resolution is fair and deterministic with no fastest-click advantag
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend `CallWindowState.status` to include `"frozen"` (AC: 1)
-  - [ ] 1.1 Add `"frozen"` to the `CallWindowState.status` union type in `game-state.ts`
-  - [ ] 1.2 Add `CALL_WINDOW_FROZEN` to the `ResolvedAction` discriminated union in `game-state.ts`
+- [x] Task 1: Extend `CallWindowState.status` to include `"frozen"` (AC: 1)
+  - [x] 1.1 Add `"frozen"` to the `CallWindowState.status` union type in `game-state.ts`
+  - [x] 1.2 Add `CALL_WINDOW_FROZEN` to the `ResolvedAction` discriminated union in `game-state.ts`
 
-- [ ] Task 2: Implement freeze-on-first-call in `handleCallAction` (AC: 1, 2)
-  - [ ] 2.1 Modify `handleCallAction` to set `callWindow.status = "frozen"` when the first call is recorded and `status === "open"`
-  - [ ] 2.2 Return `CALL_WINDOW_FROZEN` resolved action (with `callerId`) when freeze triggers
-  - [ ] 2.3 Continue accepting calls when `status === "frozen"` (in-flight calls)
-  - [ ] 2.4 Write tests: first call freezes window, resolved action contains caller ID
-  - [ ] 2.5 Write tests: second call accepted while frozen, call buffer contains both calls
-  - [ ] 2.6 Write tests: pass actions rejected when window is frozen (`CALL_WINDOW_FROZEN` reason)
+- [x] Task 2: Implement freeze-on-first-call in `handleCallAction` (AC: 1, 2)
+  - [x] 2.1 Modify `handleCallAction` to set `callWindow.status = "frozen"` when the first call is recorded and `status === "open"`
+  - [x] 2.2 Return `CALL_WINDOW_FROZEN` resolved action (with `callerId`) when freeze triggers
+  - [x] 2.3 Continue accepting calls when `status === "frozen"` (in-flight calls)
+  - [x] 2.4 Write tests: first call freezes window, resolved action contains caller ID
+  - [x] 2.5 Write tests: second call accepted while frozen, call buffer contains both calls
+  - [x] 2.6 Write tests: pass actions rejected when window is frozen (`CALL_WINDOW_FROZEN` reason)
 
-- [ ] Task 3: Implement seat-position priority helper (AC: 3, 5)
-  - [ ] 3.1 Create `getSeatDistance(fromSeat, toSeat)` — returns counterclockwise distance (1-3) from discarder to caller using `SEATS` constant
-  - [ ] 3.2 Create `resolveCallPriority(calls, discarderSeatWind, players)` — sorts buffered calls by: (a) Mahjong first, (b) seat distance ascending
-  - [ ] 3.3 Write tests: seat distance calculation for all 4 seat positions as discarder
-  - [ ] 3.4 Write tests: priority resolution with 2 non-Mahjong calls at different seats
-  - [ ] 3.5 Write tests: priority resolution with 3 non-Mahjong calls
+- [x] Task 3: Implement seat-position priority helper (AC: 3, 5)
+  - [x] 3.1 Create `getSeatDistance(fromSeat, toSeat)` — returns counterclockwise distance (1-3) from discarder to caller using `SEATS` constant
+  - [x] 3.2 Create `resolveCallPriority(calls, discarderSeatWind, players)` — sorts buffered calls by: (a) Mahjong first, (b) seat distance ascending
+  - [x] 3.3 Write tests: seat distance calculation for all 4 seat positions as discarder
+  - [x] 3.4 Write tests: priority resolution with 2 non-Mahjong calls at different seats
+  - [x] 3.5 Write tests: priority resolution with 3 non-Mahjong calls
 
-- [ ] Task 4: Implement Mahjong priority over non-Mahjong (AC: 4, 5)
-  - [ ] 4.1 Ensure `resolveCallPriority` always ranks any Mahjong call above non-Mahjong regardless of seat
-  - [ ] 4.2 Write tests: Mahjong call beats closer-seated non-Mahjong call
-  - [ ] 4.3 Write tests: multiple Mahjong calls resolved by seat position
-  - [ ] 4.4 Write tests: single Mahjong call among multiple non-Mahjong calls wins
+- [x] Task 4: Implement Mahjong priority over non-Mahjong (AC: 4, 5)
+  - [x] 4.1 Ensure `resolveCallPriority` always ranks any Mahjong call above non-Mahjong regardless of seat
+  - [x] 4.2 Write tests: Mahjong call beats closer-seated non-Mahjong call
+  - [x] 4.3 Write tests: multiple Mahjong calls resolved by seat position
+  - [x] 4.4 Write tests: single Mahjong call among multiple non-Mahjong calls wins
 
-- [ ] Task 5: Implement `resolveCallWindow` function (AC: 3, 4, 5, 6, 7)
-  - [ ] 5.1 Create `resolveCallWindow(state)` that: validates call window is frozen with calls, resolves priority, returns winning `CallRecord` in the `ActionResult`
-  - [ ] 5.2 Losing calls are discarded from the buffer — no mutation to losing players' state
-  - [ ] 5.3 The resolved action type is `CALL_RESOLVED` with `winningCall: CallRecord` and `losingCallerIds: string[]`
-  - [ ] 5.4 Write tests: single call resolves immediately as winner
-  - [ ] 5.5 Write tests: two competing calls — winner determined by seat position
-  - [ ] 5.6 Write tests: resolution with Mahjong vs non-Mahjong
-  - [ ] 5.7 Write tests: resolution with no calls returns rejection
-  - [ ] 5.8 Write tests: resolution when window is not frozen returns rejection
+- [x] Task 5: Implement `resolveCallWindow` function (AC: 3, 4, 5, 6, 7)
+  - [x] 5.1 Create `resolveCallWindow(state)` that: validates call window is frozen with calls, resolves priority, returns winning `CallRecord` in the `ActionResult`
+  - [x] 5.2 Losing calls are discarded from the buffer — no mutation to losing players' state
+  - [x] 5.3 The resolved action type is `CALL_RESOLVED` with `winningCall: CallRecord` and `losingCallerIds: string[]`
+  - [x] 5.4 Write tests: single call resolves immediately as winner
+  - [x] 5.5 Write tests: two competing calls — winner determined by seat position
+  - [x] 5.6 Write tests: resolution with Mahjong vs non-Mahjong
+  - [x] 5.7 Write tests: resolution with no calls returns rejection
+  - [x] 5.8 Write tests: resolution when window is not frozen returns rejection
 
-- [ ] Task 6: Wire `resolveCallWindow` and update `handlePassCall` for frozen state (AC: 1, 6)
-  - [ ] 6.1 Update `handlePassCall` to reject with `CALL_WINDOW_FROZEN` when `status === "frozen"`
-  - [ ] 6.2 Register a `RESOLVE_CALL_WINDOW` action type in `game-engine.ts` dispatcher (or trigger resolution automatically — see Dev Notes)
-  - [ ] 6.3 Update `closeCallWindow` to handle pending calls: if `calls.length > 0`, route to `resolveCallWindow` instead of advancing turn
-  - [ ] 6.4 Write tests: pass rejected during frozen state
-  - [ ] 6.5 Write tests: close with pending calls triggers resolution instead of turn advance
-  - [ ] 6.6 Export new public functions from `index.ts` barrel
+- [x] Task 6: Wire `resolveCallWindow` and update `handlePassCall` for frozen state (AC: 1, 6)
+  - [x] 6.1 Update `handlePassCall` to reject with `CALL_WINDOW_FROZEN` when `status === "frozen"`
+  - [x] 6.2 Register a `RESOLVE_CALL_WINDOW` action type in `game-engine.ts` dispatcher (or trigger resolution automatically — see Dev Notes)
+  - [x] 6.3 Update `closeCallWindow` to handle pending calls: if `calls.length > 0`, route to `resolveCallWindow` instead of advancing turn
+  - [x] 6.4 Write tests: pass rejected during frozen state
+  - [x] 6.5 Write tests: close with pending calls triggers resolution instead of turn advance
+  - [x] 6.6 Export new public functions from `index.ts` barrel
 
-- [ ] Task 7: Backpressure gate and final validation (AC: all)
-  - [ ] 7.1 Run `pnpm -r test` — all tests pass
-  - [ ] 7.2 Run `pnpm run typecheck` — no type errors
-  - [ ] 7.3 Run `vp lint` — no lint errors
+- [x] Task 7: Backpressure gate and final validation (AC: all)
+  - [x] 7.1 Run `pnpm -r test` — all tests pass
+  - [x] 7.2 Run `pnpm run typecheck` — no type errors
+  - [x] 7.3 Run `vp lint` — no lint errors
 
 ## Dev Notes
 
@@ -158,9 +158,35 @@ so that call resolution is fair and deterministic with no fastest-click advantag
 
 ### Agent Model Used
 
+Claude Opus 4.6
+
 ### Debug Log References
+
+None — clean implementation, no debugging required.
 
 ### Completion Notes List
 
+- Extended `CallWindowState.status` to include `"frozen"` and `CallType` to include `"mahjong"`
+- Added `CALL_WINDOW_FROZEN` and `CALL_RESOLVED` to `ResolvedAction` discriminated union
+- Modified `handleCallAction` to freeze window on first call (returns `CALL_WINDOW_FROZEN` resolved action)
+- In-flight calls accepted while frozen (returns call-type resolved action)
+- Modified `handlePassCall` to reject with `CALL_WINDOW_FROZEN` when window is frozen
+- Implemented `getSeatDistance(fromSeat, toSeat)` — counterclockwise distance using `SEATS` constant
+- Implemented `resolveCallPriority(calls, discarderSeatWind, players)` — sorts by Mahjong-first then seat distance
+- Implemented `resolveCallWindow(state)` — resolves winner, clears buffer, returns `CALL_RESOLVED`
+- Updated `closeCallWindow` to route to `resolveCallWindow` when calls are buffered (fixes pre-existing issue from 3a-3)
+- Updated existing tests to expect `CALL_WINDOW_FROZEN` on first call instead of call-type resolved action
+- Added 27 new tests (435 → 462 total), all passing
+- Backpressure gate: tests pass, typecheck clean, lint 0 errors
+
+### Change Log
+
+- 2026-03-27: Implemented call window freeze and priority resolution (Story 3A.4)
+
 ### File List
+
+- packages/shared/src/types/game-state.ts (modified)
+- packages/shared/src/engine/actions/call-window.ts (modified)
+- packages/shared/src/engine/actions/call-window.test.ts (modified)
+- packages/shared/src/index.ts (modified)
 

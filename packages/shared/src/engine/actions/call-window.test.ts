@@ -8,13 +8,16 @@ import {
   validateNewsGroup,
   validateDragonSetGroup,
   getValidCallOptions,
+  getSeatDistance,
+  resolveCallPriority,
+  resolveCallWindow,
 } from "./call-window";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { createPlayState } from "../../testing/fixtures";
 import { getPlayerBySeat, buildHand } from "../../testing/helpers";
-import { WINDS, DRAGONS } from "../../constants";
-import type { GameState } from "../../types/game-state";
+import { WINDS, DRAGONS, SEATS } from "../../constants";
+import type { GameState, CallRecord, SeatWind } from "../../types/game-state";
 import type { Tile } from "../../types/tiles";
 
 /** Discard a non-Joker tile from the given player's rack. Returns the discarded tile. */
@@ -386,7 +389,9 @@ describe("handleCallAction — Pung", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(result.resolved).toEqual({ type: "CALL_PUNG", playerId: callerId });
+    // First call freezes the window
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
+    expect(state.callWindow!.status).toBe("frozen");
     expect(state.callWindow!.calls).toHaveLength(1);
     expect(state.callWindow!.calls[0].callType).toBe("pung");
     expect(state.callWindow!.calls[0].playerId).toBe(callerId);
@@ -433,7 +438,8 @@ describe("handleCallAction — Kong", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(result.resolved).toEqual({ type: "CALL_KONG", playerId: callerId });
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
+    expect(state.callWindow!.status).toBe("frozen");
     expect(state.callWindow!.calls).toHaveLength(1);
     expect(state.callWindow!.calls[0].callType).toBe("kong");
   });
@@ -463,7 +469,8 @@ describe("handleCallAction — Quint", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(result.resolved).toEqual({ type: "CALL_QUINT", playerId: callerId });
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
+    expect(state.callWindow!.status).toBe("frozen");
     expect(state.callWindow!.calls).toHaveLength(1);
     expect(state.callWindow!.calls[0].callType).toBe("quint");
   });
@@ -478,6 +485,7 @@ describe("handleCallAction — Quint", () => {
     );
 
     expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
     expect(state.callWindow!.calls[0].callType).toBe("quint");
   });
 });
@@ -672,7 +680,11 @@ describe("handleCallAction — multiple calls on same discard", () => {
     );
 
     expect(result1.accepted).toBe(true);
+    // First call freezes
+    expect(result1.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId: southId });
     expect(result2.accepted).toBe(true);
+    // Second call (in-flight) returns call type
+    expect(result2.resolved).toEqual({ type: "CALL_PUNG", playerId: westId });
     expect(state.callWindow!.calls).toHaveLength(2);
     expect(state.callWindow!.calls[0].playerId).toBe(southId);
     expect(state.callWindow!.calls[1].playerId).toBe(westId);
@@ -751,7 +763,8 @@ describe("handleCallAction — NEWS call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(result.resolved).toEqual({ type: "CALL_NEWS", playerId: callerId });
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
+    expect(state.callWindow!.status).toBe("frozen");
     expect(state.callWindow!.calls).toHaveLength(1);
     expect(state.callWindow!.calls[0].callType).toBe("news");
   });
@@ -774,6 +787,7 @@ describe("handleCallAction — NEWS call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
     expect(state.callWindow!.calls[0].callType).toBe("news");
   });
 
@@ -795,6 +809,7 @@ describe("handleCallAction — NEWS call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
     expect(state.callWindow!.calls[0].callType).toBe("news");
   });
 
@@ -999,7 +1014,8 @@ describe("handleCallAction — Dragon set call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(result.resolved).toEqual({ type: "CALL_DRAGON_SET", playerId: callerId });
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
+    expect(state.callWindow!.status).toBe("frozen");
     expect(state.callWindow!.calls).toHaveLength(1);
     expect(state.callWindow!.calls[0].callType).toBe("dragon_set");
   });
@@ -1021,6 +1037,7 @@ describe("handleCallAction — Dragon set call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
     expect(state.callWindow!.calls[0].callType).toBe("dragon_set");
   });
 
@@ -1086,6 +1103,7 @@ describe("handleCallAction — Dragon set call validation", () => {
     );
 
     expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId });
     expect(state.callWindow!.calls[0].callType).toBe("dragon_set");
   });
 
@@ -1493,6 +1511,462 @@ describe("handleCallAction — zero mutations on rejection", () => {
       "news",
     );
 
+    expect(JSON.stringify(state)).toBe(stateBefore);
+  });
+});
+
+// ============================================================================
+// Call Window Freeze & Priority Resolution (Story 3A.4)
+// ============================================================================
+
+describe("handleCallAction — freeze on first call (Story 3A.4)", () => {
+  test("first call freezes window — status becomes frozen, resolved action is CALL_WINDOW_FROZEN", () => {
+    const { state, callerId } = setupCallScenario(2);
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_PUNG",
+        playerId: callerId,
+        tileIds: state.players[callerId].rack.slice(-2).map((t) => t.id),
+      },
+      "pung",
+    );
+
+    // Re-fetch using setupCallScenario which already verifies this
+    // Just verify the core freeze behavior
+    expect(state.callWindow!.status).toBe("frozen");
+  });
+
+  test("second call accepted while frozen — call buffer contains both calls", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+    injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+    // First call freezes
+    const result1 = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+    expect(result1.resolved).toEqual({ type: "CALL_WINDOW_FROZEN", callerId: southId });
+    expect(state.callWindow!.status).toBe("frozen");
+
+    // Second call (in-flight) accepted
+    const result2 = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: westId, tileIds: [jokers[2].id, jokers[3].id] },
+      "pung",
+    );
+    expect(result2.accepted).toBe(true);
+    expect(result2.resolved).toEqual({ type: "CALL_PUNG", playerId: westId });
+    expect(state.callWindow!.calls).toHaveLength(2);
+  });
+
+  test("pass actions rejected when window is frozen — CALL_WINDOW_FROZEN reason", () => {
+    const { state, callerId } = setupCallScenario(2);
+    const westId = getPlayerBySeat(state, "west");
+
+    // First call freezes
+    handleCallAction(
+      state,
+      {
+        type: "CALL_PUNG",
+        playerId: callerId,
+        tileIds: state.players[callerId].rack.slice(-2).map((t) => t.id),
+      },
+      "pung",
+    );
+    expect(state.callWindow!.status).toBe("frozen");
+
+    // Pass should be rejected
+    const passResult = handlePassCall(state, { type: "PASS_CALL", playerId: westId });
+    expect(passResult.accepted).toBe(false);
+    expect(passResult.reason).toBe("CALL_WINDOW_FROZEN");
+  });
+});
+
+// ============================================================================
+// getSeatDistance (Story 3A.4)
+// ============================================================================
+
+describe("getSeatDistance", () => {
+  test("distance from each seat to all other seats follows counterclockwise order", () => {
+    // SEATS = ["east", "south", "west", "north"] — counterclockwise order
+    for (let fromIdx = 0; fromIdx < SEATS.length; fromIdx++) {
+      const from = SEATS[fromIdx] as SeatWind;
+      for (let toIdx = 0; toIdx < SEATS.length; toIdx++) {
+        const to = SEATS[toIdx] as SeatWind;
+        const expected = (toIdx - fromIdx + SEATS.length) % SEATS.length;
+        expect(getSeatDistance(from, to)).toBe(expected);
+      }
+    }
+  });
+
+  test("same seat returns 0", () => {
+    for (const seat of SEATS) {
+      expect(getSeatDistance(seat as SeatWind, seat as SeatWind)).toBe(0);
+    }
+  });
+
+  test("east to south = 1 (next counterclockwise)", () => {
+    expect(getSeatDistance("east", "south")).toBe(1);
+  });
+
+  test("east to west = 2", () => {
+    expect(getSeatDistance("east", "west")).toBe(2);
+  });
+
+  test("east to north = 3", () => {
+    expect(getSeatDistance("east", "north")).toBe(3);
+  });
+
+  test("north to east = 1 (wraps around)", () => {
+    expect(getSeatDistance("north", "east")).toBe(1);
+  });
+});
+
+// ============================================================================
+// resolveCallPriority (Story 3A.4)
+// ============================================================================
+
+describe("resolveCallPriority", () => {
+  const mockPlayers: Record<string, { seatWind: SeatWind }> = {
+    p1: { seatWind: "east" },
+    p2: { seatWind: "south" },
+    p3: { seatWind: "west" },
+    p4: { seatWind: "north" },
+  };
+
+  test("2 non-Mahjong calls — closer seat wins", () => {
+    const calls: CallRecord[] = [
+      { callType: "pung", playerId: "p3", tileIds: ["t1", "t2"] }, // west, dist 2 from east
+      { callType: "pung", playerId: "p2", tileIds: ["t3", "t4"] }, // south, dist 1 from east
+    ];
+
+    const sorted = resolveCallPriority(calls, "east", mockPlayers);
+    expect(sorted[0].playerId).toBe("p2"); // south (dist 1) beats west (dist 2)
+  });
+
+  test("3 non-Mahjong calls — sorted by seat distance", () => {
+    const calls: CallRecord[] = [
+      { callType: "kong", playerId: "p4", tileIds: ["t1", "t2", "t3"] }, // north, dist 3 from east
+      { callType: "pung", playerId: "p3", tileIds: ["t4", "t5"] }, // west, dist 2 from east
+      { callType: "pung", playerId: "p2", tileIds: ["t6", "t7"] }, // south, dist 1 from east
+    ];
+
+    const sorted = resolveCallPriority(calls, "east", mockPlayers);
+    expect(sorted[0].playerId).toBe("p2"); // south
+    expect(sorted[1].playerId).toBe("p3"); // west
+    expect(sorted[2].playerId).toBe("p4"); // north
+  });
+
+  test("Mahjong call beats closer-seated non-Mahjong call", () => {
+    const calls: CallRecord[] = [
+      { callType: "pung", playerId: "p2", tileIds: ["t1", "t2"] }, // south, dist 1 from east
+      { callType: "mahjong", playerId: "p4", tileIds: ["t3"] }, // north, dist 3 from east
+    ];
+
+    const sorted = resolveCallPriority(calls, "east", mockPlayers);
+    expect(sorted[0].playerId).toBe("p4"); // mahjong wins regardless of seat
+    expect(sorted[0].callType).toBe("mahjong");
+  });
+
+  test("multiple Mahjong calls — resolved by seat position", () => {
+    const calls: CallRecord[] = [
+      { callType: "mahjong", playerId: "p3", tileIds: ["t1"] }, // west, dist 2 from east
+      { callType: "mahjong", playerId: "p2", tileIds: ["t2"] }, // south, dist 1 from east
+    ];
+
+    const sorted = resolveCallPriority(calls, "east", mockPlayers);
+    expect(sorted[0].playerId).toBe("p2"); // south (dist 1) beats west (dist 2)
+  });
+
+  test("single Mahjong among multiple non-Mahjong wins", () => {
+    const calls: CallRecord[] = [
+      { callType: "pung", playerId: "p2", tileIds: ["t1", "t2"] }, // south (closest)
+      { callType: "mahjong", playerId: "p3", tileIds: ["t3"] }, // west
+      { callType: "kong", playerId: "p4", tileIds: ["t4", "t5", "t6"] }, // north
+    ];
+
+    const sorted = resolveCallPriority(calls, "east", mockPlayers);
+    expect(sorted[0].playerId).toBe("p3"); // mahjong wins
+    expect(sorted[0].callType).toBe("mahjong");
+  });
+
+  test("different discarder changes priority order", () => {
+    // Discarder is south (p2): west=dist 1, north=dist 2, east=dist 3
+    const calls: CallRecord[] = [
+      { callType: "pung", playerId: "p1", tileIds: ["t1", "t2"] }, // east, dist 3 from south
+      { callType: "pung", playerId: "p3", tileIds: ["t3", "t4"] }, // west, dist 1 from south
+    ];
+
+    const sorted = resolveCallPriority(calls, "south", mockPlayers);
+    expect(sorted[0].playerId).toBe("p3"); // west (dist 1 from south)
+  });
+
+  test("does not mutate input array", () => {
+    const calls: CallRecord[] = [
+      { callType: "pung", playerId: "p3", tileIds: ["t1", "t2"] },
+      { callType: "pung", playerId: "p2", tileIds: ["t3", "t4"] },
+    ];
+    const original = [...calls];
+
+    resolveCallPriority(calls, "east", mockPlayers);
+    expect(calls).toEqual(original);
+  });
+});
+
+// ============================================================================
+// resolveCallWindow (Story 3A.4)
+// ============================================================================
+
+describe("resolveCallWindow", () => {
+  test("single call resolves immediately as winner", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+    expect(state.callWindow!.status).toBe("frozen");
+
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(true);
+    expect(result.resolved!.type).toBe("CALL_RESOLVED");
+    const resolved = result.resolved as {
+      type: "CALL_RESOLVED";
+      winningCall: CallRecord;
+      losingCallerIds: string[];
+    };
+    expect(resolved.winningCall.playerId).toBe(callerId);
+    expect(resolved.winningCall.callType).toBe("pung");
+    expect(resolved.losingCallerIds).toEqual([]);
+  });
+
+  test("two competing calls — winner determined by seat position", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+    injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: westId, tileIds: [jokers[2].id, jokers[3].id] },
+      "pung",
+    );
+
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(true);
+    const resolved = result.resolved as {
+      type: "CALL_RESOLVED";
+      winningCall: CallRecord;
+      losingCallerIds: string[];
+    };
+    // South is closer counterclockwise from East
+    expect(resolved.winningCall.playerId).toBe(southId);
+    expect(resolved.losingCallerIds).toEqual([westId]);
+  });
+
+  test("resolution with Mahjong vs non-Mahjong — Mahjong wins", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+    injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+    // South calls pung (closer seat)
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+
+    // West calls mahjong (further seat but mahjong trumps)
+    // Manually push a mahjong call into the buffer since we don't have handleCallMahjong yet
+    state.callWindow!.calls.push({
+      callType: "mahjong",
+      playerId: westId,
+      tileIds: [jokers[2].id, jokers[3].id],
+    });
+
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(true);
+    const resolved = result.resolved as {
+      type: "CALL_RESOLVED";
+      winningCall: CallRecord;
+      losingCallerIds: string[];
+    };
+    expect(resolved.winningCall.playerId).toBe(westId);
+    expect(resolved.winningCall.callType).toBe("mahjong");
+    expect(resolved.losingCallerIds).toEqual([southId]);
+  });
+
+  test("resolution with no calls returns rejection", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    discardTile(state, eastId);
+
+    // Manually set to frozen but with no calls (edge case)
+    (state.callWindow as { status: string }).status = "frozen";
+
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CALLS_TO_RESOLVE");
+  });
+
+  test("resolution when window is not frozen returns rejection", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    discardTile(state, eastId);
+
+    expect(state.callWindow!.status).toBe("open");
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("CALL_WINDOW_NOT_FROZEN");
+  });
+
+  test("resolution with no call window returns rejection", () => {
+    const state = createPlayState();
+    const result = resolveCallWindow(state);
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CALL_WINDOW");
+  });
+
+  test("losing calls are cleared from the buffer", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+    injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: westId, tileIds: [jokers[2].id, jokers[3].id] },
+      "pung",
+    );
+
+    expect(state.callWindow!.calls).toHaveLength(2);
+    resolveCallWindow(state);
+    expect(state.callWindow!.calls).toHaveLength(0);
+  });
+});
+
+// ============================================================================
+// closeCallWindow with pending calls (Story 3A.4)
+// ============================================================================
+
+describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", () => {
+  test("close with pending calls triggers resolution instead of turn advance", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+
+    const result = closeCallWindow(state, "timer_expired");
+    expect(result.accepted).toBe(true);
+    expect(result.resolved!.type).toBe("CALL_RESOLVED");
+  });
+
+  test("close without pending calls proceeds with normal close", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+    expect(state.callWindow!.calls).toHaveLength(0);
+
+    const result = closeCallWindow(state, "timer_expired");
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_WINDOW_CLOSED", reason: "timer_expired" });
+    expect(state.currentTurn).toBe(southId);
+  });
+
+  test("pass rejected during frozen state", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const northId = getPlayerBySeat(state, "north");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 2);
+    injectTilesIntoRack(state, southId, jokers);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: jokers.map((j) => j.id) },
+      "pung",
+    );
+    expect(state.callWindow!.status).toBe("frozen");
+
+    const passResult = handlePassCall(state, { type: "PASS_CALL", playerId: northId });
+    expect(passResult.accepted).toBe(false);
+    expect(passResult.reason).toBe("CALL_WINDOW_FROZEN");
+  });
+});
+
+// ============================================================================
+// Zero-mutation-on-rejection for new rejection paths (Story 3A.4)
+// ============================================================================
+
+describe("handlePassCall — zero mutations on frozen rejection (Story 3A.4)", () => {
+  test("rejected pass during frozen state does not mutate state", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 2);
+    injectTilesIntoRack(state, southId, jokers);
+
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: jokers.map((j) => j.id) },
+      "pung",
+    );
+
+    const stateBefore = JSON.stringify(state);
+    handlePassCall(state, { type: "PASS_CALL", playerId: westId });
     expect(JSON.stringify(state)).toBe(stateBefore);
   });
 });

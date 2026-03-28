@@ -58,8 +58,8 @@ export interface MahjongGameResult {
 /** Game result — wall game (draw) or Mahjong win */
 export type GameResult = WallGameResult | MahjongGameResult;
 
-/** Types of group calls (same-tile and pattern-defined) */
-export type CallType = "pung" | "kong" | "quint" | "news" | "dragon_set";
+/** Types of group calls (same-tile, pattern-defined, and mahjong) */
+export type CallType = "pung" | "kong" | "quint" | "news" | "dragon_set" | "mahjong";
 
 /** A recorded call in the call window buffer */
 export interface CallRecord {
@@ -70,7 +70,7 @@ export interface CallRecord {
 
 /** Call window state — opened after each discard to allow other players to call the tile */
 export interface CallWindowState {
-  readonly status: "open";
+  readonly status: "open" | "frozen";
   readonly discardedTile: Tile;
   readonly discarderId: string;
   readonly passes: string[];
@@ -116,4 +116,10 @@ export type ResolvedAction =
   | { readonly type: "CALL_KONG"; readonly playerId: string }
   | { readonly type: "CALL_QUINT"; readonly playerId: string }
   | { readonly type: "CALL_NEWS"; readonly playerId: string }
-  | { readonly type: "CALL_DRAGON_SET"; readonly playerId: string };
+  | { readonly type: "CALL_DRAGON_SET"; readonly playerId: string }
+  | { readonly type: "CALL_WINDOW_FROZEN"; readonly callerId: string }
+  | {
+      readonly type: "CALL_RESOLVED";
+      readonly winningCall: CallRecord;
+      readonly losingCallerIds: string[];
+    };

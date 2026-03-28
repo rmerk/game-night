@@ -1,4 +1,10 @@
-import type { GameState, ActionResult, CallType } from "../../types/game-state";
+import type {
+  GameState,
+  ActionResult,
+  CallType,
+  CallRecord,
+  SeatWind,
+} from "../../types/game-state";
 import type {
   PassCallAction,
   CallPungAction,
@@ -22,6 +28,9 @@ export function handlePassCall(state: GameState, action: PassCallAction): Action
   }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+  if (state.callWindow.status === "frozen") {
+    return { accepted: false, reason: "CALL_WINDOW_FROZEN" };
   }
   if (state.callWindow.status !== "open") {
     return { accepted: false, reason: "CALL_WINDOW_NOT_OPEN" };
@@ -55,6 +64,7 @@ const REQUIRED_FROM_RACK: Record<CallType, number> = {
   quint: 4,
   news: 3,
   dragon_set: 2,
+  mahjong: 0, // Mahjong validation uses its own handler (story 3a-7)
 };
 
 /** Returns true for pattern-defined call types (NEWS, Dragon set) */
@@ -146,14 +156,14 @@ export function handleCallAction(
 ): ActionResult {
   const requiredFromRack = REQUIRED_FROM_RACK[callType];
 
-  // 1. Validate call window state (same checks as handlePassCall)
+  // 1. Validate call window state
   if (state.gamePhase !== "play") {
     return { accepted: false, reason: "WRONG_PHASE" };
   }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
-  if (state.callWindow.status !== "open") {
+  if (state.callWindow.status !== "open" && state.callWindow.status !== "frozen") {
     return { accepted: false, reason: "CALL_WINDOW_NOT_OPEN" };
   }
   if (state.callWindow.discarderId === action.playerId) {
@@ -213,12 +223,24 @@ export function handleCallAction(
   }
 
   // 7. Mutate — record the call in the buffer
+  const shouldFreeze = state.callWindow.status === "open";
+
   state.callWindow.calls.push({
     callType,
     playerId: action.playerId,
     tileIds: [...action.tileIds],
   });
 
+  // Freeze the window on the first call
+  if (shouldFreeze) {
+    (state.callWindow as { status: string }).status = "frozen";
+    return {
+      accepted: true,
+      resolved: { type: "CALL_WINDOW_FROZEN", callerId: action.playerId },
+    };
+  }
+
+  // In-flight call accepted while frozen — return the call type resolved action
   return {
     accepted: true,
     resolved: { type: action.type, playerId: action.playerId },
@@ -227,7 +249,8 @@ export function handleCallAction(
 
 /**
  * Close the call window and advance the turn to the next player counterclockwise
- * from the discarder. If the wall is empty and no calls were made, end as wall game.
+ * from the discarder. If calls are pending, routes to resolveCallWindow instead.
+ * If the wall is empty and no calls were made, end as wall game.
  */
 export function closeCallWindow(
   state: GameState,
@@ -235,6 +258,11 @@ export function closeCallWindow(
 ): ActionResult {
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+
+  // If there are pending calls, resolve them instead of closing
+  if (state.callWindow.calls.length > 0) {
+    return resolveCallWindow(state);
   }
 
   const discarderId = state.callWindow.discarderId;
@@ -268,6 +296,75 @@ export function closeCallWindow(
   return {
     accepted: true,
     resolved: { type: "CALL_WINDOW_CLOSED", reason },
+  };
+}
+
+/**
+ * Calculate counterclockwise seat distance from one seat to another.
+ * Uses SEATS constant (counterclockwise order). Returns 1-3 (0 = same seat, invalid).
+ */
+export function getSeatDistance(fromSeat: SeatWind, toSeat: SeatWind): number {
+  const fromIndex = SEATS.indexOf(fromSeat);
+  const toIndex = SEATS.indexOf(toSeat);
+  return (toIndex - fromIndex + SEATS.length) % SEATS.length;
+}
+
+/**
+ * Sort buffered calls by priority: Mahjong first, then by counterclockwise seat distance
+ * from the discarder (lower distance = higher priority).
+ * Returns a new sorted array (does not mutate input).
+ */
+export function resolveCallPriority(
+  calls: readonly CallRecord[],
+  discarderSeatWind: SeatWind,
+  players: Record<string, { seatWind: SeatWind }>,
+): CallRecord[] {
+  return [...calls].sort((a, b) => {
+    const aMahjong = a.callType === "mahjong" ? 0 : 1;
+    const bMahjong = b.callType === "mahjong" ? 0 : 1;
+    if (aMahjong !== bMahjong) return aMahjong - bMahjong;
+
+    const aDist = getSeatDistance(discarderSeatWind, players[a.playerId].seatWind);
+    const bDist = getSeatDistance(discarderSeatWind, players[b.playerId].seatWind);
+    return aDist - bDist;
+  });
+}
+
+/**
+ * Resolve the call window: determine the winning call from buffered calls using priority rules.
+ * Returns the winning CallRecord in CALL_RESOLVED. Losing calls are silently discarded.
+ */
+export function resolveCallWindow(state: GameState): ActionResult {
+  if (!state.callWindow) {
+    return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+  if (state.callWindow.status !== "frozen") {
+    return { accepted: false, reason: "CALL_WINDOW_NOT_FROZEN" };
+  }
+  if (state.callWindow.calls.length === 0) {
+    return { accepted: false, reason: "NO_CALLS_TO_RESOLVE" };
+  }
+
+  const discarder = state.players[state.callWindow.discarderId];
+  if (!discarder)
+    throw new Error(
+      `resolveCallWindow: no player found for discarderId '${state.callWindow.discarderId}'`,
+    );
+
+  const sorted = resolveCallPriority(state.callWindow.calls, discarder.seatWind, state.players);
+  const winningCall = sorted[0];
+  const losingCallerIds = sorted.slice(1).map((c) => c.playerId);
+
+  // Clear the call buffer — losing calls are silently discarded
+  state.callWindow.calls.length = 0;
+
+  return {
+    accepted: true,
+    resolved: {
+      type: "CALL_RESOLVED",
+      winningCall,
+      losingCallerIds,
+    },
   };
 }
 
