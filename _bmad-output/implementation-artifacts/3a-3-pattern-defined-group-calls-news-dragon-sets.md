@@ -1,6 +1,6 @@
 # Story 3A.3: Pattern-Defined Group Calls (NEWS, Dragon Sets)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -183,6 +183,7 @@ claude-opus-4-6
 - 2026-03-27: Implemented pattern-defined group calls (NEWS, Dragon sets) with full test coverage
 - 2026-03-27: Code review R1 — Changes Requested (3 High, 3 Med, 2 Low). Key: getValidCallOptions Joker double-counting, Dragon set test gaps, missing mutation-guard assertions
 - 2026-03-27: Addressed code review R1 findings — 8/8 items resolved (3 High, 3 Med, 2 Low)
+- 2026-03-27: Code review R2 — Approved (all R1 findings verified, no new issues)
 
 ### Senior Developer Review (AI)
 
@@ -208,6 +209,27 @@ Issues found are concentrated in test quality gaps and one semantic defect in `g
 - [x] [LOW] `validateNewsGroup`/`validateDragonSetGroup` export inconsistency vs `tilesMatch` [index.ts]
 
 **Severity Breakdown:** 3 High, 3 Medium, 2 Low — Total: 8 action items
+
+---
+
+**Review Date:** 2026-03-27
+**Review Cycle:** R2
+**Reviewer Model:** claude-opus-4-6
+**Outcome:** Approved
+
+**Summary:**
+All 8 R1 action items verified as properly resolved. All 5 ACs are functionally implemented with strong test coverage (435 tests pass, 0 regressions). R1 HIGH findings addressed:
+- Joker double-counting: correctly resolved via JSDoc documenting mutual exclusivity (options are independently valid, player picks one — shared `jokerCount` is semantically correct)
+- Dragon set common validation inheritance: all 5 common validations now tested (NO_CALL_WINDOW, DISCARDER_CANNOT_CALL, DUPLICATE_TILE_IDS, TILE_NOT_IN_RACK, ALREADY_PASSED)
+- Zero-mutation-on-rejection: 3 mutation-guard tests added using JSON.stringify state snapshots
+
+**Observations (no action required):**
+- AC3 group identity for FR55: `CallRecord` stores callType/playerId/tileIds — group identity will be set on `ExposedGroup` when calls are confirmed/exposed in story 3a-5. Architecturally correct deferral.
+- `closeCallWindow` wall-empty branch silently drops pending calls — pre-existing from 3a-1, will be resolved by 3a-4 priority resolution logic.
+- Test helper `setupPatternCallScenario` relies on deterministic seed 42 — latent fragility if seed changes, but not an active bug.
+- "Invalid duplicate wind" test conflates undercount + duplicate rejection causes — assertion is correct but test isolation could be tighter.
+
+**Severity Breakdown:** 0 High, 0 Medium, 0 Low — No action items
 
 ### File List
 
