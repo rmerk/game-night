@@ -103,4 +103,9 @@ export { createGame } from "./engine/state/create-game";
 export { createLobbyState, handleAction } from "./engine/game-engine";
 export { handleDrawTile, advanceTurn } from "./engine/actions/draw";
 export { handleDiscardTile } from "./engine/actions/discard";
-export { handlePassCall, closeCallWindow, handleCallAction } from "./engine/actions/call-window";
+export {
+  handlePassCall,
+  closeCallWindow,
+  handleCallAction,
+  tilesMatch,
+} from "./engine/actions/call-window";

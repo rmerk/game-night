@@ -405,9 +405,9 @@ describe("handleCallAction — Pung", () => {
       "pung",
     );
 
-    // tileIds.length is 1 but pung requires 2, so INSUFFICIENT_TILES
+    // tileIds.length is 1 → total group = 2 (pair) → CANNOT_CALL_FOR_PAIR
     expect(result.accepted).toBe(false);
-    expect(result.reason).toBe("INSUFFICIENT_TILES");
+    expect(result.reason).toBe("CANNOT_CALL_FOR_PAIR");
   });
 
   test("CALL_PUNG rejected with wrong tile count → INSUFFICIENT_TILES", () => {
@@ -560,16 +560,11 @@ describe("handleCallAction — validation", () => {
     expect(result.reason).toBe("WRONG_PHASE");
   });
 
-  test("rejects non-matching non-Joker tile → INSUFFICIENT_TILES", () => {
-    const state = createPlayState();
-    const eastId = getPlayerBySeat(state, "east");
-    const southId = getPlayerBySeat(state, "south");
+  test("rejects non-matching non-Joker tile → TILE_MISMATCH", () => {
+    const { state, callerId, discardedTile } = setupCallScenario(2);
 
-    discardTile(state, eastId);
-
-    // Get two tiles from south's rack that DON'T match the discarded tile
-    const discardedTile = state.callWindow!.discardedTile;
-    const nonMatchingTiles = state.players[southId].rack.filter((t) => {
+    // Find 2 tiles in the caller's rack that DON'T match the discarded tile
+    const nonMatchingTiles = state.players[callerId].rack.filter((t) => {
       if (t.category === "joker") return false;
       if (t.category !== discardedTile.category) return true;
       if (t.category === "suited" && discardedTile.category === "suited") {
@@ -584,20 +579,34 @@ describe("handleCallAction — validation", () => {
       return true;
     });
 
-    if (nonMatchingTiles.length >= 2) {
-      const result = handleCallAction(
-        state,
-        {
-          type: "CALL_PUNG",
-          playerId: southId,
-          tileIds: [nonMatchingTiles[0].id, nonMatchingTiles[1].id],
-        },
-        "pung",
-      );
-
-      expect(result.accepted).toBe(false);
-      expect(result.reason).toBe("INSUFFICIENT_TILES");
+    // If not enough non-matching tiles in rack, inject some from the wall
+    if (nonMatchingTiles.length < 2) {
+      // Find tiles in wall that don't match the discarded tile
+      const wallNonMatching = state.wall.filter((t) => {
+        if (t.category === "joker") return false;
+        if (t.category !== discardedTile.category) return true;
+        if (t.category === "suited" && discardedTile.category === "suited") {
+          return t.suit !== discardedTile.suit || t.value !== discardedTile.value;
+        }
+        return true;
+      });
+      const needed = 2 - nonMatchingTiles.length;
+      injectTilesIntoRack(state, callerId, wallNonMatching.slice(0, needed));
+      nonMatchingTiles.push(...wallNonMatching.slice(0, needed));
     }
+
+    const result = handleCallAction(
+      state,
+      {
+        type: "CALL_PUNG",
+        playerId: callerId,
+        tileIds: [nonMatchingTiles[0].id, nonMatchingTiles[1].id],
+      },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("TILE_MISMATCH");
   });
 
   test("Jokers cannot substitute in pairs (pair call with 1 Joker rejected)", () => {
@@ -612,8 +621,7 @@ describe("handleCallAction — validation", () => {
     injectTilesIntoRack(state, southId, jokers);
 
     // Try to call pung with just 1 joker (would form pair: discard + joker = 2 tiles)
-    // But PUNG requires 2 tiles from rack, and we only provide 1
-    // This triggers INSUFFICIENT_TILES since tileIds.length (1) !== requiredFromRack (2)
+    // tileIds.length is 1 → total group = 2 (pair) → CANNOT_CALL_FOR_PAIR
     const result = handleCallAction(
       state,
       { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id] },
@@ -621,7 +629,7 @@ describe("handleCallAction — validation", () => {
     );
 
     expect(result.accepted).toBe(false);
-    expect(result.reason).toBe("INSUFFICIENT_TILES");
+    expect(result.reason).toBe("CANNOT_CALL_FOR_PAIR");
   });
 });
 

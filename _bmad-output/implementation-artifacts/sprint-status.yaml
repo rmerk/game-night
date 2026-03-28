@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-27  # story 3a-2 code review → in-progress
+last_updated: 2026-03-27  # story 3a-2 review follow-ups resolved → review
 project: mahjong-game
 
 project_key: NOKEY
@@ -67,7 +67,7 @@ development_status:
   # Epic 3A: Turn Flow & Calling
   epic-3a: in-progress
   3a-1-call-window-open-timer-pass-early-close: done
-  3a-2-call-actions-pung-kong-quint-with-validation: in-progress
+  3a-2-call-actions-pung-kong-quint-with-validation: review
   3a-3-pattern-defined-group-calls-news-dragon-sets: backlog
   3a-4-call-window-freeze-priority-resolution: backlog
   3a-5-call-confirmation-exposure-retraction: backlog

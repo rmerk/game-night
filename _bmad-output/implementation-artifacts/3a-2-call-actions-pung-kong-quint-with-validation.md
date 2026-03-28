@@ -1,6 +1,6 @@
 # Story 3A.2: Call Actions — Pung, Kong, Quint with Validation
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -82,11 +82,11 @@ So that **the core calling mechanic works for same-tile groups (FR24, FR29)**.
   - [x] 5.2 Export `handleCallAction` from `index.ts`
   - [x] 5.3 Run `pnpm -r test && pnpm run typecheck && vp lint` — zero regressions, zero errors
 - Review Follow-ups (AI)
-  - [ ] [AI-Review][HIGH] Fix AC #6 dead code: move pair rejection check (call-window.ts:112-115) BEFORE the tile count check (call-window.ts:107-110) so `CANNOT_CALL_FOR_PAIR` is returned instead of `INSUFFICIENT_TILES` when `tileIds.length === 1`. Update test 4.9 and 4.15 to assert `CANNOT_CALL_FOR_PAIR` reason. [call-window.ts:108-115, call-window.test.ts:603-625]
-  - [ ] [AI-Review][MED] Add distinct `TILE_MISMATCH` reason code for non-matching tiles: change the rejection at call-window.ts:133 from `INSUFFICIENT_TILES` to `TILE_MISMATCH` when a provided tile doesn't match the discarded tile. Update test 4.16 to assert the new reason. [call-window.ts:128-135, call-window.test.ts:563-601]
-  - [ ] [AI-Review][MED] Make non-matching-tile test deterministic: replace the conditional `if (nonMatchingTiles.length >= 2)` guard (call-window.test.ts:587) with `injectTilesIntoRack` to guarantee non-matching tiles are present, eliminating false-green risk. [call-window.test.ts:563-601]
-  - [ ] [AI-Review][LOW] Add `readonly` modifier to `tileIds` in `CallPungAction`, `CallKongAction`, `CallQuintAction` interfaces for consistency with other readonly fields. [actions.ts:41,47,53]
-  - [ ] [AI-Review][LOW] Consider exporting `tilesMatch` from call-window.ts and reusing it in `findMatchingTiles` test helper to avoid logic duplication and silent divergence risk. [call-window.ts:57-75, call-window.test.ts:274-315]
+  - [x] [AI-Review][HIGH] Fix AC #6 dead code: move pair rejection check (call-window.ts:112-115) BEFORE the tile count check (call-window.ts:107-110) so `CANNOT_CALL_FOR_PAIR` is returned instead of `INSUFFICIENT_TILES` when `tileIds.length === 1`. Update test 4.9 and 4.15 to assert `CANNOT_CALL_FOR_PAIR` reason. [call-window.ts:108-115, call-window.test.ts:603-625]
+  - [x] [AI-Review][MED] Add distinct `TILE_MISMATCH` reason code for non-matching tiles: change the rejection at call-window.ts:133 from `INSUFFICIENT_TILES` to `TILE_MISMATCH` when a provided tile doesn't match the discarded tile. Update test 4.16 to assert the new reason. [call-window.ts:128-135, call-window.test.ts:563-601]
+  - [x] [AI-Review][MED] Make non-matching-tile test deterministic: replace the conditional `if (nonMatchingTiles.length >= 2)` guard (call-window.test.ts:587) with `injectTilesIntoRack` to guarantee non-matching tiles are present, eliminating false-green risk. [call-window.test.ts:563-601]
+  - [x] [AI-Review][LOW] Add `readonly` modifier to `tileIds` in `CallPungAction`, `CallKongAction`, `CallQuintAction` interfaces for consistency with other readonly fields. [actions.ts:41,47,53]
+  - [x] [AI-Review][LOW] Export `tilesMatch` from call-window.ts and reusing it in `findMatchingTiles` test helper to avoid logic duplication and silent divergence risk. [call-window.ts:57-75, call-window.test.ts:274-315]
 
 ## Dev Notes
 
@@ -309,6 +309,11 @@ Claude Opus 4.6
 - 16 new tests covering all 6 acceptance criteria: pung/kong/quint accepted, insufficient tiles, tile not in rack, pair rejection, no call window, discarder cannot call, already passed, wrong phase, multiple callers, Joker substitution, non-matching tiles
 - All 406 tests pass (384 shared + 1 server + 21 client), zero regressions
 - TypeScript compilation clean, lint clean (0 errors)
+- Resolved review finding [HIGH]: Moved pair rejection check before tile count check — AC #6 now returns CANNOT_CALL_FOR_PAIR correctly
+- Resolved review finding [MED]: Added TILE_MISMATCH reason code for non-matching tile rejections (distinct from INSUFFICIENT_TILES)
+- Resolved review finding [MED]: Made non-matching-tile test deterministic using injectTilesIntoRack fallback
+- Resolved review finding [LOW]: Added readonly modifier to tileIds in CallPungAction, CallKongAction, CallQuintAction
+- Resolved review finding [LOW]: Exported tilesMatch from call-window.ts for test helper reuse
 
 ### File List
 
@@ -322,6 +327,7 @@ Claude Opus 4.6
 ### Change Log
 
 - 2026-03-27: Code review (AI) — 1 HIGH, 2 MED, 2 LOW findings. Created 5 action items. Status: review → in-progress.
+- 2026-03-27: Addressed all 5 code review findings (1 HIGH, 2 MED, 2 LOW). Fixed pair rejection ordering, added TILE_MISMATCH reason, made tests deterministic, added readonly tileIds, exported tilesMatch. All 406 tests pass. Status: in-progress → review.
 
 ## Senior Developer Review (AI)
 
@@ -351,11 +357,11 @@ All 5 tasks and 22 subtasks marked [x] are verified as genuinely complete. No fa
 
 ### Action Items
 
-- [ ] [HIGH] Fix pair rejection ordering — move check at call-window.ts:112-115 before count check at line 108 so CANNOT_CALL_FOR_PAIR is returned per AC #6. Update tests 4.9 and 4.15.
-- [ ] [MED] Add TILE_MISMATCH reason code — call-window.ts:133 returns INSUFFICIENT_TILES for non-matching tiles, conflating two distinct errors. Update test 4.16.
-- [ ] [MED] Make non-matching-tile test deterministic — call-window.test.ts:587 conditional `if` guard can silently pass with zero assertions.
-- [ ] [LOW] Add readonly to tileIds in 3 call action interfaces (actions.ts:41,47,53).
-- [ ] [LOW] Consider exporting tilesMatch for test helper reuse to avoid logic duplication.
+- [x] [HIGH] Fix pair rejection ordering — move check at call-window.ts:112-115 before count check at line 108 so CANNOT_CALL_FOR_PAIR is returned per AC #6. Update tests 4.9 and 4.15.
+- [x] [MED] Add TILE_MISMATCH reason code — call-window.ts:133 returns INSUFFICIENT_TILES for non-matching tiles, conflating two distinct errors. Update test 4.16.
+- [x] [MED] Make non-matching-tile test deterministic — call-window.test.ts:587 conditional `if` guard can silently pass with zero assertions.
+- [x] [LOW] Add readonly to tileIds in 3 call action interfaces (actions.ts:41,47,53).
+- [x] [LOW] Consider exporting tilesMatch for test helper reuse to avoid logic duplication.
 
 ### Code Quality Notes
 

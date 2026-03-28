@@ -38,19 +38,19 @@ export interface PassCallAction {
 export interface CallPungAction {
   readonly type: "CALL_PUNG";
   readonly playerId: string;
-  readonly tileIds: string[];
+  readonly tileIds: readonly string[];
 }
 
 /** Action for a player to call Kong (4 of a kind) on a discarded tile */
 export interface CallKongAction {
   readonly type: "CALL_KONG";
   readonly playerId: string;
-  readonly tileIds: string[];
+  readonly tileIds: readonly string[];
 }
 
 /** Action for a player to call Quint (5 of a kind) on a discarded tile */
 export interface CallQuintAction {
   readonly type: "CALL_QUINT";
   readonly playerId: string;
-  readonly tileIds: string[];
+  readonly tileIds: readonly string[];
 }

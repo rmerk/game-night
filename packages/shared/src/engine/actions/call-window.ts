@@ -54,7 +54,7 @@ const REQUIRED_FROM_RACK: Record<CallType, number> = {
 };
 
 /** Check if a tile matches the discarded tile (same identity, ignoring copy number) */
-function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
+export function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
   if (tile.category === "joker") return true;
   if (tile.category !== discardedTile.category) return false;
 
@@ -104,14 +104,14 @@ export function handleCallAction(
     return { accepted: false, reason: "ALREADY_PASSED" };
   }
 
-  // 2. Validate tile count from rack matches expected
-  if (action.tileIds.length !== requiredFromRack) {
-    return { accepted: false, reason: "INSUFFICIENT_TILES" };
-  }
-
-  // 3. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
+  // 2. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
   if (action.tileIds.length + 1 === 2) {
     return { accepted: false, reason: "CANNOT_CALL_FOR_PAIR" };
+  }
+
+  // 3. Validate tile count from rack matches expected
+  if (action.tileIds.length !== requiredFromRack) {
+    return { accepted: false, reason: "INSUFFICIENT_TILES" };
   }
 
   // 4. Validate all tile IDs exist in the caller's rack
@@ -130,7 +130,7 @@ export function handleCallAction(
   for (const tileId of action.tileIds) {
     const tile = player.rack.find((t) => t.id === tileId)!;
     if (!tilesMatch(tile, discardedTile)) {
-      return { accepted: false, reason: "INSUFFICIENT_TILES" };
+      return { accepted: false, reason: "TILE_MISMATCH" };
     }
   }
 
