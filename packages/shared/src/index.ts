@@ -26,6 +26,8 @@ export type {
   ActionResult,
   ResolvedAction,
   WallGameResult,
+  MahjongGameResult,
+  PaymentBreakdown,
   GameResult,
 } from "./types/game-state";
 
@@ -79,6 +81,10 @@ export {
   filterAchievableByExposure,
 } from "./card/exposure-validation";
 export type { ExposureResult } from "./card/exposure-validation";
+
+// Scoring
+export { calculatePayments, calculateWallGamePayments, lookupHandPoints } from "./engine/scoring";
+export type { CalculatePaymentsParams, ScoringResult } from "./engine/scoring";
 
 // Engine
 export { createAllTiles, createWall } from "./engine/state/wall";

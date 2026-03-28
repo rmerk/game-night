@@ -41,8 +41,22 @@ export interface WallGameResult {
   readonly points: 0;
 }
 
-/** Game result — currently only wall game; Mahjong result added in later epic */
-export type GameResult = WallGameResult;
+/** Per-player payment amounts — positive = receives, negative = pays */
+export type PaymentBreakdown = Record<string, number>;
+
+/** Result of a Mahjong win — winner, matched pattern, and payment distribution */
+export interface MahjongGameResult {
+  readonly winnerId: string;
+  readonly patternId: string;
+  readonly patternName: string;
+  readonly points: number;
+  readonly selfDrawn: boolean;
+  readonly discarderId?: string;
+  readonly payments: PaymentBreakdown;
+}
+
+/** Game result — wall game (draw) or Mahjong win */
+export type GameResult = WallGameResult | MahjongGameResult;
 
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
 export interface GameState {
