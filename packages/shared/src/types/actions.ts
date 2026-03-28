@@ -1,5 +1,12 @@
 /** Discriminated union of all game actions */
-export type GameAction = StartGameAction | DrawTileAction | DiscardTileAction | PassCallAction;
+export type GameAction =
+  | StartGameAction
+  | DrawTileAction
+  | DiscardTileAction
+  | PassCallAction
+  | CallPungAction
+  | CallKongAction
+  | CallQuintAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -25,4 +32,25 @@ export interface DiscardTileAction {
 export interface PassCallAction {
   readonly type: "PASS_CALL";
   readonly playerId: string;
+}
+
+/** Action for a player to call Pung (3 of a kind) on a discarded tile */
+export interface CallPungAction {
+  readonly type: "CALL_PUNG";
+  readonly playerId: string;
+  readonly tileIds: string[];
+}
+
+/** Action for a player to call Kong (4 of a kind) on a discarded tile */
+export interface CallKongAction {
+  readonly type: "CALL_KONG";
+  readonly playerId: string;
+  readonly tileIds: string[];
+}
+
+/** Action for a player to call Quint (5 of a kind) on a discarded tile */
+export interface CallQuintAction {
+  readonly type: "CALL_QUINT";
+  readonly playerId: string;
+  readonly tileIds: string[];
 }

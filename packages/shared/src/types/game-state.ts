@@ -58,13 +58,23 @@ export interface MahjongGameResult {
 /** Game result — wall game (draw) or Mahjong win */
 export type GameResult = WallGameResult | MahjongGameResult;
 
+/** Types of same-tile group calls */
+export type CallType = "pung" | "kong" | "quint";
+
+/** A recorded call in the call window buffer */
+export interface CallRecord {
+  readonly callType: CallType;
+  readonly playerId: string;
+  readonly tileIds: string[];
+}
+
 /** Call window state — opened after each discard to allow other players to call the tile */
 export interface CallWindowState {
   readonly status: "open";
   readonly discardedTile: Tile;
   readonly discarderId: string;
   readonly passes: string[];
-  readonly calls: never[];
+  readonly calls: CallRecord[];
   readonly openedAt: number;
 }
 
@@ -101,4 +111,7 @@ export type ResolvedAction =
       readonly discardedTileId: string;
     }
   | { readonly type: "CALL_WINDOW_CLOSED"; readonly reason: "all_passed" | "timer_expired" }
-  | { readonly type: "PASS_CALL"; readonly playerId: string };
+  | { readonly type: "PASS_CALL"; readonly playerId: string }
+  | { readonly type: "CALL_PUNG"; readonly playerId: string }
+  | { readonly type: "CALL_KONG"; readonly playerId: string }
+  | { readonly type: "CALL_QUINT"; readonly playerId: string };

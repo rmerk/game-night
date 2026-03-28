@@ -1,10 +1,11 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { handlePassCall, closeCallWindow } from "./call-window";
+import { describe, test, expect, vi } from "vite-plus/test";
+import { handlePassCall, closeCallWindow, handleCallAction } from "./call-window";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { createPlayState } from "../../testing/fixtures";
 import { getPlayerBySeat } from "../../testing/helpers";
 import type { GameState } from "../../types/game-state";
+import type { Tile } from "../../types/tiles";
 
 /** Discard a non-Joker tile from the given player's rack. Returns the discarded tile. */
 function discardTile(state: GameState, playerId: string) {
@@ -259,5 +260,402 @@ describe("closeCallWindow", () => {
     const result = closeCallWindow(state, "timer_expired");
 
     expect(result).toEqual({ accepted: false, reason: "NO_CALL_WINDOW" });
+  });
+});
+
+// ============================================================================
+// Call Actions — Pung, Kong, Quint (Story 3A.2)
+// ============================================================================
+
+/**
+ * Find tiles in the wall/other-player-racks that match a given tile (same identity).
+ * Returns matching tiles that can be injected into a player's rack for testing.
+ */
+function findMatchingTiles(state: GameState, targetTile: Tile, count: number): Tile[] {
+  const matches: Tile[] = [];
+
+  // Search the wall for matching tiles
+  for (const tile of state.wall) {
+    if (matches.length >= count) break;
+    if (tile.category === targetTile.category && tile.id !== targetTile.id) {
+      if (targetTile.category === "suited" && tile.category === "suited") {
+        if (tile.suit === targetTile.suit && tile.value === targetTile.value) {
+          matches.push(tile);
+        }
+      } else if (targetTile.category === "wind" && tile.category === "wind") {
+        if (tile.value === targetTile.value) matches.push(tile);
+      } else if (targetTile.category === "dragon" && tile.category === "dragon") {
+        if (tile.value === targetTile.value) matches.push(tile);
+      }
+    }
+  }
+
+  if (matches.length < count) {
+    // Also search other players' racks
+    for (const player of Object.values(state.players)) {
+      for (const tile of player.rack) {
+        if (matches.length >= count) break;
+        if (tile.id === targetTile.id) continue;
+        if (tile.category === targetTile.category) {
+          if (targetTile.category === "suited" && tile.category === "suited") {
+            if (tile.suit === targetTile.suit && tile.value === targetTile.value) {
+              matches.push(tile);
+            }
+          } else if (targetTile.category === "wind" && tile.category === "wind") {
+            if (tile.value === targetTile.value) matches.push(tile);
+          } else if (targetTile.category === "dragon" && tile.category === "dragon") {
+            if (tile.value === targetTile.value) matches.push(tile);
+          }
+        }
+      }
+    }
+  }
+
+  return matches.slice(0, count);
+}
+
+/** Find Joker tiles from the wall. */
+function findJokers(state: GameState, count: number): Tile[] {
+  return state.wall.filter((t) => t.category === "joker").slice(0, count);
+}
+
+/**
+ * Inject tiles into a player's rack (removes them from the wall if present).
+ */
+function injectTilesIntoRack(state: GameState, playerId: string, tiles: Tile[]): void {
+  const player = state.players[playerId];
+  for (const tile of tiles) {
+    // Remove from wall if present
+    const wallIdx = state.wall.findIndex((t) => t.id === tile.id);
+    if (wallIdx >= 0) {
+      state.wall.splice(wallIdx, 1);
+      state.wallRemaining = state.wall.length;
+    }
+    // Remove from other players' racks if present
+    for (const p of Object.values(state.players)) {
+      if (p.id === playerId) continue;
+      const rackIdx = p.rack.findIndex((t) => t.id === tile.id);
+      if (rackIdx >= 0) {
+        p.rack.splice(rackIdx, 1);
+      }
+    }
+    // Add to target player's rack
+    player.rack.push(tile);
+  }
+}
+
+/**
+ * Set up a call window with a known discarded tile and inject matching tiles
+ * into a non-discarder's rack. Returns { state, callerId, discardedTile, matchingTileIds }.
+ */
+function setupCallScenario(
+  matchCount: number,
+  jokerCount: number = 0,
+): {
+  state: GameState;
+  callerId: string;
+  discardedTile: Tile;
+  matchingTileIds: string[];
+} {
+  const state = createPlayState();
+  const eastId = getPlayerBySeat(state, "east");
+  const southId = getPlayerBySeat(state, "south");
+
+  // East discards to open call window
+  const discardedTile = discardTile(state, eastId);
+
+  // Find matching tiles and inject into South's rack
+  const matchingTiles = findMatchingTiles(state, discardedTile, matchCount);
+  const jokers = findJokers(state, jokerCount);
+  const allInjectTiles = [...matchingTiles, ...jokers];
+  injectTilesIntoRack(state, southId, allInjectTiles);
+
+  return {
+    state,
+    callerId: southId,
+    discardedTile,
+    matchingTileIds: allInjectTiles.map((t) => t.id),
+  };
+}
+
+describe("handleCallAction — Pung", () => {
+  test("CALL_PUNG accepted with 2 matching tiles in rack", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_PUNG", playerId: callerId });
+    expect(state.callWindow!.calls).toHaveLength(1);
+    expect(state.callWindow!.calls[0].callType).toBe("pung");
+    expect(state.callWindow!.calls[0].playerId).toBe(callerId);
+    expect(state.callWindow!.calls[0].tileIds).toEqual(matchingTileIds);
+  });
+
+  test("CALL_PUNG rejected with only 1 matching tile (pair) → CANNOT_CALL_FOR_PAIR", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(1);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+
+    // tileIds.length is 1 but pung requires 2, so INSUFFICIENT_TILES
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("INSUFFICIENT_TILES");
+  });
+
+  test("CALL_PUNG rejected with wrong tile count → INSUFFICIENT_TILES", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(3);
+
+    // Pass 3 tiles for pung (expects 2)
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("INSUFFICIENT_TILES");
+  });
+});
+
+describe("handleCallAction — Kong", () => {
+  test("CALL_KONG accepted with 3 matching tiles in rack", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(3);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_KONG", playerId: callerId, tileIds: matchingTileIds },
+      "kong",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_KONG", playerId: callerId });
+    expect(state.callWindow!.calls).toHaveLength(1);
+    expect(state.callWindow!.calls[0].callType).toBe("kong");
+  });
+
+  test("CALL_KONG rejected with only 2 matching tiles → INSUFFICIENT_TILES", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_KONG", playerId: callerId, tileIds: matchingTileIds },
+      "kong",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("INSUFFICIENT_TILES");
+  });
+});
+
+describe("handleCallAction — Quint", () => {
+  test("CALL_QUINT accepted with 3 matching + 1 Joker in rack", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(3, 1);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_QUINT", playerId: callerId, tileIds: matchingTileIds },
+      "quint",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "CALL_QUINT", playerId: callerId });
+    expect(state.callWindow!.calls).toHaveLength(1);
+    expect(state.callWindow!.calls[0].callType).toBe("quint");
+  });
+
+  test("CALL_QUINT accepted with 2 matching + 2 Jokers in rack", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2, 2);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_QUINT", playerId: callerId, tileIds: matchingTileIds },
+      "quint",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(state.callWindow!.calls[0].callType).toBe("quint");
+  });
+});
+
+describe("handleCallAction — validation", () => {
+  test("rejects TILE_NOT_IN_RACK when tile IDs are not in caller's rack", () => {
+    const { state, callerId } = setupCallScenario(2);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: ["fake-id-1", "fake-id-2"] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("TILE_NOT_IN_RACK");
+  });
+
+  test("rejects NO_CALL_WINDOW when no call window is open", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: eastId, tileIds: ["t1", "t2"] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CALL_WINDOW");
+  });
+
+  test("rejects DISCARDER_CANNOT_CALL when discarder tries to call", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    discardTile(state, eastId);
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: eastId, tileIds: ["t1", "t2"] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("DISCARDER_CANNOT_CALL");
+  });
+
+  test("rejects ALREADY_PASSED when player already passed", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    // Player passes first
+    handlePassCall(state, { type: "PASS_CALL", playerId: callerId });
+
+    // Then tries to call
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("ALREADY_PASSED");
+  });
+
+  test("rejects WRONG_PHASE when game is not in play phase", () => {
+    const state = createPlayState();
+    state.gamePhase = "lobby";
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: eastId, tileIds: ["t1", "t2"] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("WRONG_PHASE");
+  });
+
+  test("rejects non-matching non-Joker tile → INSUFFICIENT_TILES", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+
+    // Get two tiles from south's rack that DON'T match the discarded tile
+    const discardedTile = state.callWindow!.discardedTile;
+    const nonMatchingTiles = state.players[southId].rack.filter((t) => {
+      if (t.category === "joker") return false;
+      if (t.category !== discardedTile.category) return true;
+      if (t.category === "suited" && discardedTile.category === "suited") {
+        return t.suit !== discardedTile.suit || t.value !== discardedTile.value;
+      }
+      if (t.category === "wind" && discardedTile.category === "wind") {
+        return t.value !== discardedTile.value;
+      }
+      if (t.category === "dragon" && discardedTile.category === "dragon") {
+        return t.value !== discardedTile.value;
+      }
+      return true;
+    });
+
+    if (nonMatchingTiles.length >= 2) {
+      const result = handleCallAction(
+        state,
+        {
+          type: "CALL_PUNG",
+          playerId: southId,
+          tileIds: [nonMatchingTiles[0].id, nonMatchingTiles[1].id],
+        },
+        "pung",
+      );
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("INSUFFICIENT_TILES");
+    }
+  });
+
+  test("Jokers cannot substitute in pairs (pair call with 1 Joker rejected)", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+
+    // Inject 1 Joker into south's rack
+    const jokers = findJokers(state, 1);
+    injectTilesIntoRack(state, southId, jokers);
+
+    // Try to call pung with just 1 joker (would form pair: discard + joker = 2 tiles)
+    // But PUNG requires 2 tiles from rack, and we only provide 1
+    // This triggers INSUFFICIENT_TILES since tileIds.length (1) !== requiredFromRack (2)
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("INSUFFICIENT_TILES");
+  });
+});
+
+describe("handleCallAction — multiple calls on same discard", () => {
+  test("multiple players can call same discard — both recorded in calls buffer", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+    const westId = getPlayerBySeat(state, "west");
+
+    discardTile(state, eastId);
+
+    // Use Jokers for both callers to avoid matching tile scarcity
+    const jokers = findJokers(state, 4);
+    // South gets 2 Jokers, West gets 2 Jokers
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+    injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+    // Both call pung using Jokers as substitutes
+    const result1 = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+    const result2 = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: westId, tileIds: [jokers[2].id, jokers[3].id] },
+      "pung",
+    );
+
+    expect(result1.accepted).toBe(true);
+    expect(result2.accepted).toBe(true);
+    expect(state.callWindow!.calls).toHaveLength(2);
+    expect(state.callWindow!.calls[0].playerId).toBe(southId);
+    expect(state.callWindow!.calls[1].playerId).toBe(westId);
   });
 });

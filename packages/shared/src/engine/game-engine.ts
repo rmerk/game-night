@@ -3,7 +3,7 @@ import type { GameAction } from "../types/actions";
 import { handleStartGame } from "./actions/game-flow";
 import { handleDrawTile } from "./actions/draw";
 import { handleDiscardTile } from "./actions/discard";
-import { handlePassCall } from "./actions/call-window";
+import { handlePassCall, handleCallAction } from "./actions/call-window";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
@@ -38,6 +38,12 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleDiscardTile(state, action);
     case "PASS_CALL":
       return handlePassCall(state, action);
+    case "CALL_PUNG":
+      return handleCallAction(state, action, "pung");
+    case "CALL_KONG":
+      return handleCallAction(state, action, "kong");
+    case "CALL_QUINT":
+      return handleCallAction(state, action, "quint");
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

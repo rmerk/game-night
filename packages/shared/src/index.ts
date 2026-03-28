@@ -24,6 +24,8 @@ export type {
   ExposedGroup,
   GroupIdentity,
   CallWindowState,
+  CallType,
+  CallRecord,
   ActionResult,
   ResolvedAction,
   WallGameResult,
@@ -38,6 +40,9 @@ export type {
   DrawTileAction,
   DiscardTileAction,
   PassCallAction,
+  CallPungAction,
+  CallKongAction,
+  CallQuintAction,
 } from "./types/actions";
 
 export type {
@@ -98,4 +103,4 @@ export { createGame } from "./engine/state/create-game";
 export { createLobbyState, handleAction } from "./engine/game-engine";
 export { handleDrawTile, advanceTurn } from "./engine/actions/draw";
 export { handleDiscardTile } from "./engine/actions/discard";
-export { handlePassCall, closeCallWindow } from "./engine/actions/call-window";
+export { handlePassCall, closeCallWindow, handleCallAction } from "./engine/actions/call-window";
