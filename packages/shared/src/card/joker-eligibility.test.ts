@@ -1,39 +1,41 @@
 import { describe, test, expect } from "vite-plus/test";
 import type { GroupType, NMJLCard } from "../types/card";
-import type { Tile, TileValue, WindValue, DragonValue, FlowerValue } from "../types/tiles";
+import type { TileValue } from "../types/tiles";
 import type { ExposedGroup } from "../types/game-state";
 import { GROUP_SIZES } from "../constants";
 import { loadCard } from "./card-loader";
 import { validateHand } from "./pattern-matcher";
 import {
+  suitedTile,
+  windTile,
+  dragonTile,
+  jokerTile,
+  buildTilesForHand,
+} from "../testing/tile-builders";
+import {
   isJokerEligibleGroup,
   canSubstituteJoker,
   validateJokerExchange,
 } from "./joker-eligibility";
-import type { ExchangeResult } from "./joker-eligibility";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — thin wrappers for test readability
 // ---------------------------------------------------------------------------
 
-function makeSuitedTile(suit: "bam" | "crak" | "dot", value: TileValue, copy: number): Tile {
-  return { id: `${suit}-${value}-${copy}`, category: "suited", suit, value, copy };
+function makeSuitedTile(suit: "bam" | "crak" | "dot", value: TileValue, copy: number) {
+  return suitedTile(suit, value, copy);
 }
 
-function makeWindTile(value: WindValue, copy: number): Tile {
-  return { id: `wind-${value}-${copy}`, category: "wind", value, copy };
+function makeWindTile(value: string, copy: number) {
+  return windTile(value as Parameters<typeof windTile>[0], copy);
 }
 
-function makeDragonTile(value: DragonValue, copy: number): Tile {
-  return { id: `dragon-${value}-${copy}`, category: "dragon", value, copy };
+function makeDragonTile(value: string, copy: number) {
+  return dragonTile(value as Parameters<typeof dragonTile>[0], copy);
 }
 
-function makeFlowerTile(value: FlowerValue, copy: number): Tile {
-  return { id: `flower-${value}-${copy}`, category: "flower", value, copy };
-}
-
-function makeJoker(copy: number): Tile {
-  return { id: `joker-${copy}`, category: "joker", copy } as Tile;
+function makeJoker(copy: number) {
+  return jokerTile(copy);
 }
 
 // ---------------------------------------------------------------------------
@@ -269,147 +271,10 @@ const card: NMJLCard = loadCard("2026");
 const allHands = card.categories.flatMap((c) => c.hands);
 const handMap = new Map(allHands.map((h) => [h.id, h]));
 
-type SuitMapping = Record<string, "bam" | "crak" | "dot">;
-
-const CATEGORY_POOL: Record<string, string[]> = {
-  dragon: ["red", "green", "soap"],
-  wind: ["north", "east", "west", "south"],
-  flower: ["a", "b"],
-};
-
-function buildTilesForHand(
-  handId: string,
-  suitMapping: SuitMapping = { A: "bam", B: "crak", C: "dot" },
-  nValue = 1,
-): Tile[] {
-  const hand = handMap.get(handId);
-  if (!hand) throw new Error(`Hand ${handId} not found`);
-  const tiles: Tile[] = [];
-  let jokerCopy = 1;
-  const copyCounters = new Map<string, number>();
-  const anyPicks = new Map<string, string[]>();
-
-  function nextCopy(key: string): number {
-    const current = copyCounters.get(key) ?? 0;
-    const next = current + 1;
-    copyCounters.set(key, next);
-    return next;
-  }
-
-  function resolveSpecific(category: string, specific: string | undefined): string {
-    const pool = CATEGORY_POOL[category];
-    if (!pool) throw new Error(`Unknown category: ${category}`);
-    if (!specific || specific === "any") {
-      const picks = anyPicks.get(category) ?? [];
-      if (picks.length === 0) {
-        picks.push(pool[0]);
-        anyPicks.set(category, picks);
-      }
-      return picks[0];
-    }
-    if (specific.startsWith("any_different:")) {
-      const n = parseInt(specific.split(":")[1]);
-      const picks = anyPicks.get(category) ?? [];
-      while (picks.length < n) {
-        picks.push(pool[picks.length]);
-        anyPicks.set(category, picks);
-      }
-      return picks[n - 1];
-    }
-    return specific;
-  }
-
-  function resolveValue(value: number | string | undefined): number {
-    if (typeof value === "number") return value;
-    if (value === "N") return nValue;
-    if (value === "N+1") return nValue + 1;
-    if (value === "N+2") return nValue + 2;
-    return 1;
-  }
-
-  function pushTile(tileKey: string, builder: (copy: number) => Tile): void {
-    const copy = nextCopy(tileKey);
-    if (copy > 4) {
-      tiles.push({ id: `joker-${jokerCopy}`, category: "joker", copy: jokerCopy } as Tile);
-      jokerCopy++;
-    } else {
-      tiles.push(builder(copy));
-    }
-  }
-
-  for (const group of hand.groups) {
-    const size = GROUP_SIZES[group.type];
-    if (group.type === "news") {
-      for (const w of ["north", "east", "west", "south"] as const) {
-        pushTile(`wind-${w}`, (copy) => ({
-          id: `wind-${w}-${copy}`,
-          category: "wind",
-          value: w,
-          copy,
-        }));
-      }
-      continue;
-    }
-    if (group.type === "dragon_set") {
-      for (const d of ["red", "green", "soap"] as const) {
-        pushTile(`dragon-${d}`, (copy) => ({
-          id: `dragon-${d}-${copy}`,
-          category: "dragon",
-          value: d,
-          copy,
-        }));
-      }
-      continue;
-    }
-    if (!group.tile) continue;
-    for (let i = 0; i < size; i++) {
-      if (group.tile.category) {
-        const specific = resolveSpecific(group.tile.category, group.tile.specific);
-        const tileKey = `${group.tile.category}-${specific}`;
-        const cat = group.tile.category;
-        pushTile(tileKey, (copy) => {
-          if (cat === "wind")
-            return {
-              id: `wind-${specific}-${copy}`,
-              category: "wind",
-              value: specific as WindValue,
-              copy,
-            };
-          if (cat === "dragon")
-            return {
-              id: `dragon-${specific}-${copy}`,
-              category: "dragon",
-              value: specific as DragonValue,
-              copy,
-            };
-          return {
-            id: `flower-${specific}-${copy}`,
-            category: "flower",
-            value: specific as FlowerValue,
-            copy,
-          };
-        });
-      } else if (group.tile.color) {
-        const suit = suitMapping[group.tile.color] ?? "bam";
-        const value = resolveValue(group.tile.value);
-        const tileKey = `${suit}-${value}`;
-        pushTile(tileKey, (copy) => ({
-          id: `${suit}-${value}-${copy}`,
-          category: "suited" as const,
-          suit,
-          value: value as TileValue,
-          copy,
-        }));
-      }
-    }
-  }
-  return tiles;
-}
-
 describe("Integration: Joker eligibility with pattern matcher", () => {
   test("hand with Joker in eligible kong position passes validateHand", () => {
     // ev-2 has kongs (eligible). Replace one natural tile with a Joker.
-    const tiles = buildTilesForHand("ev-2");
+    const tiles = buildTilesForHand(card, "ev-2");
     const suitedIdx = tiles.findIndex((t) => t.category === "suited");
     if (suitedIdx >= 0) {
       tiles[suitedIdx] = makeJoker(8);
@@ -421,7 +286,7 @@ describe("Integration: Joker eligibility with pattern matcher", () => {
 
   test("hand with Joker in ineligible pair position fails for that pattern", () => {
     // ev-2 has a pair (ineligible). Replace pair tile with Joker.
-    const tiles = buildTilesForHand("ev-2");
+    const tiles = buildTilesForHand(card, "ev-2");
     const hand = handMap.get("ev-2")!;
     let pairStart = 0;
     for (const group of hand.groups) {
@@ -436,7 +301,7 @@ describe("Integration: Joker eligibility with pattern matcher", () => {
 
   test("hand with Joker in ineligible single position fails for that pattern", () => {
     // sp-2 has singles (ineligible). Replace a single with Joker.
-    const tiles = buildTilesForHand("sp-2");
+    const tiles = buildTilesForHand(card, "sp-2");
     tiles[0] = makeJoker(8);
     const result = validateHand(tiles, card);
     expect(result?.patternId).not.toBe("sp-2");

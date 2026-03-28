@@ -1,6 +1,6 @@
 # Story 2.5: Concealed/Exposed Hand Validation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -184,9 +184,23 @@ Claude Opus 4.6
 ### Change Log
 
 - 2026-03-27: Implemented concealed/exposed hand validation (Story 2.5) — `validateExposure`, `validateHandWithExposure`, `filterAchievableByExposure` with 18 co-located tests
+- 2026-03-27: Code review — extracted `buildTilesForHand` to shared test utility, removed unused imports. All 354 tests pass.
 
 ### File List
 
 - `packages/shared/src/card/exposure-validation.ts` (new)
 - `packages/shared/src/card/exposure-validation.test.ts` (new)
 - `packages/shared/src/index.ts` (modified — added barrel exports)
+- `packages/shared/src/testing/tile-builders.ts` (modified — extracted shared `buildTilesForHand` helper)
+- `packages/shared/src/card/joker-eligibility.test.ts` (modified — uses shared `buildTilesForHand`)
+- `packages/shared/src/card/pattern-matcher.test.ts` (modified — uses shared `buildTilesForHand`)
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Claude Opus 4.6 | **Date:** 2026-03-27 | **Outcome:** Approved
+
+**Findings (pre-fix):** 0 High, 1 Medium, 2 Low
+
+- **[FIXED][MEDIUM] Duplicated `buildTilesForHand` helper** — ~130-line function was copy-pasted across 3 test files. Extracted to `packages/shared/src/testing/tile-builders.ts` and all 3 test files updated to use the shared version.
+- **[FIXED][LOW] Unused `GroupType` import** in `exposure-validation.test.ts` — removed.
+- **[NOTED][LOW] Abstract color matching limitation** — `matchesGroupIdentity` can't resolve abstract colors (A/B/C) to concrete suits for group-level concealed checks. Only affects `sp-1`-like patterns (exposed hands with mixed concealed groups using abstract colors). Conservative behavior (false rejection over false acceptance). Documented in code comments.

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-27  # story 2-5 review
+last_updated: 2026-03-27  # story 2-5 done
 project: mahjong-game
 
 project_key: NOKEY
@@ -60,7 +60,7 @@ development_status:
   2-2-card-data-integrity-test-suite: done
   2-3-pattern-matching-engine: done
   2-4-joker-eligibility-substitution-validation: done
-  2-5-concealed-exposed-hand-validation: review
+  2-5-concealed-exposed-hand-validation: done
   2-6-scoring-payment-calculation: backlog
   epic-2-retrospective: optional
 
