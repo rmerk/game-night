@@ -9,6 +9,7 @@ import type {
   ResolvedAction,
   ExposedGroup,
   GroupIdentity,
+  CallWindowState,
 } from "./game-state";
 import type { GameAction, StartGameAction, DrawTileAction, DiscardTileAction } from "./actions";
 import type { Tile } from "./tiles";
@@ -74,8 +75,8 @@ describe("GameState types", () => {
     expectTypeOf<GameState>().toHaveProperty("gameResult");
   });
 
-  it("GameState.callWindow is null", () => {
-    expectTypeOf<GameState["callWindow"]>().toEqualTypeOf<null>();
+  it("GameState.callWindow is CallWindowState or null", () => {
+    expectTypeOf<GameState["callWindow"]>().toEqualTypeOf<CallWindowState | null>();
   });
 
   it("GameState.lastDiscard is tile-discarder pair or null", () => {

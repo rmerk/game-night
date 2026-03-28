@@ -43,6 +43,15 @@ export const GROUP_TYPES = [
   "dragon_set",
 ] as const;
 
+/** Default call window duration in milliseconds */
+export const DEFAULT_CALL_WINDOW_MS = 5000;
+
+/** Minimum call window duration in milliseconds */
+export const MIN_CALL_WINDOW_MS = 3000;
+
+/** Maximum call window duration in milliseconds */
+export const MAX_CALL_WINDOW_MS = 5000;
+
 /** Number of tiles each group type contributes to a hand */
 export const GROUP_SIZES: Record<(typeof GROUP_TYPES)[number], number> = {
   single: 1,

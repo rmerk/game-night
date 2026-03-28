@@ -3,6 +3,7 @@ import type { GameAction } from "../types/actions";
 import { handleStartGame } from "./actions/game-flow";
 import { handleDrawTile } from "./actions/draw";
 import { handleDiscardTile } from "./actions/discard";
+import { handlePassCall } from "./actions/call-window";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
@@ -35,6 +36,8 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleDrawTile(state, action);
     case "DISCARD_TILE":
       return handleDiscardTile(state, action);
+    case "PASS_CALL":
+      return handlePassCall(state, action);
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

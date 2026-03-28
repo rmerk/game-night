@@ -58,6 +58,16 @@ export interface MahjongGameResult {
 /** Game result — wall game (draw) or Mahjong win */
 export type GameResult = WallGameResult | MahjongGameResult;
 
+/** Call window state — opened after each discard to allow other players to call the tile */
+export interface CallWindowState {
+  readonly status: "open";
+  readonly discardedTile: Tile;
+  readonly discarderId: string;
+  readonly passes: string[];
+  readonly calls: never[];
+  readonly openedAt: number;
+}
+
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
 export interface GameState {
   gamePhase: GamePhase;
@@ -67,7 +77,7 @@ export interface GameState {
   currentTurn: string;
   turnPhase: TurnPhase;
   lastDiscard: { tile: Tile; discarderId: string } | null;
-  callWindow: null;
+  callWindow: CallWindowState | null;
   scores: Record<string, number>;
   gameResult: GameResult | null;
 }
@@ -84,4 +94,11 @@ export type ResolvedAction =
   | { readonly type: "GAME_STARTED" }
   | { readonly type: "DRAW_TILE"; readonly playerId: string }
   | { readonly type: "DISCARD_TILE"; readonly playerId: string; readonly tileId: string }
-  | { readonly type: "WALL_GAME" };
+  | { readonly type: "WALL_GAME" }
+  | {
+      readonly type: "CALL_WINDOW_OPENED";
+      readonly discarderId: string;
+      readonly discardedTileId: string;
+    }
+  | { readonly type: "CALL_WINDOW_CLOSED"; readonly reason: "all_passed" | "timer_expired" }
+  | { readonly type: "PASS_CALL"; readonly playerId: string };

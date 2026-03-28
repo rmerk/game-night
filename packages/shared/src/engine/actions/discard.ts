@@ -1,10 +1,9 @@
 import type { GameState, ActionResult } from "../../types/game-state";
 import type { DiscardTileAction } from "../../types/actions";
-import { advanceTurn } from "./draw";
 
 /**
  * Handle DISCARD_TILE action: validate turn, phase, tile ownership, and Joker restriction,
- * then remove tile from rack, add to discard pool, and advance turn.
+ * then remove tile from rack, add to discard pool, and open the call window.
  * Follows validate-then-mutate pattern.
  */
 export function handleDiscardTile(state: GameState, action: DiscardTileAction): ActionResult {
@@ -35,19 +34,20 @@ export function handleDiscardTile(state: GameState, action: DiscardTileAction): 
   player.rack.splice(tileIndex, 1);
   player.discardPool.push(tile);
   state.lastDiscard = { tile, discarderId: action.playerId };
-  advanceTurn(state);
 
-  // 3. Check for wall depletion — game ends as wall game (draw)
-  if (state.wall.length === 0) {
-    state.gamePhase = "scoreboard";
-    state.gameResult = { winnerId: null, points: 0 };
-    return {
-      accepted: true,
-      resolved: { type: "WALL_GAME" },
-    };
-  }
+  // 3. Open call window — all players get a chance to call the discarded tile
+  // Wall depletion does NOT skip the call window; the last discard can still be called (GDD FR20)
+  state.turnPhase = "callWindow";
+  state.callWindow = {
+    status: "open",
+    discardedTile: tile,
+    discarderId: action.playerId,
+    passes: [action.playerId],
+    calls: [],
+    openedAt: Date.now(),
+  };
 
-  // 4. Return result for normal discard
+  // 4. Return result
   return {
     accepted: true,
     resolved: { type: "DISCARD_TILE", playerId: action.playerId, tileId: action.tileId },

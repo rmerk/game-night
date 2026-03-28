@@ -17,7 +17,7 @@ function getDiscardableTile(state: GameState, playerId: string) {
 }
 
 describe("handleDiscardTile", () => {
-  test("successful discard removes tile from rack, adds to discardPool, advances turn", () => {
+  test("successful discard removes tile from rack, adds to discardPool, opens call window", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
 
@@ -36,8 +36,10 @@ describe("handleDiscardTile", () => {
     expect(state.players[eastId].rack.find((t) => t.id === tileToDiscard.id)).toBeUndefined();
     expect(state.players[eastId].discardPool.length).toBe(discardPoolBefore + 1);
     expect(state.players[eastId].discardPool).toContain(tileToDiscard);
-    // Turn advances to south
-    expect(state.currentTurn).not.toBe(eastId);
+    // Call window opens — turn does NOT advance yet
+    expect(state.currentTurn).toBe(eastId);
+    expect(state.turnPhase).toBe("callWindow");
+    expect(state.callWindow).not.toBeNull();
   });
 
   test("successful discard returns accepted with DISCARD_TILE resolved action", () => {
@@ -163,17 +165,21 @@ describe("handleDiscardTile", () => {
     expect(state.lastDiscard).toEqual({ tile, discarderId: eastId });
   });
 
-  test("turn advances counterclockwise after discard (east->south->west->north cycle)", () => {
+  test("discard opens call window instead of advancing turn (turn advances on call window close)", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
-    const southId = getPlayerBySeat(state, "south");
 
-    // East discards — turn should go to South
-    const tile = state.players[eastId].rack[0];
+    // East discards — call window opens, turn stays with East
+    const tile = getDiscardableTile(state, eastId);
     handleDiscardTile(state, makeDiscardAction(eastId, tile.id));
 
-    expect(state.currentTurn).toBe(southId);
-    expect(state.turnPhase).toBe("draw");
+    expect(state.currentTurn).toBe(eastId);
+    expect(state.turnPhase).toBe("callWindow");
+    expect(state.callWindow).not.toBeNull();
+    expect(state.callWindow!.discarderId).toBe(eastId);
+    expect(state.callWindow!.discardedTile).toBe(tile);
+    expect(state.callWindow!.status).toBe("open");
+    expect(state.callWindow!.passes).toEqual([eastId]);
   });
 
   test("discarding a regular tile while holding Jokers succeeds", () => {

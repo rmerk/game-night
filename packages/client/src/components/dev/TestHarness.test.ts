@@ -89,10 +89,22 @@ describe("TestHarness – game initialisation (AC 1, 2)", () => {
 describe("TestHarness – draw action (AC 3)", () => {
   let h: ReturnType<typeof makeHarness>;
 
+  /** Close call window by passing all non-discarder players. */
+  function passAllPlayers() {
+    const state = h.getState();
+    if (!state.callWindow) return;
+    const discarderId = state.callWindow.discarderId;
+    const nonDiscarders = Object.keys(state.players).filter((id) => id !== discarderId);
+    for (const playerId of nonDiscarders) {
+      if (!h.getState().callWindow) break;
+      h.dispatch({ type: "PASS_CALL", playerId });
+    }
+  }
+
   beforeEach(() => {
     h = makeHarness();
     h.initGame();
-    // East starts in discard phase — discard one tile to advance turn to South (draw phase)
+    // East starts in discard phase — discard one tile to open call window
     const state = h.getState();
     const east = Object.values(state.players).find((p) => p.seatWind === "east")!;
     h.dispatch({
@@ -100,9 +112,11 @@ describe("TestHarness – draw action (AC 3)", () => {
       playerId: east.id,
       tileId: h.getDiscardableTileId(east.id),
     });
+    // Close call window so South enters draw phase
+    passAllPlayers();
   });
 
-  it("state is in draw phase after East discards", () => {
+  it("state is in draw phase after East discards and call window closes", () => {
     expect(h.getState().turnPhase).toBe("draw");
   });
 
@@ -147,7 +161,7 @@ describe("TestHarness – discard action (AC 4)", () => {
     expect(h.getState().players[east.id].discardPool[0].id).toBe(tileId);
   });
 
-  it("advances turn to next player after discard", () => {
+  it("opens call window after discard (turn advances when window closes)", () => {
     const h = makeHarness();
     h.initGame();
 
@@ -156,8 +170,10 @@ describe("TestHarness – discard action (AC 4)", () => {
 
     h.dispatch({ type: "DISCARD_TILE", playerId: east.id, tileId });
 
-    expect(h.getState().currentTurn).not.toBe(east.id);
-    expect(h.getState().turnPhase).toBe("draw");
+    // Call window opens — turn stays with discarder
+    expect(h.getState().currentTurn).toBe(east.id);
+    expect(h.getState().turnPhase).toBe("callWindow");
+    expect(h.getState().callWindow).not.toBeNull();
   });
 
   it("rejects discarding a joker tile", () => {
@@ -182,11 +198,24 @@ describe("TestHarness – wall game detection (AC 5)", () => {
     const h = makeHarness();
     h.initGame();
 
+    /** Close call window by passing all non-discarder players. */
+    function passAllPlayers() {
+      const state = h.getState();
+      if (!state.callWindow) return;
+      const discarderId = state.callWindow.discarderId;
+      const nonDiscarders = Object.keys(state.players).filter((id) => id !== discarderId);
+      for (const playerId of nonDiscarders) {
+        if (!h.getState().callWindow) break;
+        h.dispatch({ type: "PASS_CALL", playerId });
+      }
+    }
+
     // East's first turn is discard-only (no draw needed)
     const eastId = h.getState().currentTurn;
     h.dispatch({ type: "DISCARD_TILE", playerId: eastId, tileId: h.getDiscardableTileId(eastId) });
+    passAllPlayers();
 
-    // Play through draw-discard pairs until the wall is depleted
+    // Play through draw-discard-pass cycles until the wall is depleted
     const MAX_TURNS = 200;
     let turns = 0;
 
@@ -203,6 +232,9 @@ describe("TestHarness – wall game detection (AC 5)", () => {
         playerId: currentPlayerId,
         tileId: h.getDiscardableTileId(currentPlayerId),
       });
+
+      // Close call window (all pass) — may trigger wall game
+      passAllPlayers();
 
       turns++;
     }
@@ -252,10 +284,10 @@ describe("TestHarness – component rendering", () => {
     wrapper.unmount();
   });
 
-  it("shows draw button when in draw phase", async () => {
+  it("shows call window phase after discard", async () => {
     const wrapper = mount(TestHarness);
 
-    // Discard a tile to advance to next player's draw phase
+    // Discard a tile — now opens call window instead of advancing to draw phase
     const rackButtons = wrapper
       .findAll("button")
       .filter(
@@ -266,8 +298,9 @@ describe("TestHarness – component rendering", () => {
       await rackButtons[0].trigger("click");
       await wrapper.vm.$nextTick();
 
-      const drawBtnAfter = wrapper.findAll("button").find((b) => b.text().includes("Draw for"));
-      expect(drawBtnAfter?.exists()).toBe(true);
+      // After discard, turnPhase is callWindow — the component should reflect this
+      const text = wrapper.text();
+      expect(text).toContain("callWindow");
     }
     wrapper.unmount();
   });

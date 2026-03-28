@@ -1,5 +1,5 @@
 /** Discriminated union of all game actions */
-export type GameAction = StartGameAction | DrawTileAction | DiscardTileAction;
+export type GameAction = StartGameAction | DrawTileAction | DiscardTileAction | PassCallAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -19,4 +19,10 @@ export interface DiscardTileAction {
   readonly type: "DISCARD_TILE";
   readonly playerId: string;
   readonly tileId: string;
+}
+
+/** Action for a player to pass during the call window */
+export interface PassCallAction {
+  readonly type: "PASS_CALL";
+  readonly playerId: string;
 }

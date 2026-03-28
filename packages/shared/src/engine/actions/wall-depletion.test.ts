@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vite-plus/test";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
+import { handlePassCall, closeCallWindow } from "./call-window";
 import { handleAction } from "../game-engine";
 import { createPlayState, TEST_PLAYER_IDS } from "../../testing/fixtures";
 import { TILE_COUNT } from "../../constants";
@@ -24,6 +25,17 @@ function getDiscardableTileId(state: GameState, playerId: string): string {
   return tile.id;
 }
 
+/** Close the call window by having all non-discarder players pass. */
+function passAllPlayers(state: GameState): void {
+  if (!state.callWindow) throw new Error("No call window to pass");
+  const discarderId = state.callWindow.discarderId;
+  const nonDiscarders = Object.keys(state.players).filter((id) => id !== discarderId);
+  for (const playerId of nonDiscarders) {
+    if (!state.callWindow) break; // Window may close early
+    handlePassCall(state, { type: "PASS_CALL", playerId });
+  }
+}
+
 /**
  * Set up state for a draw-then-discard scenario on a non-East player.
  * Advances to South's turn in draw phase, drains wall to specified remaining.
@@ -40,6 +52,9 @@ function setupForLastDraw(
   const eastTileId = getDiscardableTileId(state, eastId);
   handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: eastTileId });
 
+  // Close call window so South can draw
+  passAllPlayers(state);
+
   // Now it's South's turn in draw phase
   expect(state.currentTurn).toBe(southId);
   expect(state.turnPhase).toBe("draw");
@@ -50,7 +65,7 @@ function setupForLastDraw(
 }
 
 describe("Wall Depletion & Game End", () => {
-  test("discard with 1 wall tile remaining transitions gamePhase to scoreboard", () => {
+  test("last discard opens call window even when wall is empty (last discard can be called)", () => {
     const state = createPlayState();
     const { drawerId } = setupForLastDraw(state, 1);
 
@@ -58,11 +73,14 @@ describe("Wall Depletion & Game End", () => {
     const tileId = getDiscardableTileId(state, drawerId);
     const result = handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
 
+    // Call window opens — game does NOT end yet
     expect(result.accepted).toBe(true);
-    expect(state.gamePhase).toBe("scoreboard");
+    expect(state.gamePhase).toBe("play");
+    expect(state.turnPhase).toBe("callWindow");
+    expect(state.callWindow).not.toBeNull();
   });
 
-  test("wall game sets gameResult to { winnerId: null, points: 0 }", () => {
+  test("wall game triggers when call window closes with empty wall and no calls", () => {
     const state = createPlayState();
     const { drawerId } = setupForLastDraw(state, 1);
 
@@ -70,18 +88,30 @@ describe("Wall Depletion & Game End", () => {
     const tileId = getDiscardableTileId(state, drawerId);
     handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
 
+    // All players pass — call window closes → wall game
+    passAllPlayers(state);
+
+    expect(state.gamePhase).toBe("scoreboard");
     expect(state.gameResult).toEqual({ winnerId: null, points: 0 });
   });
 
-  test("wall game returns resolved action { type: WALL_GAME }", () => {
+  test("wall game via closeCallWindow returns WALL_GAME resolved action", () => {
     const state = createPlayState();
     const { drawerId } = setupForLastDraw(state, 1);
 
     handleDrawTile(state, { type: "DRAW_TILE", playerId: drawerId });
     const tileId = getDiscardableTileId(state, drawerId);
-    const result = handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
+    handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
 
+    // Pass 2 of 3 non-discarders first
+    const nonDiscarders = Object.keys(state.players).filter((id) => id !== drawerId);
+    handlePassCall(state, { type: "PASS_CALL", playerId: nonDiscarders[0] });
+    handlePassCall(state, { type: "PASS_CALL", playerId: nonDiscarders[1] });
+
+    // Last pass triggers close and wall game — propagates WALL_GAME from closeCallWindow
+    const result = handlePassCall(state, { type: "PASS_CALL", playerId: nonDiscarders[2] });
     expect(result.resolved).toEqual({ type: "WALL_GAME" });
+    expect(state.gamePhase).toBe("scoreboard");
   });
 
   test("scores unchanged after wall game — all players remain at 0", () => {
@@ -92,6 +122,7 @@ describe("Wall Depletion & Game End", () => {
     handleDrawTile(state, { type: "DRAW_TILE", playerId: drawerId });
     const tileId = getDiscardableTileId(state, drawerId);
     handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
+    passAllPlayers(state);
 
     expect(state.scores).toEqual(scoresBefore);
     for (const playerId of TEST_PLAYER_IDS) {
@@ -149,6 +180,9 @@ describe("Wall Depletion & Game End", () => {
     handleDiscardTile(state, { type: "DISCARD_TILE", playerId: eastId, tileId: eastTileId });
     expect(state.wallRemaining).toBe(99); // Discard doesn't change wall
 
+    // Close call window so South can draw
+    passAllPlayers(state);
+
     // South draws
     handleDrawTile(state, { type: "DRAW_TILE", playerId: southId });
     expect(state.wallRemaining).toBe(98); // Draw decrements
@@ -157,19 +191,6 @@ describe("Wall Depletion & Game End", () => {
     const southTileId = getDiscardableTileId(state, southId);
     handleDiscardTile(state, { type: "DISCARD_TILE", playerId: southId, tileId: southTileId });
     expect(state.wallRemaining).toBe(98); // Discard doesn't change wall
-  });
-
-  test("advanceTurn still runs before game end — currentTurn points to next player", () => {
-    const state = createPlayState();
-    const { drawerId, nextPlayerId } = setupForLastDraw(state, 1);
-
-    handleDrawTile(state, { type: "DRAW_TILE", playerId: drawerId });
-    const tileId = getDiscardableTileId(state, drawerId);
-    handleDiscardTile(state, { type: "DISCARD_TILE", playerId: drawerId, tileId });
-
-    // Turn should have advanced to West before game ended (South discarded)
-    expect(state.currentTurn).toBe(nextPlayerId);
-    expect(state.gamePhase).toBe("scoreboard");
   });
 
   test("discard with 2+ wall tiles remaining does NOT trigger wall game", () => {
@@ -186,6 +207,8 @@ describe("Wall Depletion & Game End", () => {
     expect(result.resolved).toEqual({ type: "DISCARD_TILE", playerId: drawerId, tileId });
     expect(state.gamePhase).toBe("play");
     expect(state.gameResult).toBeNull();
+    // Call window is open, not wall game
+    expect(state.callWindow).not.toBeNull();
   });
 
   test("full game simulation — play through until wall depletion", () => {
@@ -207,9 +230,11 @@ describe("Wall Depletion & Game End", () => {
       tileId: firstTileId,
     });
     expect(firstResult.accepted).toBe(true);
+    // Close call window so next player can draw
+    passAllPlayers(state);
     turnCount++;
 
-    // Play through draw-discard cycles
+    // Play through draw-discard-pass cycles
     while (state.gamePhase === "play" && turnCount < maxTurns) {
       const currentPlayer = state.currentTurn;
 
@@ -225,6 +250,11 @@ describe("Wall Depletion & Game End", () => {
         tileId: discardTileId,
       });
       expect(discardResult.accepted).toBe(true);
+
+      // Close call window (all pass) — may trigger wall game if wall is empty
+      if (state.callWindow) {
+        passAllPlayers(state);
+      }
 
       turnCount++;
     }

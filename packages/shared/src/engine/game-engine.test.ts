@@ -62,7 +62,7 @@ describe("handleAction", () => {
     expect(state.turnPhase).toBe("discard");
   });
 
-  it("dispatches DISCARD_TILE to discard handler", () => {
+  it("dispatches DISCARD_TILE to discard handler (opens call window)", () => {
     const state = createLobbyState();
     handleAction(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"], seed: 42 });
     // East starts in 'discard' phase with 14 tiles — discard immediately
@@ -72,7 +72,23 @@ describe("handleAction", () => {
     const result = handleAction(state, { type: "DISCARD_TILE", playerId: eastId, tileId });
     expect(result.accepted).toBe(true);
     expect(result.resolved).toEqual({ type: "DISCARD_TILE", playerId: eastId, tileId });
-    expect(state.currentTurn).not.toBe(eastId);
+    // Call window opens — turn stays with discarder until window closes
+    expect(state.currentTurn).toBe(eastId);
+    expect(state.turnPhase).toBe("callWindow");
+    expect(state.callWindow).not.toBeNull();
+  });
+
+  it("dispatches PASS_CALL to call window handler", () => {
+    const state = createLobbyState();
+    handleAction(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"], seed: 42 });
+    const eastId = getPlayerBySeat(state, "east");
+    const tileId = state.players[eastId].rack[0].id;
+    handleAction(state, { type: "DISCARD_TILE", playerId: eastId, tileId });
+
+    const southId = getPlayerBySeat(state, "south");
+    const result = handleAction(state, { type: "PASS_CALL", playerId: southId });
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toEqual({ type: "PASS_CALL", playerId: southId });
   });
 
   it("produces correct initial state through full action flow", () => {
