@@ -58,8 +58,8 @@ export interface MahjongGameResult {
 /** Game result — wall game (draw) or Mahjong win */
 export type GameResult = WallGameResult | MahjongGameResult;
 
-/** Types of same-tile group calls */
-export type CallType = "pung" | "kong" | "quint";
+/** Types of group calls (same-tile and pattern-defined) */
+export type CallType = "pung" | "kong" | "quint" | "news" | "dragon_set";
 
 /** A recorded call in the call window buffer */
 export interface CallRecord {
@@ -114,4 +114,6 @@ export type ResolvedAction =
   | { readonly type: "PASS_CALL"; readonly playerId: string }
   | { readonly type: "CALL_PUNG"; readonly playerId: string }
   | { readonly type: "CALL_KONG"; readonly playerId: string }
-  | { readonly type: "CALL_QUINT"; readonly playerId: string };
+  | { readonly type: "CALL_QUINT"; readonly playerId: string }
+  | { readonly type: "CALL_NEWS"; readonly playerId: string }
+  | { readonly type: "CALL_DRAGON_SET"; readonly playerId: string };

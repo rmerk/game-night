@@ -44,6 +44,10 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleCallAction(state, action, "kong");
     case "CALL_QUINT":
       return handleCallAction(state, action, "quint");
+    case "CALL_NEWS":
+      return handleCallAction(state, action, "news");
+    case "CALL_DRAGON_SET":
+      return handleCallAction(state, action, "dragon_set");
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

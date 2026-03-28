@@ -6,7 +6,9 @@ export type GameAction =
   | PassCallAction
   | CallPungAction
   | CallKongAction
-  | CallQuintAction;
+  | CallQuintAction
+  | CallNewsAction
+  | CallDragonSetAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -51,6 +53,20 @@ export interface CallKongAction {
 /** Action for a player to call Quint (5 of a kind) on a discarded tile */
 export interface CallQuintAction {
   readonly type: "CALL_QUINT";
+  readonly playerId: string;
+  readonly tileIds: readonly string[];
+}
+
+/** Action for a player to call NEWS (one of each wind) on a discarded wind tile */
+export interface CallNewsAction {
+  readonly type: "CALL_NEWS";
+  readonly playerId: string;
+  readonly tileIds: readonly string[];
+}
+
+/** Action for a player to call Dragon set (one of each dragon) on a discarded dragon tile */
+export interface CallDragonSetAction {
+  readonly type: "CALL_DRAGON_SET";
   readonly playerId: string;
   readonly tileIds: readonly string[];
 }

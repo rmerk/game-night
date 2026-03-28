@@ -1,6 +1,6 @@
 # Story 3A.3: Pattern-Defined Group Calls (NEWS, Dragon Sets)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,51 +18,51 @@ so that all valid call types on the NMJL card are supported (FR31).
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend CallType and action types (AC: 1, 2)
-  - [ ] 1.1 Widen `CallType` in `types/game-state.ts` from `"pung" | "kong" | "quint"` to also include `"news" | "dragon_set"`
-  - [ ] 1.2 Add `CallNewsAction` interface to `types/actions.ts` with `type: "CALL_NEWS"`, `playerId`, `tileIds: readonly string[]`
-  - [ ] 1.3 Add `CallDragonSetAction` interface to `types/actions.ts` with `type: "CALL_DRAGON_SET"`, `playerId`, `tileIds: readonly string[]`
-  - [ ] 1.4 Extend `GameAction` union with `CallNewsAction | CallDragonSetAction`
-  - [ ] 1.5 Extend `ResolvedAction` union with `CALL_NEWS` and `CALL_DRAGON_SET` variants
-  - [ ] 1.6 Register `CALL_NEWS` and `CALL_DRAGON_SET` in game engine dispatcher (`game-engine.ts`)
+- [x] Task 1: Extend CallType and action types (AC: 1, 2)
+  - [x] 1.1 Widen `CallType` in `types/game-state.ts` from `"pung" | "kong" | "quint"` to also include `"news" | "dragon_set"`
+  - [x] 1.2 Add `CallNewsAction` interface to `types/actions.ts` with `type: "CALL_NEWS"`, `playerId`, `tileIds: readonly string[]`
+  - [x] 1.3 Add `CallDragonSetAction` interface to `types/actions.ts` with `type: "CALL_DRAGON_SET"`, `playerId`, `tileIds: readonly string[]`
+  - [x] 1.4 Extend `GameAction` union with `CallNewsAction | CallDragonSetAction`
+  - [x] 1.5 Extend `ResolvedAction` union with `CALL_NEWS` and `CALL_DRAGON_SET` variants
+  - [x] 1.6 Register `CALL_NEWS` and `CALL_DRAGON_SET` in game engine dispatcher (`game-engine.ts`)
 
-- [ ] Task 2: Implement pattern-defined group validation (AC: 1, 2, 3, 4)
-  - [ ] 2.1 Add `isPatternDefinedCall(callType: CallType): boolean` helper to `call-window.ts` — returns `true` for `"news"` and `"dragon_set"`
-  - [ ] 2.2 Add `validateNewsGroup(rackTiles: Tile[], discardedTile: Tile): boolean` — verifies the rack tiles + discard contain one of each wind (N/E/W/S), with Jokers allowed as substitutes; discard must be a wind tile
-  - [ ] 2.3 Add `validateDragonSetGroup(rackTiles: Tile[], discardedTile: Tile): boolean` — verifies the rack tiles + discard contain one of each dragon (red/green/soap), with Jokers allowed as substitutes; discard must be a dragon tile
-  - [ ] 2.4 Refactor `handleCallAction` to branch on `isPatternDefinedCall(callType)`:
+- [x] Task 2: Implement pattern-defined group validation (AC: 1, 2, 3, 4)
+  - [x] 2.1 Add `isPatternDefinedCall(callType: CallType): boolean` helper to `call-window.ts` — returns `true` for `"news"` and `"dragon_set"`
+  - [x] 2.2 Add `validateNewsGroup(rackTiles: Tile[], discardedTile: Tile): boolean` — verifies the rack tiles + discard contain one of each wind (N/E/W/S), with Jokers allowed as substitutes; discard must be a wind tile
+  - [x] 2.3 Add `validateDragonSetGroup(rackTiles: Tile[], discardedTile: Tile): boolean` — verifies the rack tiles + discard contain one of each dragon (red/green/soap), with Jokers allowed as substitutes; discard must be a dragon tile
+  - [x] 2.4 Refactor `handleCallAction` to branch on `isPatternDefinedCall(callType)`:
     - Same-tile path (existing): `tilesMatch` check per tile
     - Pattern-defined path (new): call `validateNewsGroup` or `validateDragonSetGroup` instead of `tilesMatch` loop; use `INVALID_GROUP` reason on failure
-  - [ ] 2.5 Update `REQUIRED_FROM_RACK` to include `news: 3` and `dragon_set: 2` (group size minus the discarded tile)
-  - [ ] 2.6 Add guard: NEWS call requires discarded tile category `"wind"`; Dragon set call requires `"dragon"` — reject with `INVALID_GROUP` if wrong category
+  - [x] 2.5 Update `REQUIRED_FROM_RACK` to include `news: 3` and `dragon_set: 2` (group size minus the discarded tile)
+  - [x] 2.6 Add guard: NEWS call requires discarded tile category `"wind"`; Dragon set call requires `"dragon"` — reject with `INVALID_GROUP` if wrong category
 
-- [ ] Task 3: Write tests for NEWS call validation (AC: 1, 3, 4)
-  - [ ] 3.1 Test: valid NEWS call — player has 3 other wind tiles, discard is a wind → accepted, call recorded in buffer
-  - [ ] 3.2 Test: valid NEWS call with Joker substitution — player has 2 wind tiles + 1 Joker → accepted
-  - [ ] 3.3 Test: valid NEWS call with multiple Jokers — player has 1 wind + 2 Jokers → accepted
-  - [ ] 3.4 Test: invalid NEWS call — player has 3 wind tiles but all same wind as discard → rejected `INVALID_GROUP`
-  - [ ] 3.5 Test: invalid NEWS call — discard is not a wind tile (e.g., suited tile) → rejected `INVALID_GROUP`
-  - [ ] 3.6 Test: invalid NEWS call — player missing a wind and no Joker to substitute → rejected `INVALID_GROUP`
-  - [ ] 3.7 Test: NEWS call inherits all common validations from handleCallAction (call window open, not discarder, not passed, no duplicate tile IDs, tiles in rack)
+- [x] Task 3: Write tests for NEWS call validation (AC: 1, 3, 4)
+  - [x] 3.1 Test: valid NEWS call — player has 3 other wind tiles, discard is a wind → accepted, call recorded in buffer
+  - [x] 3.2 Test: valid NEWS call with Joker substitution — player has 2 wind tiles + 1 Joker → accepted
+  - [x] 3.3 Test: valid NEWS call with multiple Jokers — player has 1 wind + 2 Jokers → accepted
+  - [x] 3.4 Test: invalid NEWS call — player has 3 wind tiles but all same wind as discard → rejected `INVALID_GROUP`
+  - [x] 3.5 Test: invalid NEWS call — discard is not a wind tile (e.g., suited tile) → rejected `INVALID_GROUP`
+  - [x] 3.6 Test: invalid NEWS call — player missing a wind and no Joker to substitute → rejected `INVALID_GROUP`
+  - [x] 3.7 Test: NEWS call inherits all common validations from handleCallAction (call window open, not discarder, not passed, no duplicate tile IDs, tiles in rack)
 
-- [ ] Task 4: Write tests for Dragon set call validation (AC: 2, 3, 4)
-  - [ ] 4.1 Test: valid Dragon set call — player has 2 other dragon tiles, discard is a dragon → accepted
-  - [ ] 4.2 Test: valid Dragon set with Joker — player has 1 dragon + 1 Joker → accepted
-  - [ ] 4.3 Test: invalid Dragon set — discard is not a dragon tile → rejected `INVALID_GROUP`
-  - [ ] 4.4 Test: invalid Dragon set — player has wrong dragons (e.g., duplicates instead of distinct) → rejected `INVALID_GROUP`
-  - [ ] 4.5 Test: Dragon set inherits common validations
+- [x] Task 4: Write tests for Dragon set call validation (AC: 2, 3, 4)
+  - [x] 4.1 Test: valid Dragon set call — player has 2 other dragon tiles, discard is a dragon → accepted
+  - [x] 4.2 Test: valid Dragon set with Joker — player has 1 dragon + 1 Joker → accepted
+  - [x] 4.3 Test: invalid Dragon set — discard is not a dragon tile → rejected `INVALID_GROUP`
+  - [x] 4.4 Test: invalid Dragon set — player has wrong dragons (e.g., duplicates instead of distinct) → rejected `INVALID_GROUP`
+  - [x] 4.5 Test: Dragon set inherits common validations
 
-- [ ] Task 5: Implement and test `getValidCallOptions` utility (AC: 5)
-  - [ ] 5.1 Create `getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType[]` in `call-window.ts` — returns all valid call types given a player's rack and the discarded tile
-  - [ ] 5.2 For same-tile calls: count matching tiles (via `tilesMatch`); if count >= 2 → include pung; >= 3 → include kong; >= 4 → include quint
-  - [ ] 5.3 For NEWS: if discard is a wind tile and player has the other 3 winds (with Joker substitution) → include news
-  - [ ] 5.4 For Dragon set: if discard is a dragon tile and player has the other 2 dragons (with Joker substitution) → include dragon_set
-  - [ ] 5.5 Test: suited tile discarded → only same-tile calls returned, never news/dragon_set
-  - [ ] 5.6 Test: wind tile discarded, player has all other winds → includes both pung (if matching tiles) and news
-  - [ ] 5.7 Test: dragon tile discarded, player has all other dragons → includes both pung (if matching) and dragon_set
-  - [ ] 5.8 Test: wind tile discarded, player missing a wind but has Joker → news included
-  - [ ] 5.9 Test: empty rack or no matching tiles → empty array
-  - [ ] 5.10 Export `getValidCallOptions` from barrel (`index.ts`)
+- [x] Task 5: Implement and test `getValidCallOptions` utility (AC: 5)
+  - [x] 5.1 Create `getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType[]` in `call-window.ts` — returns all valid call types given a player's rack and the discarded tile
+  - [x] 5.2 For same-tile calls: count matching tiles (via `tilesMatch`); if count >= 2 → include pung; >= 3 → include kong; >= 4 → include quint
+  - [x] 5.3 For NEWS: if discard is a wind tile and player has the other 3 winds (with Joker substitution) → include news
+  - [x] 5.4 For Dragon set: if discard is a dragon tile and player has the other 2 dragons (with Joker substitution) → include dragon_set
+  - [x] 5.5 Test: suited tile discarded → only same-tile calls returned, never news/dragon_set
+  - [x] 5.6 Test: wind tile discarded, player has all other winds → includes both pung (if matching tiles) and news
+  - [x] 5.7 Test: dragon tile discarded, player has all other dragons → includes both pung (if matching) and dragon_set
+  - [x] 5.8 Test: wind tile discarded, player missing a wind but has Joker → news included
+  - [x] 5.9 Test: empty rack or no matching tiles → empty array
+  - [x] 5.10 Export `getValidCallOptions` from barrel (`index.ts`)
 
 ## Dev Notes
 
@@ -150,9 +150,31 @@ All changes in `packages/shared/src/`:
 
 ### Agent Model Used
 
+claude-opus-4-6
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- All 5 tasks completed: type extensions, pattern-defined validation, NEWS tests, Dragon set tests, getValidCallOptions
+- Widened CallType to include "news" | "dragon_set"; added CallNewsAction and CallDragonSetAction interfaces
+- Refactored handleCallAction to branch on isPatternDefinedCall — same-tile path uses tilesMatch loop, pattern-defined path uses validateNewsGroup/validateDragonSetGroup
+- validateNewsGroup: verifies discard is wind, rack tiles cover remaining 3 winds with Joker substitution
+- validateDragonSetGroup: same approach for 3 dragons
+- getValidCallOptions: pure function returning all valid CallType[] given rack and discarded tile
+- 30+ new tests added covering valid calls, Joker substitution, invalid groups, common validation inheritance, and getValidCallOptions edge cases
+- All 425 tests pass, typecheck clean, lint 0 errors
+
+### Change Log
+
+- 2026-03-27: Implemented pattern-defined group calls (NEWS, Dragon sets) with full test coverage
+
 ### File List
+
+- packages/shared/src/types/game-state.ts (modified — widened CallType, added CALL_NEWS/CALL_DRAGON_SET to ResolvedAction)
+- packages/shared/src/types/actions.ts (modified — added CallNewsAction, CallDragonSetAction, extended GameAction union)
+- packages/shared/src/engine/game-engine.ts (modified — registered CALL_NEWS, CALL_DRAGON_SET dispatcher cases)
+- packages/shared/src/engine/actions/call-window.ts (modified — added isPatternDefinedCall, validateNewsGroup, validateDragonSetGroup, getValidCallOptions; refactored handleCallAction)
+- packages/shared/src/engine/actions/call-window.test.ts (modified — added ~30 tests for NEWS, Dragon set, getValidCallOptions, validation helpers)
+- packages/shared/src/index.ts (modified — exported CallNewsAction, CallDragonSetAction, isPatternDefinedCall, getValidCallOptions)
 

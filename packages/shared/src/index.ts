@@ -43,6 +43,8 @@ export type {
   CallPungAction,
   CallKongAction,
   CallQuintAction,
+  CallNewsAction,
+  CallDragonSetAction,
 } from "./types/actions";
 
 export type {
@@ -108,4 +110,6 @@ export {
   closeCallWindow,
   handleCallAction,
   tilesMatch,
+  isPatternDefinedCall,
+  getValidCallOptions,
 } from "./engine/actions/call-window";

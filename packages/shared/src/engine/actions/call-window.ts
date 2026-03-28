@@ -4,9 +4,11 @@ import type {
   CallPungAction,
   CallKongAction,
   CallQuintAction,
+  CallNewsAction,
+  CallDragonSetAction,
 } from "../../types/actions";
 import type { Tile } from "../../types/tiles";
-import { MAX_PLAYERS, SEATS } from "../../constants";
+import { MAX_PLAYERS, SEATS, WINDS, DRAGONS } from "../../constants";
 
 /**
  * Handle PASS_CALL action: validate call window state, then record the pass.
@@ -51,7 +53,56 @@ const REQUIRED_FROM_RACK: Record<CallType, number> = {
   pung: 2,
   kong: 3,
   quint: 4,
+  news: 3,
+  dragon_set: 2,
 };
+
+/** Returns true for pattern-defined call types (NEWS, Dragon set) */
+export function isPatternDefinedCall(callType: CallType): boolean {
+  return callType === "news" || callType === "dragon_set";
+}
+
+/** Validate a NEWS group: discard + rack tiles must cover all 4 winds (Jokers substitute) */
+export function validateNewsGroup(rackTiles: Tile[], discardedTile: Tile): boolean {
+  if (discardedTile.category !== "wind") return false;
+
+  const required = new Set<string>(WINDS);
+  required.delete(discardedTile.value);
+
+  for (const tile of rackTiles) {
+    if (tile.category === "joker") {
+      // Joker fills one remaining slot
+      continue;
+    }
+    if (tile.category !== "wind") return false;
+    if (!required.has(tile.value)) return false;
+    required.delete(tile.value);
+  }
+
+  // Count how many winds still needed — must be covered by Jokers
+  const jokerCount = rackTiles.filter((t) => t.category === "joker").length;
+  return required.size <= jokerCount;
+}
+
+/** Validate a Dragon set group: discard + rack tiles must cover all 3 dragons (Jokers substitute) */
+export function validateDragonSetGroup(rackTiles: Tile[], discardedTile: Tile): boolean {
+  if (discardedTile.category !== "dragon") return false;
+
+  const required = new Set<string>(DRAGONS);
+  required.delete(discardedTile.value);
+
+  for (const tile of rackTiles) {
+    if (tile.category === "joker") {
+      continue;
+    }
+    if (tile.category !== "dragon") return false;
+    if (!required.has(tile.value)) return false;
+    required.delete(tile.value);
+  }
+
+  const jokerCount = rackTiles.filter((t) => t.category === "joker").length;
+  return required.size <= jokerCount;
+}
 
 /** Check if a tile matches the discarded tile (same identity, ignoring copy number) */
 export function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
@@ -74,15 +125,23 @@ export function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
   }
 }
 
+/** Call action union type — all call action interfaces */
+type CallAction =
+  | CallPungAction
+  | CallKongAction
+  | CallQuintAction
+  | CallNewsAction
+  | CallDragonSetAction;
+
 /**
- * Handle a call action (CALL_PUNG, CALL_KONG, CALL_QUINT).
- * Validates the call window state, tile ownership, tile matching, and group size,
+ * Handle a call action (CALL_PUNG, CALL_KONG, CALL_QUINT, CALL_NEWS, CALL_DRAGON_SET).
+ * Validates the call window state, tile ownership, tile matching/pattern, and group size,
  * then records the call in the call buffer.
  * Follows validate-then-mutate pattern.
  */
 export function handleCallAction(
   state: GameState,
-  action: CallPungAction | CallKongAction | CallQuintAction,
+  action: CallAction,
   callType: CallType,
 ): ActionResult {
   const requiredFromRack = REQUIRED_FROM_RACK[callType];
@@ -130,12 +189,26 @@ export function handleCallAction(
     }
   }
 
-  // 6. Validate each tile matches the discarded tile (or is a Joker)
+  // 6. Validate tile matching — diverges for pattern-defined vs same-tile calls
   const discardedTile = state.callWindow.discardedTile;
-  for (const tileId of action.tileIds) {
-    const tile = player.rack.find((t) => t.id === tileId)!;
-    if (!tilesMatch(tile, discardedTile)) {
-      return { accepted: false, reason: "TILE_MISMATCH" };
+
+  if (isPatternDefinedCall(callType)) {
+    // Pattern-defined validation: NEWS or Dragon set
+    const rackTiles = action.tileIds.map((id) => player.rack.find((t) => t.id === id)!);
+    const valid =
+      callType === "news"
+        ? validateNewsGroup(rackTiles, discardedTile)
+        : validateDragonSetGroup(rackTiles, discardedTile);
+    if (!valid) {
+      return { accepted: false, reason: "INVALID_GROUP" };
+    }
+  } else {
+    // Same-tile validation: each rack tile must match the discarded tile (or be a Joker)
+    for (const tileId of action.tileIds) {
+      const tile = player.rack.find((t) => t.id === tileId)!;
+      if (!tilesMatch(tile, discardedTile)) {
+        return { accepted: false, reason: "TILE_MISMATCH" };
+      }
     }
   }
 
@@ -196,4 +269,58 @@ export function closeCallWindow(
     accepted: true,
     resolved: { type: "CALL_WINDOW_CLOSED", reason },
   };
+}
+
+/**
+ * Determine all valid call types a player can make given their rack and the discarded tile.
+ * Pure function — no game state dependency beyond rack and discard.
+ */
+export function getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType[] {
+  const options: CallType[] = [];
+
+  // Count same-tile matches (natural + Jokers)
+  let naturalMatches = 0;
+  let jokerCount = 0;
+  for (const tile of rack) {
+    if (tile.category === "joker") {
+      jokerCount++;
+    } else if (tilesMatch(tile, discardedTile)) {
+      naturalMatches++;
+    }
+  }
+
+  const totalMatches = naturalMatches + jokerCount;
+  if (totalMatches >= 2) options.push("pung");
+  if (totalMatches >= 3) options.push("kong");
+  if (totalMatches >= 4) options.push("quint");
+
+  // Pattern-defined: NEWS
+  if (discardedTile.category === "wind") {
+    const required = new Set<string>(WINDS);
+    required.delete(discardedTile.value);
+    for (const tile of rack) {
+      if (tile.category === "wind" && required.has(tile.value)) {
+        required.delete(tile.value);
+      }
+    }
+    if (required.size <= jokerCount) {
+      options.push("news");
+    }
+  }
+
+  // Pattern-defined: Dragon set
+  if (discardedTile.category === "dragon") {
+    const required = new Set<string>(DRAGONS);
+    required.delete(discardedTile.value);
+    for (const tile of rack) {
+      if (tile.category === "dragon" && required.has(tile.value)) {
+        required.delete(tile.value);
+      }
+    }
+    if (required.size <= jokerCount) {
+      options.push("dragon_set");
+    }
+  }
+
+  return options;
 }
