@@ -689,6 +689,67 @@ describe("handleCallAction — multiple calls on same discard", () => {
     expect(state.callWindow!.calls[0].playerId).toBe(southId);
     expect(state.callWindow!.calls[1].playerId).toBe(westId);
   });
+
+  test("rejects duplicate call from same player — ALREADY_CALLED", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1], jokers[2], jokers[3]]);
+
+    // First call accepted
+    const result1 = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+    expect(result1.accepted).toBe(true);
+
+    // Second call from same player rejected
+    const result2 = handleCallAction(
+      state,
+      { type: "CALL_KONG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id, jokers[2].id] },
+      "kong",
+    );
+    expect(result2.accepted).toBe(false);
+    expect(result2.reason).toBe("ALREADY_CALLED");
+    expect(state.callWindow!.calls).toHaveLength(1);
+  });
+
+  test("ALREADY_CALLED — zero mutations on rejection", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+
+    const jokers = findJokers(state, 4);
+    injectTilesIntoRack(state, southId, [jokers[0], jokers[1], jokers[2], jokers[3]]);
+
+    // First call
+    handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+      "pung",
+    );
+
+    // Snapshot state before rejected call
+    const callsBefore = state.callWindow!.calls.length;
+    const rackBefore = [...state.players[southId].rack.map((t) => t.id)];
+
+    // Duplicate call rejected
+    handleCallAction(
+      state,
+      { type: "CALL_KONG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id, jokers[2].id] },
+      "kong",
+    );
+
+    expect(state.callWindow!.calls).toHaveLength(callsBefore);
+    expect(state.players[southId].rack.map((t) => t.id)).toEqual(rackBefore);
+  });
 });
 
 // ============================================================================

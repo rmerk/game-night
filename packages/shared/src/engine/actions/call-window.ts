@@ -172,6 +172,9 @@ export function handleCallAction(
   if (state.callWindow.passes.includes(action.playerId)) {
     return { accepted: false, reason: "ALREADY_PASSED" };
   }
+  if (state.callWindow.calls.some((c) => c.playerId === action.playerId)) {
+    return { accepted: false, reason: "ALREADY_CALLED" };
+  }
 
   // 2. Validate no duplicate tile IDs
   if (new Set(action.tileIds).size !== action.tileIds.length) {
@@ -333,6 +336,10 @@ export function resolveCallPriority(
 /**
  * Resolve the call window: determine the winning call from buffered calls using priority rules.
  * Returns the winning CallRecord in CALL_RESOLVED. Losing calls are silently discarded.
+ *
+ * Intentionally leaves callWindow non-null after resolution (status remains "frozen", calls
+ * array emptied). Story 3a-5 needs the window alive to enter the confirmation phase for the
+ * winning caller. The window is cleared later when confirmation completes or is retracted.
  */
 export function resolveCallWindow(state: GameState): ActionResult {
   if (!state.callWindow) {

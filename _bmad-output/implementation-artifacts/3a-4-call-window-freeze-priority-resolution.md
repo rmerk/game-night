@@ -1,6 +1,6 @@
 # Story 3A.4: Call Window Freeze & Priority Resolution
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -69,9 +69,9 @@ so that call resolution is fair and deterministic with no fastest-click advantag
   - [x] 6.5 Write tests: close with pending calls triggers resolution instead of turn advance
   - [x] 6.6 Export new public functions from `index.ts` barrel
 
-- [ ] Review Follow-ups (AI)
-  - [ ] [AI-Review][HIGH] Add ALREADY_CALLED guard in handleCallAction — reject if player already has a call in callWindow.calls buffer. Without this, a player can submit multiple call types (e.g., pung then mahjong) and corrupt priority resolution. Add test for duplicate caller rejection. [call-window.ts:152]
-  - [ ] [AI-Review][MED] Document that resolveCallWindow intentionally leaves callWindow non-null after resolution (for story 3a-5 confirmation phase). Add a brief comment in the function and a note in Dev Notes explaining this is by design, not an omission. [call-window.ts:337]
+- [x] Review Follow-ups (AI)
+  - [x] [AI-Review][HIGH] Add ALREADY_CALLED guard in handleCallAction — reject if player already has a call in callWindow.calls buffer. Without this, a player can submit multiple call types (e.g., pung then mahjong) and corrupt priority resolution. Add test for duplicate caller rejection. [call-window.ts:152]
+  - [x] [AI-Review][MED] Document that resolveCallWindow intentionally leaves callWindow non-null after resolution (for story 3a-5 confirmation phase). Add a brief comment in the function and a note in Dev Notes explaining this is by design, not an omission. [call-window.ts:337]
 
 - [x] Task 7: Backpressure gate and final validation (AC: all)
   - [x] 7.1 Run `pnpm -r test` — all tests pass
@@ -182,11 +182,16 @@ None — clean implementation, no debugging required.
 - Updated existing tests to expect `CALL_WINDOW_FROZEN` on first call instead of call-type resolved action
 - Added 27 new tests (435 → 462 total), all passing
 - Backpressure gate: tests pass, typecheck clean, lint 0 errors
+- Resolved review R1 finding [HIGH]: Added ALREADY_CALLED guard in handleCallAction — rejects duplicate calls from same player with zero mutations
+- Resolved review R1 finding [MED]: Added JSDoc comment to resolveCallWindow documenting intentional non-null callWindow after resolution (for 3a-5 confirmation phase)
+- Added 2 new tests for duplicate caller rejection (462 → 464 total), all passing
+- Backpressure gate post-review-fixes: 464 tests pass, typecheck clean, lint 0 errors
 
 ### Change Log
 
 - 2026-03-27: Implemented call window freeze and priority resolution (Story 3A.4)
 - 2026-03-27: Code review R1 — Changes Requested (1 HIGH, 1 MED, 1 LOW)
+- 2026-03-27: Resolved code review R1 findings — 2 items fixed (HIGH + MED), LOW was informational only
 
 ## Senior Developer Review (AI)
 
@@ -201,8 +206,8 @@ Solid implementation — all 7 ACs are correctly implemented with clean architec
 
 ### Action Items
 
-- [ ] [HIGH] Add ALREADY_CALLED guard in handleCallAction — a player can currently submit multiple calls on the same discard (e.g., pung then mahjong), inserting duplicate entries in the call buffer and corrupting priority resolution. Add `callWindow.calls.some(c => c.playerId === action.playerId)` check before mutation. Add test. [call-window.ts:152]
-- [ ] [MED] Document that resolveCallWindow intentionally leaves callWindow non-null (status frozen, empty calls array) after resolution. Story 3a-5 needs the window alive for confirmation phase. Add comment in function + Dev Notes. [call-window.ts:337]
+- [x] [HIGH] Add ALREADY_CALLED guard in handleCallAction — a player can currently submit multiple calls on the same discard (e.g., pung then mahjong), inserting duplicate entries in the call buffer and corrupting priority resolution. Add `callWindow.calls.some(c => c.playerId === action.playerId)` check before mutation. Add test. [call-window.ts:152]
+- [x] [MED] Document that resolveCallWindow intentionally leaves callWindow non-null (status frozen, empty calls array) after resolution. Story 3a-5 needs the window alive for confirmation phase. Add comment in function + Dev Notes. [call-window.ts:337]
 - [LOW] Task 6.2 description mentions "Register a RESOLVE_CALL_WINDOW action type in game-engine.ts dispatcher" — the chosen approach (internal trigger via closeCallWindow) is architecturally sound. No code change needed; noting for task description accuracy.
 
 ### File List
