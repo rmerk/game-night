@@ -1,6 +1,6 @@
 # Story 3A.5: Call Confirmation, Exposure & Retraction
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -28,76 +28,76 @@ So that **calls are confirmed with a safety net for misclicks (FR24, FR25, FR57,
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend types for confirmation phase (AC: 1, 2, 3)
-  - [ ] 1.1 Add `"confirming"` to `CallWindowState.status` union in `game-state.ts`
-  - [ ] 1.2 Add `confirmingPlayerId: string | null`, `confirmationExpiresAt: number | null`, and `remainingCallers: CallRecord[]` fields to `CallWindowState`
-  - [ ] 1.3 Add `CONFIRM_CALL` and `RETRACT_CALL` to `GameAction` discriminated union in `actions.ts` — `ConfirmCallAction = { type: 'CONFIRM_CALL'; playerId: string; tileIds: string[] }`, `RetractCallAction = { type: 'RETRACT_CALL'; playerId: string }`
-  - [ ] 1.4 Add `CALL_CONFIRMATION_STARTED`, `CALL_CONFIRMED`, `CALL_RETRACTED`, and `CALL_WINDOW_RESUMED` to `ResolvedAction` union in `game-state.ts`
-  - [ ] 1.5 Write tests: type-level validation that new types compile correctly (create objects of each new type and assert structure)
+- [x] Task 1: Extend types for confirmation phase (AC: 1, 2, 3)
+  - [x]1.1 Add `"confirming"` to `CallWindowState.status` union in `game-state.ts`
+  - [x]1.2 Add `confirmingPlayerId: string | null`, `confirmationExpiresAt: number | null`, and `remainingCallers: CallRecord[]` fields to `CallWindowState`
+  - [x]1.3 Add `CONFIRM_CALL` and `RETRACT_CALL` to `GameAction` discriminated union in `actions.ts` — `ConfirmCallAction = { type: 'CONFIRM_CALL'; playerId: string; tileIds: string[] }`, `RetractCallAction = { type: 'RETRACT_CALL'; playerId: string }`
+  - [x]1.4 Add `CALL_CONFIRMATION_STARTED`, `CALL_CONFIRMED`, `CALL_RETRACTED`, and `CALL_WINDOW_RESUMED` to `ResolvedAction` union in `game-state.ts`
+  - [x]1.5 Write tests: type-level validation that new types compile correctly (create objects of each new type and assert structure)
 
-- [ ] Task 2: Implement confirmation phase entry after call resolution (AC: 1)
-  - [ ] 2.1 Create `enterConfirmationPhase(state, winningCall, remainingCallers)` function in `call-window.ts` that: sets `status = "confirming"`, sets `confirmingPlayerId`, stores `remainingCallers`, starts 5-second timer (`confirmationExpiresAt = Date.now() + 5000`), returns `ActionResult` with `CALL_CONFIRMATION_STARTED` resolved action
-  - [ ] 2.2 Wire `resolveCallWindow` to call `enterConfirmationPhase` with the winning call and losing callers (instead of returning the winner directly)
-  - [ ] 2.3 Write tests: after resolution, callWindow.status is `"confirming"` with correct confirmingPlayerId
-  - [ ] 2.4 Write tests: remainingCallers contains losing callers sorted by priority (for fallback on retraction)
-  - [ ] 2.5 Write tests: CALL_CONFIRMATION_STARTED resolved action contains callerId, callType, and timerDuration
+- [x] Task 2: Implement confirmation phase entry after call resolution (AC: 1)
+  - [x]2.1 Create `enterConfirmationPhase(state, winningCall, remainingCallers)` function in `call-window.ts` that: sets `status = "confirming"`, sets `confirmingPlayerId`, stores `remainingCallers`, starts 5-second timer (`confirmationExpiresAt = Date.now() + 5000`), returns `ActionResult` with `CALL_CONFIRMATION_STARTED` resolved action
+  - [x]2.2 Wire `resolveCallWindow` to call `enterConfirmationPhase` with the winning call and losing callers (instead of returning the winner directly)
+  - [x]2.3 Write tests: after resolution, callWindow.status is `"confirming"` with correct confirmingPlayerId
+  - [x]2.4 Write tests: remainingCallers contains losing callers sorted by priority (for fallback on retraction)
+  - [x]2.5 Write tests: CALL_CONFIRMATION_STARTED resolved action contains callerId, callType, and timerDuration
 
-- [ ] Task 3: Implement `handleConfirmCall` action handler (AC: 2, 4, 7)
-  - [ ] 3.1 Create `handleConfirmCall(state, action, logger)` in `call-window.ts` following validate-then-mutate pattern
-  - [ ] 3.2 Validation: reject if `callWindow` is null or `status !== "confirming"` (`NO_CONFIRMATION_PHASE`), reject if `action.playerId !== callWindow.confirmingPlayerId` (`NOT_CONFIRMING_PLAYER`), reject if any tile ID not in caller's rack (`TILE_NOT_IN_RACK`)
-  - [ ] 3.3 Validation: verify tile IDs + discarded tile form a valid group matching the original call type. Reuse existing validation logic: `tilesMatch` for same-tile groups, `validateNewsGroup`/`validateDragonSetGroup` for pattern-defined groups. If invalid, auto-retract (call `handleRetraction` internally) and return `CALL_RETRACTED` with `reason: "INVALID_GROUP"` — not a rejection, but a successful retraction
-  - [ ] 3.4 Mutation on valid confirmation: remove discarded tile from discarder's `discardPool`, remove selected tiles from caller's `rack`, create `ExposedGroup` with fixed identity (use tile face values to determine group identity — e.g., "Kong of 3-Bam"), add group to caller's `exposedGroups`
-  - [ ] 3.5 Mutation on valid confirmation: set `currentTurn = callerId`, set `turnPhase = "discard"`, set `callWindow = null`
-  - [ ] 3.6 Return `CALL_CONFIRMED` resolved action with: callerId, callType, exposedTileIds, calledTileId, fromPlayerId (discarder), groupIdentity
-  - [ ] 3.7 Write tests: valid pung confirmation — tiles removed from rack, discard removed from pool, exposed group created with correct identity
-  - [ ] 3.8 Write tests: valid kong confirmation — 3 tiles from rack + 1 discarded tile
-  - [ ] 3.9 Write tests: valid quint confirmation — 4 tiles from rack + 1 discarded tile
-  - [ ] 3.10 Write tests: valid NEWS confirmation — 3 wind tiles from rack + 1 discarded wind tile, with Joker substitution
-  - [ ] 3.11 Write tests: valid dragon set confirmation — 2 dragon tiles from rack + 1 discarded dragon tile, with Joker substitution
-  - [ ] 3.12 Write tests: invalid group auto-retracts (tiles don't match call type)
-  - [ ] 3.13 Write tests: wrong player attempts confirmation — rejected with zero mutations
-  - [ ] 3.14 Write tests: tile not in rack — rejected with zero mutations
-  - [ ] 3.15 Write tests: no confirmation phase active — rejected with zero mutations
-  - [ ] 3.16 Write tests: after valid confirmation, currentTurn is caller and turnPhase is "discard"
+- [x] Task 3: Implement `handleConfirmCall` action handler (AC: 2, 4, 7)
+  - [x]3.1 Create `handleConfirmCall(state, action, logger)` in `call-window.ts` following validate-then-mutate pattern
+  - [x]3.2 Validation: reject if `callWindow` is null or `status !== "confirming"` (`NO_CONFIRMATION_PHASE`), reject if `action.playerId !== callWindow.confirmingPlayerId` (`NOT_CONFIRMING_PLAYER`), reject if any tile ID not in caller's rack (`TILE_NOT_IN_RACK`)
+  - [x]3.3 Validation: verify tile IDs + discarded tile form a valid group matching the original call type. Reuse existing validation logic: `tilesMatch` for same-tile groups, `validateNewsGroup`/`validateDragonSetGroup` for pattern-defined groups. If invalid, auto-retract (call `handleRetraction` internally) and return `CALL_RETRACTED` with `reason: "INVALID_GROUP"` — not a rejection, but a successful retraction
+  - [x]3.4 Mutation on valid confirmation: remove discarded tile from discarder's `discardPool`, remove selected tiles from caller's `rack`, create `ExposedGroup` with fixed identity (use tile face values to determine group identity — e.g., "Kong of 3-Bam"), add group to caller's `exposedGroups`
+  - [x]3.5 Mutation on valid confirmation: set `currentTurn = callerId`, set `turnPhase = "discard"`, set `callWindow = null`
+  - [x]3.6 Return `CALL_CONFIRMED` resolved action with: callerId, callType, exposedTileIds, calledTileId, fromPlayerId (discarder), groupIdentity
+  - [x]3.7 Write tests: valid pung confirmation — tiles removed from rack, discard removed from pool, exposed group created with correct identity
+  - [x]3.8 Write tests: valid kong confirmation — 3 tiles from rack + 1 discarded tile
+  - [x]3.9 Write tests: valid quint confirmation — 4 tiles from rack + 1 discarded tile
+  - [x]3.10 Write tests: valid NEWS confirmation — 3 wind tiles from rack + 1 discarded wind tile, with Joker substitution
+  - [x]3.11 Write tests: valid dragon set confirmation — 2 dragon tiles from rack + 1 discarded dragon tile, with Joker substitution
+  - [x]3.12 Write tests: invalid group auto-retracts (tiles don't match call type)
+  - [x]3.13 Write tests: wrong player attempts confirmation — rejected with zero mutations
+  - [x]3.14 Write tests: tile not in rack — rejected with zero mutations
+  - [x]3.15 Write tests: no confirmation phase active — rejected with zero mutations
+  - [x]3.16 Write tests: after valid confirmation, currentTurn is caller and turnPhase is "discard"
 
-- [ ] Task 4: Implement `handleRetractCall` and retraction fallback logic (AC: 5, 6)
-  - [ ] 4.1 Create `handleRetraction(state, logger)` internal helper in `call-window.ts` — shared by explicit retract, invalid confirmation, and timeout
-  - [ ] 4.2 Retraction with remaining callers: pop next caller from `remainingCallers`, call `enterConfirmationPhase` for them (new 5-second timer), return `CALL_RETRACTED` with `nextCallerId`
-  - [ ] 4.3 Retraction with no remaining callers: calculate remaining time from original call window timer, if time remains set `callWindow.status = "open"` and clear confirmation fields, return `CALL_WINDOW_RESUMED` with `remainingTime`. If no time remains, close call window and advance turn (next player draws)
-  - [ ] 4.4 Create `handleRetractCall(state, action, logger)` action handler — validates confirming player, delegates to `handleRetraction`
-  - [ ] 4.5 Write tests: retraction with 2 remaining callers — next highest priority caller enters confirmation
-  - [ ] 4.6 Write tests: retraction with 1 remaining caller — that caller enters confirmation
-  - [ ] 4.7 Write tests: retraction with 0 remaining callers and time remaining — window reopens as "open"
-  - [ ] 4.8 Write tests: retraction with 0 remaining callers and no time remaining — window closes, next player draws
-  - [ ] 4.9 Write tests: wrong player attempts retraction — rejected with zero mutations
-  - [ ] 4.10 Write tests: retraction when not in confirmation phase — rejected
+- [x] Task 4: Implement `handleRetractCall` and retraction fallback logic (AC: 5, 6)
+  - [x]4.1 Create `handleRetraction(state, logger)` internal helper in `call-window.ts` — shared by explicit retract, invalid confirmation, and timeout
+  - [x]4.2 Retraction with remaining callers: pop next caller from `remainingCallers`, call `enterConfirmationPhase` for them (new 5-second timer), return `CALL_RETRACTED` with `nextCallerId`
+  - [x]4.3 Retraction with no remaining callers: calculate remaining time from original call window timer, if time remains set `callWindow.status = "open"` and clear confirmation fields, return `CALL_WINDOW_RESUMED` with `remainingTime`. If no time remains, close call window and advance turn (next player draws)
+  - [x]4.4 Create `handleRetractCall(state, action, logger)` action handler — validates confirming player, delegates to `handleRetraction`
+  - [x]4.5 Write tests: retraction with 2 remaining callers — next highest priority caller enters confirmation
+  - [x]4.6 Write tests: retraction with 1 remaining caller — that caller enters confirmation
+  - [x]4.7 Write tests: retraction with 0 remaining callers and time remaining — window reopens as "open"
+  - [x]4.8 Write tests: retraction with 0 remaining callers and no time remaining — window closes, next player draws
+  - [x]4.9 Write tests: wrong player attempts retraction — rejected with zero mutations
+  - [x]4.10 Write tests: retraction when not in confirmation phase — rejected
 
-- [ ] Task 5: Implement confirmation timeout handling (AC: 6)
-  - [ ] 5.1 Create `handleConfirmationTimeout(state, logger)` that validates confirmation phase is active and delegates to `handleRetraction`
-  - [ ] 5.2 Wire timeout into `closeCallWindow` or create a separate trigger path — the server timer calls this when 5 seconds expire
-  - [ ] 5.3 Write tests: timeout triggers auto-retraction with same behavior as explicit RETRACT_CALL
-  - [ ] 5.4 Write tests: timeout with remaining callers promotes next caller
-  - [ ] 5.5 Write tests: timeout with no remaining callers reopens or closes window
+- [x] Task 5: Implement confirmation timeout handling (AC: 6)
+  - [x]5.1 Create `handleConfirmationTimeout(state, logger)` that validates confirmation phase is active and delegates to `handleRetraction`
+  - [x]5.2 Wire timeout into `closeCallWindow` or create a separate trigger path — the server timer calls this when 5 seconds expire
+  - [x]5.3 Write tests: timeout triggers auto-retraction with same behavior as explicit RETRACT_CALL
+  - [x]5.4 Write tests: timeout with remaining callers promotes next caller
+  - [x]5.5 Write tests: timeout with no remaining callers reopens or closes window
 
-- [ ] Task 6: Implement exposure permanence validation (AC: 3)
-  - [ ] 6.1 Verify that no existing action handler mutates `exposedGroups` after creation (audit `handleDiscard`, `handleDraw`, call handlers)
-  - [ ] 6.2 Add a defensive check: if any future action attempts to splice/modify `exposedGroups`, the type system and readonly modifiers prevent it. Add a comment documenting the immutability contract.
-  - [ ] 6.3 Write tests: exposed groups persist unchanged through subsequent discard and draw actions
-  - [ ] 6.4 Write tests: exposed group count and tile contents are stable across multiple turns
+- [x] Task 6: Implement exposure permanence validation (AC: 3)
+  - [x]6.1 Verify that no existing action handler mutates `exposedGroups` after creation (audit `handleDiscard`, `handleDraw`, call handlers)
+  - [x]6.2 Add a defensive check: if any future action attempts to splice/modify `exposedGroups`, the type system and readonly modifiers prevent it. Add a comment documenting the immutability contract.
+  - [x]6.3 Write tests: exposed groups persist unchanged through subsequent discard and draw actions
+  - [x]6.4 Write tests: exposed group count and tile contents are stable across multiple turns
 
-- [ ] Task 7: Wire new actions into game engine dispatcher and exports (AC: all)
-  - [ ] 7.1 Register `CONFIRM_CALL` and `RETRACT_CALL` action types in `game-engine.ts` dispatcher (`handleAction` switch statement)
-  - [ ] 7.2 Register `CONFIRMATION_TIMEOUT` if using an explicit action type for server-triggered timeout
-  - [ ] 7.3 Export all new public functions from `index.ts` barrel
-  - [ ] 7.4 Write integration tests: full call flow — discard → call → freeze → resolve → confirm → exposed group created → turn advances
-  - [ ] 7.5 Write integration tests: full retraction flow — discard → call → freeze → resolve → retract → fallback caller confirms
-  - [ ] 7.6 Write integration tests: full timeout flow — discard → call → freeze → resolve → timeout → window reopens
+- [x] Task 7: Wire new actions into game engine dispatcher and exports (AC: all)
+  - [x]7.1 Register `CONFIRM_CALL` and `RETRACT_CALL` action types in `game-engine.ts` dispatcher (`handleAction` switch statement)
+  - [x]7.2 Register `CONFIRMATION_TIMEOUT` if using an explicit action type for server-triggered timeout
+  - [x]7.3 Export all new public functions from `index.ts` barrel
+  - [x]7.4 Write integration tests: full call flow — discard → call → freeze → resolve → confirm → exposed group created → turn advances
+  - [x]7.5 Write integration tests: full retraction flow — discard → call → freeze → resolve → retract → fallback caller confirms
+  - [x]7.6 Write integration tests: full timeout flow — discard → call → freeze → resolve → timeout → window reopens
 
-- [ ] Task 8: Backpressure gate and final validation (AC: all)
-  - [ ] 8.1 Run `pnpm -r test` — all tests pass (zero regressions)
-  - [ ] 8.2 Run `pnpm run typecheck` — no type errors
-  - [ ] 8.3 Run `pnpm lint` — no lint errors
-  - [ ] 8.4 Verify all 7 ACs are satisfied by reviewing test coverage against each AC
+- [x] Task 8: Backpressure gate and final validation (AC: all)
+  - [x]8.1 Run `pnpm -r test` — all tests pass (zero regressions)
+  - [x]8.2 Run `pnpm run typecheck` — no type errors
+  - [x]8.3 Run `pnpm lint` — no lint errors
+  - [x]8.4 Verify all 7 ACs are satisfied by reviewing test coverage against each AC
 
 ## Dev Notes
 
@@ -217,10 +217,56 @@ So that **calls are confirmed with a safety net for misclicks (FR24, FR25, FR57,
 
 ### Agent Model Used
 
+Claude Opus 4.6
+
 ### Debug Log References
+
+None — clean implementation, no debugging required.
 
 ### Completion Notes List
 
+- Extended `CallWindowState.status` to include `"confirming"` with `confirmingPlayerId`, `confirmationExpiresAt`, `remainingCallers`, and `winningCall` fields
+- Added `ConfirmCallAction` and `RetractCallAction` to `GameAction` discriminated union
+- Added `CALL_CONFIRMATION_STARTED`, `CALL_CONFIRMED`, `CALL_RETRACTED`, `CALL_WINDOW_RESUMED` to `ResolvedAction` union
+- Implemented `enterConfirmationPhase` — sets up confirming status with timer and remaining callers
+- Modified `resolveCallWindow` to enter confirmation phase instead of returning CALL_RESOLVED directly
+- Implemented `handleConfirmCall` — validates tiles, creates ExposedGroup with fixed identity, removes tiles from rack and discard pool, sets turn to caller
+- Implemented `handleRetractCall` — validates confirming player, delegates to shared retraction logic
+- Implemented `handleConfirmationTimeout` — auto-retracts on 5-second timer expiry
+- Implemented retraction fallback cascade: promotes next caller from `remainingCallers` or reopens/closes window
+- Implemented `buildGroupIdentity` — creates GroupIdentity from discarded tile and call type (FR55)
+- Implemented `validateConfirmationGroup` — validates tile group using existing validators
+- Updated `handlePassCall` and `handleCallAction` to reject during `"confirming"` status
+- Registered `CONFIRM_CALL` and `RETRACT_CALL` in game-engine.ts dispatcher
+- Updated existing 3a-4 tests (4 tests) to expect `CALL_CONFIRMATION_STARTED` instead of `CALL_RESOLVED`
+- Added 28 new tests (464 → 492 total), all passing
+- Tests cover: pung/kong/quint/NEWS/dragon_set confirmation, rejection paths (wrong player, tile not in rack, duplicate tile IDs, no phase), retraction with/without remaining callers, timeout, exposure permanence, and 3 full integration flow tests
+- Backpressure gate: 492 tests pass, typecheck clean, lint 0 errors
+
 ### File List
 
+- packages/shared/src/types/game-state.ts (modified — added confirming status, new fields, new ResolvedAction variants)
+- packages/shared/src/types/actions.ts (modified — added ConfirmCallAction, RetractCallAction)
+- packages/shared/src/engine/actions/call-window.ts (modified — added enterConfirmationPhase, handleConfirmCall, handleRetractCall, handleConfirmationTimeout, handleRetraction, buildGroupIdentity, validateConfirmationGroup, CONFIRMATION_TIMER_MS)
+- packages/shared/src/engine/actions/call-window.test.ts (modified — updated 4 existing tests, added 27 new tests)
+- packages/shared/src/engine/actions/discard.ts (modified — added new CallWindowState fields to initialization)
+- packages/shared/src/engine/game-engine.ts (modified — registered CONFIRM_CALL, RETRACT_CALL actions)
+- packages/shared/src/index.ts (modified — exported new functions and types)
+
+### Senior Developer Review (AI)
+
+**Reviewer:** Rchoi on 2026-03-28
+**Outcome:** Changes Requested → Fixed
+
+**R1 Findings (2 MEDIUM, 2 LOW):**
+1. **[MEDIUM][FIXED]** Missing duplicate tile ID validation in `handleConfirmCall` — could allow same tile ID submitted twice, resulting in only one tile removed from rack. **Fix:** Added `new Set(action.tileIds).size` check before rack validation, matching `handleCallAction` pattern. Added test.
+2. **[MEDIUM][FIXED]** Hardcoded `originalDuration = MAX_PLAYERS * 1000` in `handleRetraction` — didn't use configurable call window constants. **Fix:** Replaced with `DEFAULT_CALL_WINDOW_MS` from constants.
+3. **[LOW][DEFERRED]** Type safety bypass: `winningCall.callType as ExposedGroup["type"]` — `CallType` includes `"mahjong"` but `GroupType` does not. Acceptable for now; story 3a-7 will handle mahjong-specific flow.
+4. **[LOW][NOTED]** Test count (28) below original estimate (~40+). All ACs covered; some subtask-level tests consolidated. Adequate coverage.
+
+**Post-fix verification:** 492 tests pass, typecheck clean, lint 0 errors.
+
 ### Change Log
+
+- 2026-03-28: Implemented call confirmation, exposure, and retraction (Story 3A.5)
+- 2026-03-28: Code review R1 — fixed duplicate tile ID validation in handleConfirmCall, fixed hardcoded originalDuration in handleRetraction

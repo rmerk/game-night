@@ -45,6 +45,8 @@ export type {
   CallQuintAction,
   CallNewsAction,
   CallDragonSetAction,
+  ConfirmCallAction,
+  RetractCallAction,
 } from "./types/actions";
 
 export type {
@@ -117,4 +119,9 @@ export {
   getSeatDistance,
   resolveCallPriority,
   resolveCallWindow,
+  enterConfirmationPhase,
+  handleConfirmCall,
+  handleRetractCall,
+  handleConfirmationTimeout,
+  CONFIRMATION_TIMER_MS,
 } from "./engine/actions/call-window";

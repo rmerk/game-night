@@ -8,7 +8,9 @@ export type GameAction =
   | CallKongAction
   | CallQuintAction
   | CallNewsAction
-  | CallDragonSetAction;
+  | CallDragonSetAction
+  | ConfirmCallAction
+  | RetractCallAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -69,4 +71,17 @@ export interface CallDragonSetAction {
   readonly type: "CALL_DRAGON_SET";
   readonly playerId: string;
   readonly tileIds: readonly string[];
+}
+
+/** Action for the winning caller to confirm their call by exposing tiles */
+export interface ConfirmCallAction {
+  readonly type: "CONFIRM_CALL";
+  readonly playerId: string;
+  readonly tileIds: readonly string[];
+}
+
+/** Action for the winning caller to retract their call during confirmation phase */
+export interface RetractCallAction {
+  readonly type: "RETRACT_CALL";
+  readonly playerId: string;
 }

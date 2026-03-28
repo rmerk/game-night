@@ -45,6 +45,10 @@ export function handleDiscardTile(state: GameState, action: DiscardTileAction): 
     passes: [action.playerId],
     calls: [],
     openedAt: Date.now(),
+    confirmingPlayerId: null,
+    confirmationExpiresAt: null,
+    remainingCallers: [],
+    winningCall: null,
   };
 
   // 4. Return result

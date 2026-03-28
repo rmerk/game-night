@@ -70,12 +70,20 @@ export interface CallRecord {
 
 /** Call window state — opened after each discard to allow other players to call the tile */
 export interface CallWindowState {
-  readonly status: "open" | "frozen";
+  readonly status: "open" | "frozen" | "confirming";
   readonly discardedTile: Tile;
   readonly discarderId: string;
   readonly passes: string[];
   readonly calls: CallRecord[];
   readonly openedAt: number;
+  /** Player currently in confirmation phase (set when status is "confirming") */
+  readonly confirmingPlayerId: string | null;
+  /** Timestamp when confirmation timer expires (set when status is "confirming") */
+  readonly confirmationExpiresAt: number | null;
+  /** Remaining callers sorted by priority, consumed on retraction fallback */
+  readonly remainingCallers: CallRecord[];
+  /** The winning call being confirmed */
+  readonly winningCall: CallRecord | null;
 }
 
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
@@ -122,4 +130,29 @@ export type ResolvedAction =
       readonly type: "CALL_RESOLVED";
       readonly winningCall: CallRecord;
       readonly losingCallerIds: string[];
+    }
+  | {
+      readonly type: "CALL_CONFIRMATION_STARTED";
+      readonly callerId: string;
+      readonly callType: CallType;
+      readonly timerDuration: number;
+    }
+  | {
+      readonly type: "CALL_CONFIRMED";
+      readonly callerId: string;
+      readonly callType: CallType;
+      readonly exposedTileIds: string[];
+      readonly calledTileId: string;
+      readonly fromPlayerId: string;
+      readonly groupIdentity: GroupIdentity;
+    }
+  | {
+      readonly type: "CALL_RETRACTED";
+      readonly callerId: string;
+      readonly reason: string;
+      readonly nextCallerId?: string;
+    }
+  | {
+      readonly type: "CALL_WINDOW_RESUMED";
+      readonly remainingTime: number;
     };

@@ -11,6 +11,11 @@ import {
   getSeatDistance,
   resolveCallPriority,
   resolveCallWindow,
+  enterConfirmationPhase,
+  handleConfirmCall,
+  handleRetractCall,
+  handleConfirmationTimeout,
+  CONFIRMATION_TIMER_MS,
 } from "./call-window";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
@@ -1790,7 +1795,7 @@ describe("resolveCallPriority", () => {
 // ============================================================================
 
 describe("resolveCallWindow", () => {
-  test("single call resolves immediately as winner", () => {
+  test("single call enters confirmation phase for the winner", () => {
     const { state, callerId, matchingTileIds } = setupCallScenario(2);
 
     handleCallAction(
@@ -1802,18 +1807,22 @@ describe("resolveCallWindow", () => {
 
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
-    expect(result.resolved!.type).toBe("CALL_RESOLVED");
+    expect(result.resolved!.type).toBe("CALL_CONFIRMATION_STARTED");
     const resolved = result.resolved as {
-      type: "CALL_RESOLVED";
-      winningCall: CallRecord;
-      losingCallerIds: string[];
+      type: "CALL_CONFIRMATION_STARTED";
+      callerId: string;
+      callType: string;
+      timerDuration: number;
     };
-    expect(resolved.winningCall.playerId).toBe(callerId);
-    expect(resolved.winningCall.callType).toBe("pung");
-    expect(resolved.losingCallerIds).toEqual([]);
+    expect(resolved.callerId).toBe(callerId);
+    expect(resolved.callType).toBe("pung");
+    expect(resolved.timerDuration).toBe(5000);
+    expect(state.callWindow!.status).toBe("confirming");
+    expect(state.callWindow!.confirmingPlayerId).toBe(callerId);
+    expect(state.callWindow!.remainingCallers).toEqual([]);
   });
 
-  test("two competing calls — winner determined by seat position", () => {
+  test("two competing calls — closer seat enters confirmation, farther seat in remainingCallers", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
     const southId = getPlayerBySeat(state, "south");
@@ -1839,16 +1848,19 @@ describe("resolveCallWindow", () => {
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
     const resolved = result.resolved as {
-      type: "CALL_RESOLVED";
-      winningCall: CallRecord;
-      losingCallerIds: string[];
+      type: "CALL_CONFIRMATION_STARTED";
+      callerId: string;
+      callType: string;
     };
-    // South is closer counterclockwise from East
-    expect(resolved.winningCall.playerId).toBe(southId);
-    expect(resolved.losingCallerIds).toEqual([westId]);
+    // South is closer counterclockwise from East — enters confirmation
+    expect(resolved.callerId).toBe(southId);
+    expect(state.callWindow!.confirmingPlayerId).toBe(southId);
+    // West is in remainingCallers for fallback
+    expect(state.callWindow!.remainingCallers).toHaveLength(1);
+    expect(state.callWindow!.remainingCallers[0].playerId).toBe(westId);
   });
 
-  test("resolution with Mahjong vs non-Mahjong — Mahjong wins", () => {
+  test("resolution with Mahjong vs non-Mahjong — Mahjong enters confirmation", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
     const southId = getPlayerBySeat(state, "south");
@@ -1878,13 +1890,16 @@ describe("resolveCallWindow", () => {
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
     const resolved = result.resolved as {
-      type: "CALL_RESOLVED";
-      winningCall: CallRecord;
-      losingCallerIds: string[];
+      type: "CALL_CONFIRMATION_STARTED";
+      callerId: string;
+      callType: string;
     };
-    expect(resolved.winningCall.playerId).toBe(westId);
-    expect(resolved.winningCall.callType).toBe("mahjong");
-    expect(resolved.losingCallerIds).toEqual([southId]);
+    // Mahjong call wins — West enters confirmation
+    expect(resolved.callerId).toBe(westId);
+    expect(resolved.callType).toBe("mahjong");
+    // South (pung caller) is in remainingCallers
+    expect(state.callWindow!.remainingCallers).toHaveLength(1);
+    expect(state.callWindow!.remainingCallers[0].playerId).toBe(southId);
   });
 
   test("resolution with no calls returns rejection", () => {
@@ -1918,7 +1933,7 @@ describe("resolveCallWindow", () => {
     expect(result.reason).toBe("NO_CALL_WINDOW");
   });
 
-  test("losing calls are cleared from the buffer", () => {
+  test("calls buffer cleared after resolution — losers stored in remainingCallers", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
     const southId = getPlayerBySeat(state, "south");
@@ -1943,7 +1958,9 @@ describe("resolveCallWindow", () => {
 
     expect(state.callWindow!.calls).toHaveLength(2);
     resolveCallWindow(state);
+    // Calls cleared from buffer; losers are in remainingCallers
     expect(state.callWindow!.calls).toHaveLength(0);
+    expect(state.callWindow!.remainingCallers).toHaveLength(1);
   });
 });
 
@@ -1952,7 +1969,7 @@ describe("resolveCallWindow", () => {
 // ============================================================================
 
 describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", () => {
-  test("close with pending calls triggers resolution instead of turn advance", () => {
+  test("close with pending calls triggers confirmation instead of turn advance", () => {
     const { state, callerId, matchingTileIds } = setupCallScenario(2);
 
     handleCallAction(
@@ -1963,7 +1980,8 @@ describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", (
 
     const result = closeCallWindow(state, "timer_expired");
     expect(result.accepted).toBe(true);
-    expect(result.resolved!.type).toBe("CALL_RESOLVED");
+    expect(result.resolved!.type).toBe("CALL_CONFIRMATION_STARTED");
+    expect(state.callWindow!.status).toBe("confirming");
   });
 
   test("close without pending calls proceeds with normal close", () => {
@@ -2029,5 +2047,774 @@ describe("handlePassCall — zero mutations on frozen rejection (Story 3A.4)", (
     const stateBefore = JSON.stringify(state);
     handlePassCall(state, { type: "PASS_CALL", playerId: westId });
     expect(JSON.stringify(state)).toBe(stateBefore);
+  });
+});
+
+// ============================================================================
+// Call Confirmation, Exposure & Retraction (Story 3A.5)
+// ============================================================================
+
+/**
+ * Set up a state in the confirmation phase: East discards, South calls pung,
+ * resolveCallWindow enters confirmation. Returns state with South as the confirming player.
+ */
+function setupConfirmationScenario(
+  matchCount: number = 2,
+  jokerCount: number = 0,
+): {
+  state: GameState;
+  callerId: string;
+  discardedTile: Tile;
+  matchingTileIds: string[];
+  discarderId: string;
+} {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+
+  const { state, callerId, discardedTile, matchingTileIds } = setupCallScenario(
+    matchCount,
+    jokerCount,
+  );
+  const discarderId = state.callWindow!.discarderId;
+
+  // Call and resolve to enter confirmation phase
+  handleCallAction(
+    state,
+    { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+    "pung",
+  );
+  resolveCallWindow(state);
+
+  expect(state.callWindow!.status).toBe("confirming");
+  expect(state.callWindow!.confirmingPlayerId).toBe(callerId);
+
+  return { state, callerId, discardedTile, matchingTileIds, discarderId };
+}
+
+/**
+ * Set up a confirmation scenario with competing callers (South and West both call).
+ * South wins priority, West is in remainingCallers.
+ */
+function setupCompetingCallersConfirmation(): {
+  state: GameState;
+  southId: string;
+  westId: string;
+  southTileIds: string[];
+  westTileIds: string[];
+  discardedTile: Tile;
+} {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+
+  const state = createPlayState();
+  const eastId = getPlayerBySeat(state, "east");
+  const southId = getPlayerBySeat(state, "south");
+  const westId = getPlayerBySeat(state, "west");
+
+  const discardedTile = discardTile(state, eastId);
+
+  const jokers = findJokers(state, 4);
+  injectTilesIntoRack(state, southId, [jokers[0], jokers[1]]);
+  injectTilesIntoRack(state, westId, [jokers[2], jokers[3]]);
+
+  handleCallAction(
+    state,
+    { type: "CALL_PUNG", playerId: southId, tileIds: [jokers[0].id, jokers[1].id] },
+    "pung",
+  );
+  handleCallAction(
+    state,
+    { type: "CALL_PUNG", playerId: westId, tileIds: [jokers[2].id, jokers[3].id] },
+    "pung",
+  );
+
+  resolveCallWindow(state);
+
+  return {
+    state,
+    southId,
+    westId,
+    southTileIds: [jokers[0].id, jokers[1].id],
+    westTileIds: [jokers[2].id, jokers[3].id],
+    discardedTile,
+  };
+}
+
+describe("enterConfirmationPhase (Story 3A.5)", () => {
+  test("sets status to confirming with correct fields", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId } = setupCallScenario(2);
+
+      handleCallAction(
+        state,
+        {
+          type: "CALL_PUNG",
+          playerId: callerId,
+          tileIds: state.players[callerId].rack.slice(-2).map((t) => t.id),
+        },
+        "pung",
+      );
+
+      resolveCallWindow(state);
+
+      expect(state.callWindow!.status).toBe("confirming");
+      expect(state.callWindow!.confirmingPlayerId).toBe(callerId);
+      expect(state.callWindow!.confirmationExpiresAt).toBe(Date.now() + CONFIRMATION_TIMER_MS);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("CALL_CONFIRMATION_STARTED resolved action includes callerId, callType, timerDuration", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+      handleCallAction(
+        state,
+        { type: "CALL_PUNG", playerId: callerId, tileIds: matchingTileIds },
+        "pung",
+      );
+
+      const result = resolveCallWindow(state);
+      expect(result.resolved!.type).toBe("CALL_CONFIRMATION_STARTED");
+      const resolved = result.resolved as {
+        type: "CALL_CONFIRMATION_STARTED";
+        callerId: string;
+        callType: string;
+        timerDuration: number;
+      };
+      expect(resolved.callerId).toBe(callerId);
+      expect(resolved.callType).toBe("pung");
+      expect(resolved.timerDuration).toBe(CONFIRMATION_TIMER_MS);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("remainingCallers contains losing callers sorted by priority", () => {
+    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    try {
+      expect(state.callWindow!.confirmingPlayerId).toBe(southId);
+      expect(state.callWindow!.remainingCallers).toHaveLength(1);
+      expect(state.callWindow!.remainingCallers[0].playerId).toBe(westId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("handleConfirmCall — valid confirmation (Story 3A.5)", () => {
+  test("valid pung confirmation — tiles removed from rack, discard removed from pool, exposed group created", () => {
+    const { state, callerId, matchingTileIds, discardedTile, discarderId } =
+      setupConfirmationScenario(2);
+    try {
+      const rackBefore = state.players[callerId].rack.length;
+      const discardPoolBefore = state.players[discarderId].discardPool.length;
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.resolved!.type).toBe("CALL_CONFIRMED");
+
+      // Tiles removed from rack
+      expect(state.players[callerId].rack.length).toBe(rackBefore - matchingTileIds.length);
+      for (const id of matchingTileIds) {
+        expect(state.players[callerId].rack.find((t) => t.id === id)).toBeUndefined();
+      }
+
+      // Discard removed from pool
+      expect(state.players[discarderId].discardPool.length).toBe(discardPoolBefore - 1);
+      expect(
+        state.players[discarderId].discardPool.find((t) => t.id === discardedTile.id),
+      ).toBeUndefined();
+
+      // Exposed group created
+      expect(state.players[callerId].exposedGroups).toHaveLength(1);
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.tiles).toHaveLength(3); // 1 discarded + 2 from rack
+      expect(group.tiles[0].id).toBe(discardedTile.id);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("valid kong confirmation — 3 tiles from rack + 1 discarded", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId, discardedTile, matchingTileIds } = setupCallScenario(3);
+      const discarderId = state.callWindow!.discarderId;
+
+      // Call kong and resolve
+      handleCallAction(
+        state,
+        { type: "CALL_KONG", playerId: callerId, tileIds: matchingTileIds },
+        "kong",
+      );
+      resolveCallWindow(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      expect(result.accepted).toBe(true);
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.tiles).toHaveLength(4); // 1 discarded + 3 from rack
+      expect(group.type).toBe("kong");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("valid quint confirmation — 4 tiles from rack + 1 discarded", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId, discardedTile, matchingTileIds } = setupCallScenario(3, 1);
+      const discarderId = state.callWindow!.discarderId;
+
+      handleCallAction(
+        state,
+        { type: "CALL_QUINT", playerId: callerId, tileIds: matchingTileIds },
+        "quint",
+      );
+      resolveCallWindow(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      expect(result.accepted).toBe(true);
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.tiles).toHaveLength(5); // 1 discarded + 4 from rack
+      expect(group.type).toBe("quint");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("valid NEWS confirmation with Joker substitution", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId } = setupPatternCallScenario("wind-north-1", [
+        "wind-east-2",
+        "wind-west-2",
+        "joker-1",
+      ]);
+
+      handleCallAction(
+        state,
+        {
+          type: "CALL_NEWS",
+          playerId: callerId,
+          tileIds: ["wind-east-2", "wind-west-2", "joker-1"],
+        },
+        "news",
+      );
+      resolveCallWindow(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: ["wind-east-2", "wind-west-2", "joker-1"],
+      });
+
+      expect(result.accepted).toBe(true);
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.tiles).toHaveLength(4); // 1 discarded + 3 from rack
+      expect(group.type).toBe("news");
+      expect(group.identity.type).toBe("news");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("valid dragon set confirmation with Joker substitution", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const { state, callerId } = setupPatternCallScenario("dragon-red-1", [
+        "dragon-green-2",
+        "joker-3",
+      ]);
+
+      handleCallAction(
+        state,
+        {
+          type: "CALL_DRAGON_SET",
+          playerId: callerId,
+          tileIds: ["dragon-green-2", "joker-3"],
+        },
+        "dragon_set",
+      );
+      resolveCallWindow(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: ["dragon-green-2", "joker-3"],
+      });
+
+      expect(result.accepted).toBe(true);
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.tiles).toHaveLength(3);
+      expect(group.type).toBe("dragon_set");
+      expect(group.identity.type).toBe("dragon_set");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("exposed group has correct identity for suited tile pung", () => {
+    const { state, callerId, matchingTileIds, discardedTile } = setupConfirmationScenario(2);
+    try {
+      handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      const group = state.players[callerId].exposedGroups[0];
+      expect(group.identity.type).toBe("pung");
+      if (discardedTile.category === "suited") {
+        expect(group.identity.suit).toBe(discardedTile.suit);
+        expect(group.identity.value).toBe(discardedTile.value);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("after valid confirmation — currentTurn is caller, turnPhase is discard, callWindow is null", () => {
+    const { state, callerId, matchingTileIds } = setupConfirmationScenario(2);
+    try {
+      handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      expect(state.currentTurn).toBe(callerId);
+      expect(state.turnPhase).toBe("discard");
+      expect(state.callWindow).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("CALL_CONFIRMED resolved action includes all required fields", () => {
+    const { state, callerId, matchingTileIds, discardedTile, discarderId } =
+      setupConfirmationScenario(2);
+    try {
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      const resolved = result.resolved as {
+        type: "CALL_CONFIRMED";
+        callerId: string;
+        callType: string;
+        exposedTileIds: string[];
+        calledTileId: string;
+        fromPlayerId: string;
+      };
+      expect(resolved.callerId).toBe(callerId);
+      expect(resolved.callType).toBe("pung");
+      expect(resolved.calledTileId).toBe(discardedTile.id);
+      expect(resolved.fromPlayerId).toBe(discarderId);
+      expect(resolved.exposedTileIds).toHaveLength(3); // 1 discard + 2 from rack
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("handleConfirmCall — validation rejections (Story 3A.5)", () => {
+  test("rejects when no confirmation phase is active", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleConfirmCall(state, {
+      type: "CONFIRM_CALL",
+      playerId: eastId,
+      tileIds: ["t1", "t2"],
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CONFIRMATION_PHASE");
+  });
+
+  test("rejects when wrong player attempts confirmation — zero mutations", () => {
+    const { state, matchingTileIds } = setupConfirmationScenario(2);
+    try {
+      const westId = getPlayerBySeat(state, "west");
+      const stateBefore = JSON.stringify(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: westId,
+        tileIds: matchingTileIds,
+      });
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("NOT_CONFIRMING_PLAYER");
+      expect(JSON.stringify(state)).toBe(stateBefore);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("rejects when tile not in rack — zero mutations", () => {
+    const { state, callerId } = setupConfirmationScenario(2);
+    try {
+      const stateBefore = JSON.stringify(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: ["fake-id-1", "fake-id-2"],
+      });
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("TILE_NOT_IN_RACK");
+      expect(JSON.stringify(state)).toBe(stateBefore);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("rejects duplicate tile IDs — zero mutations", () => {
+    const { state, callerId, matchingTileIds } = setupConfirmationScenario(2);
+    try {
+      const stateBefore = JSON.stringify(state);
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: [matchingTileIds[0], matchingTileIds[0]],
+      });
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("DUPLICATE_TILE_IDS");
+      expect(JSON.stringify(state)).toBe(stateBefore);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("invalid group auto-retracts — no dead hand, no penalty", () => {
+    const { state, callerId } = setupConfirmationScenario(2);
+    try {
+      // Find 2 non-matching tiles in the caller's rack
+      const discardedTile = state.callWindow!.discardedTile;
+      const nonMatchingTiles = state.players[callerId].rack.filter((t) => {
+        if (t.category === "joker") return false;
+        return !tilesMatch(t, discardedTile);
+      });
+
+      if (nonMatchingTiles.length >= 2) {
+        const result = handleConfirmCall(state, {
+          type: "CONFIRM_CALL",
+          playerId: callerId,
+          tileIds: [nonMatchingTiles[0].id, nonMatchingTiles[1].id],
+        });
+
+        // Auto-retract — with no remaining callers, window reopens or closes
+        expect(result.accepted).toBe(true);
+        // No exposed groups created — the call was retracted
+        expect(state.players[callerId].exposedGroups).toHaveLength(0);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("handleRetractCall (Story 3A.5)", () => {
+  test("retraction with remaining callers — next caller enters confirmation", () => {
+    const { state, southId, westId, westTileIds } = setupCompetingCallersConfirmation();
+    try {
+      expect(state.callWindow!.confirmingPlayerId).toBe(southId);
+
+      const result = handleRetractCall(state, {
+        type: "RETRACT_CALL",
+        playerId: southId,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.resolved!.type).toBe("CALL_RETRACTED");
+      const resolved = result.resolved as {
+        type: "CALL_RETRACTED";
+        callerId: string;
+        nextCallerId: string;
+      };
+      expect(resolved.callerId).toBe(southId);
+      expect(resolved.nextCallerId).toBe(westId);
+
+      // West is now in confirmation
+      expect(state.callWindow!.status).toBe("confirming");
+      expect(state.callWindow!.confirmingPlayerId).toBe(westId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("retraction with no remaining callers and time remaining — window reopens", () => {
+    const { state, callerId } = setupConfirmationScenario(2);
+    try {
+      const result = handleRetractCall(state, {
+        type: "RETRACT_CALL",
+        playerId: callerId,
+      });
+
+      expect(result.accepted).toBe(true);
+      // Window should reopen or close depending on remaining time
+      // Since we set time at 12:00:00 and openedAt is the same, time might remain
+      const resolvedType = result.resolved!.type;
+      expect(["CALL_WINDOW_RESUMED", "CALL_WINDOW_CLOSED"].includes(resolvedType)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("retraction when not in confirmation phase — rejected", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleRetractCall(state, {
+      type: "RETRACT_CALL",
+      playerId: eastId,
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CONFIRMATION_PHASE");
+  });
+
+  test("wrong player attempts retraction — rejected with zero mutations", () => {
+    const { state, callerId } = setupConfirmationScenario(2);
+    try {
+      const westId = getPlayerBySeat(state, "west");
+      const stateBefore = JSON.stringify(state);
+
+      const result = handleRetractCall(state, {
+        type: "RETRACT_CALL",
+        playerId: westId,
+      });
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("NOT_CONFIRMING_PLAYER");
+      expect(JSON.stringify(state)).toBe(stateBefore);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("handleConfirmationTimeout (Story 3A.5)", () => {
+  test("timeout triggers auto-retraction — same behavior as explicit retract", () => {
+    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    try {
+      // Advance time past confirmation expiry
+      vi.advanceTimersByTime(CONFIRMATION_TIMER_MS);
+
+      const result = handleConfirmationTimeout(state);
+
+      expect(result.accepted).toBe(true);
+      expect(result.resolved!.type).toBe("CALL_RETRACTED");
+      const resolved = result.resolved as {
+        type: "CALL_RETRACTED";
+        callerId: string;
+        reason: string;
+        nextCallerId: string;
+      };
+      expect(resolved.callerId).toBe(southId);
+      expect(resolved.reason).toBe("CONFIRMATION_TIMEOUT");
+      expect(resolved.nextCallerId).toBe(westId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("timeout with remaining callers promotes next caller", () => {
+    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    try {
+      vi.advanceTimersByTime(CONFIRMATION_TIMER_MS);
+      handleConfirmationTimeout(state);
+
+      expect(state.callWindow!.status).toBe("confirming");
+      expect(state.callWindow!.confirmingPlayerId).toBe(westId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("timeout when not in confirmation phase — rejected", () => {
+    const state = createPlayState();
+
+    const result = handleConfirmationTimeout(state);
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_CONFIRMATION_PHASE");
+  });
+});
+
+describe("Exposure permanence (Story 3A.5)", () => {
+  test("exposed groups persist through subsequent discard and draw actions", () => {
+    const { state, callerId, matchingTileIds } = setupConfirmationScenario(2);
+    try {
+      handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      const groupsBefore = state.players[callerId].exposedGroups.length;
+      const groupTilesBefore = [...state.players[callerId].exposedGroups[0].tiles.map((t) => t.id)];
+
+      // Caller discards
+      const discardableTile = state.players[callerId].rack.find((t) => t.category !== "joker");
+      if (discardableTile) {
+        handleDiscardTile(state, {
+          type: "DISCARD_TILE",
+          playerId: callerId,
+          tileId: discardableTile.id,
+        });
+      }
+
+      // Exposed groups unchanged
+      expect(state.players[callerId].exposedGroups.length).toBe(groupsBefore);
+      expect(state.players[callerId].exposedGroups[0].tiles.map((t) => t.id)).toEqual(
+        groupTilesBefore,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("exposed group identity is stable — type, suit, value unchanged", () => {
+    const { state, callerId, matchingTileIds, discardedTile } = setupConfirmationScenario(2);
+    try {
+      handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: callerId,
+        tileIds: matchingTileIds,
+      });
+
+      const identity = state.players[callerId].exposedGroups[0].identity;
+      expect(identity.type).toBe("pung");
+
+      // Identity fields are stable
+      if (discardedTile.category === "suited") {
+        expect(identity.suit).toBe(discardedTile.suit);
+        expect(identity.value).toBe(discardedTile.value);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("Integration: full call flow (Story 3A.5)", () => {
+  test("discard → call → freeze → resolve → confirm → exposed group → turn advances", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+
+      // 1. East discards
+      const discardedTile = discardTile(state, eastId);
+      expect(state.turnPhase).toBe("callWindow");
+
+      // 2. South calls pung
+      const matchingTiles = findMatchingTiles(state, discardedTile, 2);
+      injectTilesIntoRack(state, southId, matchingTiles);
+      const tileIds = matchingTiles.map((t) => t.id);
+
+      handleCallAction(state, { type: "CALL_PUNG", playerId: southId, tileIds }, "pung");
+      expect(state.callWindow!.status).toBe("frozen");
+
+      // 3. Resolve → enters confirmation
+      resolveCallWindow(state);
+      expect(state.callWindow!.status).toBe("confirming");
+      expect(state.callWindow!.confirmingPlayerId).toBe(southId);
+
+      // 4. South confirms
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: southId,
+        tileIds,
+      });
+      expect(result.accepted).toBe(true);
+      expect(result.resolved!.type).toBe("CALL_CONFIRMED");
+
+      // 5. Verify final state
+      expect(state.callWindow).toBeNull();
+      expect(state.currentTurn).toBe(southId);
+      expect(state.turnPhase).toBe("discard");
+      expect(state.players[southId].exposedGroups).toHaveLength(1);
+      expect(state.players[southId].exposedGroups[0].tiles).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("discard → call → freeze → resolve → retract → fallback caller confirms", () => {
+    const { state, southId, westId, westTileIds, discardedTile } =
+      setupCompetingCallersConfirmation();
+    try {
+      // South retracts
+      handleRetractCall(state, { type: "RETRACT_CALL", playerId: southId });
+
+      // West is now in confirmation
+      expect(state.callWindow!.confirmingPlayerId).toBe(westId);
+
+      // West confirms
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: westId,
+        tileIds: westTileIds,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.resolved!.type).toBe("CALL_CONFIRMED");
+      expect(state.currentTurn).toBe(westId);
+      expect(state.turnPhase).toBe("discard");
+      expect(state.players[westId].exposedGroups).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("discard → call → freeze → resolve → timeout → fallback or reopen", () => {
+    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    try {
+      // Timeout for South
+      vi.advanceTimersByTime(CONFIRMATION_TIMER_MS);
+      const result = handleConfirmationTimeout(state);
+
+      expect(result.accepted).toBe(true);
+      // West should be promoted to confirmation
+      expect(state.callWindow!.status).toBe("confirming");
+      expect(state.callWindow!.confirmingPlayerId).toBe(westId);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -4,6 +4,8 @@ import type {
   CallType,
   CallRecord,
   SeatWind,
+  GroupIdentity,
+  ExposedGroup,
 } from "../../types/game-state";
 import type {
   PassCallAction,
@@ -12,9 +14,21 @@ import type {
   CallQuintAction,
   CallNewsAction,
   CallDragonSetAction,
+  ConfirmCallAction,
+  RetractCallAction,
 } from "../../types/actions";
 import type { Tile } from "../../types/tiles";
-import { MAX_PLAYERS, SEATS, WINDS, DRAGONS } from "../../constants";
+import {
+  MAX_PLAYERS,
+  SEATS,
+  WINDS,
+  DRAGONS,
+  GROUP_SIZES,
+  DEFAULT_CALL_WINDOW_MS,
+} from "../../constants";
+
+/** Confirmation timer duration in milliseconds (5 seconds) */
+export const CONFIRMATION_TIMER_MS = 5000;
 
 /**
  * Handle PASS_CALL action: validate call window state, then record the pass.
@@ -29,7 +43,7 @@ export function handlePassCall(state: GameState, action: PassCallAction): Action
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
-  if (state.callWindow.status === "frozen") {
+  if (state.callWindow.status === "frozen" || state.callWindow.status === "confirming") {
     return { accepted: false, reason: "CALL_WINDOW_FROZEN" };
   }
   if (state.callWindow.status !== "open") {
@@ -162,6 +176,9 @@ export function handleCallAction(
   }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+  if (state.callWindow.status === "confirming") {
+    return { accepted: false, reason: "CALL_WINDOW_CONFIRMING" };
   }
   if (state.callWindow.status !== "open" && state.callWindow.status !== "frozen") {
     return { accepted: false, reason: "CALL_WINDOW_NOT_OPEN" };
@@ -360,19 +377,13 @@ export function resolveCallWindow(state: GameState): ActionResult {
 
   const sorted = resolveCallPriority(state.callWindow.calls, discarder.seatWind, state.players);
   const winningCall = sorted[0];
-  const losingCallerIds = sorted.slice(1).map((c) => c.playerId);
+  const remainingCallers = sorted.slice(1);
 
-  // Clear the call buffer — losing calls are silently discarded
+  // Clear the call buffer — losing calls stored in remainingCallers for retraction fallback
   state.callWindow.calls.length = 0;
 
-  return {
-    accepted: true,
-    resolved: {
-      type: "CALL_RESOLVED",
-      winningCall,
-      losingCallerIds,
-    },
-  };
+  // Enter confirmation phase for the winning caller
+  return enterConfirmationPhase(state, winningCall, remainingCallers);
 }
 
 /**
@@ -433,4 +444,283 @@ export function getValidCallOptions(rack: Tile[], discardedTile: Tile): CallType
   }
 
   return options;
+}
+
+/**
+ * Enter the confirmation phase for the winning caller.
+ * Sets callWindow status to "confirming", stores the winning call and remaining callers.
+ */
+export function enterConfirmationPhase(
+  state: GameState,
+  winningCall: CallRecord,
+  remainingCallers: CallRecord[],
+): ActionResult {
+  if (!state.callWindow) {
+    return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+
+  (state.callWindow as { status: string }).status = "confirming";
+  (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId =
+    winningCall.playerId;
+  (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt =
+    Date.now() + CONFIRMATION_TIMER_MS;
+  (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = remainingCallers;
+  (state.callWindow as { winningCall: CallRecord | null }).winningCall = winningCall;
+
+  return {
+    accepted: true,
+    resolved: {
+      type: "CALL_CONFIRMATION_STARTED",
+      callerId: winningCall.playerId,
+      callType: winningCall.callType,
+      timerDuration: CONFIRMATION_TIMER_MS,
+    },
+  };
+}
+
+/**
+ * Build a GroupIdentity from the discarded tile and call type.
+ * Identity is fixed at exposure time and never changes (FR55).
+ */
+function buildGroupIdentity(discardedTile: Tile, callType: CallType): GroupIdentity {
+  if (callType === "news") {
+    return { type: "news" };
+  }
+  if (callType === "dragon_set") {
+    return { type: "dragon_set" };
+  }
+
+  // Same-tile groups: identity from the discarded tile
+  const base: GroupIdentity = { type: callType as GroupIdentity["type"] };
+  switch (discardedTile.category) {
+    case "suited":
+      return { ...base, suit: discardedTile.suit, value: discardedTile.value };
+    case "wind":
+      return { ...base, wind: discardedTile.value };
+    case "dragon":
+      return { ...base, dragon: discardedTile.value };
+    default:
+      return base;
+  }
+}
+
+/**
+ * Validate that the provided tile IDs form a valid group with the discarded tile
+ * for the given call type. Returns true if valid.
+ */
+function validateConfirmationGroup(
+  rackTiles: Tile[],
+  discardedTile: Tile,
+  callType: CallType,
+): boolean {
+  if (callType === "news") {
+    return validateNewsGroup(rackTiles, discardedTile);
+  }
+  if (callType === "dragon_set") {
+    return validateDragonSetGroup(rackTiles, discardedTile);
+  }
+  // Same-tile group: all rack tiles must match the discarded tile
+  return rackTiles.every((tile) => tilesMatch(tile, discardedTile));
+}
+
+/**
+ * Internal retraction logic shared by explicit retract, invalid confirmation, and timeout.
+ * Promotes next caller or reopens/closes the window.
+ */
+function handleRetraction(state: GameState, reason: string): ActionResult {
+  if (!state.callWindow) {
+    return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+
+  const retractedCallerId = state.callWindow.confirmingPlayerId!;
+
+  // Check for remaining callers to promote
+  if (state.callWindow.remainingCallers.length > 0) {
+    const nextCaller = state.callWindow.remainingCallers[0];
+    const updatedRemaining = state.callWindow.remainingCallers.slice(1);
+
+    // Enter confirmation phase for the next caller
+    (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId =
+      nextCaller.playerId;
+    (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt =
+      Date.now() + CONFIRMATION_TIMER_MS;
+    (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = updatedRemaining;
+    (state.callWindow as { winningCall: CallRecord | null }).winningCall = nextCaller;
+
+    return {
+      accepted: true,
+      resolved: {
+        type: "CALL_RETRACTED",
+        callerId: retractedCallerId,
+        reason,
+        nextCallerId: nextCaller.playerId,
+      },
+    };
+  }
+
+  // No remaining callers — check if time remains to reopen the window
+  const elapsed = Date.now() - state.callWindow.openedAt;
+  const remaining = DEFAULT_CALL_WINDOW_MS - elapsed;
+
+  if (remaining > 0) {
+    // Reopen the window
+    (state.callWindow as { status: string }).status = "open";
+    (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId = null;
+    (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt = null;
+    (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = [];
+    (state.callWindow as { winningCall: CallRecord | null }).winningCall = null;
+
+    return {
+      accepted: true,
+      resolved: {
+        type: "CALL_WINDOW_RESUMED",
+        remainingTime: remaining,
+      },
+    };
+  }
+
+  // No time remaining — close the window and advance turn
+  return closeCallWindow(state, "timer_expired");
+}
+
+/**
+ * Handle CONFIRM_CALL action: validate the confirming player and their tile selection,
+ * then create the exposed group and advance the turn to the caller.
+ * If tiles don't form a valid group, auto-retracts the call (no penalty).
+ * Follows validate-then-mutate pattern.
+ */
+export function handleConfirmCall(state: GameState, action: ConfirmCallAction): ActionResult {
+  // 1. Validate confirmation phase
+  if (state.gamePhase !== "play") {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+  if (!state.callWindow || state.callWindow.status !== "confirming") {
+    return { accepted: false, reason: "NO_CONFIRMATION_PHASE" };
+  }
+  if (action.playerId !== state.callWindow.confirmingPlayerId) {
+    return { accepted: false, reason: "NOT_CONFIRMING_PLAYER" };
+  }
+
+  // 2. Validate no duplicate tile IDs
+  if (new Set(action.tileIds).size !== action.tileIds.length) {
+    return { accepted: false, reason: "DUPLICATE_TILE_IDS" };
+  }
+
+  // 3. Validate tile IDs exist in caller's rack
+  const player = state.players[action.playerId];
+  if (!player) {
+    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
+  }
+  for (const tileId of action.tileIds) {
+    if (!player.rack.find((t) => t.id === tileId)) {
+      return { accepted: false, reason: "TILE_NOT_IN_RACK" };
+    }
+  }
+
+  // 4. Validate tile count matches expected for the call type
+  const winningCall = state.callWindow.winningCall!;
+  const expectedFromRack = REQUIRED_FROM_RACK[winningCall.callType];
+  if (action.tileIds.length !== expectedFromRack) {
+    // Wrong tile count — auto-retract
+    return handleRetraction(state, "INVALID_GROUP");
+  }
+
+  // 4. Validate the group is valid
+  const rackTiles = action.tileIds.map((id) => player.rack.find((t) => t.id === id)!);
+  const discardedTile = state.callWindow.discardedTile;
+
+  if (!validateConfirmationGroup(rackTiles, discardedTile, winningCall.callType)) {
+    // Invalid group — auto-retract
+    return handleRetraction(state, "INVALID_GROUP");
+  }
+
+  // 5. Mutate — create exposed group
+  const discarder = state.players[state.callWindow.discarderId];
+  const discardIdx = discarder.discardPool.findIndex((t) => t.id === discardedTile.id);
+  if (discardIdx !== -1) {
+    discarder.discardPool.splice(discardIdx, 1);
+  }
+
+  // Remove tiles from caller's rack
+  for (const tileId of action.tileIds) {
+    const idx = player.rack.findIndex((t) => t.id === tileId);
+    if (idx !== -1) {
+      player.rack.splice(idx, 1);
+    }
+  }
+
+  // Build exposed group
+  const groupIdentity = buildGroupIdentity(discardedTile, winningCall.callType);
+  const exposedGroup: ExposedGroup = {
+    type: winningCall.callType as ExposedGroup["type"],
+    tiles: [discardedTile, ...rackTiles],
+    identity: groupIdentity,
+  };
+  player.exposedGroups.push(exposedGroup);
+
+  // 6. Update turn state
+  const callerId = action.playerId;
+  const fromPlayerId = state.callWindow.discarderId;
+
+  // Clear call window
+  state.callWindow = null;
+
+  if (winningCall.callType === "mahjong") {
+    // Mahjong confirmation — don't set to discard phase; story 3a-7 handles this
+    // TODO: Story 3a-7 will handle Mahjong declaration validation flow
+    state.currentTurn = callerId;
+  } else {
+    // Non-Mahjong: caller must discard next
+    state.currentTurn = callerId;
+    state.turnPhase = "discard";
+  }
+
+  // 7. Return result
+  return {
+    accepted: true,
+    resolved: {
+      type: "CALL_CONFIRMED",
+      callerId,
+      callType: winningCall.callType,
+      exposedTileIds: [discardedTile.id, ...action.tileIds],
+      calledTileId: discardedTile.id,
+      fromPlayerId,
+      groupIdentity,
+    },
+  };
+}
+
+/**
+ * Handle RETRACT_CALL action: validate the confirming player, then retract their call.
+ * If other callers remain, the next highest-priority caller enters confirmation.
+ * If no callers remain, the call window reopens or closes.
+ * Follows validate-then-mutate pattern.
+ */
+export function handleRetractCall(state: GameState, action: RetractCallAction): ActionResult {
+  // 1. Validate
+  if (state.gamePhase !== "play") {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+  if (!state.callWindow || state.callWindow.status !== "confirming") {
+    return { accepted: false, reason: "NO_CONFIRMATION_PHASE" };
+  }
+  if (action.playerId !== state.callWindow.confirmingPlayerId) {
+    return { accepted: false, reason: "NOT_CONFIRMING_PLAYER" };
+  }
+
+  // 2. Delegate to shared retraction logic
+  return handleRetraction(state, "PLAYER_RETRACTED");
+}
+
+/**
+ * Handle confirmation timeout: auto-retracts the call on the player's behalf.
+ * Called by the server when the 5-second confirmation timer expires.
+ * No setTimeout in shared/ — the server is responsible for scheduling.
+ */
+export function handleConfirmationTimeout(state: GameState): ActionResult {
+  if (!state.callWindow || state.callWindow.status !== "confirming") {
+    return { accepted: false, reason: "NO_CONFIRMATION_PHASE" };
+  }
+
+  return handleRetraction(state, "CONFIRMATION_TIMEOUT");
 }
