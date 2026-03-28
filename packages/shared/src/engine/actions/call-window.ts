@@ -14,6 +14,7 @@ import type {
   CallQuintAction,
   CallNewsAction,
   CallDragonSetAction,
+  CallMahjongAction,
   ConfirmCallAction,
   RetractCallAction,
 } from "../../types/actions";
@@ -26,6 +27,7 @@ import {
   GROUP_SIZES,
   DEFAULT_CALL_WINDOW_MS,
 } from "../../constants";
+import { confirmMahjongCall } from "./mahjong";
 
 /** Confirmation timer duration in milliseconds (5 seconds) */
 export const CONFIRMATION_TIMER_MS = 5000;
@@ -147,6 +149,58 @@ export function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
     default:
       return false;
   }
+}
+
+/**
+ * Handle CALL_MAHJONG action: record a mahjong call during the call window.
+ * No tile validation at call time — hand validation happens at confirmation (story 3a-7).
+ * Follows validate-then-mutate pattern.
+ */
+export function handleCallMahjong(state: GameState, action: CallMahjongAction): ActionResult {
+  // 1. Validate call window state
+  if (state.gamePhase !== "play") {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+  if (!state.callWindow) {
+    return { accepted: false, reason: "NO_CALL_WINDOW" };
+  }
+  if (state.callWindow.status === "confirming") {
+    return { accepted: false, reason: "CALL_WINDOW_CONFIRMING" };
+  }
+  if (state.callWindow.status !== "open" && state.callWindow.status !== "frozen") {
+    return { accepted: false, reason: "CALL_WINDOW_NOT_OPEN" };
+  }
+  if (state.callWindow.discarderId === action.playerId) {
+    return { accepted: false, reason: "DISCARDER_CANNOT_CALL" };
+  }
+  if (state.callWindow.passes.includes(action.playerId)) {
+    return { accepted: false, reason: "ALREADY_PASSED" };
+  }
+  if (state.callWindow.calls.some((c) => c.playerId === action.playerId)) {
+    return { accepted: false, reason: "ALREADY_CALLED" };
+  }
+
+  // 2. Mutate — record the mahjong call (tileIds stored for reference but not validated here)
+  const shouldFreeze = state.callWindow.status === "open";
+
+  state.callWindow.calls.push({
+    callType: "mahjong",
+    playerId: action.playerId,
+    tileIds: [...action.tileIds],
+  });
+
+  if (shouldFreeze) {
+    (state.callWindow as { status: string }).status = "frozen";
+    return {
+      accepted: true,
+      resolved: { type: "CALL_WINDOW_FROZEN", callerId: action.playerId },
+    };
+  }
+
+  return {
+    accepted: true,
+    resolved: { type: "CALL_MAHJONG", playerId: action.playerId },
+  };
 }
 
 /** Call action union type — all call action interfaces */
@@ -587,6 +641,7 @@ function handleRetraction(state: GameState, reason: string): ActionResult {
  * Handle CONFIRM_CALL action: validate the confirming player and their tile selection,
  * then create the exposed group and advance the turn to the caller.
  * If tiles don't form a valid group, auto-retracts the call (no penalty).
+ * For mahjong calls, delegates to confirmMahjongCall for hand validation and scoring.
  * Follows validate-then-mutate pattern.
  */
 export function handleConfirmCall(state: GameState, action: ConfirmCallAction): ActionResult {
@@ -600,6 +655,26 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
   if (action.playerId !== state.callWindow.confirmingPlayerId) {
     return { accepted: false, reason: "NOT_CONFIRMING_PLAYER" };
   }
+
+  const winningCall = state.callWindow.winningCall!;
+
+  // --- Mahjong confirmation path (no exposed group creation) ---
+  if (winningCall.callType === "mahjong") {
+    // For mahjong, tileIds from CONFIRM_CALL are ignored — the full hand is validated
+    const mahjongResult = confirmMahjongCall(
+      state,
+      action.playerId,
+      state.callWindow.discarderId,
+      state.callWindow.discardedTile.id,
+    );
+    if (!mahjongResult.accepted) {
+      // Invalid hand — auto-retract, promote next caller or reopen window
+      return handleRetraction(state, mahjongResult.reason ?? "INVALID_HAND");
+    }
+    return mahjongResult;
+  }
+
+  // --- Non-mahjong confirmation path (pung/kong/quint/news/dragon_set) ---
 
   // 2. Validate no duplicate tile IDs
   if (new Set(action.tileIds).size !== action.tileIds.length) {
@@ -618,14 +693,13 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
   }
 
   // 4. Validate tile count matches expected for the call type
-  const winningCall = state.callWindow.winningCall!;
   const expectedFromRack = REQUIRED_FROM_RACK[winningCall.callType];
   if (action.tileIds.length !== expectedFromRack) {
     // Wrong tile count — auto-retract
     return handleRetraction(state, "INVALID_GROUP");
   }
 
-  // 4. Validate the group is valid
+  // 5. Validate the group is valid
   const rackTiles = action.tileIds.map((id) => player.rack.find((t) => t.id === id)!);
   const discardedTile = state.callWindow.discardedTile;
 
@@ -634,7 +708,7 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
     return handleRetraction(state, "INVALID_GROUP");
   }
 
-  // 5. Mutate — create exposed group
+  // 6. Mutate — create exposed group
   const discarder = state.players[state.callWindow.discarderId];
   const discardIdx = discarder.discardPool.findIndex((t) => t.id === discardedTile.id);
   if (discardIdx !== -1) {
@@ -658,24 +732,18 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
   };
   player.exposedGroups.push(exposedGroup);
 
-  // 6. Update turn state
+  // 7. Update turn state
   const callerId = action.playerId;
   const fromPlayerId = state.callWindow.discarderId;
 
   // Clear call window
   state.callWindow = null;
 
-  if (winningCall.callType === "mahjong") {
-    // Mahjong confirmation — don't set to discard phase; story 3a-7 handles this
-    // TODO: Story 3a-7 will handle Mahjong declaration validation flow
-    state.currentTurn = callerId;
-  } else {
-    // Non-Mahjong: caller must discard next
-    state.currentTurn = callerId;
-    state.turnPhase = "discard";
-  }
+  // Non-Mahjong: caller must discard next
+  state.currentTurn = callerId;
+  state.turnPhase = "discard";
 
-  // 7. Return result
+  // 8. Return result
   return {
     accepted: true,
     resolved: {

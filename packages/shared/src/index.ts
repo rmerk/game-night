@@ -45,6 +45,8 @@ export type {
   CallQuintAction,
   CallNewsAction,
   CallDragonSetAction,
+  CallMahjongAction,
+  DeclareMahjongAction,
   ConfirmCallAction,
   RetractCallAction,
 } from "./types/actions";
@@ -111,6 +113,7 @@ export {
   handlePassCall,
   closeCallWindow,
   handleCallAction,
+  handleCallMahjong,
   tilesMatch,
   isPatternDefinedCall,
   validateNewsGroup,
@@ -125,3 +128,5 @@ export {
   handleConfirmationTimeout,
   CONFIRMATION_TIMER_MS,
 } from "./engine/actions/call-window";
+
+export { handleDeclareMahjong, confirmMahjongCall } from "./engine/actions/mahjong";

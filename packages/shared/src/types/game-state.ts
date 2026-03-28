@@ -1,5 +1,5 @@
 import type { Tile } from "./tiles";
-import type { GroupType } from "./card";
+import type { GroupType, NMJLCard } from "./card";
 
 /** Game-level phase */
 export type GamePhase = "lobby" | "charleston" | "play" | "scoreboard" | "rematch";
@@ -98,6 +98,8 @@ export interface GameState {
   callWindow: CallWindowState | null;
   scores: Record<string, number>;
   gameResult: GameResult | null;
+  /** NMJL card data — loaded at game start, immutable for the session */
+  card: NMJLCard | null;
 }
 
 /** Result of processing a game action */
@@ -155,4 +157,14 @@ export type ResolvedAction =
   | {
       readonly type: "CALL_WINDOW_RESUMED";
       readonly remainingTime: number;
+    }
+  | { readonly type: "CALL_MAHJONG"; readonly playerId: string }
+  | {
+      readonly type: "MAHJONG_DECLARED";
+      readonly winnerId: string;
+      readonly patternId: string;
+      readonly patternName: string;
+      readonly points: number;
+      readonly selfDrawn: boolean;
+      readonly discarderId?: string;
     };

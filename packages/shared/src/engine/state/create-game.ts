@@ -2,6 +2,7 @@ import type { GameState, PlayerState, SeatWind } from "../../types/game-state";
 import { SEATS, MAX_PLAYERS } from "../../constants";
 import { createWall } from "./wall";
 import { dealTiles } from "./dealing";
+import { loadCard } from "../../card/card-loader";
 
 /**
  * Create a new game with 4 players, assign winds, deal tiles, and return initial state.
@@ -53,5 +54,6 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     callWindow: null,
     scores,
     gameResult: null,
+    card: loadCard("2026"),
   };
 }

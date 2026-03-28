@@ -6,9 +6,11 @@ import { handleDiscardTile } from "./actions/discard";
 import {
   handlePassCall,
   handleCallAction,
+  handleCallMahjong,
   handleConfirmCall,
   handleRetractCall,
 } from "./actions/call-window";
+import { handleDeclareMahjong } from "./actions/mahjong";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
@@ -25,6 +27,7 @@ export function createLobbyState(): GameState {
     callWindow: null,
     scores: {},
     gameResult: null,
+    card: null,
   };
 }
 
@@ -53,10 +56,14 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleCallAction(state, action, "news");
     case "CALL_DRAGON_SET":
       return handleCallAction(state, action, "dragon_set");
+    case "CALL_MAHJONG":
+      return handleCallMahjong(state, action);
     case "CONFIRM_CALL":
       return handleConfirmCall(state, action);
     case "RETRACT_CALL":
       return handleRetractCall(state, action);
+    case "DECLARE_MAHJONG":
+      return handleDeclareMahjong(state, action);
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

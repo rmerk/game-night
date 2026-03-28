@@ -9,8 +9,10 @@ export type GameAction =
   | CallQuintAction
   | CallNewsAction
   | CallDragonSetAction
+  | CallMahjongAction
   | ConfirmCallAction
-  | RetractCallAction;
+  | RetractCallAction
+  | DeclareMahjongAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -71,6 +73,19 @@ export interface CallDragonSetAction {
   readonly type: "CALL_DRAGON_SET";
   readonly playerId: string;
   readonly tileIds: readonly string[];
+}
+
+/** Action for a player to call Mahjong on a discarded tile during call window */
+export interface CallMahjongAction {
+  readonly type: "CALL_MAHJONG";
+  readonly playerId: string;
+  readonly tileIds: readonly string[];
+}
+
+/** Action for the current player to declare Mahjong from a self-drawn tile (before discarding) */
+export interface DeclareMahjongAction {
+  readonly type: "DECLARE_MAHJONG";
+  readonly playerId: string;
 }
 
 /** Action for the winning caller to confirm their call by exposing tiles */
