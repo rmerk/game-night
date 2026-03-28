@@ -1,6 +1,6 @@
 # Story 3A.2: Call Actions — Pung, Kong, Quint with Validation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -335,6 +335,7 @@ Claude Opus 4.6
 - 2026-03-27: Addressed all 5 code review findings (1 HIGH, 2 MED, 2 LOW). Fixed pair rejection ordering, added TILE_MISMATCH reason, made tests deterministic, added readonly tileIds, exported tilesMatch. All 406 tests pass. Status: in-progress → review.
 - 2026-03-27: Code review R2 (AI) — 1 HIGH, 1 MED findings. Created 2 action items. Status: review → in-progress.
 - 2026-03-27: Addressed all 2 R2 code review findings (1 HIGH, 1 MED). Added duplicate tile ID rejection, refactored findMatchingTiles to use tilesMatch. All 407 tests pass. Status: in-progress → review.
+- 2026-03-27: Code review R3 (AI) — Approved. All R1 and R2 findings verified resolved. All 6 ACs implemented. 407 tests pass. Status: review → done.
 
 ## Senior Developer Review (AI)
 
@@ -417,4 +418,45 @@ All 5 original tasks and 22 subtasks: genuinely complete. All 5 R1 review follow
 - Game engine dispatcher exhaustive check works with new action types
 - No utility duplication across test files — all 5 helpers are unique to call-window.test.ts
 - File List matches git changes accurately
+
+## Senior Developer Review (AI) — R3
+
+**Review Date:** 2026-03-27
+**Reviewer:** Claude Opus 4.6 (adversarial code review)
+**Review Cycle:** 3
+**Outcome:** Approved
+
+### Summary
+
+All R1 and R2 findings have been correctly resolved. All 6 Acceptance Criteria are fully implemented and verified. All 407 tests pass (385 shared + 1 server + 21 client) with zero regressions. The validation chain is correct (phase → callWindow → status → discarder → passed → duplicates → pair → count → ownership → matching → mutate). Code quality is clean — validate-then-mutate pattern followed, defensive copy on tileIds, exhaustive dispatcher check, deterministic test setup via `injectTilesIntoRack`. No HIGH or MED issues found.
+
+### AC Verification
+
+| AC | Status | Evidence |
+|----|--------|----------|
+| #1 Pung call recorded | IMPLEMENTED | handleCallAction with callType pung, test line 369 |
+| #2 Kong call recorded | IMPLEMENTED | Same handler with callType kong, test line 416 |
+| #3 Quint with Joker | IMPLEMENTED | tilesMatch returns true for Jokers, tests lines 446/461 |
+| #4 Insufficient tiles | IMPLEMENTED | Count check at call-window.ts:111, tests lines 400/431 |
+| #5 Tile not in rack | IMPLEMENTED | Ownership check at call-window.ts:118-123, test line 476 |
+| #6 Pair call rejection | IMPLEMENTED | Pair check at call-window.ts:106-108 (before count check), tests lines 386/613 |
+
+### Task Audit
+
+All 5 original tasks (22 subtasks), 5 R1 follow-ups, and 2 R2 follow-ups are genuinely complete. No false claims. File List matches git changes exactly (6 files).
+
+### Action Items
+
+None — all issues resolved in prior cycles.
+
+### Code Quality Notes
+
+- Duplicate tile ID check (R2 HIGH) correctly prevents `rack.find()` exploit
+- `findMatchingTiles` now delegates to exported `tilesMatch` (R2 MED) — no logic duplication
+- Pair rejection correctly ordered before count check (R1 HIGH)
+- `TILE_MISMATCH` distinct from `INSUFFICIENT_TILES` (R1 MED)
+- `readonly tileIds` on action interfaces (R1 LOW)
+- Test determinism ensured via `injectTilesIntoRack` fallback (R1 MED)
+- No utility duplication across test files
+- 17 call action tests with real assertions against state mutations, no hardcoded constants
 
