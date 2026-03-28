@@ -1,6 +1,6 @@
 # Story 3A.2: Call Actions — Pung, Kong, Quint with Validation
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -81,6 +81,12 @@ So that **the core calling mechanic works for same-tile groups (FR24, FR29)**.
   - [x] 5.1 Export new types (`CallType`, `CallRecord`, `CallPungAction`, `CallKongAction`, `CallQuintAction`) from `index.ts`
   - [x] 5.2 Export `handleCallAction` from `index.ts`
   - [x] 5.3 Run `pnpm -r test && pnpm run typecheck && vp lint` — zero regressions, zero errors
+- Review Follow-ups (AI)
+  - [ ] [AI-Review][HIGH] Fix AC #6 dead code: move pair rejection check (call-window.ts:112-115) BEFORE the tile count check (call-window.ts:107-110) so `CANNOT_CALL_FOR_PAIR` is returned instead of `INSUFFICIENT_TILES` when `tileIds.length === 1`. Update test 4.9 and 4.15 to assert `CANNOT_CALL_FOR_PAIR` reason. [call-window.ts:108-115, call-window.test.ts:603-625]
+  - [ ] [AI-Review][MED] Add distinct `TILE_MISMATCH` reason code for non-matching tiles: change the rejection at call-window.ts:133 from `INSUFFICIENT_TILES` to `TILE_MISMATCH` when a provided tile doesn't match the discarded tile. Update test 4.16 to assert the new reason. [call-window.ts:128-135, call-window.test.ts:563-601]
+  - [ ] [AI-Review][MED] Make non-matching-tile test deterministic: replace the conditional `if (nonMatchingTiles.length >= 2)` guard (call-window.test.ts:587) with `injectTilesIntoRack` to guarantee non-matching tiles are present, eliminating false-green risk. [call-window.test.ts:563-601]
+  - [ ] [AI-Review][LOW] Add `readonly` modifier to `tileIds` in `CallPungAction`, `CallKongAction`, `CallQuintAction` interfaces for consistency with other readonly fields. [actions.ts:41,47,53]
+  - [ ] [AI-Review][LOW] Consider exporting `tilesMatch` from call-window.ts and reusing it in `findMatchingTiles` test helper to avoid logic duplication and silent divergence risk. [call-window.ts:57-75, call-window.test.ts:274-315]
 
 ## Dev Notes
 
@@ -312,4 +318,49 @@ Claude Opus 4.6
 - packages/shared/src/engine/actions/call-window.test.ts (MODIFIED) — Added 16 new tests for call actions
 - packages/shared/src/engine/game-engine.ts (MODIFIED) — Added CALL_PUNG, CALL_KONG, CALL_QUINT dispatcher cases
 - packages/shared/src/index.ts (MODIFIED) — Exported new types and handleCallAction
+
+### Change Log
+
+- 2026-03-27: Code review (AI) — 1 HIGH, 2 MED, 2 LOW findings. Created 5 action items. Status: review → in-progress.
+
+## Senior Developer Review (AI)
+
+**Review Date:** 2026-03-27
+**Reviewer:** Claude Opus 4.6 (adversarial code review)
+**Review Cycle:** 1
+**Outcome:** Changes Requested
+
+### Summary
+
+Implementation is solid — validate-then-mutate pattern followed correctly, single `handleCallAction` avoids duplication, 16 tests cover the happy and error paths well. All 406 tests pass with zero regressions. However, AC #6 has a logic ordering bug that makes the `CANNOT_CALL_FOR_PAIR` reason code unreachable.
+
+### AC Verification
+
+| AC | Status | Evidence |
+|----|--------|----------|
+| #1 Pung call recorded | IMPLEMENTED | call-window.ts:137-142, test line 379 |
+| #2 Kong call recorded | IMPLEMENTED | Same handler, test line 415 |
+| #3 Quint with Joker | IMPLEMENTED | tilesMatch allows Jokers, tests lines 435, 466 |
+| #4 Insufficient tiles | IMPLEMENTED | call-window.ts:108-110, tests lines 491, 511 |
+| #5 Tile not in rack | IMPLEMENTED | call-window.ts:122-126, test line 527 |
+| #6 Pair call rejection | PARTIAL | Dead code — count check at line 108 catches `tileIds.length === 1` as `INSUFFICIENT_TILES` before pair check at line 113 fires |
+
+### Task Audit
+
+All 5 tasks and 22 subtasks marked [x] are verified as genuinely complete. No false claims detected.
+
+### Action Items
+
+- [ ] [HIGH] Fix pair rejection ordering — move check at call-window.ts:112-115 before count check at line 108 so CANNOT_CALL_FOR_PAIR is returned per AC #6. Update tests 4.9 and 4.15.
+- [ ] [MED] Add TILE_MISMATCH reason code — call-window.ts:133 returns INSUFFICIENT_TILES for non-matching tiles, conflating two distinct errors. Update test 4.16.
+- [ ] [MED] Make non-matching-tile test deterministic — call-window.test.ts:587 conditional `if` guard can silently pass with zero assertions.
+- [ ] [LOW] Add readonly to tileIds in 3 call action interfaces (actions.ts:41,47,53).
+- [ ] [LOW] Consider exporting tilesMatch for test helper reuse to avoid logic duplication.
+
+### Code Quality Notes
+
+- `tilesMatch` helper is clean and handles all tile categories correctly
+- `closeCallWindow` and `handlePassCall` are unmodified and working correctly
+- Game engine dispatcher exhaustive check works with new action types
+- CallRecord copies `tileIds` via spread (line 141) — good defensive practice
 
