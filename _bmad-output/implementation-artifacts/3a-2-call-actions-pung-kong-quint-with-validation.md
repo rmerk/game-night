@@ -1,6 +1,6 @@
 # Story 3A.2: Call Actions — Pung, Kong, Quint with Validation
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -88,8 +88,8 @@ So that **the core calling mechanic works for same-tile groups (FR24, FR29)**.
   - [x] [AI-Review][LOW] Add `readonly` modifier to `tileIds` in `CallPungAction`, `CallKongAction`, `CallQuintAction` interfaces for consistency with other readonly fields. [actions.ts:41,47,53]
   - [x] [AI-Review][LOW] Export `tilesMatch` from call-window.ts and reusing it in `findMatchingTiles` test helper to avoid logic duplication and silent divergence risk. [call-window.ts:57-75, call-window.test.ts:274-315]
 - Review Follow-ups R2 (AI)
-  - [ ] [AI-Review][HIGH] Add duplicate tile ID rejection: `handleCallAction` does not check for duplicate IDs in `action.tileIds`. A player can submit `['bam-3-1', 'bam-3-1']` to call Pung with only 1 matching tile — `rack.find()` resolves the same tile on each iteration. Add `new Set(action.tileIds).size !== action.tileIds.length` check returning `DUPLICATE_TILE_IDS`, and add a test. [call-window.ts:108-135, call-window.test.ts]
-  - [ ] [AI-Review][MED] Use exported `tilesMatch` in `findMatchingTiles` test helper: Review R1 finding [LOW] asked to export `tilesMatch` AND reuse it in the test helper. `tilesMatch` was exported but `findMatchingTiles` (call-window.test.ts:274-315) still has inline matching logic that can silently diverge from `tilesMatch`. Import and delegate to `tilesMatch`. [call-window.test.ts:2,274-315]
+  - [x] [AI-Review][HIGH] Add duplicate tile ID rejection: `handleCallAction` does not check for duplicate IDs in `action.tileIds`. A player can submit `['bam-3-1', 'bam-3-1']` to call Pung with only 1 matching tile — `rack.find()` resolves the same tile on each iteration. Add `new Set(action.tileIds).size !== action.tileIds.length` check returning `DUPLICATE_TILE_IDS`, and add a test. [call-window.ts:108-135, call-window.test.ts]
+  - [x] [AI-Review][MED] Use exported `tilesMatch` in `findMatchingTiles` test helper: Review R1 finding [LOW] asked to export `tilesMatch` AND reuse it in the test helper. `tilesMatch` was exported but `findMatchingTiles` (call-window.test.ts:274-315) still has inline matching logic that can silently diverge from `tilesMatch`. Import and delegate to `tilesMatch`. [call-window.test.ts:2,274-315]
 
 ## Dev Notes
 
@@ -317,6 +317,8 @@ Claude Opus 4.6
 - Resolved review finding [MED]: Made non-matching-tile test deterministic using injectTilesIntoRack fallback
 - Resolved review finding [LOW]: Added readonly modifier to tileIds in CallPungAction, CallKongAction, CallQuintAction
 - Resolved review finding [LOW]: Exported tilesMatch from call-window.ts for test helper reuse
+- Resolved review R2 finding [HIGH]: Added duplicate tile ID rejection (DUPLICATE_TILE_IDS) with Set-based check before pair validation
+- Resolved review R2 finding [MED]: Refactored findMatchingTiles test helper to delegate to exported tilesMatch, eliminating logic duplication
 
 ### File List
 
@@ -332,6 +334,7 @@ Claude Opus 4.6
 - 2026-03-27: Code review (AI) — 1 HIGH, 2 MED, 2 LOW findings. Created 5 action items. Status: review → in-progress.
 - 2026-03-27: Addressed all 5 code review findings (1 HIGH, 2 MED, 2 LOW). Fixed pair rejection ordering, added TILE_MISMATCH reason, made tests deterministic, added readonly tileIds, exported tilesMatch. All 406 tests pass. Status: in-progress → review.
 - 2026-03-27: Code review R2 (AI) — 1 HIGH, 1 MED findings. Created 2 action items. Status: review → in-progress.
+- 2026-03-27: Addressed all 2 R2 code review findings (1 HIGH, 1 MED). Added duplicate tile ID rejection, refactored findMatchingTiles to use tilesMatch. All 407 tests pass. Status: in-progress → review.
 
 ## Senior Developer Review (AI)
 
@@ -402,8 +405,8 @@ All 5 original tasks and 22 subtasks: genuinely complete. All 5 R1 review follow
 
 ### Action Items
 
-- [ ] [HIGH] Add duplicate tile ID rejection in `handleCallAction`: `rack.find()` resolves the same tile on each loop iteration, so submitting `['bam-3-1', 'bam-3-1']` bypasses the tile count check. Add `new Set(action.tileIds).size !== action.tileIds.length` check before step 2 (pair check), returning `{ accepted: false, reason: 'DUPLICATE_TILE_IDS' }`. Add test: "CALL_PUNG rejected with duplicate tile IDs". [call-window.ts:104, call-window.test.ts]
-- [ ] [MED] Use `tilesMatch` in `findMatchingTiles` test helper: `tilesMatch` was exported per R1 but `findMatchingTiles` (call-window.test.ts:274-315) still reimplements matching logic inline. Import `tilesMatch` from `./call-window` and replace the inline category/suit/value checks with `tilesMatch(tile, targetTile)`. This eliminates silent divergence risk. [call-window.test.ts:2,274-315]
+- [x] [HIGH] Add duplicate tile ID rejection in `handleCallAction`: `rack.find()` resolves the same tile on each loop iteration, so submitting `['bam-3-1', 'bam-3-1']` bypasses the tile count check. Add `new Set(action.tileIds).size !== action.tileIds.length` check before step 2 (pair check), returning `{ accepted: false, reason: 'DUPLICATE_TILE_IDS' }`. Add test: "CALL_PUNG rejected with duplicate tile IDs". [call-window.ts:104, call-window.test.ts]
+- [x] [MED] Use `tilesMatch` in `findMatchingTiles` test helper: `tilesMatch` was exported per R1 but `findMatchingTiles` (call-window.test.ts:274-315) still reimplements matching logic inline. Import `tilesMatch` from `./call-window` and replace the inline category/suit/value checks with `tilesMatch(tile, targetTile)`. This eliminates silent divergence risk. [call-window.test.ts:2,274-315]
 
 ### Code Quality Notes
 

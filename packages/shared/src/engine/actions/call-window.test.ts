@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vite-plus/test";
-import { handlePassCall, closeCallWindow, handleCallAction } from "./call-window";
+import { handlePassCall, closeCallWindow, handleCallAction, tilesMatch } from "./call-window";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { createPlayState } from "../../testing/fixtures";
@@ -274,19 +274,11 @@ describe("closeCallWindow", () => {
 function findMatchingTiles(state: GameState, targetTile: Tile, count: number): Tile[] {
   const matches: Tile[] = [];
 
-  // Search the wall for matching tiles
+  // Search the wall for matching tiles (excluding Jokers — we want natural matches)
   for (const tile of state.wall) {
     if (matches.length >= count) break;
-    if (tile.category === targetTile.category && tile.id !== targetTile.id) {
-      if (targetTile.category === "suited" && tile.category === "suited") {
-        if (tile.suit === targetTile.suit && tile.value === targetTile.value) {
-          matches.push(tile);
-        }
-      } else if (targetTile.category === "wind" && tile.category === "wind") {
-        if (tile.value === targetTile.value) matches.push(tile);
-      } else if (targetTile.category === "dragon" && tile.category === "dragon") {
-        if (tile.value === targetTile.value) matches.push(tile);
-      }
+    if (tile.id !== targetTile.id && tile.category !== "joker" && tilesMatch(tile, targetTile)) {
+      matches.push(tile);
     }
   }
 
@@ -295,17 +287,12 @@ function findMatchingTiles(state: GameState, targetTile: Tile, count: number): T
     for (const player of Object.values(state.players)) {
       for (const tile of player.rack) {
         if (matches.length >= count) break;
-        if (tile.id === targetTile.id) continue;
-        if (tile.category === targetTile.category) {
-          if (targetTile.category === "suited" && tile.category === "suited") {
-            if (tile.suit === targetTile.suit && tile.value === targetTile.value) {
-              matches.push(tile);
-            }
-          } else if (targetTile.category === "wind" && tile.category === "wind") {
-            if (tile.value === targetTile.value) matches.push(tile);
-          } else if (targetTile.category === "dragon" && tile.category === "dragon") {
-            if (tile.value === targetTile.value) matches.push(tile);
-          }
+        if (
+          tile.id !== targetTile.id &&
+          tile.category !== "joker" &&
+          tilesMatch(tile, targetTile)
+        ) {
+          matches.push(tile);
         }
       }
     }
@@ -607,6 +594,20 @@ describe("handleCallAction — validation", () => {
 
     expect(result.accepted).toBe(false);
     expect(result.reason).toBe("TILE_MISMATCH");
+  });
+
+  test("rejects DUPLICATE_TILE_IDS when same tile ID submitted twice", () => {
+    const { state, callerId, matchingTileIds } = setupCallScenario(2);
+
+    // Submit duplicate tile IDs
+    const result = handleCallAction(
+      state,
+      { type: "CALL_PUNG", playerId: callerId, tileIds: [matchingTileIds[0], matchingTileIds[0]] },
+      "pung",
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("DUPLICATE_TILE_IDS");
   });
 
   test("Jokers cannot substitute in pairs (pair call with 1 Joker rejected)", () => {

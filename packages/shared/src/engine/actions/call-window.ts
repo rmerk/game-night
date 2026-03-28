@@ -104,17 +104,22 @@ export function handleCallAction(
     return { accepted: false, reason: "ALREADY_PASSED" };
   }
 
-  // 2. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
+  // 2. Validate no duplicate tile IDs
+  if (new Set(action.tileIds).size !== action.tileIds.length) {
+    return { accepted: false, reason: "DUPLICATE_TILE_IDS" };
+  }
+
+  // 3. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
   if (action.tileIds.length + 1 === 2) {
     return { accepted: false, reason: "CANNOT_CALL_FOR_PAIR" };
   }
 
-  // 3. Validate tile count from rack matches expected
+  // 4. Validate tile count from rack matches expected
   if (action.tileIds.length !== requiredFromRack) {
     return { accepted: false, reason: "INSUFFICIENT_TILES" };
   }
 
-  // 4. Validate all tile IDs exist in the caller's rack
+  // 5. Validate all tile IDs exist in the caller's rack
   const player = state.players[action.playerId];
   if (!player) {
     return { accepted: false, reason: "PLAYER_NOT_FOUND" };
@@ -125,7 +130,7 @@ export function handleCallAction(
     }
   }
 
-  // 5. Validate each tile matches the discarded tile (or is a Joker)
+  // 6. Validate each tile matches the discarded tile (or is a Joker)
   const discardedTile = state.callWindow.discardedTile;
   for (const tileId of action.tileIds) {
     const tile = player.rack.find((t) => t.id === tileId)!;
@@ -134,7 +139,7 @@ export function handleCallAction(
     }
   }
 
-  // 6. Mutate — record the call in the buffer
+  // 7. Mutate — record the call in the buffer
   state.callWindow.calls.push({
     callType,
     playerId: action.playerId,
