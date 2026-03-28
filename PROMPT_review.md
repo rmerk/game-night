@@ -25,6 +25,12 @@ Study @\_bmad/gds/config.yaml for GDS configuration values.
 100001. When updating sprint-status.yaml, preserve ALL comments and
         STATUS DEFINITIONS in the file header. Never overwrite or truncate the file.
 
+100002. Test assertions must verify real behavior, not hardcoded constants.
+        Flag any assertion against magic numbers as a HIGH finding.
+
+100003. Flag any helper function duplicated across more than 1 test file as a
+        MED finding — it should be extracted to a shared utility.
+
 ---
 
 ## Task
@@ -43,8 +49,9 @@ and validate against @.claude/skills/gds-code-review/checklist.md
   1. AC Validation — verify each Acceptance Criterion is actually implemented
   2. Task Audit — verify each `[x]` task is really done (check git evidence)
   3. Code Quality — security, performance, maintainability
-  4. Test Quality — real assertions vs placeholder tests
-  5. Git vs File List — cross-reference story File List with actual git changes
+  4. Test Quality — real assertions vs placeholder tests; flag hardcoded-constant assertions as HIGH
+  5. Utility Duplication — flag any helper duplicated across 2+ test files as MED
+  6. Git vs File List — cross-reference story File List with actual git changes
 - Status determination (Step 5):
   - If all HIGH/MED issues resolved AND all ACs implemented → `review` → `done`
   - If issues remain → create `[AI-Review][severity]` action items → `review` → `in-progress`

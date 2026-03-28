@@ -29,6 +29,10 @@ Study @\_bmad/gds/config.yaml for GDS configuration values.
 100002. Implement functionality completely. Placeholders, stubs, and TODO comments
         waste loop iterations.
 
+100003. Extract shared utilities on SECOND use, not third. If a helper function
+        exists in one test file and you need it in another, extract to a shared
+        utility immediately. No copy-paste across test files.
+
 ---
 
 ## Task

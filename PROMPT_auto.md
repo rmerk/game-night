@@ -49,6 +49,28 @@ All must pass. If any fail, fix before committing. Never skip tests.
 100000002. When you encounter bugs or unexpected behavior, resolve them or document
            them in the story file. Do not silently ignore failures.
 
+100000003. Extract shared utilities on SECOND use, not third. If a helper function
+           exists in one test file and you need it in another, extract to a shared
+           utility immediately. No copy-paste across test files.
+
+100000004. Test assertions must verify real behavior, not hardcoded constants.
+           Never assert against magic numbers — derive expected values from the
+           data under test. Assertions like `expect(result).toBe(99)` are red flags.
+
+---
+
+## Epic 3A Context (Turn Flow & Calling)
+
+Key preparation items from Epic 2 retro — address in early stories:
+
+1. **Multi-step action sequences** — `createTestState` needs support for simulating
+   discard → call window → call → confirm flows. Extend test helpers early.
+2. **Timer testing** — validate `vi.useFakeTimers()` works in current Vitest config.
+   Story 3a-1 (call window timer) is the first timer-dependent story.
+3. **Action type extensions** — 7+ new action types (pung, kong, quint, mahjong, pass,
+   confirm, retract) need to extend `GameAction` and `ResolvedAction` discriminated unions.
+   Plan extensions cleanly — don't bolt on ad hoc.
+
 ---
 
 ## Phase Detection
@@ -129,8 +151,9 @@ and validate against @.claude/skills/gds-code-review/checklist.md
   1. AC Validation — verify each Acceptance Criterion is actually implemented
   2. Task Audit — verify each `[x]` task is really done (check git evidence)
   3. Code Quality — security, performance, maintainability
-  4. Test Quality — real assertions vs placeholder tests
-  5. Git vs File List — cross-reference story File List with actual git changes
+  4. Test Quality — real assertions vs placeholder tests; flag hardcoded-constant assertions as HIGH
+  5. Utility Duplication — flag any helper duplicated across 2+ test files as MED
+  6. Git vs File List — cross-reference story File List with actual git changes
 - Status determination (Step 5):
   - If all HIGH/MED issues resolved AND all ACs implemented → `review` → `done`
   - If issues remain → create `[AI-Review][severity]` action items → `review` → `in-progress`

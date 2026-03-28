@@ -45,6 +45,26 @@ All must pass. If any fail, fix before committing. Never skip tests.
 100000002. When you encounter bugs or unexpected behavior, resolve them or document
            them in the story file. Do not silently ignore failures.
 
+100000003. Extract shared utilities on SECOND use, not third. If a helper function
+           exists in one test file and you need it in another, extract to a shared
+           utility immediately. No copy-paste across test files.
+
+100000004. Test assertions must verify real behavior, not hardcoded constants.
+           Never assert against magic numbers — derive expected values from the
+           data under test.
+
+---
+
+## Epic 3A Context (Turn Flow & Calling)
+
+Key preparation items from Epic 2 retro — address in early stories:
+
+1. **Multi-step action sequences** — `createTestState` needs support for simulating
+   discard → call window → call → confirm flows. Extend test helpers early.
+2. **Timer testing** — validate `vi.useFakeTimers()` works in current Vitest config.
+3. **Action type extensions** — 7+ new action types need to extend `GameAction` and
+   `ResolvedAction` discriminated unions cleanly.
+
 ---
 
 ## Task

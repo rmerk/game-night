@@ -23,7 +23,7 @@ while :; do
   echo "=== Iteration $ITER (mode: $MODE) — $(date '+%H:%M:%S') ==="
 
   cat "$PROMPT" | claude -p \
-    --dangerously-skip-permissions \
+    --permission-mode bypassPermissions \
     --model opus \
     --output-format stream-json \
     --verbose
