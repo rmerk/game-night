@@ -98,9 +98,9 @@ pnpm -r test && pnpm run typecheck && vp lint
 
 ## Key Locations
 
-- Project rules: _bmad-output/project-context.md
-- Story files: _bmad-output/implementation-artifacts/
-- Sprint tracking: _bmad-output/implementation-artifacts/sprint-status.yaml
+- Project rules: \_bmad-output/project-context.md
+- Story files: \_bmad-output/implementation-artifacts/
+- Sprint tracking: \_bmad-output/implementation-artifacts/sprint-status.yaml
 
 ## Learnings
 

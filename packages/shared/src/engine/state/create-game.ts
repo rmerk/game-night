@@ -37,6 +37,7 @@ export function createGame(playerIds: string[], seed?: number): GameState {
       rack: hands[seatWind],
       exposedGroups: [],
       discardPool: [],
+      deadHand: false,
     };
     scores[playerId] = 0;
   }
@@ -55,5 +56,7 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     scores,
     gameResult: null,
     card: loadCard("2026"),
+    pendingMahjong: null,
+    challengeState: null,
   };
 }

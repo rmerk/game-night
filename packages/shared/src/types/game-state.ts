@@ -33,6 +33,7 @@ export interface PlayerState {
   readonly rack: Tile[];
   readonly exposedGroups: ExposedGroup[];
   readonly discardPool: Tile[];
+  deadHand: boolean;
 }
 
 /** Result of a wall game (draw) — no winner, no payments */
@@ -86,6 +87,26 @@ export interface CallWindowState {
   readonly winningCall: CallRecord | null;
 }
 
+/** State tracking an in-progress invalid Mahjong declaration waiting for cancel/confirm */
+export interface PendingMahjongState {
+  readonly playerId: string;
+  readonly path: "self-drawn" | "discard";
+  readonly previousTurnPhase: TurnPhase;
+  readonly previousCallWindow: CallWindowState | null;
+}
+
+/** State tracking an active challenge vote on a validated Mahjong */
+export interface ChallengeState {
+  readonly challengerId: string;
+  readonly winnerId: string;
+  votes: Record<string, "valid" | "invalid">;
+  readonly challengeExpiresAt: number;
+  readonly originalGameResult: MahjongGameResult;
+}
+
+/** Timeout constant for challenge vote (server schedules the timer) */
+export const CHALLENGE_TIMEOUT_SECONDS = 30;
+
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
 export interface GameState {
   gamePhase: GamePhase;
@@ -100,6 +121,10 @@ export interface GameState {
   gameResult: GameResult | null;
   /** NMJL card data — loaded at game start, immutable for the session */
   card: NMJLCard | null;
+  /** Tracks an in-progress invalid Mahjong declaration waiting for cancel/confirm */
+  pendingMahjong: PendingMahjongState | null;
+  /** Tracks an active challenge vote on a validated Mahjong */
+  challengeState: ChallengeState | null;
 }
 
 /** Result of processing a game action */
@@ -167,4 +192,22 @@ export type ResolvedAction =
       readonly points: number;
       readonly selfDrawn: boolean;
       readonly discarderId?: string;
+    }
+  | { readonly type: "INVALID_MAHJONG_WARNING"; readonly playerId: string; readonly reason: string }
+  | { readonly type: "MAHJONG_CANCELLED"; readonly playerId: string }
+  | { readonly type: "DEAD_HAND_ENFORCED"; readonly playerId: string; readonly reason: string }
+  | {
+      readonly type: "CHALLENGE_INITIATED";
+      readonly challengerId: string;
+      readonly winnerId: string;
+    }
+  | {
+      readonly type: "CHALLENGE_VOTE_CAST";
+      readonly playerId: string;
+      readonly vote: "valid" | "invalid";
+    }
+  | {
+      readonly type: "CHALLENGE_RESOLVED";
+      readonly outcome: "upheld" | "overturned";
+      readonly votes: Record<string, "valid" | "invalid">;
     };

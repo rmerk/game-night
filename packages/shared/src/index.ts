@@ -32,7 +32,11 @@ export type {
   MahjongGameResult,
   PaymentBreakdown,
   GameResult,
+  PendingMahjongState,
+  ChallengeState,
 } from "./types/game-state";
+
+export { CHALLENGE_TIMEOUT_SECONDS } from "./types/game-state";
 
 export type {
   GameAction,
@@ -49,6 +53,10 @@ export type {
   DeclareMahjongAction,
   ConfirmCallAction,
   RetractCallAction,
+  CancelMahjongAction,
+  ConfirmInvalidMahjongAction,
+  ChallengeMahjongAction,
+  ChallengeVoteAction,
 } from "./types/actions";
 
 export type {
@@ -126,7 +134,15 @@ export {
   handleConfirmCall,
   handleRetractCall,
   handleConfirmationTimeout,
+  handleRetraction,
   CONFIRMATION_TIMER_MS,
 } from "./engine/actions/call-window";
 
-export { handleDeclareMahjong, confirmMahjongCall } from "./engine/actions/mahjong";
+export {
+  handleDeclareMahjong,
+  confirmMahjongCall,
+  handleCancelMahjong,
+  handleConfirmInvalidMahjong,
+} from "./engine/actions/mahjong";
+
+export { handleChallengeMahjong, handleChallengeVote } from "./engine/actions/challenge";

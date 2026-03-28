@@ -1,7 +1,17 @@
-import type { GameState, ActionResult, MahjongGameResult } from "../../types/game-state";
-import type { DeclareMahjongAction } from "../../types/actions";
+import type {
+  GameState,
+  ActionResult,
+  MahjongGameResult,
+  CallWindowState,
+} from "../../types/game-state";
+import type {
+  DeclareMahjongAction,
+  CancelMahjongAction,
+  ConfirmInvalidMahjongAction,
+} from "../../types/actions";
 import { validateHandWithExposure } from "../../card/exposure-validation";
 import { calculatePayments } from "../scoring";
+import { handleRetraction } from "./call-window";
 
 /**
  * Handle DECLARE_MAHJONG action: self-drawn Mahjong path.
@@ -29,6 +39,11 @@ export function handleDeclareMahjong(state: GameState, action: DeclareMahjongAct
     return { accepted: false, reason: "PLAYER_NOT_FOUND" };
   }
 
+  // Dead hand check — dead hand players cannot declare Mahjong
+  if (player.deadHand) {
+    return { accepted: false, reason: "DEAD_HAND" };
+  }
+
   // 2. Validate card is available
   if (!state.card) {
     return { accepted: false, reason: "NO_CARD_LOADED" };
@@ -39,7 +54,21 @@ export function handleDeclareMahjong(state: GameState, action: DeclareMahjongAct
   const allTiles = [...player.rack, ...player.exposedGroups.flatMap((g) => g.tiles)];
   const match = validateHandWithExposure(allTiles, player.exposedGroups, state.card);
   if (!match) {
-    return { accepted: false, reason: "INVALID_HAND" };
+    // Return warning instead of rejection — player can cancel or confirm (dead hand)
+    state.pendingMahjong = {
+      playerId: action.playerId,
+      path: "self-drawn",
+      previousTurnPhase: state.turnPhase,
+      previousCallWindow: null,
+    };
+    return {
+      accepted: true,
+      resolved: {
+        type: "INVALID_MAHJONG_WARNING",
+        playerId: action.playerId,
+        reason: "INVALID_HAND",
+      },
+    };
   }
 
   // 4. Calculate scoring — self-drawn: all 3 losers pay 2x
@@ -116,7 +145,18 @@ export function confirmMahjongCall(
 
   const match = validateHandWithExposure(fullHand, player.exposedGroups, state.card);
   if (!match) {
-    return { accepted: false, reason: "INVALID_HAND" };
+    // Return warning instead of rejection — player can cancel or confirm (dead hand)
+    // Preserve call window state for cancel restore (do NOT clear it)
+    state.pendingMahjong = {
+      playerId: callerId,
+      path: "discard",
+      previousTurnPhase: state.turnPhase,
+      previousCallWindow: state.callWindow ? { ...state.callWindow } : null,
+    };
+    return {
+      accepted: true,
+      resolved: { type: "INVALID_MAHJONG_WARNING", playerId: callerId, reason: "INVALID_HAND" },
+    };
   }
 
   // Calculate scoring — discard Mahjong: discarder pays 2x, others 1x
@@ -174,4 +214,74 @@ export function confirmMahjongCall(
       discarderId,
     },
   };
+}
+
+/**
+ * Handle CANCEL_MAHJONG action: withdraw an invalid Mahjong declaration with no penalty.
+ * Restores game state to before the declaration.
+ * Follows validate-then-mutate pattern.
+ */
+export function handleCancelMahjong(state: GameState, action: CancelMahjongAction): ActionResult {
+  if (!state.pendingMahjong) {
+    return { accepted: false, reason: "NO_PENDING_MAHJONG" };
+  }
+  if (state.pendingMahjong.playerId !== action.playerId) {
+    return { accepted: false, reason: "NOT_DECLARING_PLAYER" };
+  }
+
+  const { path, previousTurnPhase, previousCallWindow } = state.pendingMahjong;
+  const playerId = action.playerId;
+
+  // Clear pending state before path-specific logic
+  state.pendingMahjong = null;
+
+  if (path === "self-drawn") {
+    // Restore turn phase — player continues their turn (can discard)
+    state.turnPhase = previousTurnPhase;
+    return {
+      accepted: true,
+      resolved: { type: "MAHJONG_CANCELLED", playerId },
+    };
+  }
+
+  // Discard path — restore call window and trigger retraction flow
+  state.callWindow = previousCallWindow as unknown as CallWindowState;
+  return handleRetraction(state, "MAHJONG_CANCELLED");
+}
+
+/**
+ * Handle CONFIRM_INVALID_MAHJONG action: player confirms their invalid declaration,
+ * enforcing a dead hand (player can no longer win or call discards).
+ * Follows validate-then-mutate pattern.
+ */
+export function handleConfirmInvalidMahjong(
+  state: GameState,
+  action: ConfirmInvalidMahjongAction,
+): ActionResult {
+  if (!state.pendingMahjong) {
+    return { accepted: false, reason: "NO_PENDING_MAHJONG" };
+  }
+  if (state.pendingMahjong.playerId !== action.playerId) {
+    return { accepted: false, reason: "NOT_DECLARING_PLAYER" };
+  }
+
+  const { path, previousTurnPhase, previousCallWindow } = state.pendingMahjong;
+  const playerId = action.playerId;
+
+  // Enforce dead hand and clear pending state before path-specific logic
+  state.players[playerId].deadHand = true;
+  state.pendingMahjong = null;
+
+  if (path === "self-drawn") {
+    // Restore turn phase — player must discard
+    state.turnPhase = previousTurnPhase;
+    return {
+      accepted: true,
+      resolved: { type: "DEAD_HAND_ENFORCED", playerId, reason: "CONFIRMED_INVALID_DECLARATION" },
+    };
+  }
+
+  // Discard path — restore call window and trigger retraction flow
+  state.callWindow = previousCallWindow as unknown as CallWindowState;
+  return handleRetraction(state, "DEAD_HAND_ENFORCED");
 }

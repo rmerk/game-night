@@ -10,7 +10,12 @@ import {
   handleConfirmCall,
   handleRetractCall,
 } from "./actions/call-window";
-import { handleDeclareMahjong } from "./actions/mahjong";
+import {
+  handleDeclareMahjong,
+  handleCancelMahjong,
+  handleConfirmInvalidMahjong,
+} from "./actions/mahjong";
+import { handleChallengeMahjong, handleChallengeVote } from "./actions/challenge";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
@@ -28,6 +33,8 @@ export function createLobbyState(): GameState {
     scores: {},
     gameResult: null,
     card: null,
+    pendingMahjong: null,
+    challengeState: null,
   };
 }
 
@@ -64,6 +71,14 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleRetractCall(state, action);
     case "DECLARE_MAHJONG":
       return handleDeclareMahjong(state, action);
+    case "CANCEL_MAHJONG":
+      return handleCancelMahjong(state, action);
+    case "CONFIRM_INVALID_MAHJONG":
+      return handleConfirmInvalidMahjong(state, action);
+    case "CHALLENGE_MAHJONG":
+      return handleChallengeMahjong(state, action);
+    case "CHALLENGE_VOTE":
+      return handleChallengeVote(state, action);
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

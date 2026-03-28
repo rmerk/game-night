@@ -12,7 +12,11 @@ export type GameAction =
   | CallMahjongAction
   | ConfirmCallAction
   | RetractCallAction
-  | DeclareMahjongAction;
+  | DeclareMahjongAction
+  | CancelMahjongAction
+  | ConfirmInvalidMahjongAction
+  | ChallengeMahjongAction
+  | ChallengeVoteAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -99,4 +103,29 @@ export interface ConfirmCallAction {
 export interface RetractCallAction {
   readonly type: "RETRACT_CALL";
   readonly playerId: string;
+}
+
+/** Action to cancel an invalid Mahjong declaration (no penalty) */
+export interface CancelMahjongAction {
+  readonly type: "CANCEL_MAHJONG";
+  readonly playerId: string;
+}
+
+/** Action to confirm an invalid Mahjong declaration (enforces dead hand) */
+export interface ConfirmInvalidMahjongAction {
+  readonly type: "CONFIRM_INVALID_MAHJONG";
+  readonly playerId: string;
+}
+
+/** Action for a non-winning player to challenge a validated Mahjong */
+export interface ChallengeMahjongAction {
+  readonly type: "CHALLENGE_MAHJONG";
+  readonly playerId: string;
+}
+
+/** Action for a player to vote on a challenge (valid or invalid) */
+export interface ChallengeVoteAction {
+  readonly type: "CHALLENGE_VOTE";
+  readonly playerId: string;
+  readonly vote: "valid" | "invalid";
 }

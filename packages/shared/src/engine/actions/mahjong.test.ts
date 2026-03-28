@@ -1,16 +1,16 @@
 import { describe, test, expect, vi } from "vite-plus/test";
-import { handleDeclareMahjong, confirmMahjongCall } from "./mahjong";
+import { handleDeclareMahjong, handleCancelMahjong, handleConfirmInvalidMahjong } from "./mahjong";
 import {
   handleCallMahjong,
+  handleCallAction,
   handleConfirmCall,
-  closeCallWindow,
   resolveCallPriority,
 } from "./call-window";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { handleAction } from "../game-engine";
 import { createPlayState } from "../../testing/fixtures";
-import { getPlayerBySeat, getNonDiscarders, injectTilesIntoRack } from "../../testing/helpers";
+import { getPlayerBySeat, injectTilesIntoRack } from "../../testing/helpers";
 import { buildTilesForHand } from "../../testing/tile-builders";
 import { loadCard } from "../../card/card-loader";
 import { validateHandWithExposure } from "../../card/exposure-validation";
@@ -46,7 +46,7 @@ function buildInvalidHand(): Tile[] {
         id: `${s.suit}-${s.value}-${c}`,
         category: "suited" as const,
         suit: s.suit,
-        value: s.value as Tile extends { value: infer V } ? V : never,
+        value: s.value,
         copy: c,
       } as Tile);
     }
@@ -151,7 +151,7 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: winnerId });
 
     // 25 points, self-drawn: each loser pays -50, winner receives 150
-    const result = state.gameResult as { payments: Record<string, number> };
+    const result = state.gameResult as unknown as { payments: Record<string, number> };
     const loserIds = Object.keys(state.players).filter((id) => id !== winnerId);
     for (const loserId of loserIds) {
       expect(result.payments[loserId]).toBe(-50);
@@ -171,7 +171,7 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     }
   });
 
-  test("invalid hand → rejected with INVALID_HAND, play continues", () => {
+  test("invalid hand → INVALID_MAHJONG_WARNING with pending state, play continues", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
 
@@ -187,10 +187,18 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
       playerId: eastId,
     });
 
-    expect(result.accepted).toBe(false);
-    expect(result.reason).toBe("INVALID_HAND");
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({
+      type: "INVALID_MAHJONG_WARNING",
+      playerId: eastId,
+      reason: "INVALID_HAND",
+    });
     expect(state.gamePhase).toBe("play");
     expect(state.gameResult).toBeNull();
+    expect(state.pendingMahjong).toMatchObject({
+      playerId: eastId,
+      path: "self-drawn",
+    });
   });
 
   test("wrong phase: lobby → rejected", () => {
@@ -258,7 +266,7 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     expect(result.reason).toBe("CALL_WINDOW_ACTIVE");
   });
 
-  test("zero mutation on rejection: state unchanged after invalid declaration", () => {
+  test("invalid declaration sets pendingMahjong but no other mutations", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
 
@@ -280,6 +288,8 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     expect(state.scores).toEqual(scoresBefore);
     expect(state.gameResult).toBe(resultBefore);
     expect(state.players[eastId].rack.length).toBe(rackLenBefore);
+    // pendingMahjong IS set (this is the only mutation)
+    expect(state.pendingMahjong).not.toBeNull();
   });
 });
 
@@ -408,7 +418,7 @@ describe("Call Mahjong (CALL_MAHJONG) during call window", () => {
   });
 
   test("mahjong call while already frozen → accepted with CALL_MAHJONG resolved", () => {
-    const { state, callerId, discarderId } = setupCallMahjongScenario();
+    const { state, callerId } = setupCallMahjongScenario();
     try {
       const westId = getPlayerBySeat(state, "west");
 
@@ -512,7 +522,7 @@ describe("Call Mahjong (CALL_MAHJONG) during call window", () => {
 
 describe("Mahjong priority over other calls", () => {
   test("mahjong beats pung in call resolution", () => {
-    const { state, callerId, discarderId, discardedTile } = setupCallMahjongScenario();
+    const { state, callerId, discarderId } = setupCallMahjongScenario();
     try {
       const westId = getPlayerBySeat(state, "west");
 
@@ -525,7 +535,7 @@ describe("Mahjong priority over other calls", () => {
         { callType: "pung", playerId: westId, tileIds: matchingTiles.map((t) => t.id) },
         { callType: "mahjong", playerId: callerId, tileIds: [] },
       );
-      (state.callWindow as { status: string }).status = "frozen";
+      (state.callWindow as unknown as { status: string }).status = "frozen";
 
       // Resolve — mahjong should win
       // resolveCallPriority imported at top level
@@ -588,7 +598,7 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
     const southId = getPlayerBySeat(state, "south");
 
     // Discard a tile from east
-    const discardedTile = discardTile(state, eastId);
+    discardTile(state, eastId);
 
     // Set south's rack to 13 tiles that, combined with the discard, form a valid hand
     // We'll use ev-3 ("Even Mixed Kongs", 25pts, X):
@@ -673,7 +683,7 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
         tileIds: [],
       });
 
-      const result = state.gameResult as { payments: Record<string, number> };
+      const result = state.gameResult as unknown as { payments: Record<string, number> };
       // ev-3 is 25 points
       expect(result.payments[discarderId]).toBe(-50); // 2x
       const otherLosers = Object.keys(state.players).filter(
@@ -708,7 +718,7 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
     }
   });
 
-  test("invalid hand at confirmation → auto-retraction", () => {
+  test("invalid hand at confirmation → INVALID_MAHJONG_WARNING (pending state)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
     try {
@@ -748,18 +758,23 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
         tileIds: [],
       });
 
-      // Should be retracted (either CALL_RETRACTED or CALL_WINDOW_RESUMED/CLOSED)
+      // Now returns warning instead of auto-retraction
       expect(result.accepted).toBe(true);
-      expect(result.resolved!.type).toMatch(
-        /CALL_RETRACTED|CALL_WINDOW_RESUMED|CALL_WINDOW_CLOSED/,
-      );
+      expect(result.resolved).toMatchObject({
+        type: "INVALID_MAHJONG_WARNING",
+        playerId: southId,
+      });
+      expect(state.pendingMahjong).toMatchObject({
+        playerId: southId,
+        path: "discard",
+      });
       expect(state.gamePhase).toBe("play"); // Game continues
     } finally {
       vi.useRealTimers();
     }
   });
 
-  test("invalid mahjong with remaining callers → next caller promoted", () => {
+  test("invalid mahjong with remaining callers → INVALID_MAHJONG_WARNING (pending state)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
     try {
@@ -800,11 +815,15 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
         tileIds: [],
       });
 
+      // Now returns INVALID_MAHJONG_WARNING with pending state instead of auto-retracting
       expect(result.accepted).toBe(true);
       expect(result.resolved).toMatchObject({
-        type: "CALL_RETRACTED",
-        callerId: southId,
-        nextCallerId: westId,
+        type: "INVALID_MAHJONG_WARNING",
+        playerId: southId,
+      });
+      expect(state.pendingMahjong).toMatchObject({
+        playerId: southId,
+        path: "discard",
       });
     } finally {
       vi.useRealTimers();
@@ -954,5 +973,372 @@ describe("Zero-mutation-on-rejection", () => {
     handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: eastId });
 
     expect(JSON.stringify(state)).toBe(JSON.stringify(stateBefore));
+  });
+});
+
+// ==================== Story 3a-8 Tests ====================
+
+describe("Invalid Mahjong Warning Flow (CANCEL_MAHJONG / CONFIRM_INVALID_MAHJONG)", () => {
+  /** Set up a self-drawn invalid declaration pending state */
+  function setupSelfDrawnWarning(): { state: GameState; playerId: string } {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const invalidTiles = buildInvalidHand();
+    state.players[eastId].rack.length = 0;
+    injectTilesIntoRack(state, eastId, invalidTiles);
+    state.currentTurn = eastId;
+    state.turnPhase = "discard";
+
+    // Trigger the warning
+    handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: eastId });
+    return { state, playerId: eastId };
+  }
+
+  /** Set up a discard-path invalid declaration pending state */
+  function setupDiscardWarning(): {
+    state: GameState;
+    callerId: string;
+    discarderId: string;
+  } {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    // Give south an invalid hand (13 random tiles)
+    const invalidTiles = buildInvalidHand().slice(0, 13);
+    state.players[southId].rack.length = 0;
+    for (const tile of invalidTiles) {
+      for (const p of Object.values(state.players)) {
+        if (p.id === southId) continue;
+        const idx = p.rack.findIndex((t) => t.id === tile.id);
+        if (idx >= 0) p.rack.splice(idx, 1);
+      }
+      state.players[southId].rack.push(tile);
+    }
+
+    const fakeTile = invalidTiles[0];
+    state.callWindow = {
+      status: "confirming" as const,
+      discardedTile: fakeTile,
+      discarderId: eastId,
+      passes: [eastId],
+      calls: [],
+      openedAt: Date.now(),
+      confirmingPlayerId: southId,
+      confirmationExpiresAt: Date.now() + 5000,
+      remainingCallers: [],
+      winningCall: { callType: "mahjong", playerId: southId, tileIds: [] },
+    };
+
+    // Trigger the warning via handleConfirmCall
+    handleConfirmCall(state, { type: "CONFIRM_CALL", playerId: southId, tileIds: [] });
+
+    return { state, callerId: southId, discarderId: eastId };
+  }
+
+  test("cancel after self-drawn warning → play continues, player can discard", () => {
+    const { state, playerId } = setupSelfDrawnWarning();
+
+    const result = handleCancelMahjong(state, { type: "CANCEL_MAHJONG", playerId });
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({ type: "MAHJONG_CANCELLED", playerId });
+    expect(state.pendingMahjong).toBeNull();
+    expect(state.turnPhase).toBe("discard");
+    expect(state.currentTurn).toBe(playerId);
+    expect(state.gamePhase).toBe("play");
+  });
+
+  test("cancel after discard warning → retraction/resume flow triggers", () => {
+    try {
+      const { state, callerId } = setupDiscardWarning();
+
+      const result = handleCancelMahjong(state, { type: "CANCEL_MAHJONG", playerId: callerId });
+
+      // Should trigger retraction (CALL_WINDOW_RESUMED or CALL_WINDOW_CLOSED since no remaining callers)
+      expect(result.accepted).toBe(true);
+      expect(state.pendingMahjong).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("confirm invalid after self-drawn → dead hand enforced, player must discard", () => {
+    const { state, playerId } = setupSelfDrawnWarning();
+
+    const result = handleConfirmInvalidMahjong(state, {
+      type: "CONFIRM_INVALID_MAHJONG",
+      playerId,
+    });
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({
+      type: "DEAD_HAND_ENFORCED",
+      playerId,
+      reason: "CONFIRMED_INVALID_DECLARATION",
+    });
+    expect(state.players[playerId].deadHand).toBe(true);
+    expect(state.pendingMahjong).toBeNull();
+    expect(state.turnPhase).toBe("discard");
+  });
+
+  test("confirm invalid after discard → dead hand enforced, retraction triggers", () => {
+    try {
+      const { state, callerId } = setupDiscardWarning();
+
+      const result = handleConfirmInvalidMahjong(state, {
+        type: "CONFIRM_INVALID_MAHJONG",
+        playerId: callerId,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(state.players[callerId].deadHand).toBe(true);
+      expect(state.pendingMahjong).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("cancel without pending mahjong → rejected", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleCancelMahjong(state, { type: "CANCEL_MAHJONG", playerId: eastId });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_PENDING_MAHJONG");
+  });
+
+  test("confirm without pending mahjong → rejected", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const result = handleConfirmInvalidMahjong(state, {
+      type: "CONFIRM_INVALID_MAHJONG",
+      playerId: eastId,
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_PENDING_MAHJONG");
+  });
+
+  test("cancel by wrong player → rejected", () => {
+    const { state } = setupSelfDrawnWarning();
+    const southId = getPlayerBySeat(state, "south");
+
+    const result = handleCancelMahjong(state, { type: "CANCEL_MAHJONG", playerId: southId });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NOT_DECLARING_PLAYER");
+  });
+
+  test("confirm by wrong player → rejected", () => {
+    const { state } = setupSelfDrawnWarning();
+    const southId = getPlayerBySeat(state, "south");
+
+    const result = handleConfirmInvalidMahjong(state, {
+      type: "CONFIRM_INVALID_MAHJONG",
+      playerId: southId,
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NOT_DECLARING_PLAYER");
+  });
+
+  test("zero-mutation after cancel: state restored except pendingMahjong cleared", () => {
+    const { state, playerId } = setupSelfDrawnWarning();
+
+    const rackBefore = [...state.players[playerId].rack.map((t) => t.id)];
+    const scoresBefore = { ...state.scores };
+
+    handleCancelMahjong(state, { type: "CANCEL_MAHJONG", playerId });
+
+    expect(state.players[playerId].rack.map((t) => t.id)).toEqual(rackBefore);
+    expect(state.scores).toEqual(scoresBefore);
+    expect(state.gameResult).toBeNull();
+    expect(state.pendingMahjong).toBeNull();
+    expect(state.players[playerId].deadHand).toBe(false);
+  });
+});
+
+describe("Dead hand enforcement", () => {
+  function setupDeadHandPlayer(): { state: GameState; deadPlayerId: string } {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    // Mark east as dead hand
+    state.players[eastId].deadHand = true;
+
+    return { state, deadPlayerId: eastId };
+  }
+
+  test("dead hand player cannot declare mahjong → rejected with DEAD_HAND", () => {
+    const { state, deadPlayerId } = setupDeadHandPlayer();
+    state.currentTurn = deadPlayerId;
+    state.turnPhase = "discard";
+
+    const result = handleDeclareMahjong(state, {
+      type: "DECLARE_MAHJONG",
+      playerId: deadPlayerId,
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("DEAD_HAND");
+  });
+
+  test("dead hand player cannot call pung → rejected with DEAD_HAND_CANNOT_CALL", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+
+      // Mark south as dead hand
+      state.players[southId].deadHand = true;
+
+      // Set up call window
+      discardTile(state, eastId);
+
+      // Get two distinct tiles from south's rack
+      const tile1 = state.players[southId].rack[0];
+      const tile2 = state.players[southId].rack[1];
+
+      const result = handleCallAction(
+        state,
+        { type: "CALL_PUNG", playerId: southId, tileIds: [tile1.id, tile2.id] },
+        "pung",
+      );
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("DEAD_HAND_CANNOT_CALL");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("dead hand player cannot call mahjong → rejected with DEAD_HAND_CANNOT_CALL", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+
+      state.players[southId].deadHand = true;
+      discardTile(state, eastId);
+
+      const result = handleCallMahjong(state, {
+        type: "CALL_MAHJONG",
+        playerId: southId,
+        tileIds: [],
+      });
+
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("DEAD_HAND_CANNOT_CALL");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("dead hand player CAN draw tiles normally", () => {
+    const { state, deadPlayerId } = setupDeadHandPlayer();
+    state.currentTurn = deadPlayerId;
+    state.turnPhase = "draw";
+
+    const result = handleDrawTile(state, { type: "DRAW_TILE", playerId: deadPlayerId });
+
+    expect(result.accepted).toBe(true);
+  });
+
+  test("dead hand player CAN discard tiles normally", () => {
+    const { state, deadPlayerId } = setupDeadHandPlayer();
+    state.currentTurn = deadPlayerId;
+    state.turnPhase = "discard";
+
+    const tile = state.players[deadPlayerId].rack.find((t) => t.category !== "joker")!;
+    const result = handleDiscardTile(state, {
+      type: "DISCARD_TILE",
+      playerId: deadPlayerId,
+      tileId: tile.id,
+    });
+
+    expect(result.accepted).toBe(true);
+  });
+
+  test("other players CAN call dead hand player's discards", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      getPlayerBySeat(state, "south");
+
+      // East is dead hand but discards
+      state.players[eastId].deadHand = true;
+      discardTile(state, eastId);
+
+      // South (not dead hand) can call
+      expect(state.callWindow).not.toBeNull();
+      // Call window is open — south can interact with it
+      expect(state.callWindow!.status).toBe("open");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("dead hand player's exposed tiles remain visible", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    // Add an exposed group, then mark dead hand
+    state.players[eastId].exposedGroups.push({
+      type: "pung",
+      tiles: state.players[eastId].rack.splice(0, 3),
+      identity: { type: "pung", suit: "bam", value: 1 },
+    });
+    state.players[eastId].deadHand = true;
+
+    expect(state.players[eastId].exposedGroups).toHaveLength(1);
+    expect(state.players[eastId].exposedGroups[0].tiles).toHaveLength(3);
+  });
+});
+
+describe("Game engine dispatcher for new actions", () => {
+  test("CANCEL_MAHJONG dispatched correctly", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    // Set up pending mahjong
+    const invalidTiles = buildInvalidHand();
+    state.players[eastId].rack.length = 0;
+    injectTilesIntoRack(state, eastId, invalidTiles);
+    state.currentTurn = eastId;
+    state.turnPhase = "discard";
+    handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: eastId });
+
+    const result = handleAction(state, { type: "CANCEL_MAHJONG", playerId: eastId });
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({ type: "MAHJONG_CANCELLED" });
+  });
+
+  test("CONFIRM_INVALID_MAHJONG dispatched correctly", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    const invalidTiles = buildInvalidHand();
+    state.players[eastId].rack.length = 0;
+    injectTilesIntoRack(state, eastId, invalidTiles);
+    state.currentTurn = eastId;
+    state.turnPhase = "discard";
+    handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: eastId });
+
+    const result = handleAction(state, { type: "CONFIRM_INVALID_MAHJONG", playerId: eastId });
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({ type: "DEAD_HAND_ENFORCED" });
   });
 });

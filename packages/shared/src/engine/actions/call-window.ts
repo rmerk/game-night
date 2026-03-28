@@ -19,14 +19,7 @@ import type {
   RetractCallAction,
 } from "../../types/actions";
 import type { Tile } from "../../types/tiles";
-import {
-  MAX_PLAYERS,
-  SEATS,
-  WINDS,
-  DRAGONS,
-  GROUP_SIZES,
-  DEFAULT_CALL_WINDOW_MS,
-} from "../../constants";
+import { MAX_PLAYERS, SEATS, WINDS, DRAGONS, DEFAULT_CALL_WINDOW_MS } from "../../constants";
 import { confirmMahjongCall } from "./mahjong";
 
 /** Confirmation timer duration in milliseconds (5 seconds) */
@@ -180,6 +173,12 @@ export function handleCallMahjong(state: GameState, action: CallMahjongAction): 
     return { accepted: false, reason: "ALREADY_CALLED" };
   }
 
+  // Dead hand check — dead hand players cannot call mahjong
+  const mahjongPlayer = state.players[action.playerId];
+  if (mahjongPlayer?.deadHand) {
+    return { accepted: false, reason: "DEAD_HAND_CANNOT_CALL" };
+  }
+
   // 2. Mutate — record the mahjong call (tileIds stored for reference but not validated here)
   const shouldFreeze = state.callWindow.status === "open";
 
@@ -247,25 +246,28 @@ export function handleCallAction(
     return { accepted: false, reason: "ALREADY_CALLED" };
   }
 
-  // 2. Validate no duplicate tile IDs
+  // 2. Validate player exists and is not dead hand
+  const player = state.players[action.playerId];
+  if (!player) {
+    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
+  }
+  if (player.deadHand) {
+    return { accepted: false, reason: "DEAD_HAND_CANNOT_CALL" };
+  }
+
+  // 3. Validate no duplicate tile IDs
   if (new Set(action.tileIds).size !== action.tileIds.length) {
     return { accepted: false, reason: "DUPLICATE_TILE_IDS" };
   }
 
-  // 3. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
+  // 4. Validate pair rejection: total group size (rack tiles + discarded) must be >= 3
   if (action.tileIds.length + 1 === 2) {
     return { accepted: false, reason: "CANNOT_CALL_FOR_PAIR" };
   }
 
-  // 4. Validate tile count from rack matches expected
+  // 5. Validate tile count from rack matches expected
   if (action.tileIds.length !== requiredFromRack) {
     return { accepted: false, reason: "INSUFFICIENT_TILES" };
-  }
-
-  // 5. Validate all tile IDs exist in the caller's rack
-  const player = state.players[action.playerId];
-  if (!player) {
-    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
   }
   for (const tileId of action.tileIds) {
     if (!player.rack.find((t) => t.id === tileId)) {
@@ -545,7 +547,7 @@ function buildGroupIdentity(discardedTile: Tile, callType: CallType): GroupIdent
   }
 
   // Same-tile groups: identity from the discarded tile
-  const base: GroupIdentity = { type: callType as GroupIdentity["type"] };
+  const base: GroupIdentity = { type: callType as unknown as GroupIdentity["type"] };
   switch (discardedTile.category) {
     case "suited":
       return { ...base, suit: discardedTile.suit, value: discardedTile.value };
@@ -581,7 +583,7 @@ function validateConfirmationGroup(
  * Internal retraction logic shared by explicit retract, invalid confirmation, and timeout.
  * Promotes next caller or reopens/closes the window.
  */
-function handleRetraction(state: GameState, reason: string): ActionResult {
+export function handleRetraction(state: GameState, reason: string): ActionResult {
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
@@ -668,9 +670,11 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
       state.callWindow.discardedTile.id,
     );
     if (!mahjongResult.accepted) {
-      // Invalid hand — auto-retract, promote next caller or reopen window
+      // Hard rejection (not warning) — auto-retract, promote next caller or reopen window
       return handleRetraction(state, mahjongResult.reason ?? "INVALID_HAND");
     }
+    // If result is INVALID_MAHJONG_WARNING, return directly (no retraction — cancel/confirm flow)
+    // If result is MAHJONG_DECLARED, return directly (valid mahjong)
     return mahjongResult;
   }
 
