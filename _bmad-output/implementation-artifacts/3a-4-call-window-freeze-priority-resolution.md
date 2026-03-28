@@ -1,6 +1,6 @@
 # Story 3A.4: Call Window Freeze & Priority Resolution
 
-Status: review
+Status: done
 
 ## Story
 
@@ -192,6 +192,7 @@ None — clean implementation, no debugging required.
 - 2026-03-27: Implemented call window freeze and priority resolution (Story 3A.4)
 - 2026-03-27: Code review R1 — Changes Requested (1 HIGH, 1 MED, 1 LOW)
 - 2026-03-27: Resolved code review R1 findings — 2 items fixed (HIGH + MED), LOW was informational only
+- 2026-03-28: Code review R2 — Approved
 
 ## Senior Developer Review (AI)
 
@@ -216,4 +217,19 @@ Solid implementation — all 7 ACs are correctly implemented with clean architec
 - packages/shared/src/engine/actions/call-window.ts (modified)
 - packages/shared/src/engine/actions/call-window.test.ts (modified)
 - packages/shared/src/index.ts (modified)
+
+## Senior Developer Review (AI) — R2
+
+### Review Metadata
+- **Review Date:** 2026-03-28
+- **Review Cycle:** R2
+- **Outcome:** Approved
+
+### Summary
+
+All R1 findings resolved. ALREADY_CALLED guard correctly implemented at call-window.ts:175 with zero-mutation-on-rejection verified (2 new tests added). JSDoc comment on resolveCallWindow documents the intentional non-null callWindow design. All 7 ACs fully implemented with 464 tests passing. Code quality clean: pure functions, validate-then-mutate pattern followed throughout, no security issues. Test assertions use derived values from SEATS constant and test data — no hardcoded magic numbers. File list matches git reality. No new issues found.
+
+### Action Items
+
+None — clean review.
 
