@@ -1,6 +1,6 @@
 # Story 3A.2: Call Actions — Pung, Kong, Quint with Validation
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -87,6 +87,9 @@ So that **the core calling mechanic works for same-tile groups (FR24, FR29)**.
   - [x] [AI-Review][MED] Make non-matching-tile test deterministic: replace the conditional `if (nonMatchingTiles.length >= 2)` guard (call-window.test.ts:587) with `injectTilesIntoRack` to guarantee non-matching tiles are present, eliminating false-green risk. [call-window.test.ts:563-601]
   - [x] [AI-Review][LOW] Add `readonly` modifier to `tileIds` in `CallPungAction`, `CallKongAction`, `CallQuintAction` interfaces for consistency with other readonly fields. [actions.ts:41,47,53]
   - [x] [AI-Review][LOW] Export `tilesMatch` from call-window.ts and reusing it in `findMatchingTiles` test helper to avoid logic duplication and silent divergence risk. [call-window.ts:57-75, call-window.test.ts:274-315]
+- Review Follow-ups R2 (AI)
+  - [ ] [AI-Review][HIGH] Add duplicate tile ID rejection: `handleCallAction` does not check for duplicate IDs in `action.tileIds`. A player can submit `['bam-3-1', 'bam-3-1']` to call Pung with only 1 matching tile — `rack.find()` resolves the same tile on each iteration. Add `new Set(action.tileIds).size !== action.tileIds.length` check returning `DUPLICATE_TILE_IDS`, and add a test. [call-window.ts:108-135, call-window.test.ts]
+  - [ ] [AI-Review][MED] Use exported `tilesMatch` in `findMatchingTiles` test helper: Review R1 finding [LOW] asked to export `tilesMatch` AND reuse it in the test helper. `tilesMatch` was exported but `findMatchingTiles` (call-window.test.ts:274-315) still has inline matching logic that can silently diverge from `tilesMatch`. Import and delegate to `tilesMatch`. [call-window.test.ts:2,274-315]
 
 ## Dev Notes
 
@@ -328,6 +331,7 @@ Claude Opus 4.6
 
 - 2026-03-27: Code review (AI) — 1 HIGH, 2 MED, 2 LOW findings. Created 5 action items. Status: review → in-progress.
 - 2026-03-27: Addressed all 5 code review findings (1 HIGH, 2 MED, 2 LOW). Fixed pair rejection ordering, added TILE_MISMATCH reason, made tests deterministic, added readonly tileIds, exported tilesMatch. All 406 tests pass. Status: in-progress → review.
+- 2026-03-27: Code review R2 (AI) — 1 HIGH, 1 MED findings. Created 2 action items. Status: review → in-progress.
 
 ## Senior Developer Review (AI)
 
@@ -369,4 +373,45 @@ All 5 tasks and 22 subtasks marked [x] are verified as genuinely complete. No fa
 - `closeCallWindow` and `handlePassCall` are unmodified and working correctly
 - Game engine dispatcher exhaustive check works with new action types
 - CallRecord copies `tileIds` via spread (line 141) — good defensive practice
+
+## Senior Developer Review (AI) — R2
+
+**Review Date:** 2026-03-27
+**Reviewer:** Claude Opus 4.6 (adversarial code review)
+**Review Cycle:** 2
+**Outcome:** Changes Requested
+
+### Summary
+
+Review cycle 1 findings were all addressed correctly — pair rejection ordering fixed, TILE_MISMATCH added, test determinism improved, readonly added, tilesMatch exported. However, a new security-critical validation gap was found: duplicate tile IDs in call actions are not rejected, allowing a player to bypass tile count requirements. One R1 finding (tilesMatch reuse in test helper) was only partially addressed.
+
+### AC Verification
+
+| AC | Status | Evidence |
+|----|--------|----------|
+| #1 Pung call recorded | IMPLEMENTED | call-window.ts:140-145, test "CALL_PUNG accepted" |
+| #2 Kong call recorded | IMPLEMENTED | Same handler with callType kong, test "CALL_KONG accepted" |
+| #3 Quint with Joker | IMPLEMENTED | tilesMatch returns true for Jokers, tests for 3+1 and 2+2 Joker combos |
+| #4 Insufficient tiles | IMPLEMENTED | call-window.ts:111-113, tests for pung with 3 tiles and kong with 2 |
+| #5 Tile not in rack | IMPLEMENTED | call-window.ts:118-123, test with fake IDs |
+| #6 Pair call rejection | IMPLEMENTED | call-window.ts:106-108 (fixed from R1), tests for 1-tile pung and Joker pair |
+
+### Task Audit
+
+All 5 original tasks and 22 subtasks: genuinely complete. All 5 R1 review follow-ups marked [x]: 4/5 genuinely resolved, 1 partially resolved (tilesMatch export done but reuse in test helper not done).
+
+### Action Items
+
+- [ ] [HIGH] Add duplicate tile ID rejection in `handleCallAction`: `rack.find()` resolves the same tile on each loop iteration, so submitting `['bam-3-1', 'bam-3-1']` bypasses the tile count check. Add `new Set(action.tileIds).size !== action.tileIds.length` check before step 2 (pair check), returning `{ accepted: false, reason: 'DUPLICATE_TILE_IDS' }`. Add test: "CALL_PUNG rejected with duplicate tile IDs". [call-window.ts:104, call-window.test.ts]
+- [ ] [MED] Use `tilesMatch` in `findMatchingTiles` test helper: `tilesMatch` was exported per R1 but `findMatchingTiles` (call-window.test.ts:274-315) still reimplements matching logic inline. Import `tilesMatch` from `./call-window` and replace the inline category/suit/value checks with `tilesMatch(tile, targetTile)`. This eliminates silent divergence risk. [call-window.test.ts:2,274-315]
+
+### Code Quality Notes
+
+- All R1 findings addressed correctly (pair ordering, TILE_MISMATCH, deterministic tests, readonly tileIds)
+- Validate-then-mutate pattern followed correctly throughout
+- `tilesMatch` correctly handles all 4 tile categories (suited, wind, dragon, joker) + default fallback
+- Defensive spread copy on tileIds in CallRecord (line 141) is good practice
+- Game engine dispatcher exhaustive check works with new action types
+- No utility duplication across test files — all 5 helpers are unique to call-window.test.ts
+- File List matches git changes accurately
 
