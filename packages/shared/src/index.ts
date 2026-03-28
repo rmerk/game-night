@@ -73,6 +73,12 @@ export {
   validateJokerExchange,
 } from "./card/joker-eligibility";
 export type { ExchangeResult } from "./card/joker-eligibility";
+export {
+  validateExposure,
+  validateHandWithExposure,
+  filterAchievableByExposure,
+} from "./card/exposure-validation";
+export type { ExposureResult } from "./card/exposure-validation";
 
 // Engine
 export { createAllTiles, createWall } from "./engine/state/wall";
