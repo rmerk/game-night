@@ -139,6 +139,9 @@ export function tilesMatch(tile: Tile, discardedTile: Tile): boolean {
       return discardedTile.category === "wind" && tile.value === discardedTile.value;
     case "dragon":
       return discardedTile.category === "dragon" && tile.value === discardedTile.value;
+    case "flower":
+      // Flowers cannot form groups — never match for calling purposes
+      return false;
     default:
       return false;
   }

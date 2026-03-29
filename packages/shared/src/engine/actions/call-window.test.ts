@@ -20,6 +20,7 @@ import {
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
 import { createPlayState } from "../../testing/fixtures";
+import { createAllTiles } from "../../engine/state/wall";
 import {
   getPlayerBySeat,
   buildHand,
@@ -2845,5 +2846,18 @@ describe("Integration: full call flow (Story 3A.5)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("tilesMatch — flower tile handling", () => {
+  test("flower tile never matches any tile (flowers cannot form groups)", () => {
+    const allTiles = createAllTiles();
+    const flower = allTiles.find((t) => t.category === "flower")!;
+    const bam3 = allTiles.find(
+      (t) => t.category === "suited" && t.suit === "bam" && t.value === 3,
+    )!;
+
+    expect(tilesMatch(flower, bam3)).toBe(false);
+    expect(tilesMatch(flower, flower)).toBe(false);
   });
 });
