@@ -69,6 +69,9 @@ export type {
   TileSpecific,
 } from "./types/card";
 
+export type { ServerErrorMessage } from "./types/protocol";
+export { PROTOCOL_VERSION } from "./types/protocol";
+
 // Constants
 export {
   TILE_COUNT,

@@ -1,0 +1,258 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WebSocket, type RawData } from "ws";
+import { createApp } from "../index";
+import type { FastifyInstance } from "fastify";
+
+function wsDataToString(data: RawData): string {
+  if (Buffer.isBuffer(data)) return data.toString("utf-8");
+  if (Array.isArray(data)) return Buffer.concat(data).toString("utf-8");
+  return Buffer.from(data).toString("utf-8");
+}
+
+let app: FastifyInstance;
+let wsUrl: string;
+
+async function startServer(): Promise<void> {
+  app = createApp();
+  const address = await app.listen({ port: 0 });
+  wsUrl = address.replace("http", "ws");
+}
+
+function connectClient(): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const client = new WebSocket(wsUrl);
+    client.on("open", () => resolve(client));
+    client.on("error", reject);
+  });
+}
+
+function waitForMessage(client: WebSocket): Promise<string> {
+  return new Promise((resolve) => {
+    client.on("message", (data: RawData) => {
+      resolve(wsDataToString(data));
+    });
+  });
+}
+
+async function closeClient(client: WebSocket): Promise<void> {
+  if (client.readyState === WebSocket.OPEN) {
+    client.close();
+    await new Promise<void>((resolve) => client.on("close", resolve));
+  }
+}
+
+describe("WebSocket Server", () => {
+  beforeEach(async () => {
+    await startServer();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  describe("connection acceptance", () => {
+    it("accepts a WebSocket connection", async () => {
+      const client = await connectClient();
+      expect(client.readyState).toBe(WebSocket.OPEN);
+      await closeClient(client);
+    });
+
+    it("tracks connections via connection tracker", async () => {
+      const client1 = await connectClient();
+      const client2 = await connectClient();
+
+      // Give a moment for connections to be tracked
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(app.wsContext!.connectionTracker.getConnectionCount()).toBe(2);
+
+      await closeClient(client1);
+      await closeClient(client2);
+    });
+  });
+
+  describe("maxPayload enforcement", () => {
+    it("disconnects client sending message exceeding 64KB", async () => {
+      const client = await connectClient();
+
+      // Suppress client-side error from maxPayload rejection
+      client.on("error", () => {});
+
+      const closePromise = new Promise<void>((resolve) => {
+        client.on("close", () => resolve());
+      });
+
+      // Send a message larger than 64KB
+      const oversized = JSON.stringify({ version: 1, type: "ACTION", data: "x".repeat(70_000) });
+      client.send(oversized);
+
+      await closePromise;
+      expect(client.readyState).toBe(WebSocket.CLOSED);
+    });
+  });
+
+  describe("message handling", () => {
+    it("drops malformed JSON silently (no response)", async () => {
+      const client = await connectClient();
+
+      // Set up a message listener to catch any unexpected responses
+      const messages: string[] = [];
+      client.on("message", (data: RawData) => messages.push(wsDataToString(data)));
+
+      client.send("not valid json{{{");
+
+      // Wait a bit to ensure no response comes
+      await new Promise((r) => setTimeout(r, 100));
+      expect(messages).toHaveLength(0);
+
+      await closeClient(client);
+    });
+
+    it("drops message with missing version field silently", async () => {
+      const client = await connectClient();
+
+      const messages: string[] = [];
+      client.on("message", (data: RawData) => messages.push(wsDataToString(data)));
+
+      client.send(JSON.stringify({ type: "ACTION" }));
+
+      await new Promise((r) => setTimeout(r, 100));
+      expect(messages).toHaveLength(0);
+
+      await closeClient(client);
+    });
+
+    it("responds with ERROR for unsupported version", async () => {
+      const client = await connectClient();
+      const msgPromise = waitForMessage(client);
+
+      client.send(JSON.stringify({ version: 999, type: "ACTION" }));
+
+      const response = JSON.parse(await msgPromise);
+      expect(response).toEqual({
+        version: 1,
+        type: "ERROR",
+        code: "UNSUPPORTED_VERSION",
+        message: "Protocol version not supported",
+      });
+
+      await closeClient(client);
+    });
+
+    it("accepts valid message with version 1", async () => {
+      const client = await connectClient();
+
+      const messages: string[] = [];
+      client.on("message", (data: RawData) => messages.push(wsDataToString(data)));
+
+      client.send(JSON.stringify({ version: 1, type: "ACTION" }));
+
+      // Valid messages are parsed but no response is sent at this stage
+      await new Promise((r) => setTimeout(r, 100));
+      expect(messages).toHaveLength(0);
+
+      await closeClient(client);
+    });
+  });
+
+  describe("connection close tracking", () => {
+    it("removes connection from tracker on close", async () => {
+      const client = await connectClient();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(app.wsContext!.connectionTracker.getConnectionCount()).toBe(1);
+
+      await closeClient(client);
+      await new Promise((r) => setTimeout(r, 50));
+      expect(app.wsContext!.connectionTracker.getConnectionCount()).toBe(0);
+    });
+  });
+
+  describe("graceful shutdown", () => {
+    it("closes all connections when server shuts down", async () => {
+      const client = await connectClient();
+
+      const closePromise = new Promise<void>((resolve) => {
+        client.on("close", () => resolve());
+      });
+
+      await app.close();
+      await closePromise;
+
+      expect(client.readyState).toBe(WebSocket.CLOSED);
+    });
+  });
+});
+
+describe("WebSocket Heartbeat", () => {
+  let testApp: FastifyInstance;
+  let testWsUrl: string;
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    testApp = createApp();
+    const address = await testApp.listen({ port: 0 });
+    testWsUrl = address.replace("http", "ws");
+  });
+
+  afterEach(async () => {
+    vi.useRealTimers();
+    await testApp.close();
+  });
+
+  it("sends ping after 15 seconds", async () => {
+    const client = new WebSocket(testWsUrl);
+    await new Promise((resolve) => client.on("open", resolve));
+
+    const pingPromise = new Promise<void>((resolve) => {
+      client.on("ping", () => resolve());
+    });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    await pingPromise;
+    client.close();
+  });
+
+  it("keeps connection alive when pong is received (survives 2 cycles)", async () => {
+    const client = new WebSocket(testWsUrl);
+    await new Promise((resolve) => client.on("open", resolve));
+
+    // ws client automatically responds to pings with pongs
+    let pingCount = 0;
+    client.on("ping", () => {
+      pingCount++;
+    });
+
+    // Advance through 2 heartbeat cycles with event-loop yields for pong round-trip
+    await vi.advanceTimersByTimeAsync(15_000);
+    // Yield to event loop so pong response is received before next cycle
+    await new Promise((r) => setImmediate(r));
+    await vi.advanceTimersByTimeAsync(15_000);
+    await new Promise((r) => setImmediate(r));
+
+    expect(pingCount).toBeGreaterThanOrEqual(2);
+    expect(client.readyState).toBe(WebSocket.OPEN);
+
+    client.close();
+  });
+
+  it("terminates dead connection after missed pongs", async () => {
+    const client = new WebSocket(testWsUrl);
+    await new Promise((resolve) => client.on("open", resolve));
+
+    // Disable automatic pong responses so the server thinks the client is dead
+    client.pong = () => {};
+
+    const closePromise = new Promise<void>((resolve) => {
+      client.on("close", () => resolve());
+    });
+
+    // First cycle: sets isAlive=false, sends ping (no pong back)
+    await vi.advanceTimersByTimeAsync(15_000);
+    // Second cycle: isAlive still false → terminate
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    await closePromise;
+    expect(client.readyState).toBe(WebSocket.CLOSED);
+  });
+});

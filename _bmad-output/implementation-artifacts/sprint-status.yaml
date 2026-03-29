@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-28 # 4a-1 → done
+last_updated: 2026-03-28 # 4a-2 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -79,7 +79,7 @@ development_status:
   # Epic 4A: Core Multiplayer
   epic-4a: in-progress
   4a-1-http-room-creation-room-codes: done
-  4a-2-websocket-server-connection-management: backlog
+  4a-2-websocket-server-connection-management: done
   4a-3-room-join-via-websocket-seat-assignment: backlog
   4a-4-session-identity-token-management: backlog
   4a-5-action-state-protocol-message-handling: backlog
