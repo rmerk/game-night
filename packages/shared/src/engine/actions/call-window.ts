@@ -536,11 +536,14 @@ export function enterConfirmationPhase(
   };
 }
 
+/** Non-mahjong call types that produce exposed groups */
+type ExposableCallType = Exclude<CallType, "mahjong">;
+
 /**
  * Build a GroupIdentity from the discarded tile and call type.
  * Identity is fixed at exposure time and never changes (FR55).
  */
-function buildGroupIdentity(discardedTile: Tile, callType: CallType): GroupIdentity {
+function buildGroupIdentity(discardedTile: Tile, callType: ExposableCallType): GroupIdentity {
   if (callType === "news") {
     return { type: "news" };
   }
@@ -549,7 +552,7 @@ function buildGroupIdentity(discardedTile: Tile, callType: CallType): GroupIdent
   }
 
   // Same-tile groups: identity from the discarded tile
-  const base: GroupIdentity = { type: callType as unknown as GroupIdentity["type"] };
+  const base: GroupIdentity = { type: callType };
   switch (discardedTile.category) {
     case "suited":
       return { ...base, suit: discardedTile.suit, value: discardedTile.value };
@@ -728,7 +731,10 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
   }
 
   // Build exposed group
-  const groupIdentity = buildGroupIdentity(discardedTile, winningCall.callType);
+  const groupIdentity = buildGroupIdentity(
+    discardedTile,
+    winningCall.callType as ExposableCallType,
+  );
   const exposedGroup: ExposedGroup = {
     type: winningCall.callType as ExposedGroup["type"],
     tiles: [discardedTile, ...rackTiles],
