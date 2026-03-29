@@ -1308,6 +1308,73 @@ describe("Dead hand enforcement", () => {
   });
 });
 
+describe("Deep copy callWindow in pendingMahjong (aliasing fix)", () => {
+  test("mutating active callWindow after save does not corrupt saved copy", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+      const westId = getPlayerBySeat(state, "west");
+
+      // Give south an invalid hand (13 random tiles)
+      const invalidTiles = buildInvalidHand().slice(0, 13);
+      state.players[southId].rack.length = 0;
+      for (const tile of invalidTiles) {
+        for (const p of Object.values(state.players)) {
+          if (p.id === southId) continue;
+          const idx = p.rack.findIndex((t) => t.id === tile.id);
+          if (idx >= 0) p.rack.splice(idx, 1);
+        }
+        state.players[southId].rack.push(tile);
+      }
+
+      const fakeTile = invalidTiles[0];
+      state.callWindow = {
+        status: "confirming" as const,
+        discardedTile: fakeTile,
+        discarderId: eastId,
+        passes: [eastId],
+        calls: [],
+        openedAt: Date.now(),
+        confirmingPlayerId: southId,
+        confirmationExpiresAt: Date.now() + 5000,
+        remainingCallers: [{ callType: "pung", playerId: westId, tileIds: ["tile-a", "tile-b"] }],
+        winningCall: { callType: "mahjong", playerId: southId, tileIds: [] },
+      };
+
+      // Trigger the warning — this saves callWindow into pendingMahjong.previousCallWindow
+      handleConfirmCall(state, { type: "CONFIRM_CALL", playerId: southId, tileIds: [] });
+
+      // Snapshot saved state before mutation
+      const saved = state.pendingMahjong!.previousCallWindow!;
+      const savedPassesLength = saved.passes.length;
+      const savedCallsLength = saved.calls.length;
+      const savedRemainingLength = saved.remainingCallers.length;
+      const savedRemainingTileIds = [...saved.remainingCallers[0].tileIds];
+
+      // Now mutate the active callWindow arrays (simulating game logic modifying them)
+      state.callWindow.passes.push("extra-player");
+      state.callWindow.calls.push({ callType: "pung", playerId: "extra", tileIds: ["x"] });
+      state.callWindow.remainingCallers[0].tileIds.push("tile-c");
+      state.callWindow.remainingCallers.push({
+        callType: "kong",
+        playerId: "extra2",
+        tileIds: ["y"],
+      });
+
+      // The saved copy must NOT be affected by the mutations above
+      expect(saved.passes).toHaveLength(savedPassesLength);
+      expect(saved.calls).toHaveLength(savedCallsLength);
+      expect(saved.remainingCallers).toHaveLength(savedRemainingLength);
+      expect(saved.remainingCallers[0].tileIds).toEqual(savedRemainingTileIds);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("Game engine dispatcher for new actions", () => {
   test("CANCEL_MAHJONG dispatched correctly", () => {
     const state = createPlayState();

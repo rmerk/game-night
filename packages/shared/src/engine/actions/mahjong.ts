@@ -13,6 +13,19 @@ import { validateHandWithExposure } from "../../card/exposure-validation";
 import { calculatePayments } from "../scoring";
 import { handleRetraction } from "./call-window";
 
+/** Deep copy a CallWindowState for safe preservation across state mutations */
+function deepCopyCallWindow(cw: CallWindowState): CallWindowState {
+  return {
+    ...cw,
+    passes: [...cw.passes],
+    calls: cw.calls.map((c) => ({ ...c, tileIds: [...c.tileIds] })),
+    remainingCallers: cw.remainingCallers.map((c) => ({ ...c, tileIds: [...c.tileIds] })),
+    winningCall: cw.winningCall
+      ? { ...cw.winningCall, tileIds: [...cw.winningCall.tileIds] }
+      : null,
+  };
+}
+
 /**
  * Handle DECLARE_MAHJONG action: self-drawn Mahjong path.
  * Player draws from wall, hand completes a pattern, player declares before discarding.
@@ -151,7 +164,7 @@ export function confirmMahjongCall(
       playerId: callerId,
       path: "discard",
       previousTurnPhase: state.turnPhase,
-      previousCallWindow: state.callWindow ? { ...state.callWindow } : null,
+      previousCallWindow: state.callWindow ? deepCopyCallWindow(state.callWindow) : null,
     };
     return {
       accepted: true,
@@ -246,7 +259,7 @@ export function handleCancelMahjong(state: GameState, action: CancelMahjongActio
   }
 
   // Discard path — restore call window and trigger retraction flow
-  state.callWindow = previousCallWindow as unknown as CallWindowState;
+  state.callWindow = previousCallWindow;
   return handleRetraction(state, "MAHJONG_CANCELLED");
 }
 
@@ -283,6 +296,6 @@ export function handleConfirmInvalidMahjong(
   }
 
   // Discard path — restore call window and trigger retraction flow
-  state.callWindow = previousCallWindow as unknown as CallWindowState;
+  state.callWindow = previousCallWindow;
   return handleRetraction(state, "DEAD_HAND_ENFORCED");
 }
