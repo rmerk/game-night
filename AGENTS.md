@@ -85,7 +85,6 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 
 - [ ] Run `vp install` after pulling remote changes and before getting started.
 - [ ] Run `vp check` and `vp test` to validate changes.
-- [ ] Run `pnpm typecheck` to catch Vue template type errors (`vp check` does not type-check `.vue` templates — only `vue-tsc` does).
 <!--VITE PLUS END-->
 
 <!-- RALPH OPERATIONAL GUIDE -->

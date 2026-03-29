@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-29 # 4a-7 → done
+last_updated: 2026-03-29 # epic-4a-retrospective → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -77,7 +77,7 @@ development_status:
   epic-3a-retrospective: done
 
   # Epic 4A: Core Multiplayer
-  epic-4a: in-progress
+  epic-4a: done
   4a-1-http-room-creation-room-codes: done
   4a-2-websocket-server-connection-management: done
   4a-3-room-join-via-websocket-seat-assignment: done
@@ -85,12 +85,12 @@ development_status:
   4a-5-action-state-protocol-message-handling: done
   4a-6-per-player-view-filtering-security-test: done
   4a-7-game-start-host-controls: done
-  4a-8-room-cleanup-lifecycle-management: backlog
-  epic-4a-retrospective: optional
+  4a-8-room-cleanup-lifecycle-management: done
+  epic-4a-retrospective: done
 
   # Epic 5A: Core Game UI
-  epic-5a: backlog
-  5a-1-design-system-foundation: backlog
+  epic-5a: in-progress
+  5a-1-design-system-foundation: ready-for-dev
   5a-2-tile-component-svg-sprite-sheet: backlog
   5a-3-tilerack-with-drag-and-drop-sort: backlog
   5a-4-game-table-layout-immersive-table: backlog
