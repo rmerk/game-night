@@ -16,7 +16,7 @@ export function createApp(): FastifyInstance {
   app.register(roomRoutes, { roomManager });
 
   app.addHook("onReady", async () => {
-    app.wsContext = setupWebSocketServer(app);
+    app.wsContext = setupWebSocketServer(app, roomManager);
   });
 
   return app;

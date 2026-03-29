@@ -69,7 +69,13 @@ export type {
   TileSpecific,
 } from "./types/card";
 
-export type { ServerErrorMessage } from "./types/protocol";
+export type {
+  ServerErrorMessage,
+  JoinRoomMessage,
+  PlayerPublicInfo,
+  LobbyState,
+  StateUpdateMessage,
+} from "./types/protocol";
 export { PROTOCOL_VERSION } from "./types/protocol";
 
 // Constants

@@ -22,6 +22,7 @@ export class RoomManager {
       roomCode,
       hostToken,
       players: new Map(),
+      sessions: new Map(),
       gamePhase: "lobby",
       createdAt: Date.now(),
       logger: roomLogger,

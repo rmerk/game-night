@@ -1,8 +1,10 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import type { FastifyInstance } from "fastify";
 import type { FastifyBaseLogger } from "fastify";
+import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
+import { handleJoinRoom } from "./join-handler";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -18,7 +20,10 @@ export interface WsServerContext {
   connectionTracker: ConnectionTracker;
 }
 
-export function setupWebSocketServer(fastify: FastifyInstance): WsServerContext {
+export function setupWebSocketServer(
+  fastify: FastifyInstance,
+  roomManager: RoomManager,
+): WsServerContext {
   const logger: FastifyBaseLogger = fastify.log.child({ module: "websocket" });
   const connectionTracker = new ConnectionTracker();
 
@@ -51,7 +56,12 @@ export function setupWebSocketServer(fastify: FastifyInstance): WsServerContext 
     });
 
     ws.on("message", (data) => {
-      handleMessage(ws, data, logger);
+      const parsed = handleMessage(ws, data, logger);
+      if (!parsed) return;
+
+      if (parsed.type === "JOIN_ROOM") {
+        handleJoinRoom(ws, parsed, roomManager, logger);
+      }
     });
 
     ws.on("error", (err) => {
