@@ -49,6 +49,23 @@ function matchesAnyExposedGroup(group: GroupPattern, exposedGroups: ExposedGroup
   return false;
 }
 
+/**
+ * Check if a GroupPattern from the card matches a specific ExposedGroup.
+ *
+ * KNOWN LIMITATION: Abstract color references (A/B/C) in GroupPattern.tile.color
+ * cannot be resolved to concrete suits (bam/crak/dot) without the full hand
+ * assignment context. When a group has an abstract color, this function falls
+ * back to conservative matching (returns true = "might match"), which means
+ * some legitimate mixed concealed/exposed hands could be incorrectly rejected.
+ *
+ * Impact: As of 2026 card data, all concealed (C) hands have ALL groups marked
+ * concealed, so the hand-level check in validateExposure catches these before
+ * group-level matching runs. This limitation becomes relevant if future card
+ * years introduce mixed patterns where some groups are concealed and others exposed.
+ *
+ * Resolution: Requires passing the color assignment map (from pattern-matcher)
+ * into this function. Deferred to Epic 5B hand guidance work.
+ */
 function matchesGroupIdentity(group: GroupPattern, exposed: ExposedGroup): boolean {
   const id = exposed.identity;
 
