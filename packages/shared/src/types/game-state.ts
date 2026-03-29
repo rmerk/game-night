@@ -72,20 +72,20 @@ export interface CallRecord {
 
 /** Call window state — opened after each discard to allow other players to call the tile */
 export interface CallWindowState {
-  readonly status: "open" | "frozen" | "confirming";
+  status: "open" | "frozen" | "confirming";
   readonly discardedTile: Tile;
   readonly discarderId: string;
   readonly passes: string[];
   readonly calls: CallRecord[];
   readonly openedAt: number;
   /** Player currently in confirmation phase (set when status is "confirming") */
-  readonly confirmingPlayerId: string | null;
+  confirmingPlayerId: string | null;
   /** Timestamp when confirmation timer expires (set when status is "confirming") */
-  readonly confirmationExpiresAt: number | null;
+  confirmationExpiresAt: number | null;
   /** Remaining callers sorted by priority, consumed on retraction fallback */
-  readonly remainingCallers: CallRecord[];
+  remainingCallers: CallRecord[];
   /** The winning call being confirmed */
-  readonly winningCall: CallRecord | null;
+  winningCall: CallRecord | null;
 }
 
 /** State tracking an in-progress invalid Mahjong declaration waiting for cancel/confirm */

@@ -189,7 +189,7 @@ export function handleCallMahjong(state: GameState, action: CallMahjongAction): 
   });
 
   if (shouldFreeze) {
-    (state.callWindow as { status: string }).status = "frozen";
+    state.callWindow.status = "frozen";
     return {
       accepted: true,
       resolved: { type: "CALL_WINDOW_FROZEN", callerId: action.playerId },
@@ -309,7 +309,7 @@ export function handleCallAction(
 
   // Freeze the window on the first call
   if (shouldFreeze) {
-    (state.callWindow as { status: string }).status = "frozen";
+    state.callWindow.status = "frozen";
     return {
       accepted: true,
       resolved: { type: "CALL_WINDOW_FROZEN", callerId: action.playerId },
@@ -519,13 +519,11 @@ export function enterConfirmationPhase(
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
 
-  (state.callWindow as { status: string }).status = "confirming";
-  (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId =
-    winningCall.playerId;
-  (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt =
-    Date.now() + CONFIRMATION_TIMER_MS;
-  (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = remainingCallers;
-  (state.callWindow as { winningCall: CallRecord | null }).winningCall = winningCall;
+  state.callWindow.status = "confirming";
+  state.callWindow.confirmingPlayerId = winningCall.playerId;
+  state.callWindow.confirmationExpiresAt = Date.now() + CONFIRMATION_TIMER_MS;
+  state.callWindow.remainingCallers = remainingCallers;
+  state.callWindow.winningCall = winningCall;
 
   return {
     accepted: true,
@@ -600,12 +598,10 @@ export function handleRetraction(state: GameState, reason: string): ActionResult
     const updatedRemaining = state.callWindow.remainingCallers.slice(1);
 
     // Enter confirmation phase for the next caller
-    (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId =
-      nextCaller.playerId;
-    (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt =
-      Date.now() + CONFIRMATION_TIMER_MS;
-    (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = updatedRemaining;
-    (state.callWindow as { winningCall: CallRecord | null }).winningCall = nextCaller;
+    state.callWindow.confirmingPlayerId = nextCaller.playerId;
+    state.callWindow.confirmationExpiresAt = Date.now() + CONFIRMATION_TIMER_MS;
+    state.callWindow.remainingCallers = updatedRemaining;
+    state.callWindow.winningCall = nextCaller;
 
     return {
       accepted: true,
@@ -624,11 +620,11 @@ export function handleRetraction(state: GameState, reason: string): ActionResult
 
   if (remaining > 0) {
     // Reopen the window
-    (state.callWindow as { status: string }).status = "open";
-    (state.callWindow as { confirmingPlayerId: string | null }).confirmingPlayerId = null;
-    (state.callWindow as { confirmationExpiresAt: number | null }).confirmationExpiresAt = null;
-    (state.callWindow as { remainingCallers: CallRecord[] }).remainingCallers = [];
-    (state.callWindow as { winningCall: CallRecord | null }).winningCall = null;
+    state.callWindow.status = "open";
+    state.callWindow.confirmingPlayerId = null;
+    state.callWindow.confirmationExpiresAt = null;
+    state.callWindow.remainingCallers = [];
+    state.callWindow.winningCall = null;
 
     return {
       accepted: true,
