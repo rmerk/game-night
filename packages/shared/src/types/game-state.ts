@@ -53,6 +53,7 @@ export interface MahjongGameResult {
   readonly points: number;
   readonly selfDrawn: boolean;
   readonly discarderId?: string;
+  readonly calledTile?: Tile;
   readonly payments: PaymentBreakdown;
 }
 
@@ -102,6 +103,7 @@ export interface ChallengeState {
   votes: Record<string, "valid" | "invalid">;
   readonly challengeExpiresAt: number;
   readonly originalGameResult: MahjongGameResult;
+  readonly calledTile: Tile | null;
 }
 
 /** Timeout constant for challenge vote (server schedules the timer) */

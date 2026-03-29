@@ -32,13 +32,15 @@ export function handleChallengeMahjong(
   }
 
   const winnerId = state.gameResult.winnerId;
+  const gameResult = state.gameResult;
 
   state.challengeState = {
     challengerId: action.playerId,
     winnerId,
     votes: { [action.playerId]: "invalid" },
     challengeExpiresAt: Date.now() + CHALLENGE_TIMEOUT_SECONDS * 1000,
-    originalGameResult: state.gameResult,
+    originalGameResult: gameResult,
+    calledTile: gameResult.calledTile ?? null,
   };
 
   return {
@@ -112,6 +114,19 @@ function resolveChallenge(state: GameState): ActionResult {
     // Reverse scoring — negate all payments from the original result
     for (const [playerId, amount] of Object.entries(challenge.originalGameResult.payments)) {
       state.scores[playerId] = (state.scores[playerId] ?? 0) - amount;
+    }
+
+    // Restore called tile: return it to the discarder's discard pool and remove from winner's rack
+    if (challenge.calledTile && challenge.originalGameResult.discarderId) {
+      const discarder = state.players[challenge.originalGameResult.discarderId];
+      if (discarder) {
+        discarder.discardPool.push(challenge.calledTile);
+      }
+      const winner = state.players[challenge.winnerId];
+      const tileIdx = winner.rack.findIndex((t) => t.id === challenge.calledTile!.id);
+      if (tileIdx !== -1) {
+        winner.rack.splice(tileIdx, 1);
+      }
     }
 
     // Clear game result and return to play

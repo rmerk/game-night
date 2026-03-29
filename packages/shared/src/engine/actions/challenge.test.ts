@@ -7,6 +7,7 @@ import { getPlayerBySeat, injectTilesIntoRack } from "../../testing/helpers";
 import { buildTilesForHand } from "../../testing/tile-builders";
 import { loadCard } from "../../card/card-loader";
 import type { GameState, MahjongGameResult } from "../../types/game-state";
+import type { Tile } from "../../types/tiles";
 
 const card = loadCard("2026");
 
@@ -308,6 +309,133 @@ describe("Challenge Mechanism", () => {
 
     expect(result.accepted).toBe(false);
     expect(result.reason).toBe("NO_ACTIVE_CHALLENGE");
+  });
+});
+
+/** Set up a scoreboard state with a valid discard Mahjong winner (east discards, south wins) */
+function setupDiscardMahjongScoreboard(): {
+  state: GameState;
+  winnerId: string;
+  discarderId: string;
+  calledTile: Tile;
+  losers: string[];
+} {
+  const state = createPlayState();
+  const eastId = getPlayerBySeat(state, "east");
+  const southId = getPlayerBySeat(state, "south");
+
+  // Build a valid 14-tile hand for ev-2 pattern
+  const fullHand = buildTilesForHand(card, "ev-2", { A: "bam", B: "crak", C: "dot" });
+  const calledTile = fullHand[0]; // The tile that east will discard and south calls
+  const southRack = fullHand.slice(1); // 13 tiles in south's rack
+
+  // Clear south's rack and inject the 13 tiles
+  state.players[southId].rack.length = 0;
+  injectTilesIntoRack(state, southId, southRack);
+
+  // Put the called tile in east's discard pool (simulating east discarded it)
+  state.players[eastId].discardPool.push(calledTile);
+
+  // Set up call window in confirming state for south's mahjong call
+  state.callWindow = {
+    status: "confirming" as const,
+    discardedTile: calledTile,
+    discarderId: eastId,
+    passes: [eastId],
+    calls: [],
+    openedAt: Date.now(),
+    confirmingPlayerId: southId,
+    confirmationExpiresAt: Date.now() + 5000,
+    remainingCallers: [],
+    winningCall: { callType: "mahjong", playerId: southId, tileIds: [] },
+  };
+
+  // Confirm the mahjong call (this removes the tile from east's discard pool)
+  const result = handleAction(state, {
+    type: "CONFIRM_CALL",
+    playerId: southId,
+    tileIds: [],
+  });
+  if (!result.accepted || result.resolved?.type !== "MAHJONG_DECLARED") {
+    throw new Error(`Expected MAHJONG_DECLARED but got: ${JSON.stringify(result)}`);
+  }
+
+  const losers = Object.keys(state.players).filter((id) => id !== southId);
+  return { state, winnerId: southId, discarderId: eastId, calledTile, losers };
+}
+
+describe("Challenge overturn restores called discard tile", () => {
+  test("overturned discard Mahjong restores called tile to discarder's pool", () => {
+    const { state, winnerId, discarderId, calledTile, losers } = setupDiscardMahjongScoreboard();
+
+    // Verify the tile is NOT in discarder's pool after mahjong confirmation
+    expect(
+      state.players[discarderId].discardPool.find((t) => t.id === calledTile.id),
+    ).toBeUndefined();
+
+    // Initiate challenge and overturn with 3 invalid votes
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
+    const result = handleChallengeVote(state, {
+      type: "CHALLENGE_VOTE",
+      playerId: losers[2],
+      vote: "invalid",
+    });
+
+    expect(result.resolved).toMatchObject({ type: "CHALLENGE_RESOLVED", outcome: "overturned" });
+
+    // Verify called tile is restored to discarder's discard pool
+    const restoredTile = state.players[discarderId].discardPool.find((t) => t.id === calledTile.id);
+    expect(restoredTile).toBeDefined();
+    expect(restoredTile!.id).toBe(calledTile.id);
+  });
+
+  test("overturned discard Mahjong removes called tile from winner's rack", () => {
+    const { state, winnerId, losers, calledTile } = setupDiscardMahjongScoreboard();
+
+    // The called tile is conceptually part of the winner's hand (saved in gameResult)
+    // After overturn, it should not be in the winner's rack
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[2], vote: "invalid" });
+
+    // Verify called tile is NOT in winner's rack
+    expect(state.players[winnerId].rack.find((t) => t.id === calledTile.id)).toBeUndefined();
+  });
+
+  test("upheld discard Mahjong does NOT restore called tile to discarder's pool", () => {
+    const { state, winnerId, discarderId, calledTile, losers } = setupDiscardMahjongScoreboard();
+
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "valid" });
+    const result = handleChallengeVote(state, {
+      type: "CHALLENGE_VOTE",
+      playerId: winnerId,
+      vote: "valid",
+    });
+
+    expect(result.resolved).toMatchObject({ type: "CHALLENGE_RESOLVED", outcome: "upheld" });
+
+    // Tile should NOT reappear in discarder's pool
+    expect(
+      state.players[discarderId].discardPool.find((t) => t.id === calledTile.id),
+    ).toBeUndefined();
+  });
+
+  test("self-drawn Mahjong overturn does not attempt tile restoration", () => {
+    // Self-drawn mahjong has no calledTile — should not error
+    const { state, winnerId, losers } = setupScoreboardWithWinner();
+
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
+    const result = handleChallengeVote(state, {
+      type: "CHALLENGE_VOTE",
+      playerId: losers[2],
+      vote: "invalid",
+    });
+
+    expect(result.resolved).toMatchObject({ type: "CHALLENGE_RESOLVED", outcome: "overturned" });
+    expect(state.gamePhase).toBe("play");
   });
 });
 

@@ -194,6 +194,7 @@ export function confirmMahjongCall(
     points: match.points,
     selfDrawn: false,
     discarderId,
+    calledTile,
     payments: scoringResult.payments,
   } satisfies MahjongGameResult;
 
