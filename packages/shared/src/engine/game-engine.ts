@@ -16,6 +16,7 @@ import {
   handleConfirmInvalidMahjong,
 } from "./actions/mahjong";
 import { handleChallengeMahjong, handleChallengeVote } from "./actions/challenge";
+import { handleShowHand } from "./actions/show-hand";
 
 /**
  * Create a lobby-state GameState suitable for receiving a START_GAME action.
@@ -35,6 +36,7 @@ export function createLobbyState(): GameState {
     card: null,
     pendingMahjong: null,
     challengeState: null,
+    shownHands: {},
   };
 }
 
@@ -79,6 +81,8 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleChallengeMahjong(state, action);
     case "CHALLENGE_VOTE":
       return handleChallengeVote(state, action);
+    case "SHOW_HAND":
+      return handleShowHand(state, action);
     default: {
       const _exhaustive: never = action;
       return { accepted: false, reason: `UNKNOWN_ACTION: ${(_exhaustive as GameAction).type}` };

@@ -58,5 +58,6 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     card: loadCard("2026"),
     pendingMahjong: null,
     challengeState: null,
+    shownHands: {},
   };
 }

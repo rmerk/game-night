@@ -16,7 +16,8 @@ export type GameAction =
   | CancelMahjongAction
   | ConfirmInvalidMahjongAction
   | ChallengeMahjongAction
-  | ChallengeVoteAction;
+  | ChallengeVoteAction
+  | ShowHandAction;
 
 /** Action to start a game with 4 players */
 export interface StartGameAction {
@@ -128,4 +129,10 @@ export interface ChallengeVoteAction {
   readonly type: "CHALLENGE_VOTE";
   readonly playerId: string;
   readonly vote: "valid" | "invalid";
+}
+
+/** Action for a player to voluntarily show their hand during scoreboard phase */
+export interface ShowHandAction {
+  readonly type: "SHOW_HAND";
+  readonly playerId: string;
 }

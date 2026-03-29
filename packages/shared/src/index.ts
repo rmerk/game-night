@@ -57,6 +57,7 @@ export type {
   ConfirmInvalidMahjongAction,
   ChallengeMahjongAction,
   ChallengeVoteAction,
+  ShowHandAction,
 } from "./types/actions";
 
 export type {
@@ -76,6 +77,7 @@ export type {
   PlayerPublicInfo,
   LobbyState,
   PlayerGameView,
+  SpectatorGameView,
   StateUpdateMessage,
   SystemEventMessage,
 } from "./types/protocol";
@@ -158,3 +160,5 @@ export {
 } from "./engine/actions/mahjong";
 
 export { handleChallengeMahjong, handleChallengeVote } from "./engine/actions/challenge";
+
+export { handleShowHand } from "./engine/actions/show-hand";

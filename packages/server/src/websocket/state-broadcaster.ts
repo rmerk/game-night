@@ -3,6 +3,7 @@ import type {
   GameState,
   ResolvedAction,
   PlayerGameView,
+  SpectatorGameView,
   StateUpdateMessage,
 } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
@@ -63,6 +64,47 @@ export function buildPlayerView(
     gameResult: gameState.gameResult,
     pendingMahjong: gameState.pendingMahjong,
     challengeState: gameState.challengeState,
+    shownHands: gameState.shownHands,
+  };
+}
+
+/**
+ * Build a spectator view with public information only — no player racks.
+ */
+export function buildSpectatorView(room: Room, gameState: GameState): SpectatorGameView {
+  const players = Array.from(room.players.values()).map((p) => ({
+    playerId: p.playerId,
+    displayName: p.displayName,
+    wind: p.wind,
+    isHost: p.isHost,
+    connected: p.connected,
+  }));
+
+  const exposedGroups: Record<string, (typeof gameState.players)[string]["exposedGroups"]> = {};
+  for (const [pid, ps] of Object.entries(gameState.players)) {
+    exposedGroups[pid] = ps.exposedGroups;
+  }
+
+  const discardPools: Record<string, (typeof gameState.players)[string]["discardPool"]> = {};
+  for (const [pid, ps] of Object.entries(gameState.players)) {
+    discardPools[pid] = ps.discardPool;
+  }
+
+  return {
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    gamePhase: gameState.gamePhase,
+    players,
+    exposedGroups,
+    discardPools,
+    wallRemaining: gameState.wallRemaining,
+    currentTurn: gameState.currentTurn,
+    turnPhase: gameState.turnPhase,
+    callWindow: gameState.callWindow,
+    scores: gameState.scores,
+    lastDiscard: gameState.lastDiscard,
+    gameResult: gameState.gameResult,
+    shownHands: gameState.shownHands,
   };
 }
 

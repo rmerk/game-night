@@ -127,6 +127,8 @@ export interface GameState {
   pendingMahjong: PendingMahjongState | null;
   /** Tracks an active challenge vote on a validated Mahjong */
   challengeState: ChallengeState | null;
+  /** Hands voluntarily shown during scoreboard phase — playerId → rack tiles */
+  shownHands: Record<string, Tile[]>;
 }
 
 /** Result of processing a game action */
@@ -214,4 +216,5 @@ export type ResolvedAction =
       readonly type: "CHALLENGE_RESOLVED";
       readonly outcome: "upheld" | "overturned";
       readonly votes: Record<string, "valid" | "invalid">;
-    };
+    }
+  | { readonly type: "HAND_SHOWN"; readonly playerId: string };

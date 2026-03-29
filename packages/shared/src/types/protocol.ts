@@ -74,6 +74,25 @@ export interface PlayerGameView {
   gameResult: GameResult | null;
   pendingMahjong: PendingMahjongState | null;
   challengeState: ChallengeState | null;
+  shownHands: Record<string, Tile[]>;
+}
+
+/** Spectator view — public information only, no player racks (post-MVP) */
+export interface SpectatorGameView {
+  roomId: string;
+  roomCode: string;
+  gamePhase: GamePhase;
+  players: PlayerPublicInfo[];
+  exposedGroups: Record<string, ExposedGroup[]>;
+  discardPools: Record<string, Tile[]>;
+  wallRemaining: number;
+  currentTurn: string;
+  turnPhase: TurnPhase;
+  callWindow: CallWindowState | null;
+  scores: Record<string, number>;
+  lastDiscard: { tile: Tile; discarderId: string } | null;
+  gameResult: GameResult | null;
+  shownHands: Record<string, Tile[]>;
 }
 
 /** Server → Client: state update with optional resolved action and token */
