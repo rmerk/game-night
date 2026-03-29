@@ -1,4 +1,16 @@
-import type { SeatWind, ResolvedAction } from "./game-state";
+import type {
+  SeatWind,
+  ResolvedAction,
+  GamePhase,
+  TurnPhase,
+  ExposedGroup,
+  CallWindowState,
+  GameResult,
+  PendingMahjongState,
+  ChallengeState,
+} from "./game-state";
+import type { Tile } from "./tiles";
+import type { GameAction } from "./actions";
 
 export const PROTOCOL_VERSION = 1;
 
@@ -16,6 +28,13 @@ export interface JoinRoomMessage {
   roomCode: string;
   displayName: string;
   token?: string;
+}
+
+/** Client → Server: game action */
+export interface ActionMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "ACTION";
+  action: GameAction;
 }
 
 /** Public info about a player visible to all clients */
@@ -36,11 +55,32 @@ export interface LobbyState {
   myPlayerId: string;
 }
 
+/** Per-player filtered game view — each player sees only their own rack */
+export interface PlayerGameView {
+  roomId: string;
+  roomCode: string;
+  gamePhase: GamePhase;
+  players: PlayerPublicInfo[];
+  myPlayerId: string;
+  myRack: Tile[];
+  exposedGroups: Record<string, ExposedGroup[]>;
+  discardPools: Record<string, Tile[]>;
+  wallRemaining: number;
+  currentTurn: string;
+  turnPhase: TurnPhase;
+  callWindow: CallWindowState | null;
+  scores: Record<string, number>;
+  lastDiscard: { tile: Tile; discarderId: string } | null;
+  gameResult: GameResult | null;
+  pendingMahjong: PendingMahjongState | null;
+  challengeState: ChallengeState | null;
+}
+
 /** Server → Client: state update with optional resolved action and token */
 export interface StateUpdateMessage {
   version: typeof PROTOCOL_VERSION;
   type: "STATE_UPDATE";
-  state: LobbyState;
+  state: LobbyState | PlayerGameView;
   resolvedAction?: ResolvedAction;
   token?: string;
 }

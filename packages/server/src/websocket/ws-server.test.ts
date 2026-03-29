@@ -139,17 +139,20 @@ describe("WebSocket Server", () => {
       await closeClient(client);
     });
 
-    it("accepts valid message with version 1", async () => {
+    it("accepts valid message with version 1 and routes to handler", async () => {
       const client = await connectClient();
 
       const messages: string[] = [];
       client.on("message", (data: RawData) => messages.push(wsDataToString(data)));
 
+      // ACTION messages from unauthenticated connections now receive an error
       client.send(JSON.stringify({ version: 1, type: "ACTION" }));
 
-      // Valid messages are parsed but no response is sent at this stage
       await new Promise((r) => setTimeout(r, 100));
-      expect(messages).toHaveLength(0);
+      expect(messages).toHaveLength(1);
+      const response = JSON.parse(messages[0]);
+      expect(response.type).toBe("ERROR");
+      expect(response.code).toBe("NOT_IN_ROOM");
 
       await closeClient(client);
     });

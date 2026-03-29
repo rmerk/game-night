@@ -72,8 +72,10 @@ export type {
 export type {
   ServerErrorMessage,
   JoinRoomMessage,
+  ActionMessage,
   PlayerPublicInfo,
   LobbyState,
+  PlayerGameView,
   StateUpdateMessage,
   SystemEventMessage,
 } from "./types/protocol";

@@ -5,6 +5,7 @@ import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
 import { handleJoinRoom } from "./join-handler";
+import { handleActionMessage } from "./action-handler";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -61,6 +62,20 @@ export function setupWebSocketServer(
 
       if (parsed.type === "JOIN_ROOM") {
         handleJoinRoom(ws, parsed, roomManager, logger);
+      } else if (parsed.type === "ACTION") {
+        const session = roomManager.findSessionByWs(ws);
+        if (!session) {
+          ws.send(
+            JSON.stringify({
+              version: 1,
+              type: "ERROR",
+              code: "NOT_IN_ROOM",
+              message: "You must join a room before sending actions",
+            }),
+          );
+          return;
+        }
+        handleActionMessage(ws, parsed, session.room, session.playerId, logger);
       }
     });
 

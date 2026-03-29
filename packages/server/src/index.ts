@@ -6,6 +6,7 @@ import { setupWebSocketServer, type WsServerContext } from "./websocket/ws-serve
 declare module "fastify" {
   interface FastifyInstance {
     wsContext?: WsServerContext;
+    roomManager: RoomManager;
   }
 }
 
@@ -13,6 +14,7 @@ export function createApp(): FastifyInstance {
   const app = fastify({ logger: { level: process.env.LOG_LEVEL || "info" } });
   const roomManager = new RoomManager();
 
+  app.decorate("roomManager", roomManager);
   app.register(roomRoutes, { roomManager });
 
   app.addHook("onReady", async () => {

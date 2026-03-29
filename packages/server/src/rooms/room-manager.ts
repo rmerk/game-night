@@ -26,6 +26,7 @@ export class RoomManager {
       tokenMap: new Map(),
       playerTokens: new Map(),
       graceTimers: new Map(),
+      gameState: null,
       gamePhase: "lobby",
       createdAt: Date.now(),
       logger: roomLogger,
@@ -63,6 +64,17 @@ export class RoomManager {
       const playerId = room.tokenMap.get(token);
       if (playerId) {
         return { room, playerId };
+      }
+    }
+    return null;
+  }
+
+  findSessionByWs(ws: import("ws").WebSocket): { room: Room; playerId: string } | null {
+    for (const room of this.rooms.values()) {
+      for (const [playerId, session] of room.sessions) {
+        if (session.ws === ws) {
+          return { room, playerId };
+        }
       }
     }
     return null;
