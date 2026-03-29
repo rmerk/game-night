@@ -38,10 +38,10 @@ export function handlePassCall(state: GameState, action: PassCallAction): Action
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
-  if (state.callWindow.status === "frozen" || state.callWindow.status === "confirming") {
-    return { accepted: false, reason: "CALL_WINDOW_FROZEN" };
+  if (state.callWindow.status === "confirming") {
+    return { accepted: false, reason: "CALL_WINDOW_CONFIRMING" };
   }
-  if (state.callWindow.status !== "open") {
+  if (state.callWindow.status !== "open" && state.callWindow.status !== "frozen") {
     return { accepted: false, reason: "CALL_WINDOW_NOT_OPEN" };
   }
   if (state.callWindow.discarderId === action.playerId) {

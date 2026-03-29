@@ -1641,7 +1641,7 @@ describe("handleCallAction — freeze on first call (Story 3A.4)", () => {
     expect(state.callWindow!.calls).toHaveLength(2);
   });
 
-  test("pass actions rejected when window is frozen — CALL_WINDOW_FROZEN reason", () => {
+  test("in-flight pass accepted when window is frozen", () => {
     const { state, callerId } = setupCallScenario(2);
     const westId = getPlayerBySeat(state, "west");
 
@@ -1657,10 +1657,32 @@ describe("handleCallAction — freeze on first call (Story 3A.4)", () => {
     );
     expect(state.callWindow!.status).toBe("frozen");
 
-    // Pass should be rejected
+    // In-flight pass should be accepted
+    const passResult = handlePassCall(state, { type: "PASS_CALL", playerId: westId });
+    expect(passResult.accepted).toBe(true);
+    expect(state.callWindow!.passes).toContain(westId);
+  });
+
+  test("pass rejected when window is in confirming phase — CALL_WINDOW_CONFIRMING reason", () => {
+    const { state, callerId } = setupCallScenario(2);
+    const westId = getPlayerBySeat(state, "west");
+
+    // First call freezes
+    handleCallAction(
+      state,
+      {
+        type: "CALL_PUNG",
+        playerId: callerId,
+        tileIds: state.players[callerId].rack.slice(-2).map((t) => t.id),
+      },
+      "pung",
+    );
+    // Manually set to confirming phase
+    state.callWindow!.status = "confirming";
+
     const passResult = handlePassCall(state, { type: "PASS_CALL", playerId: westId });
     expect(passResult.accepted).toBe(false);
-    expect(passResult.reason).toBe("CALL_WINDOW_FROZEN");
+    expect(passResult.reason).toBe("CALL_WINDOW_CONFIRMING");
   });
 });
 
@@ -2003,7 +2025,7 @@ describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", (
     expect(state.currentTurn).toBe(southId);
   });
 
-  test("pass rejected during frozen state", () => {
+  test("in-flight pass accepted during frozen state", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
     const southId = getPlayerBySeat(state, "south");
@@ -2022,8 +2044,8 @@ describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", (
     expect(state.callWindow!.status).toBe("frozen");
 
     const passResult = handlePassCall(state, { type: "PASS_CALL", playerId: northId });
-    expect(passResult.accepted).toBe(false);
-    expect(passResult.reason).toBe("CALL_WINDOW_FROZEN");
+    expect(passResult.accepted).toBe(true);
+    expect(state.callWindow!.passes).toContain(northId);
   });
 });
 
@@ -2031,8 +2053,8 @@ describe("closeCallWindow — pending calls route to resolution (Story 3A.4)", (
 // Zero-mutation-on-rejection for new rejection paths (Story 3A.4)
 // ============================================================================
 
-describe("handlePassCall — zero mutations on frozen rejection (Story 3A.4)", () => {
-  test("rejected pass during frozen state does not mutate state", () => {
+describe("handlePassCall — zero mutations on confirming rejection (Story 3A.4)", () => {
+  test("rejected pass during confirming state does not mutate state", () => {
     const state = createPlayState();
     const eastId = getPlayerBySeat(state, "east");
     const southId = getPlayerBySeat(state, "south");
@@ -2049,6 +2071,8 @@ describe("handlePassCall — zero mutations on frozen rejection (Story 3A.4)", (
       "pung",
     );
 
+    // Set to confirming — passes should be rejected without mutation
+    state.callWindow!.status = "confirming";
     const stateBefore = JSON.stringify(state);
     handlePassCall(state, { type: "PASS_CALL", playerId: westId });
     expect(JSON.stringify(state)).toBe(stateBefore);
