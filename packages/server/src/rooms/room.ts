@@ -26,6 +26,7 @@ export interface Room {
   tokenMap: Map<string, string>; // token → playerId
   playerTokens: Map<string, string>; // playerId → token
   graceTimers: Map<string, ReturnType<typeof setTimeout>>; // playerId → grace period timer
+  lifecycleTimers: Map<string, ReturnType<typeof setTimeout>>; // lifecycle timer type → timer
   gameState: GameState | null;
   createdAt: number;
   logger: FastifyBaseLogger;

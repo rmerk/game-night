@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
+import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import type { RoomClosingReason, SystemEventMessage } from "@mahjong-game/shared";
 import { generateUniqueRoomCode } from "./room-code";
 import type { Room } from "./room";
+import { cancelAllLifecycleTimers, startLifecycleTimer } from "./room-lifecycle";
+import { revokeToken } from "./session-manager";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
 
@@ -26,6 +31,7 @@ export class RoomManager {
       tokenMap: new Map(),
       playerTokens: new Map(),
       graceTimers: new Map(),
+      lifecycleTimers: new Map(),
       gameState: null,
       createdAt: Date.now(),
       logger: roomLogger,
@@ -33,6 +39,11 @@ export class RoomManager {
 
     this.rooms.set(roomCode, room);
     roomLogger.info({ roomId, hostName }, "Room created");
+
+    // Start abandoned room timer — cancelled when 2+ players are in the room
+    startLifecycleTimer(room, "abandoned-timeout", () => {
+      this.cleanupRoom(roomCode, "abandoned");
+    });
 
     return {
       roomId,
@@ -77,6 +88,58 @@ export class RoomManager {
       }
     }
     return null;
+  }
+
+  cleanupRoom(roomCode: string, reason: RoomClosingReason): void {
+    const room = this.getRoom(roomCode);
+    if (!room) return; // Idempotent — already cleaned up
+
+    // 1. Cancel all timers (grace timers + lifecycle timers)
+    for (const timer of room.graceTimers.values()) {
+      clearTimeout(timer);
+    }
+    room.graceTimers.clear();
+    cancelAllLifecycleTimers(room);
+
+    // 2. Snapshot sessions and clear map — prevents stale close handlers
+    //    from creating orphaned timers on the dead room
+    const sessions = Array.from(room.sessions.values());
+    room.sessions.clear();
+
+    // 3. Broadcast ROOM_CLOSING to connected clients
+    const closeMessage: SystemEventMessage = {
+      version: PROTOCOL_VERSION,
+      type: "SYSTEM_EVENT",
+      event: "ROOM_CLOSING",
+      reason,
+    };
+    const closeMessageStr = JSON.stringify(closeMessage);
+    for (const session of sessions) {
+      if (session.ws.readyState === WebSocket.OPEN) {
+        session.ws.send(closeMessageStr);
+      }
+    }
+
+    // 4. Close all WebSocket connections
+    for (const session of sessions) {
+      if (
+        session.ws.readyState === WebSocket.OPEN ||
+        session.ws.readyState === WebSocket.CONNECTING
+      ) {
+        session.ws.close(1000, "ROOM_CLOSING");
+      }
+    }
+
+    // 5. Revoke all session tokens
+    for (const playerId of room.players.keys()) {
+      revokeToken(room, playerId);
+    }
+
+    // 6. Remove room from active rooms map
+    this.rooms.delete(room.roomCode);
+
+    // 7. Log cleanup completion
+    room.logger.info({ roomCode: room.roomCode, reason }, "Room cleaned up");
   }
 
   getActiveRoomCodes(): Set<string> {

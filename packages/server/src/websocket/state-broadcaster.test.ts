@@ -55,6 +55,7 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     tokenMap: new Map(),
     playerTokens: new Map(),
     graceTimers: new Map(),
+    lifecycleTimers: new Map(),
     gameState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),

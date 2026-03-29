@@ -104,10 +104,19 @@ export interface StateUpdateMessage {
   token?: string;
 }
 
+/** Room closing reason sent to clients before cleanup */
+export type RoomClosingReason = "all_disconnected" | "idle_timeout" | "abandoned";
+
 /** Server → Client: system event notification */
-export interface SystemEventMessage {
-  version: typeof PROTOCOL_VERSION;
-  type: "SYSTEM_EVENT";
-  event: "SESSION_SUPERSEDED";
-  message?: string;
-}
+export type SystemEventMessage =
+  | {
+      version: typeof PROTOCOL_VERSION;
+      type: "SYSTEM_EVENT";
+      event: "SESSION_SUPERSEDED";
+    }
+  | {
+      version: typeof PROTOCOL_VERSION;
+      type: "SYSTEM_EVENT";
+      event: "ROOM_CLOSING";
+      reason: RoomClosingReason;
+    };

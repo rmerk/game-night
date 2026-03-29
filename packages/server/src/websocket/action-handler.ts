@@ -3,6 +3,8 @@ import type { FastifyBaseLogger } from "fastify";
 import type { GameAction } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION, handleAction, createLobbyState } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
+import type { RoomManager } from "../rooms/room-manager";
+import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState } from "./state-broadcaster";
 
 /**
@@ -16,6 +18,7 @@ export function handleActionMessage(
   room: Room,
   playerId: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): void {
   const rawAction: unknown = message.action;
   if (!rawAction || typeof rawAction !== "object") {
@@ -56,6 +59,18 @@ export function handleActionMessage(
       "Action accepted",
     );
     broadcastGameState(room, room.gameState, result.resolved);
+
+    // Idle timeout: start timer when game reaches scoreboard phase
+    if (roomManager && room.gameState.gamePhase === "scoreboard") {
+      startLifecycleTimer(room, "idle-timeout", () => {
+        roomManager.cleanupRoom(room.roomCode, "idle_timeout");
+      });
+    }
+
+    // Cancel idle timer if REMATCH action dispatched (future action type)
+    if ((authenticatedAction.type as string) === "REMATCH") {
+      cancelLifecycleTimer(room, "idle-timeout");
+    }
   } else {
     logger.info(
       {

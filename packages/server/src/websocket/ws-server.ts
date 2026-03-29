@@ -75,7 +75,7 @@ export function setupWebSocketServer(
           );
           return;
         }
-        handleActionMessage(ws, parsed, session.room, session.playerId, logger);
+        handleActionMessage(ws, parsed, session.room, session.playerId, logger, roomManager);
       }
     });
 

@@ -80,6 +80,7 @@ export type {
   SpectatorGameView,
   StateUpdateMessage,
   SystemEventMessage,
+  RoomClosingReason,
 } from "./types/protocol";
 export { PROTOCOL_VERSION } from "./types/protocol";
 

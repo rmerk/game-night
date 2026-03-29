@@ -11,6 +11,7 @@ import {
   revokeToken,
   getGracePeriodMs,
 } from "../rooms/session-manager";
+import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 
 // eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
@@ -78,6 +79,7 @@ function handleTokenReconnection(
   room: Room,
   token: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): boolean {
   const playerId = resolveToken(room, token);
   if (!playerId) return false;
@@ -105,6 +107,9 @@ function handleTokenReconnection(
     room.graceTimers.delete(playerId);
   }
 
+  // Cancel room disconnect-timeout since a player reconnected
+  cancelLifecycleTimer(room, "disconnect-timeout");
+
   // Restore connection
   player.connected = true;
   player.connectedAt = Date.now();
@@ -131,7 +136,7 @@ function handleTokenReconnection(
     playerName: player.displayName,
   });
 
-  registerDisconnectHandler(ws, room, playerId, logger);
+  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
   return true;
 }
 
@@ -140,6 +145,7 @@ function tryGracePeriodRecovery(
   room: Room,
   sanitizedName: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): boolean {
   // Find disconnected seats in grace period matching this displayName
   const matches: string[] = [];
@@ -164,6 +170,9 @@ function tryGracePeriodRecovery(
     clearTimeout(graceTimer);
     room.graceTimers.delete(playerId);
   }
+
+  // Cancel room disconnect-timeout since a player reconnected
+  cancelLifecycleTimer(room, "disconnect-timeout");
 
   // Revoke old token and issue new one
   revokeToken(room, playerId);
@@ -198,8 +207,15 @@ function tryGracePeriodRecovery(
     playerName: sanitizedName,
   });
 
-  registerDisconnectHandler(ws, room, playerId, logger);
+  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
   return true;
+}
+
+function allPlayersDisconnected(room: Room): boolean {
+  for (const player of room.players.values()) {
+    if (player.connected) return false;
+  }
+  return room.players.size > 0;
 }
 
 function registerDisconnectHandler(
@@ -207,14 +223,16 @@ function registerDisconnectHandler(
   room: Room,
   playerId: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): void {
   ws.on("close", () => {
     const player = room.players.get(playerId);
     if (!player) return;
 
     // Only act if this is the current session's WebSocket
+    // Also bail if session was cleared (e.g., room cleanup)
     const session = room.sessions.get(playerId);
-    if (session && session.ws !== ws) return;
+    if (!session || session.ws !== ws) return;
 
     player.connected = false;
     logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
@@ -234,11 +252,25 @@ function registerDisconnectHandler(
 
       logger.info({ roomCode: room.roomCode, playerId }, "Grace period expired, seat released");
 
+      // Restart abandoned timer if player count drops to 0-1
+      if (roomManager && room.players.size <= 1) {
+        startLifecycleTimer(room, "abandoned-timeout", () => {
+          roomManager.cleanupRoom(room.roomCode, "abandoned");
+        });
+      }
+
       // Broadcast seat release to remaining players
       broadcastStateToRoom(room);
     }, getGracePeriodMs());
 
     room.graceTimers.set(playerId, timer);
+
+    // Check if ALL players are now disconnected → start room cleanup timer
+    if (roomManager && allPlayersDisconnected(room)) {
+      startLifecycleTimer(room, "disconnect-timeout", () => {
+        roomManager.cleanupRoom(room.roomCode, "all_disconnected");
+      });
+    }
 
     // Broadcast disconnected state to remaining players
     broadcastStateToRoom(room);
@@ -269,7 +301,7 @@ export function handleJoinRoom(
   // Token-based reconnection
   const token = message.token;
   if (token && typeof token === "string") {
-    if (handleTokenReconnection(ws, room, token, logger)) {
+    if (handleTokenReconnection(ws, room, token, logger, roomManager)) {
       return;
     }
     // Invalid token — fall through to new player join
@@ -285,7 +317,7 @@ export function handleJoinRoom(
   }
 
   // Grace period recovery: tokenless client with matching displayName
-  if (!token && tryGracePeriodRecovery(ws, room, sanitizedName, logger)) {
+  if (!token && tryGracePeriodRecovery(ws, room, sanitizedName, logger, roomManager)) {
     return;
   }
 
@@ -310,6 +342,11 @@ export function handleJoinRoom(
     connectedAt: Date.now(),
   };
   room.players.set(playerId, playerInfo);
+
+  // Cancel abandoned timer when 2+ players are in the room
+  if (room.players.size >= 2) {
+    cancelLifecycleTimer(room, "abandoned-timeout");
+  }
 
   const session: PlayerSession = {
     player: playerInfo,
@@ -343,5 +380,5 @@ export function handleJoinRoom(
     playerName: sanitizedName,
   });
 
-  registerDisconnectHandler(ws, room, playerId, logger);
+  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
 }
