@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-03-26
+# last_updated: 2026-03-28
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-28 # story 3a-8 → done
+last_updated: 2026-03-28 # 4a-1 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -74,11 +74,11 @@ development_status:
   3a-6-turn-advancement-after-calls-skip-ahead: done
   3a-7-mahjong-declaration-auto-validation: done
   3a-8-invalid-mahjong-handling-challenge-mechanism: done
-  epic-3a-retrospective: optional
+  epic-3a-retrospective: done
 
   # Epic 4A: Core Multiplayer
-  epic-4a: backlog
-  4a-1-http-room-creation-room-codes: backlog
+  epic-4a: in-progress
+  4a-1-http-room-creation-room-codes: done
   4a-2-websocket-server-connection-management: backlog
   4a-3-room-join-via-websocket-seat-assignment: backlog
   4a-4-session-identity-token-management: backlog
