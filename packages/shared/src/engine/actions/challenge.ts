@@ -97,6 +97,28 @@ export function handleChallengeVote(state: GameState, action: ChallengeVoteActio
 }
 
 /**
+ * Handle challenge vote timeout: fill non-voters with "valid" default,
+ * then resolve the challenge.
+ * Called by the server when the 30-second challenge timer expires.
+ * No setTimeout in shared/ — the server is responsible for scheduling.
+ */
+export function handleChallengeTimeout(state: GameState): ActionResult {
+  if (!state.challengeState) {
+    return { accepted: false, reason: "NO_ACTIVE_CHALLENGE" };
+  }
+
+  // Fill non-voters with "valid" default
+  const allPlayerIds = Object.keys(state.players);
+  for (const playerId of allPlayerIds) {
+    if (state.challengeState.votes[playerId] === undefined) {
+      state.challengeState.votes[playerId] = "valid";
+    }
+  }
+
+  return resolveChallenge(state);
+}
+
+/**
  * Resolve the challenge based on votes.
  * 3+ invalid → overturn: dead hand on winner, reverse scoring, back to play.
  * Otherwise → uphold: challenge cleared.

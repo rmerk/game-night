@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vite-plus/test";
-import { handleChallengeMahjong, handleChallengeVote } from "./challenge";
+import { handleChallengeMahjong, handleChallengeVote, handleChallengeTimeout } from "./challenge";
 import { handleDeclareMahjong } from "./mahjong";
 import { handleAction } from "../game-engine";
 import { createPlayState } from "../../testing/fixtures";
@@ -436,6 +436,67 @@ describe("Challenge overturn restores called discard tile", () => {
 
     expect(result.resolved).toMatchObject({ type: "CHALLENGE_RESOLVED", outcome: "overturned" });
     expect(state.gamePhase).toBe("play");
+  });
+});
+
+describe("Challenge timeout handler", () => {
+  test("timeout with 1 invalid vote (challenger) + 3 non-voters → upheld", () => {
+    const { state, losers } = setupScoreboardWithWinner();
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    // losers[0] has "invalid" vote pre-set, 3 others have not voted
+
+    const result = handleChallengeTimeout(state);
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({
+      type: "CHALLENGE_RESOLVED",
+      outcome: "upheld",
+    });
+    expect(state.challengeState).toBeNull();
+    expect(state.gamePhase).toBe("scoreboard");
+  });
+
+  test("timeout with 2 invalid votes + 2 non-voters → upheld", () => {
+    const { state, winnerId, losers } = setupScoreboardWithWinner();
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    // losers[0] has "invalid" pre-set
+    handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
+    // Now 2 invalid votes, 2 non-voters (winnerId and losers[2])
+
+    const result = handleChallengeTimeout(state);
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({
+      type: "CHALLENGE_RESOLVED",
+      outcome: "upheld",
+    });
+    // 2 invalid + 2 defaulted valid = 2 valid >= 2 → upheld
+    expect(state.challengeState).toBeNull();
+    expect(state.gamePhase).toBe("scoreboard");
+  });
+
+  test("no active challenge → rejected with NO_ACTIVE_CHALLENGE", () => {
+    const state = createPlayState();
+
+    const result = handleChallengeTimeout(state);
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("NO_ACTIVE_CHALLENGE");
+  });
+
+  test("non-voter default votes are 'valid' in the resolved votes record", () => {
+    const { state, winnerId, losers } = setupScoreboardWithWinner();
+    handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
+    // losers[0] has "invalid", winnerId + losers[1] + losers[2] have not voted
+
+    const result = handleChallengeTimeout(state);
+
+    expect(result.accepted).toBe(true);
+    const votes = (result.resolved as { votes: Record<string, string> }).votes;
+    expect(votes[losers[0]]).toBe("invalid");
+    expect(votes[winnerId]).toBe("valid");
+    expect(votes[losers[1]]).toBe("valid");
+    expect(votes[losers[2]]).toBe("valid");
   });
 });
 
