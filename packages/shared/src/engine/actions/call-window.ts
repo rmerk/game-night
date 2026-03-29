@@ -358,14 +358,18 @@ export function closeCallWindow(
 
   // Advance turn to next player counterclockwise from the discarder
   const discarder = state.players[discarderId];
-  if (!discarder)
-    throw new Error(`closeCallWindow: no player found for discarderId '${discarderId}'`);
+  if (!discarder) {
+    state.callWindow = null;
+    return { accepted: false, reason: "DISCARDER_NOT_FOUND" };
+  }
   const discarderSeatIndex = SEATS.indexOf(discarder.seatWind);
   const nextSeatWind = SEATS[(discarderSeatIndex + 1) % SEATS.length];
 
   const nextPlayer = Object.values(state.players).find((p) => p.seatWind === nextSeatWind);
-  if (!nextPlayer)
-    throw new Error(`closeCallWindow: no player found with seatWind '${nextSeatWind}'`);
+  if (!nextPlayer) {
+    state.callWindow = null;
+    return { accepted: false, reason: "NEXT_PLAYER_NOT_FOUND" };
+  }
   state.currentTurn = nextPlayer.id;
   state.turnPhase = "draw";
 

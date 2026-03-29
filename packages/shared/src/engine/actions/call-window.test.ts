@@ -278,6 +278,37 @@ describe("closeCallWindow", () => {
 
     expect(result).toEqual({ accepted: false, reason: "NO_CALL_WINDOW" });
   });
+
+  test("returns rejection instead of throwing when discarder player is missing", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+
+    discardTile(state, eastId);
+
+    // Simulate disconnected player — delete the discarder from state
+    delete state.players[eastId];
+
+    const result = closeCallWindow(state, "all_passed");
+
+    expect(result).toEqual({ accepted: false, reason: "DISCARDER_NOT_FOUND" });
+    expect(state.callWindow).toBeNull();
+  });
+
+  test("returns rejection instead of throwing when next player seat is missing", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const southId = getPlayerBySeat(state, "south");
+
+    discardTile(state, eastId);
+
+    // Simulate disconnected next player — delete south (next after east)
+    delete state.players[southId];
+
+    const result = closeCallWindow(state, "all_passed");
+
+    expect(result).toEqual({ accepted: false, reason: "NEXT_PLAYER_NOT_FOUND" });
+    expect(state.callWindow).toBeNull();
+  });
 });
 
 // ============================================================================
