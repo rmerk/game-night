@@ -27,7 +27,6 @@ export class RoomManager {
       playerTokens: new Map(),
       graceTimers: new Map(),
       gameState: null,
-      gamePhase: "lobby",
       createdAt: Date.now(),
       logger: roomLogger,
     };
@@ -55,7 +54,7 @@ export class RoomManager {
     return {
       full: playerCount >= 4,
       playerCount,
-      phase: room.gamePhase,
+      phase: room.gameState?.gamePhase ?? "lobby",
     };
   }
 

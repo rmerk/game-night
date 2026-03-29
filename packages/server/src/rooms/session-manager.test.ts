@@ -19,7 +19,6 @@ function createMockRoom(overrides: Partial<Room> = {}): Room {
     playerTokens: new Map(),
     graceTimers: new Map(),
     gameState: null,
-    gamePhase: "lobby",
     createdAt: Date.now(),
     logger: {
       info: vi.fn(),

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-29 # 4a-6 → done
+last_updated: 2026-03-29 # 4a-7 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -84,7 +84,7 @@ development_status:
   4a-4-session-identity-token-management: done
   4a-5-action-state-protocol-message-handling: done
   4a-6-per-player-view-filtering-security-test: done
-  4a-7-game-start-host-controls: backlog
+  4a-7-game-start-host-controls: done
   4a-8-room-cleanup-lifecycle-management: backlog
   epic-4a-retrospective: optional
 

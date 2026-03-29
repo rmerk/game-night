@@ -359,6 +359,198 @@ describe("handleActionMessage", () => {
     for (const p of players) p.ws.close();
   });
 
+  describe("START_GAME action (4a-7)", () => {
+    it("host can start game with 4 connected players", async () => {
+      const { roomCode, players } = await setupGameRoom();
+
+      // Host is player-0 (first to join)
+      const host = players[0];
+
+      // All 4 players listen for messages
+      const messagePromises = players.map((p) => waitForMessage(p.ws));
+
+      sendAction(host.ws, { type: "START_GAME" });
+
+      const messages = await Promise.all(messagePromises);
+
+      // All players should receive STATE_UPDATE
+      for (const msg of messages) {
+        expect(msg.type).toBe("STATE_UPDATE");
+        expect(msg.version).toBe(1);
+      }
+
+      // All views should have gamePhase = "play"
+      for (const msg of messages) {
+        const state = msg.state as Record<string, unknown>;
+        expect(state.gamePhase).toBe("play");
+      }
+
+      // resolvedAction should be GAME_STARTED for all
+      for (const msg of messages) {
+        const resolved = msg.resolvedAction as Record<string, unknown>;
+        expect(resolved).toBeDefined();
+        expect(resolved.type).toBe("GAME_STARTED");
+      }
+
+      // room.gameState should now exist
+      const room = app.roomManager.getRoom(roomCode)!;
+      expect(room.gameState).not.toBeNull();
+      expect(room.gameState!.gamePhase).toBe("play");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("each player receives correctly filtered view with their own rack only", async () => {
+      const { roomCode, players } = await setupGameRoom();
+      const host = players[0];
+
+      const messagePromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(host.ws, { type: "START_GAME" });
+      const messages = await Promise.all(messagePromises);
+
+      const room = app.roomManager.getRoom(roomCode)!;
+      const gameState = room.gameState!;
+
+      for (let i = 0; i < players.length; i++) {
+        const state = messages[i].state as Record<string, unknown>;
+        const myRack = state.myRack as Array<{ id: string }>;
+
+        // Each player sees their own rack
+        expect(myRack).toBeDefined();
+        expect(myRack.length).toBeGreaterThan(0);
+        expect(state.myPlayerId).toBe(players[i].playerId);
+
+        // No opponent rack data in their view
+        const stateStr = JSON.stringify(state);
+        for (let j = 0; j < players.length; j++) {
+          if (i === j) continue;
+          const otherRack = gameState.players[players[j].playerId].rack;
+          for (const tile of otherRack) {
+            expect(stateStr).not.toContain(tile.id);
+          }
+        }
+      }
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("deals tiles correctly — East gets 14, others get 13, wall has 99", async () => {
+      const { roomCode, players } = await setupGameRoom();
+      const host = players[0];
+
+      const messagePromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(host.ws, { type: "START_GAME" });
+      const messages = await Promise.all(messagePromises);
+
+      const room = app.roomManager.getRoom(roomCode)!;
+      const gameState = room.gameState!;
+
+      // East (player-0) gets 14 tiles, others get 13
+      expect(gameState.players["player-0"].rack).toHaveLength(14);
+      expect(gameState.players["player-1"].rack).toHaveLength(13);
+      expect(gameState.players["player-2"].rack).toHaveLength(13);
+      expect(gameState.players["player-3"].rack).toHaveLength(13);
+      expect(gameState.wallRemaining).toBe(99);
+
+      // currentTurn is East, turnPhase is discard
+      expect(gameState.currentTurn).toBe("player-0");
+      expect(gameState.turnPhase).toBe("discard");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("rejects START_GAME from non-host player", async () => {
+      const { players } = await setupGameRoom();
+
+      // player-1 is NOT the host
+      const nonHost = players[1];
+
+      const msgPromise = waitForMessage(nonHost.ws);
+      sendAction(nonHost.ws, { type: "START_GAME" });
+
+      const msg = await msgPromise;
+      expect(msg.type).toBe("ERROR");
+      expect(msg.code).toBe("NOT_HOST");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("rejects START_GAME with fewer than 4 connected players", async () => {
+      const { roomCode } = await createRoom();
+      // Only join 3 players
+      const players: Array<{ ws: WebSocket; token: string; playerId: string }> = [];
+      for (const name of ["Alice", "Bob", "Charlie"]) {
+        const broadcastPromises = players.map((p) => waitForMessage(p.ws));
+        const p = await joinPlayer(roomCode, name);
+        players.push(p);
+        if (broadcastPromises.length > 0) {
+          await Promise.all(broadcastPromises);
+        }
+      }
+
+      const host = players[0];
+      const msgPromise = waitForMessage(host.ws);
+      sendAction(host.ws, { type: "START_GAME" });
+
+      const msg = await msgPromise;
+      expect(msg.type).toBe("ERROR");
+      expect(msg.code).toBe("NOT_ENOUGH_PLAYERS");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("rejects START_GAME when game is already in progress", async () => {
+      const { players } = await setupGameRoom();
+      const host = players[0];
+
+      // Start the game first
+      const firstStartPromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(host.ws, { type: "START_GAME" });
+      await Promise.all(firstStartPromises);
+
+      // Try to start again
+      const msgPromise = waitForMessage(host.ws);
+      sendAction(host.ws, { type: "START_GAME" });
+
+      const msg = await msgPromise;
+      expect(msg.type).toBe("ERROR");
+      expect(msg.code).toBe("ACTION_REJECTED");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("does not broadcast error to other players on rejected START_GAME", async () => {
+      const { players } = await setupGameRoom();
+      const nonHost = players[1];
+
+      const errorPromise = waitForMessage(nonHost.ws);
+      sendAction(nonHost.ws, { type: "START_GAME" });
+
+      const errorMsg = await errorPromise;
+      expect(errorMsg.type).toBe("ERROR");
+
+      // Other players should NOT receive any message
+      const otherPlayers = players.filter((p) => p.playerId !== nonHost.playerId);
+      const noMessageReceived = await Promise.race([
+        new Promise<boolean>((resolve) => {
+          let received = false;
+          for (const p of otherPlayers) {
+            p.ws.once("message", () => {
+              received = true;
+              resolve(false);
+            });
+          }
+          setTimeout(() => {
+            if (!received) resolve(true);
+          }, 200);
+        }),
+      ]);
+      expect(noMessageReceived).toBe(true);
+
+      for (const p of players) p.ws.close();
+    });
+  });
+
   it("handles discard that triggers call window — all players see callWindow in state", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;

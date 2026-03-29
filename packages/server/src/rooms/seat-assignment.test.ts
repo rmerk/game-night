@@ -14,7 +14,6 @@ function createTestRoom(playerIds: string[] = []): Room {
     playerTokens: new Map(),
     graceTimers: new Map(),
     gameState: null,
-    gamePhase: "lobby" as const,
     createdAt: Date.now(),
     logger: { info: () => {}, warn: () => {}, debug: () => {}, child: () => ({}) } as never,
   };
