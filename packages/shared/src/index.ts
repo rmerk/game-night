@@ -75,6 +75,7 @@ export type {
   PlayerPublicInfo,
   LobbyState,
   StateUpdateMessage,
+  SystemEventMessage,
 } from "./types/protocol";
 export { PROTOCOL_VERSION } from "./types/protocol";
 

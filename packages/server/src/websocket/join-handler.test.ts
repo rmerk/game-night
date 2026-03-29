@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
+import { setGracePeriodMs, DEFAULT_GRACE_PERIOD_MS } from "../rooms/session-manager";
 
 let app: FastifyInstance;
 let wsUrl: string;
@@ -31,15 +32,34 @@ function waitForMessage(ws: WebSocket): Promise<Record<string, unknown>> {
   });
 }
 
-function sendJoin(ws: WebSocket, roomCode: string, displayName: string): void {
+function sendJoin(ws: WebSocket, roomCode: string, displayName: string, token?: string): void {
+  const msg: Record<string, unknown> = {
+    version: 1,
+    type: "JOIN_ROOM",
+    roomCode,
+    displayName,
+  };
+  if (token) msg.token = token;
+  ws.send(JSON.stringify(msg));
+}
+
+function sendJoinWithToken(ws: WebSocket, roomCode: string, token: string): void {
   ws.send(
     JSON.stringify({
       version: 1,
       type: "JOIN_ROOM",
       roomCode,
-      displayName,
+      token,
     }),
   );
+}
+
+function waitForClose(ws: WebSocket): Promise<{ code: number; reason: string }> {
+  return new Promise((resolve) => {
+    ws.on("close", (code: number, reason: Buffer) => {
+      resolve({ code, reason: reason.toString() });
+    });
+  });
 }
 
 beforeEach(async () => {
@@ -307,5 +327,464 @@ describe("handleJoinRoom", () => {
     expect(players[0]?.displayName).toHaveLength(30);
 
     ws.close();
+  });
+});
+
+describe("session token delivery", () => {
+  it("includes a UUID token in STATE_UPDATE for new player join", async () => {
+    const { roomCode } = await createRoom();
+    const ws = await connectWs(wsUrl);
+    const msgPromise = waitForMessage(ws);
+
+    sendJoin(ws, roomCode, "Alice");
+
+    const msg = await msgPromise;
+    expect(msg.type).toBe("STATE_UPDATE");
+    expect(msg.token).toBeDefined();
+    expect(typeof msg.token).toBe("string");
+    expect(msg.token).toMatch(/^[0-9a-f-]{36}$/);
+
+    ws.close();
+  });
+
+  it("does NOT include token in broadcast STATE_UPDATE to other players", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    await msg1Promise;
+
+    // Listen for broadcast on ws1 when ws2 joins
+    const broadcastPromise = waitForMessage(ws1);
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+
+    // ws2 should get a token
+    const msg2 = await msg2Promise;
+    expect(msg2.token).toBeDefined();
+
+    // ws1's broadcast should NOT have a token
+    const broadcast = await broadcastPromise;
+    expect(broadcast.type).toBe("STATE_UPDATE");
+    expect(broadcast.token).toBeUndefined();
+
+    ws1.close();
+    ws2.close();
+  });
+
+  it("gives different tokens to different players", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+    const msg2 = await msg2Promise;
+
+    expect(msg1.token).not.toBe(msg2.token);
+
+    ws1.close();
+    ws2.close();
+  });
+});
+
+describe("token-based reconnection", () => {
+  it("reconnects to same seat with valid token", async () => {
+    const { roomCode } = await createRoom();
+
+    // Player joins and gets token
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const token = msg1.token as string;
+    const originalPlayerId = (msg1.state as Record<string, unknown>).myPlayerId;
+
+    // Disconnect
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Reconnect with token
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoinWithToken(ws2, roomCode, token);
+    const msg2 = await msg2Promise;
+
+    expect(msg2.type).toBe("STATE_UPDATE");
+    const state2 = msg2.state as Record<string, unknown>;
+    expect(state2.myPlayerId).toBe(originalPlayerId);
+    expect(msg2.token).toBe(token);
+
+    const players = state2.players as Array<Record<string, unknown>>;
+    const alice = players.find((p) => p.playerId === originalPlayerId);
+    expect(alice?.connected).toBe(true);
+    expect(alice?.displayName).toBe("Alice");
+
+    ws2.close();
+  });
+
+  it("treats invalid token as new player join", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws = await connectWs(wsUrl);
+    const msgPromise = waitForMessage(ws);
+    sendJoin(ws, roomCode, "Alice", "invalid-token-12345678-1234-1234-1234");
+
+    const msg = await msgPromise;
+    expect(msg.type).toBe("STATE_UPDATE");
+    const state = msg.state as Record<string, unknown>;
+    expect(state.myPlayerId).toBe("player-0");
+    expect(msg.token).toBeDefined();
+    expect(msg.token).not.toBe("invalid-token-12345678-1234-1234-1234");
+
+    ws.close();
+  });
+
+  it("broadcasts PLAYER_RECONNECTED to other players on reconnection", async () => {
+    const { roomCode } = await createRoom();
+
+    // Two players join
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const tokenAlice = msg1.token as string;
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+    await msg2Promise;
+
+    // Consume the PLAYER_JOINED broadcast on ws1
+    await waitForMessage(ws1);
+
+    // Alice disconnects
+    ws1.close();
+    // Consume disconnection broadcast on ws2
+    await waitForMessage(ws2);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Listen for reconnection broadcast on ws2
+    const reconnectBroadcast = waitForMessage(ws2);
+
+    // Alice reconnects
+    const ws1r = await connectWs(wsUrl);
+    const reconnectMsg = waitForMessage(ws1r);
+    sendJoinWithToken(ws1r, roomCode, tokenAlice);
+    await reconnectMsg;
+
+    const broadcast = await reconnectBroadcast;
+    expect(broadcast.type).toBe("STATE_UPDATE");
+    expect(broadcast.resolvedAction).toMatchObject({
+      type: "PLAYER_RECONNECTED",
+      playerId: "player-0",
+      playerName: "Alice",
+    });
+
+    ws1r.close();
+    ws2.close();
+  });
+});
+
+describe("session supersession", () => {
+  it("disconnects first connection when second uses same token", async () => {
+    const { roomCode } = await createRoom();
+
+    // Player joins
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const token = msg1.token as string;
+
+    // Listen for SESSION_SUPERSEDED on ws1
+    const supersededPromise = waitForMessage(ws1);
+    const closePromise = waitForClose(ws1);
+
+    // Second connection with same token
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoinWithToken(ws2, roomCode, token);
+
+    // First connection should get SESSION_SUPERSEDED
+    const supersededMsg = await supersededPromise;
+    expect(supersededMsg.type).toBe("SYSTEM_EVENT");
+    expect(supersededMsg.event).toBe("SESSION_SUPERSEDED");
+
+    // First connection should be closed
+    const closeEvent = await closePromise;
+    expect(closeEvent.code).toBe(4001);
+
+    // Second connection should get full state
+    const msg2 = await msg2Promise;
+    expect(msg2.type).toBe("STATE_UPDATE");
+    const state2 = msg2.state as Record<string, unknown>;
+    expect(state2.myPlayerId).toBe("player-0");
+
+    ws2.close();
+  });
+});
+
+describe("grace period recovery", () => {
+  const SHORT_GRACE_MS = 200;
+
+  beforeEach(() => {
+    setGracePeriodMs(SHORT_GRACE_MS);
+  });
+
+  afterEach(() => {
+    setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
+  });
+
+  it("recovers seat with matching displayName during grace period", async () => {
+    const { roomCode } = await createRoom();
+
+    // Player joins
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const originalPlayerId = (msg1.state as Record<string, unknown>).myPlayerId;
+
+    // Disconnect (simulating token delivery failure — no token stored)
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Reconnect without token but with same displayName (within grace period)
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Alice");
+    const msg2 = await msg2Promise;
+
+    expect(msg2.type).toBe("STATE_UPDATE");
+    const state2 = msg2.state as Record<string, unknown>;
+    expect(state2.myPlayerId).toBe(originalPlayerId);
+    // Should get a new token
+    expect(msg2.token).toBeDefined();
+
+    ws2.close();
+  });
+
+  it("releases seat after grace period expires", async () => {
+    const { roomCode } = await createRoom();
+
+    // Player joins
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    await msg1Promise;
+
+    // Disconnect
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Wait for grace period to expire
+    await new Promise((r) => setTimeout(r, SHORT_GRACE_MS + 100));
+
+    // New player should get player-0 (seat was released)
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+    const msg2 = await msg2Promise;
+
+    const state2 = msg2.state as Record<string, unknown>;
+    expect(state2.myPlayerId).toBe("player-0");
+    const players = state2.players as Array<Record<string, unknown>>;
+    expect(players).toHaveLength(1);
+    expect(players[0]?.displayName).toBe("Bob");
+
+    ws2.close();
+  });
+
+  it("does not recover when multiple disconnected seats match displayName", async () => {
+    const { roomCode } = await createRoom();
+
+    // Two players join with same name
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    await msg1Promise;
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Alice");
+    await msg2Promise;
+    // Consume broadcast
+    await waitForMessage(ws1);
+
+    // Both disconnect
+    ws1.close();
+    ws2.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // New connection with "Alice" — ambiguous, should get a new seat
+    const ws3 = await connectWs(wsUrl);
+    const msg3Promise = waitForMessage(ws3);
+    sendJoin(ws3, roomCode, "Alice");
+    const msg3 = await msg3Promise;
+
+    const state3 = msg3.state as Record<string, unknown>;
+    // Should be assigned a new seat (player-2), not recovered to either existing one
+    expect(state3.myPlayerId).toBe("player-2");
+
+    ws3.close();
+  });
+
+  it("rejects tokenless connection to full room with no grace period match", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+
+    // Join players one at a time, draining broadcasts between joins
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      await msgPromise;
+      clients.push(ws);
+
+      await Promise.all(broadcastPromises);
+    }
+
+    // 5th player should be rejected
+    const ws5 = await connectWs(wsUrl);
+    const msg5Promise = waitForMessage(ws5);
+    sendJoin(ws5, roomCode, "NewPlayer");
+    const msg5 = await msg5Promise;
+    expect(msg5.type).toBe("ERROR");
+    expect(msg5.code).toBe("ROOM_FULL");
+
+    for (const c of clients) c.close();
+    ws5.close();
+  });
+});
+
+describe("comprehensive lifecycle", () => {
+  it("full lifecycle: join → disconnect → reconnect with token → same seat", async () => {
+    const { roomCode } = await createRoom();
+
+    // Join
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const token = msg1.token as string;
+
+    // Disconnect
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Reconnect with token
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoinWithToken(ws2, roomCode, token);
+    const msg2 = await msg2Promise;
+
+    expect(msg2.type).toBe("STATE_UPDATE");
+    const state = msg2.state as Record<string, unknown>;
+    expect(state.myPlayerId).toBe("player-0");
+    const players = state.players as Array<Record<string, unknown>>;
+    expect(players[0]).toMatchObject({
+      playerId: "player-0",
+      displayName: "Alice",
+      connected: true,
+    });
+
+    ws2.close();
+  });
+
+  it("4 players join, 1 disconnects and reconnects with token, original seat preserved", async () => {
+    const { roomCode } = await createRoom();
+    const tokens: string[] = [];
+    const clients: WebSocket[] = [];
+
+    // Join players one at a time, draining all broadcasts between each join
+    for (let i = 0; i < 4; i++) {
+      // Set up listeners for existing clients BEFORE sending join
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      const msg = await msgPromise;
+      tokens.push(msg.token as string);
+      clients.push(ws);
+
+      // Wait for all broadcasts to existing clients
+      await Promise.all(broadcastPromises);
+    }
+
+    // Player2 disconnects — set up listeners for disconnect broadcast
+    const disconnectBroadcasts = [0, 1, 3].map((i) => waitForMessage(clients[i]));
+    clients[2].close();
+    await Promise.all(disconnectBroadcasts);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Player2 reconnects — set up listeners for reconnect broadcast
+    const reconnectBroadcasts = [0, 1, 3].map((i) => waitForMessage(clients[i]));
+    const ws2r = await connectWs(wsUrl);
+    const msg2rPromise = waitForMessage(ws2r);
+    sendJoinWithToken(ws2r, roomCode, tokens[2]);
+    const msg2r = await msg2rPromise;
+
+    const state = msg2r.state as Record<string, unknown>;
+    expect(state.myPlayerId).toBe("player-2");
+    const players = state.players as Array<Record<string, unknown>>;
+    expect(players.find((p) => p.playerId === "player-2")).toMatchObject({
+      displayName: "Player2",
+      connected: true,
+      wind: "west",
+    });
+
+    // Others should get PLAYER_RECONNECTED
+    const broadcasts = await Promise.all(reconnectBroadcasts);
+    for (const broadcast of broadcasts) {
+      expect(broadcast.resolvedAction).toMatchObject({
+        type: "PLAYER_RECONNECTED",
+        playerId: "player-2",
+      });
+    }
+
+    for (const c of clients.filter((_, i) => i !== 2)) c.close();
+    ws2r.close();
+  });
+
+  it("invalid token + full room = rejected", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+
+    // Join players one at a time, draining broadcasts between each join
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      await msgPromise;
+      clients.push(ws);
+
+      await Promise.all(broadcastPromises);
+    }
+
+    // Try to join with invalid token — should fail since room is full
+    const ws5 = await connectWs(wsUrl);
+    const msg5Promise = waitForMessage(ws5);
+    sendJoin(ws5, roomCode, "Imposter", "invalid-token-00000000-0000-0000-0000");
+    const msg5 = await msg5Promise;
+    expect(msg5.type).toBe("ERROR");
+    expect(msg5.code).toBe("ROOM_FULL");
+
+    for (const c of clients) c.close();
+    ws5.close();
   });
 });

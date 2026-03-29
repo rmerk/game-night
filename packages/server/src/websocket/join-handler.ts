@@ -5,6 +5,12 @@ import type { PlayerPublicInfo, LobbyState, StateUpdateMessage } from "@mahjong-
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
+import {
+  createSessionToken,
+  resolveToken,
+  revokeToken,
+  getGracePeriodMs,
+} from "../rooms/session-manager";
 
 // eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
@@ -59,6 +65,186 @@ function broadcastStateToRoom(
   }
 }
 
+function sanitizeDisplayName(displayName: unknown): string | null {
+  if (!displayName || typeof displayName !== "string") return null;
+
+  const sanitized = displayName.replace(CONTROL_CHARS, "").trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
+
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function handleTokenReconnection(
+  ws: WebSocket,
+  room: Room,
+  token: string,
+  logger: FastifyBaseLogger,
+): boolean {
+  const playerId = resolveToken(room, token);
+  if (!playerId) return false;
+
+  const player = room.players.get(playerId);
+  if (!player) return false;
+
+  // Supersede existing connection if still open
+  const existingSession = room.sessions.get(playerId);
+  if (existingSession && existingSession.ws.readyState === WebSocket.OPEN) {
+    existingSession.ws.send(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "SYSTEM_EVENT",
+        event: "SESSION_SUPERSEDED",
+      }),
+    );
+    existingSession.ws.close(4001, "SESSION_SUPERSEDED");
+  }
+
+  // Cancel grace period timer if active
+  const graceTimer = room.graceTimers.get(playerId);
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    room.graceTimers.delete(playerId);
+  }
+
+  // Restore connection
+  player.connected = true;
+  player.connectedAt = Date.now();
+
+  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
+  room.sessions.set(playerId, session);
+
+  logger.info({ roomCode: room.roomCode, playerId }, "Player reconnected via token");
+
+  // Send full state with token
+  const lobbyState = buildLobbyState(room, playerId);
+  const stateMessage: StateUpdateMessage = {
+    version: PROTOCOL_VERSION,
+    type: "STATE_UPDATE",
+    state: lobbyState,
+    token,
+  };
+  ws.send(JSON.stringify(stateMessage));
+
+  // Broadcast reconnection to others
+  broadcastStateToRoom(room, playerId, {
+    type: "PLAYER_RECONNECTED",
+    playerId,
+    playerName: player.displayName,
+  });
+
+  registerDisconnectHandler(ws, room, playerId, logger);
+  return true;
+}
+
+function tryGracePeriodRecovery(
+  ws: WebSocket,
+  room: Room,
+  sanitizedName: string,
+  logger: FastifyBaseLogger,
+): boolean {
+  // Find disconnected seats in grace period matching this displayName
+  const matches: string[] = [];
+  for (const [playerId, player] of room.players) {
+    if (
+      !player.connected &&
+      room.graceTimers.has(playerId) &&
+      player.displayName === sanitizedName
+    ) {
+      matches.push(playerId);
+    }
+  }
+
+  if (matches.length !== 1) return false;
+
+  const playerId = matches[0];
+  const player = room.players.get(playerId)!;
+
+  // Cancel grace period timer
+  const graceTimer = room.graceTimers.get(playerId);
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    room.graceTimers.delete(playerId);
+  }
+
+  // Revoke old token and issue new one
+  revokeToken(room, playerId);
+  const newToken = createSessionToken(room, playerId);
+
+  // Restore connection
+  player.connected = true;
+  player.connectedAt = Date.now();
+
+  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
+  room.sessions.set(playerId, session);
+
+  logger.info(
+    { roomCode: room.roomCode, playerId, displayName: sanitizedName },
+    "Player restored via grace period recovery",
+  );
+
+  // Send full state with new token
+  const lobbyState = buildLobbyState(room, playerId);
+  const stateMessage: StateUpdateMessage = {
+    version: PROTOCOL_VERSION,
+    type: "STATE_UPDATE",
+    state: lobbyState,
+    token: newToken,
+  };
+  ws.send(JSON.stringify(stateMessage));
+
+  // Broadcast reconnection to others
+  broadcastStateToRoom(room, playerId, {
+    type: "PLAYER_RECONNECTED",
+    playerId,
+    playerName: sanitizedName,
+  });
+
+  registerDisconnectHandler(ws, room, playerId, logger);
+  return true;
+}
+
+function registerDisconnectHandler(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  logger: FastifyBaseLogger,
+): void {
+  ws.on("close", () => {
+    const player = room.players.get(playerId);
+    if (!player) return;
+
+    // Only act if this is the current session's WebSocket
+    const session = room.sessions.get(playerId);
+    if (session && session.ws !== ws) return;
+
+    player.connected = false;
+    logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
+
+    // Start grace period
+    const timer = setTimeout(() => {
+      room.graceTimers.delete(playerId);
+
+      // Release the seat
+      const token = room.playerTokens.get(playerId);
+      if (token) {
+        room.tokenMap.delete(token);
+        room.playerTokens.delete(playerId);
+      }
+      room.players.delete(playerId);
+      room.sessions.delete(playerId);
+
+      logger.info({ roomCode: room.roomCode, playerId }, "Grace period expired, seat released");
+
+      // Broadcast seat release to remaining players
+      broadcastStateToRoom(room);
+    }, getGracePeriodMs());
+
+    room.graceTimers.set(playerId, timer);
+
+    // Broadcast disconnected state to remaining players
+    broadcastStateToRoom(room);
+  });
+}
+
 export function handleJoinRoom(
   ws: WebSocket,
   message: Record<string, unknown>,
@@ -67,8 +253,6 @@ export function handleJoinRoom(
 ): void {
   // Validate roomCode
   const roomCode = message.roomCode;
-  const displayName = message.displayName;
-
   if (!roomCode || typeof roomCode !== "string") {
     sendError(ws, "MISSING_ROOM_CODE", "Room code is required");
     ws.close(4000, "MISSING_ROOM_CODE");
@@ -82,25 +266,30 @@ export function handleJoinRoom(
     return;
   }
 
-  // Validate displayName
-  if (!displayName || typeof displayName !== "string") {
+  // Token-based reconnection
+  const token = message.token;
+  if (token && typeof token === "string") {
+    if (handleTokenReconnection(ws, room, token, logger)) {
+      return;
+    }
+    // Invalid token — fall through to new player join
+    logger.warn({ roomCode: room.roomCode }, "Invalid token, treating as new player");
+  }
+
+  // Validate displayName (required for new joins)
+  const sanitizedName = sanitizeDisplayName(message.displayName);
+  if (!sanitizedName) {
     sendError(ws, "INVALID_DISPLAY_NAME", "Display name is required");
     ws.close(4000, "INVALID_DISPLAY_NAME");
     return;
   }
 
-  const sanitizedName = displayName
-    .replace(CONTROL_CHARS, "")
-    .trim()
-    .slice(0, MAX_DISPLAY_NAME_LENGTH);
-
-  if (sanitizedName.length === 0) {
-    sendError(ws, "INVALID_DISPLAY_NAME", "Display name is required");
-    ws.close(4000, "INVALID_DISPLAY_NAME");
+  // Grace period recovery: tokenless client with matching displayName
+  if (!token && tryGracePeriodRecovery(ws, room, sanitizedName, logger)) {
     return;
   }
 
-  // Check capacity
+  // Check capacity for new player
   const seat = assignNextSeat(room);
   if (!seat) {
     sendError(ws, "ROOM_FULL", "Room is full");
@@ -129,36 +318,30 @@ export function handleJoinRoom(
   };
   room.sessions.set(playerId, session);
 
+  // Generate session token
+  const sessionToken = createSessionToken(room, playerId);
+
   logger.info(
     { roomCode: room.roomCode, playerId, displayName: sanitizedName },
     "Player joined room",
   );
 
-  // Send STATE_UPDATE to the joining player
+  // Send STATE_UPDATE to the joining player (with token)
   const lobbyState = buildLobbyState(room, playerId);
   const stateMessage: StateUpdateMessage = {
     version: PROTOCOL_VERSION,
     type: "STATE_UPDATE",
     state: lobbyState,
+    token: sessionToken,
   };
   ws.send(JSON.stringify(stateMessage));
 
-  // Broadcast PLAYER_JOINED to all other players
+  // Broadcast PLAYER_JOINED to all other players (no token)
   broadcastStateToRoom(room, playerId, {
     type: "PLAYER_JOINED",
     playerId,
     playerName: sanitizedName,
   });
 
-  // Handle disconnection
-  ws.on("close", () => {
-    const player = room.players.get(playerId);
-    if (player) {
-      player.connected = false;
-      logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
-
-      // Broadcast updated state to remaining players
-      broadcastStateToRoom(room);
-    }
-  });
+  registerDisconnectHandler(ws, room, playerId, logger);
 }

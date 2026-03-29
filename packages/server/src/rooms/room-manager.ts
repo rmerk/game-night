@@ -23,6 +23,9 @@ export class RoomManager {
       hostToken,
       players: new Map(),
       sessions: new Map(),
+      tokenMap: new Map(),
+      playerTokens: new Map(),
+      graceTimers: new Map(),
       gamePhase: "lobby",
       createdAt: Date.now(),
       logger: roomLogger,
@@ -53,6 +56,16 @@ export class RoomManager {
       playerCount,
       phase: room.gamePhase,
     };
+  }
+
+  findPlayerByToken(token: string): { room: Room; playerId: string } | null {
+    for (const room of this.rooms.values()) {
+      const playerId = room.tokenMap.get(token);
+      if (playerId) {
+        return { room, playerId };
+      }
+    }
+    return null;
   }
 
   getActiveRoomCodes(): Set<string> {

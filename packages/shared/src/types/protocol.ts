@@ -44,3 +44,11 @@ export interface StateUpdateMessage {
   resolvedAction?: ResolvedAction;
   token?: string;
 }
+
+/** Server → Client: system event notification */
+export interface SystemEventMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "SYSTEM_EVENT";
+  event: "SESSION_SUPERSEDED";
+  message?: string;
+}
