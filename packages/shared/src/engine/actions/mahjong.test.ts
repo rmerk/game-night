@@ -1364,6 +1364,13 @@ describe("Deep copy callWindow in pendingMahjong (aliasing fix)", () => {
         tileIds: ["y"],
       });
 
+      // winningCall.tileIds should also be independent
+      if (state.callWindow.winningCall) {
+        const savedWinningTileIds = [...saved.winningCall!.tileIds];
+        state.callWindow.winningCall.tileIds.push("extra-tile");
+        expect(saved.winningCall!.tileIds).toEqual(savedWinningTileIds);
+      }
+
       // The saved copy must NOT be affected by the mutations above
       expect(saved.passes).toHaveLength(savedPassesLength);
       expect(saved.calls).toHaveLength(savedCallsLength);
