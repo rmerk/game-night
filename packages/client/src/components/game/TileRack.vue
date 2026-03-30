@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from "vue";
-import { DnDProvider, makeDraggable, makeDroppable, useDnDProvider } from "@vue-dnd-kit/core";
+import { computed, ref, h, watch, defineComponent, type PropType } from "vue";
+import { DnDProvider, makeDroppable, useDnDProvider } from "@vue-dnd-kit/core";
 import type { IDragEvent } from "@vue-dnd-kit/core";
 import type { Tile } from "@mahjong-game/shared";
-import TileComponent from "../tiles/Tile.vue";
 import type { TileState } from "../tiles/Tile.vue";
+import TileRackItem from "./TileRackItem.vue";
 import { useRackStore } from "../../stores/rack";
 
 const props = withDefaults(
@@ -76,19 +76,50 @@ function handleRackKeydown(event: KeyboardEvent) {
   }
 }
 
-// Drop handler for rack container
-const rackRef = useTemplateRef<HTMLElement>("rackRef");
+/**
+ * Renderless child component inside DnDProvider that configures keyboard
+ * and wires makeDroppable on the rack container. Must be a child of
+ * DnDProvider because Vue DnD Kit uses inject() internally.
+ */
+const RackDnDSetup = defineComponent({
+  name: "RackDnDSetup",
+  props: {
+    rackRef: { type: Object as PropType<{ value: HTMLElement | null }>, required: true },
+    tiles: { type: Array as PropType<Tile[]>, required: true },
+  },
+  setup(setupProps) {
+    const store = useRackStore();
 
-const handleDrop = (e: IDragEvent) => {
-  const sortResult = e.helpers.suggestSort("horizontal");
-  if (sortResult) {
-    rackStore.tileOrder = (sortResult.sourceItems as Tile[]).map((t: Tile) => t.id);
-  }
-};
+    const provider = useDnDProvider();
+    provider.keyboard.keys.forDrag = ["Space"];
+    provider.keyboard.keys.forMove = ["ArrowLeft", "ArrowRight"];
+    provider.keyboard.keys.forCancel = ["Escape"];
+
+    makeDroppable(
+      setupProps.rackRef as { value: HTMLElement | null },
+      {
+        events: {
+          onDrop: (e: IDragEvent) => {
+            const result = e.helpers.suggestSort("horizontal");
+            if (result) {
+              store.tileOrder = (result.sourceItems as Tile[]).map((t: Tile) => t.id);
+            }
+          },
+        },
+      },
+      () => setupProps.tiles!,
+    );
+
+    return () => null;
+  },
+});
+
+const rackRef = ref<HTMLElement | null>(null);
 </script>
 
 <template>
   <DnDProvider>
+    <RackDnDSetup :rack-ref="rackRef" :tiles="orderedTiles" />
     <div class="tile-rack-container">
       <div
         ref="rackRef"
@@ -97,20 +128,18 @@ const handleDrop = (e: IDragEvent) => {
         class="tile-rack"
         @keydown="handleRackKeydown"
       >
-        <div
-          v-for="(tile, index) in orderedTiles"
-          :key="tile.id"
-          role="listitem"
-          class="tile-rack__item"
-        >
-          <TileComponent
+        <TransitionGroup name="rack">
+          <TileRackItem
+            v-for="(tile, index) in orderedTiles"
+            :key="tile.id"
             :tile="tile"
+            :index="index"
+            :tiles="orderedTiles"
+            :is-player-turn="isPlayerTurn"
             :state="getTileState(tile)"
-            :interactive="isPlayerTurn"
-            size="standard"
             @select="handleTileSelect"
           />
-        </div>
+        </TransitionGroup>
       </div>
       <button
         type="button"
@@ -144,11 +173,6 @@ const handleDrop = (e: IDragEvent) => {
 
 .tile-rack::-webkit-scrollbar {
   display: none;
-}
-
-.tile-rack__item {
-  flex-shrink: 0;
-  min-width: 30px;
 }
 
 .tile-rack__sort-btn {

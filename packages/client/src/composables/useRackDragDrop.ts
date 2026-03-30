@@ -1,4 +1,4 @@
-import { computed, type Ref } from "vue";
+import { type Ref } from "vue";
 import { makeDraggable, makeDroppable } from "@vue-dnd-kit/core";
 import type { IDragEvent } from "@vue-dnd-kit/core";
 import type { Tile } from "@mahjong-game/shared";
@@ -13,16 +13,11 @@ export function useRackTileDraggable(
   itemRef: Ref<HTMLElement | null>,
   index: Ref<number>,
   tiles: Ref<Tile[]>,
-  isPlayerTurn: Ref<boolean>,
 ) {
-  const activation = computed(() =>
-    isPlayerTurn.value ? { distance: 10 } : { distance: Infinity },
-  );
-
   const result = makeDraggable(
     itemRef,
     {
-      activation: activation.value,
+      activation: { distance: 10 },
       events: {},
     },
     () => [index.value, tiles.value],

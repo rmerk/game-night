@@ -39,29 +39,29 @@ const isPlayerTurn = ref(true);
 
 <template>
   <TileSprite />
-  <div style="padding: 24px; background: #2a6b6b; min-height: 100vh; color: #e8e0d4">
-    <h1 style="margin-bottom: 24px; font-size: 24px">TileRack Showcase</h1>
+  <div class="p-6 min-h-screen bg-felt-teal text-text-on-felt">
+    <h1 class="mb-6 text-6">TileRack Showcase</h1>
 
-    <div style="margin-bottom: 16px">
-      <label style="font-size: 16px">
-        <input v-model="isPlayerTurn" type="checkbox" style="margin-right: 8px" />
+    <div class="mb-4">
+      <label class="text-4">
+        <input v-model="isPlayerTurn" type="checkbox" class="mr-2" />
         Player's turn (interactive)
       </label>
     </div>
 
-    <section style="margin-bottom: 48px">
-      <h2 style="margin-bottom: 12px; font-size: 18px">13-tile hand</h2>
+    <section class="mb-12">
+      <h2 class="mb-3 text-4.5">13-tile hand</h2>
       <TileRack :tiles="hand13" :is-player-turn="isPlayerTurn" />
     </section>
 
-    <section style="margin-bottom: 48px">
-      <h2 style="margin-bottom: 12px; font-size: 18px">14-tile hand (after draw)</h2>
+    <section class="mb-12">
+      <h2 class="mb-3 text-4.5">14-tile hand (after draw)</h2>
       <TileRack :tiles="hand14" :is-player-turn="isPlayerTurn" />
     </section>
 
     <section>
-      <h2 style="margin-bottom: 12px; font-size: 18px">Phone scroll test (resize to &lt;375px)</h2>
-      <div style="max-width: 375px; border: 2px dashed rgba(255, 255, 255, 0.3); padding: 8px">
+      <h2 class="mb-3 text-4.5">Phone scroll test (resize to &lt;375px)</h2>
+      <div class="max-w-375px border-2 border-dashed border-white/30 p-2">
         <TileRack :tiles="hand14" :is-player-turn="isPlayerTurn" />
       </div>
     </section>

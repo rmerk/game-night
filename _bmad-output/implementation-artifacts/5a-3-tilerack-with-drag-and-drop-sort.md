@@ -1,6 +1,6 @@
 # Story 5a.3: TileRack with Drag-and-Drop & Sort
 
-Status: review
+Status: done
 
 ## Story
 
@@ -249,6 +249,7 @@ For this story, `isPlayerTurn` can be a prop on TileRack. In production it will 
 ## Change Log
 
 - 2026-03-29: Implemented TileRack component with Pinia store, drag-drop composable, sort, selection, keyboard nav, passive state, phone scroll, and dev showcase. 40 new tests added.
+- 2026-03-30: [Code Review] Fixed 3 critical, 2 high, 3 medium issues. Wired up DnD (makeDraggable/makeDroppable were imported but never called). Created TileRackItem.vue wrapper for per-tile makeDraggable. Added RackDnDSetup child component for makeDroppable + keyboard config (useDnDProvider). Added TransitionGroup for smooth reorder animation. Fixed activation reactivity bug. Removed dead imports. Replaced hardcoded hex colors in RackShowcase with UnoCSS utilities.
 
 ## Dev Agent Record
 
@@ -281,6 +282,7 @@ Claude Opus 4.6
 - packages/client/src/composables/useRackDragDrop.ts
 - packages/client/src/composables/useRackDragDrop.test.ts
 - packages/client/src/components/game/TileRack.vue
+- packages/client/src/components/game/TileRackItem.vue (added in code review — per-tile DnD wrapper)
 - packages/client/src/components/game/TileRack.test.ts
 - packages/client/src/components/dev/RackShowcase.vue
 
