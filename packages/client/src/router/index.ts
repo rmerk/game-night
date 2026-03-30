@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { includeDevPages } from "../include-dev-pages";
 import HomeView from "../views/HomeView.vue";
 
-const devRoutes = import.meta.env.DEV
+const devRoutes = includeDevPages()
   ? [
       {
         path: "/dev/harness",
@@ -42,7 +43,7 @@ const devRoutes = import.meta.env.DEV
   : [];
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",

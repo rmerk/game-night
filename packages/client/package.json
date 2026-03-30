@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
+    "build:gh-pages": "vp build && node ./scripts/copy-spa-404.mjs",
     "test": "vp test run",
     "lint": "vp lint src/ && eslint src/",
     "typecheck": "vue-tsc --noEmit"

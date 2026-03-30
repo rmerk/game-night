@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import { createLobbyState, handleAction } from "@mahjong-game/shared";
 import type { GameState, GameAction, ActionResult } from "@mahjong-game/shared";
+import { includeDevPages, includeDevPagesEnabled } from "../../include-dev-pages";
 import TestHarness from "./TestHarness.vue";
 
 // Mirrors the dispatch logic in TestHarness.vue (without Vue reactivity overhead)
@@ -252,19 +253,15 @@ describe("TestHarness – dev-only gating (AC 6)", () => {
     expect(import.meta.env.DEV).toBe(true);
   });
 
-  it("dev routes array is populated when DEV is true", () => {
-    // Mirrors the conditional route registration logic in router/index.ts
-    const isDev = import.meta.env.DEV;
-    const devRoutes = isDev ? [{ path: "/dev/harness", name: "dev-harness" }] : [];
-
-    expect(devRoutes).toHaveLength(1);
-    expect(devRoutes[0]?.path).toBe("/dev/harness");
+  it("includeDevPages is true in test environment (DEV)", () => {
+    expect(includeDevPages()).toBe(true);
   });
 
-  it("dev routes array is empty when DEV is false", () => {
-    // Simulates production build behavior
-    const devRoutes: { path: string; name: string }[] = [];
-    expect(devRoutes).toHaveLength(0);
+  it("includeDevPagesEnabled matches router gating for flag combinations", () => {
+    expect(includeDevPagesEnabled(false, undefined)).toBe(false);
+    expect(includeDevPagesEnabled(false, "true")).toBe(true);
+    expect(includeDevPagesEnabled(true, undefined)).toBe(true);
+    expect(includeDevPagesEnabled(true, "false")).toBe(true);
   });
 });
 
