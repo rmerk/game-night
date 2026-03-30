@@ -6,6 +6,8 @@ import App from "./App.vue";
 import "./styles/theme.css";
 // oxlint-disable-next-line import/no-unassigned-import -- global typography defaults
 import "./styles/base.css";
+// oxlint-disable-next-line import/no-unassigned-import -- tile suit color custom properties
+import "./components/tiles/tile-assets/tiles.css";
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect import required by UnoCSS
 import "virtual:uno.css";
 

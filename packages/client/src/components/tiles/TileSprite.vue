@@ -1,0 +1,812 @@
+<script setup lang="ts">
+ /**
+ * Hidden SVG sprite provider — renders all tile <symbol> elements into the DOM.
+ * Mount once (e.g., in App.vue) so <use href="#bam-3"> works from any Tile component.
+ */
+</script>
+
+<template>
+  <svg
+    class="absolute h-0 w-0 overflow-hidden"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <!-- BAMBOO (BAM) — Green, stylized bamboo sticks -->
+    <symbol id="bam-1" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        1
+      </text>
+      <g transform="translate(30, 42)" fill="var(--tile-suit-bam, #2D8B46)">
+        <ellipse cx="0" cy="0" rx="10" ry="7" />
+        <circle cx="-4" cy="-3" r="1.5" fill="white" />
+        <circle cx="-4" cy="-3" r="0.8" fill="var(--tile-suit-bam, #2D8B46)" />
+        <path d="M6,-2 Q14,-8 10,-14 Q8,-10 6,-2" opacity="0.8" />
+        <path d="M-2,7 L0,16 L2,7" />
+        <path
+          d="M-6,-4 Q-10,-7 -8,-2"
+          stroke="var(--tile-suit-bam, #2D8B46)"
+          stroke-width="1.5"
+          fill="none"
+        />
+      </g>
+    </symbol>
+    <symbol id="bam-2" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        2
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="26" y="18" width="8" height="22" rx="4" />
+        <rect x="26" y="44" width="8" height="22" rx="4" />
+      </g>
+    </symbol>
+    <symbol id="bam-3" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        3
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="26" y="14" width="8" height="16" rx="4" />
+        <rect x="26" y="33" width="8" height="16" rx="4" />
+        <rect x="26" y="52" width="8" height="16" rx="4" />
+      </g>
+    </symbol>
+    <symbol id="bam-4" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        4
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="18" width="7" height="18" rx="3.5" />
+        <rect x="37" y="18" width="7" height="18" rx="3.5" />
+        <rect x="16" y="44" width="7" height="18" rx="3.5" />
+        <rect x="37" y="44" width="7" height="18" rx="3.5" />
+      </g>
+    </symbol>
+    <symbol id="bam-5" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        5
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="16" width="7" height="16" rx="3.5" />
+        <rect x="37" y="16" width="7" height="16" rx="3.5" />
+        <rect x="26" y="33" width="7" height="16" rx="3.5" />
+        <rect x="16" y="50" width="7" height="16" rx="3.5" />
+        <rect x="37" y="50" width="7" height="16" rx="3.5" />
+      </g>
+    </symbol>
+    <symbol id="bam-6" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        6
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="14" width="7" height="15" rx="3.5" />
+        <rect x="37" y="14" width="7" height="15" rx="3.5" />
+        <rect x="16" y="33" width="7" height="15" rx="3.5" />
+        <rect x="37" y="33" width="7" height="15" rx="3.5" />
+        <rect x="16" y="52" width="7" height="15" rx="3.5" />
+        <rect x="37" y="52" width="7" height="15" rx="3.5" />
+      </g>
+    </symbol>
+    <symbol id="bam-7" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        7
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="14" width="6" height="14" rx="3" />
+        <rect x="37" y="14" width="6" height="14" rx="3" />
+        <rect x="16" y="33" width="6" height="14" rx="3" />
+        <rect x="27" y="33" width="6" height="14" rx="3" />
+        <rect x="37" y="33" width="6" height="14" rx="3" />
+        <rect x="16" y="52" width="6" height="14" rx="3" />
+        <rect x="37" y="52" width="6" height="14" rx="3" />
+      </g>
+    </symbol>
+    <symbol id="bam-8" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        8
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="14" width="6" height="14" rx="3" />
+        <rect x="27" y="14" width="6" height="14" rx="3" />
+        <rect x="37" y="14" width="6" height="14" rx="3" />
+        <rect x="20" y="33" width="6" height="14" rx="3" />
+        <rect x="34" y="33" width="6" height="14" rx="3" />
+        <rect x="16" y="52" width="6" height="14" rx="3" />
+        <rect x="27" y="52" width="6" height="14" rx="3" />
+        <rect x="37" y="52" width="6" height="14" rx="3" />
+      </g>
+    </symbol>
+    <symbol id="bam-9" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-bam, #2D8B46)"
+      >
+        9
+      </text>
+      <g fill="var(--tile-suit-bam, #2D8B46)">
+        <rect x="16" y="14" width="6" height="13" rx="3" />
+        <rect x="27" y="14" width="6" height="13" rx="3" />
+        <rect x="37" y="14" width="6" height="13" rx="3" />
+        <rect x="16" y="33" width="6" height="13" rx="3" />
+        <rect x="27" y="33" width="6" height="13" rx="3" />
+        <rect x="37" y="33" width="6" height="13" rx="3" />
+        <rect x="16" y="52" width="6" height="13" rx="3" />
+        <rect x="27" y="52" width="6" height="13" rx="3" />
+        <rect x="37" y="52" width="6" height="13" rx="3" />
+      </g>
+    </symbol>
+
+    <!-- CRACKS (CRAK) — Red, Chinese numerals -->
+    <symbol id="crak-1" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        1
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        一
+      </text>
+    </symbol>
+    <symbol id="crak-2" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        2
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        二
+      </text>
+    </symbol>
+    <symbol id="crak-3" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        3
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        三
+      </text>
+    </symbol>
+    <symbol id="crak-4" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        4
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        四
+      </text>
+    </symbol>
+    <symbol id="crak-5" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        5
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        五
+      </text>
+    </symbol>
+    <symbol id="crak-6" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        6
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        六
+      </text>
+    </symbol>
+    <symbol id="crak-7" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        7
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        七
+      </text>
+    </symbol>
+    <symbol id="crak-8" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        8
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        八
+      </text>
+    </symbol>
+    <symbol id="crak-9" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-crak, #C23B22)"
+      >
+        9
+      </text>
+      <text
+        x="30"
+        y="52"
+        font-family="serif"
+        font-size="36"
+        font-weight="700"
+        fill="var(--tile-suit-crak, #C23B22)"
+        text-anchor="middle"
+      >
+        九
+      </text>
+    </symbol>
+
+    <!-- DOTS — Blue, geometric circles -->
+    <symbol id="dot-1" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        1
+      </text>
+      <circle cx="30" cy="42" r="12" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="42" r="6" fill="white" />
+    </symbol>
+    <symbol id="dot-2" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        2
+      </text>
+      <circle cx="30" cy="26" r="8" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="26" r="4" fill="white" />
+      <circle cx="30" cy="54" r="8" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="54" r="4" fill="white" />
+    </symbol>
+    <symbol id="dot-3" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        3
+      </text>
+      <circle cx="38" cy="24" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="38" cy="24" r="3.5" fill="white" />
+      <circle cx="30" cy="42" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="42" r="3.5" fill="white" />
+      <circle cx="22" cy="58" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="22" cy="58" r="3.5" fill="white" />
+    </symbol>
+    <symbol id="dot-4" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        4
+      </text>
+      <circle cx="20" cy="28" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="20" cy="28" r="3.5" fill="white" />
+      <circle cx="40" cy="28" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="40" cy="28" r="3.5" fill="white" />
+      <circle cx="20" cy="52" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="20" cy="52" r="3.5" fill="white" />
+      <circle cx="40" cy="52" r="7" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="40" cy="52" r="3.5" fill="white" />
+    </symbol>
+    <symbol id="dot-5" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        5
+      </text>
+      <circle cx="18" cy="24" r="6.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="24" r="3" fill="white" />
+      <circle cx="42" cy="24" r="6.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="24" r="3" fill="white" />
+      <circle cx="30" cy="42" r="6.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="42" r="3" fill="white" />
+      <circle cx="18" cy="58" r="6.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="58" r="3" fill="white" />
+      <circle cx="42" cy="58" r="6.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="58" r="3" fill="white" />
+    </symbol>
+    <symbol id="dot-6" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        6
+      </text>
+      <circle cx="20" cy="22" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="20" cy="22" r="3" fill="white" />
+      <circle cx="40" cy="22" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="40" cy="22" r="3" fill="white" />
+      <circle cx="20" cy="40" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="20" cy="40" r="3" fill="white" />
+      <circle cx="40" cy="40" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="40" cy="40" r="3" fill="white" />
+      <circle cx="20" cy="58" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="20" cy="58" r="3" fill="white" />
+      <circle cx="40" cy="58" r="6" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="40" cy="58" r="3" fill="white" />
+    </symbol>
+    <symbol id="dot-7" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        7
+      </text>
+      <circle cx="18" cy="20" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="20" r="2.5" fill="white" />
+      <circle cx="42" cy="20" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="20" r="2.5" fill="white" />
+      <circle cx="18" cy="40" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="40" r="2.5" fill="white" />
+      <circle cx="30" cy="40" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="40" r="2.5" fill="white" />
+      <circle cx="42" cy="40" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="40" r="2.5" fill="white" />
+      <circle cx="18" cy="60" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="60" r="2.5" fill="white" />
+      <circle cx="42" cy="60" r="5.5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="60" r="2.5" fill="white" />
+    </symbol>
+    <symbol id="dot-8" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        8
+      </text>
+      <circle cx="18" cy="18" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="18" r="2.5" fill="white" />
+      <circle cx="30" cy="18" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="18" r="2.5" fill="white" />
+      <circle cx="42" cy="18" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="18" r="2.5" fill="white" />
+      <circle cx="18" cy="35" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="35" r="2.5" fill="white" />
+      <circle cx="42" cy="35" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="35" r="2.5" fill="white" />
+      <circle cx="18" cy="52" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="18" cy="52" r="2.5" fill="white" />
+      <circle cx="42" cy="52" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="42" cy="52" r="2.5" fill="white" />
+      <circle cx="30" cy="66" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="66" r="2.5" fill="white" />
+    </symbol>
+    <symbol id="dot-9" viewBox="0 0 60 80">
+      <text
+        x="4"
+        y="14"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="12"
+        font-weight="600"
+        fill="var(--tile-suit-dot, #2E5FA1)"
+      >
+        9
+      </text>
+      <circle cx="16" cy="20" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="16" cy="20" r="2.5" fill="white" />
+      <circle cx="30" cy="20" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="20" r="2.5" fill="white" />
+      <circle cx="44" cy="20" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="44" cy="20" r="2.5" fill="white" />
+      <circle cx="16" cy="40" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="16" cy="40" r="2.5" fill="white" />
+      <circle cx="30" cy="40" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="40" r="2.5" fill="white" />
+      <circle cx="44" cy="40" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="44" cy="40" r="2.5" fill="white" />
+      <circle cx="16" cy="60" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="16" cy="60" r="2.5" fill="white" />
+      <circle cx="30" cy="60" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="30" cy="60" r="2.5" fill="white" />
+      <circle cx="44" cy="60" r="5" fill="var(--tile-suit-dot, #2E5FA1)" />
+      <circle cx="44" cy="60" r="2.5" fill="white" />
+    </symbol>
+
+    <!-- WINDS — Bold English letters with unique color accents -->
+    <symbol id="wind-north" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="54"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="38"
+        font-weight="800"
+        fill="#5A5550"
+        text-anchor="middle"
+        letter-spacing="-2"
+      >
+        N
+      </text>
+      <line x1="12" y1="62" x2="48" y2="62" stroke="#4A9B6E" stroke-width="2.5" />
+    </symbol>
+    <symbol id="wind-east" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="54"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="38"
+        font-weight="800"
+        fill="#5A5550"
+        text-anchor="middle"
+        letter-spacing="-2"
+      >
+        E
+      </text>
+      <line x1="12" y1="62" x2="48" y2="62" stroke="#C23B22" stroke-width="2.5" />
+    </symbol>
+    <symbol id="wind-west" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="54"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="38"
+        font-weight="800"
+        fill="#5A5550"
+        text-anchor="middle"
+        letter-spacing="-2"
+      >
+        W
+      </text>
+      <line x1="12" y1="62" x2="48" y2="62" stroke="#2E5FA1" stroke-width="2.5" />
+    </symbol>
+    <symbol id="wind-south" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="54"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="38"
+        font-weight="800"
+        fill="#5A5550"
+        text-anchor="middle"
+        letter-spacing="-2"
+      >
+        S
+      </text>
+      <line x1="12" y1="62" x2="48" y2="62" stroke="#D4A843" stroke-width="2.5" />
+    </symbol>
+
+    <!-- DRAGONS — Red: 中, Green: 發, Soap: bordered rectangle -->
+    <symbol id="dragon-red" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="56"
+        font-family="serif"
+        font-size="42"
+        font-weight="700"
+        fill="#C23B22"
+        text-anchor="middle"
+      >
+        中
+      </text>
+    </symbol>
+    <symbol id="dragon-green" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="56"
+        font-family="serif"
+        font-size="42"
+        font-weight="700"
+        fill="#2D8B46"
+        text-anchor="middle"
+      >
+        發
+      </text>
+    </symbol>
+    <symbol id="dragon-soap" viewBox="0 0 60 80">
+      <rect
+        x="12"
+        y="16"
+        width="36"
+        height="48"
+        rx="4"
+        fill="none"
+        stroke="#8B8278"
+        stroke-width="3"
+      />
+      <rect
+        x="20"
+        y="24"
+        width="20"
+        height="32"
+        rx="2"
+        fill="none"
+        stroke="#8B8278"
+        stroke-width="1.5"
+        stroke-dasharray="4 2"
+      />
+    </symbol>
+
+    <!-- FLOWERS — Distinct floral illustrations -->
+    <symbol id="flower-a" viewBox="0 0 60 80">
+      <g transform="translate(30, 38)">
+        <ellipse cx="0" cy="-10" rx="5" ry="8" fill="#E88CA5" />
+        <ellipse cx="10" cy="0" rx="8" ry="5" fill="#E88CA5" />
+        <ellipse cx="0" cy="10" rx="5" ry="8" fill="#E88CA5" />
+        <ellipse cx="-10" cy="0" rx="8" ry="5" fill="#E88CA5" />
+        <circle cx="0" cy="0" r="5" fill="#D4A843" />
+      </g>
+      <line x1="30" y1="50" x2="30" y2="68" stroke="#2D8B46" stroke-width="2" />
+      <ellipse cx="36" cy="60" rx="5" ry="3" fill="#2D8B46" opacity="0.7" />
+      <text
+        x="8"
+        y="16"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="10"
+        font-weight="600"
+        fill="#E88CA5"
+      >
+        A
+      </text>
+    </symbol>
+    <symbol id="flower-b" viewBox="0 0 60 80">
+      <g transform="translate(30, 38)">
+        <ellipse cx="0" cy="-11" rx="4" ry="7" fill="#7B68AE" />
+        <ellipse cx="8" cy="-7" rx="4" ry="7" fill="#7B68AE" transform="rotate(50 8 -7)" />
+        <ellipse cx="10" cy="3" rx="4" ry="7" fill="#7B68AE" transform="rotate(90 10 3)" />
+        <ellipse cx="5" cy="10" rx="4" ry="7" fill="#7B68AE" transform="rotate(130 5 10)" />
+        <ellipse cx="-5" cy="10" rx="4" ry="7" fill="#7B68AE" transform="rotate(-130 -5 10)" />
+        <ellipse cx="-10" cy="3" rx="4" ry="7" fill="#7B68AE" transform="rotate(-90 -10 3)" />
+        <ellipse cx="-8" cy="-7" rx="4" ry="7" fill="#7B68AE" transform="rotate(-50 -8 -7)" />
+        <circle cx="0" cy="0" r="4.5" fill="#D4A843" />
+      </g>
+      <line x1="30" y1="50" x2="30" y2="68" stroke="#2D8B46" stroke-width="2" />
+      <ellipse cx="24" cy="58" rx="5" ry="3" fill="#2D8B46" opacity="0.7" />
+      <text
+        x="8"
+        y="16"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="10"
+        font-weight="600"
+        fill="#7B68AE"
+      >
+        B
+      </text>
+    </symbol>
+
+    <!-- JOKER — Bold, playful -->
+    <symbol id="joker" viewBox="0 0 60 80">
+      <text
+        x="30"
+        y="36"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="14"
+        font-weight="800"
+        fill="#C4A35A"
+        text-anchor="middle"
+        letter-spacing="-0.5"
+      >
+        JOKER
+      </text>
+      <g transform="translate(30, 54)" fill="#C4A35A">
+        <circle cx="-10" cy="-6" r="3" />
+        <circle cx="10" cy="-6" r="3" />
+        <circle cx="0" cy="-10" r="3" />
+        <path d="M-14,-3 Q-10,-14 0,-7 Q10,-14 14,-3 Q10,2 0,0 Q-10,2 -14,-3Z" opacity="0.8" />
+      </g>
+      <path
+        d="M22,60 Q30,68 38,60"
+        stroke="#C4A35A"
+        stroke-width="2"
+        fill="none"
+        stroke-linecap="round"
+      />
+    </symbol>
+
+    <!-- TILE BACK — Felt-colored with crosshatch pattern -->
+    <symbol id="tile-back" viewBox="0 0 60 80">
+      <rect x="4" y="4" width="52" height="72" rx="6" fill="#2A6B6B" />
+      <g stroke="#3A8B8B" stroke-width="0.8" opacity="0.6">
+        <line x1="10" y1="4" x2="56" y2="50" />
+        <line x1="4" y1="16" x2="50" y2="62" />
+        <line x1="4" y1="32" x2="44" y2="72" />
+        <line x1="4" y1="48" x2="38" y2="76" />
+        <line x1="50" y1="4" x2="4" y2="50" />
+        <line x1="56" y1="16" x2="10" y2="62" />
+        <line x1="56" y1="32" x2="16" y2="72" />
+        <line x1="56" y1="48" x2="22" y2="76" />
+      </g>
+      <circle cx="30" cy="40" r="8" fill="none" stroke="#C4A35A" stroke-width="1.5" />
+      <circle cx="30" cy="40" r="3" fill="#C4A35A" />
+    </symbol>
+  </svg>
+</template>

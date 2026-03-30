@@ -13,6 +13,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-theme",
         component: () => import("../components/dev/ThemeShowcase.vue"),
       },
+      {
+        path: "/dev/tiles",
+        name: "dev-tiles",
+        component: () => import("../components/dev/TileShowcase.vue"),
+      },
     ]
   : [];
 

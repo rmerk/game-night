@@ -1,0 +1,19 @@
+/* ==========================================================================
+   Tile CSS Custom Properties
+   Maps to design token values from design-tokens.ts for SVG theming.
+   ========================================================================== */
+
+:root {
+  /* Suit colors — used by SVG fill via var() fallbacks */
+  --tile-suit-bam: #2d8b46;
+  --tile-suit-crak: #c23b22;
+  --tile-suit-dot: #2e5fa1;
+
+  /* Tile base styling */
+  --tile-base-bg: #ffffff;
+  --tile-base-border: #e8e0d4;
+  --tile-back-bg: #2a6b6b;
+
+  /* Accent — selected state border and focus ring */
+  --tile-accent-gold: #c4a35a;
+}

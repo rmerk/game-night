@@ -1,6 +1,6 @@
 # Story 5A.2: Tile Component & SVG Sprite Sheet
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -24,64 +24,64 @@ So that **I can identify every tile at a glance on both desktop and mobile (UX-D
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create SVG sprite sheet with all tile faces (AC: #1, #6)
-  - [ ] 1.1 Create `packages/client/src/components/tiles/tile-assets/tiles.svg` with all 152 tile faces as `<symbol>` elements
-  - [ ] 1.2 Use kebab-case IDs matching tile type system: `bam-1` through `bam-9`, `crak-1` through `crak-9`, `dot-1` through `dot-9`, `wind-north`, `wind-east`, `wind-west`, `wind-south`, `dragon-red`, `dragon-green`, `dragon-soap`, `flower-a`, `flower-b`, `joker`
-  - [ ] 1.3 Include Arabic numeral corner indices on all suited tiles (Craks, Bams, Dots) for accessibility — must be readable at 30px tile width
-  - [ ] 1.4 Apply color-blind safe design: each suit has unique shape/pattern distinguishers (bamboo sticks, Chinese numerals, circles) IN ADDITION to color
-  - [ ] 1.5 Design tile back pattern as a separate `<symbol id="tile-back">`
+- [x] Task 1: Create SVG sprite sheet with all tile faces (AC: #1, #6)
+  - [x]1.1 Create `packages/client/src/components/tiles/tile-assets/tiles.svg` with all 152 tile faces as `<symbol>` elements
+  - [x]1.2 Use kebab-case IDs matching tile type system: `bam-1` through `bam-9`, `crak-1` through `crak-9`, `dot-1` through `dot-9`, `wind-north`, `wind-east`, `wind-west`, `wind-south`, `dragon-red`, `dragon-green`, `dragon-soap`, `flower-a`, `flower-b`, `joker`
+  - [x]1.3 Include Arabic numeral corner indices on all suited tiles (Craks, Bams, Dots) for accessibility — must be readable at 30px tile width
+  - [x]1.4 Apply color-blind safe design: each suit has unique shape/pattern distinguishers (bamboo sticks, Chinese numerals, circles) IN ADDITION to color
+  - [x]1.5 Design tile back pattern as a separate `<symbol id="tile-back">`
 
-- [ ] Task 2: Create `tiles.css` with CSS custom properties for suit colors (AC: #1)
-  - [ ] 2.1 Create `packages/client/src/components/tiles/tile-assets/tiles.css` with CSS custom properties that map to design tokens from `design-tokens.ts`
-  - [ ] 2.2 Properties: `--tile-suit-bam` (#2D8B46), `--tile-suit-crak` (#C23B22), `--tile-suit-dot` (#2E5FA1) — reference the UnoCSS token values
-  - [ ] 2.3 Include `--tile-base-bg` (white), `--tile-base-border`, `--tile-back-pattern` properties for theming
+- [x] Task 2: Create `tiles.css` with CSS custom properties for suit colors (AC: #1)
+  - [x]2.1 Create `packages/client/src/components/tiles/tile-assets/tiles.css` with CSS custom properties that map to design tokens from `design-tokens.ts`
+  - [x]2.2 Properties: `--tile-suit-bam` (#2D8B46), `--tile-suit-crak` (#C23B22), `--tile-suit-dot` (#2E5FA1) — reference the UnoCSS token values
+  - [x]2.3 Include `--tile-base-bg` (white), `--tile-base-border`, `--tile-back-pattern` properties for theming
 
-- [ ] Task 3: Create Tile.vue component (AC: #2, #3, #4, #5)
-  - [ ] 3.1 Create `packages/client/src/components/tiles/Tile.vue` using `<script setup lang="ts">`
-  - [ ] 3.2 Props: `tile: Tile` (from `@mahjong-game/shared`), `size: 'standard' | 'small' | 'celebration'` (default: `'standard'`), `state: 'default' | 'hover' | 'selected' | 'disabled' | 'face-down'` (default: `'default'`), `interactive: boolean` (default: `true`)
-  - [ ] 3.3 Render using `<svg><use :href="spriteHref" /></svg>` pattern where `spriteHref` is computed from tile properties
-  - [ ] 3.4 Map tile to SVG symbol ID: suited tiles → `{suit}-{value}`, winds → `wind-{value}`, dragons → `dragon-{value}`, flowers → `flower-{value}`, jokers → `joker`
-  - [ ] 3.5 Apply white base background, `shadow-tile`, `radius-lg` (12px) for acrylic look
-  - [ ] 3.6 Set `role="button"` when interactive, `aria-label` computed from tile (e.g., "3 of Bamboo", "North Wind", "Red Dragon", "Flower A", "Joker")
-  - [ ] 3.7 Face-down state: render `<use href="#tile-back">` instead of tile face
+- [x] Task 3: Create Tile.vue component (AC: #2, #3, #4, #5)
+  - [x]3.1 Create `packages/client/src/components/tiles/Tile.vue` using `<script setup lang="ts">`
+  - [x]3.2 Props: `tile: Tile` (from `@mahjong-game/shared`), `size: 'standard' | 'small' | 'celebration'` (default: `'standard'`), `state: 'default' | 'hover' | 'selected' | 'disabled' | 'face-down'` (default: `'default'`), `interactive: boolean` (default: `true`)
+  - [x]3.3 Render using `<svg><use :href="spriteHref" /></svg>` pattern where `spriteHref` is computed from tile properties
+  - [x]3.4 Map tile to SVG symbol ID: suited tiles → `{suit}-{value}`, winds → `wind-{value}`, dragons → `dragon-{value}`, flowers → `flower-{value}`, jokers → `joker`
+  - [x]3.5 Apply white base background, `shadow-tile`, `radius-lg` (12px) for acrylic look
+  - [x]3.6 Set `role="button"` when interactive, `aria-label` computed from tile (e.g., "3 of Bamboo", "North Wind", "Red Dragon", "Flower A", "Joker")
+  - [x]3.7 Face-down state: render `<use href="#tile-back">` instead of tile face
 
-- [ ] Task 4: Implement tile states with CSS/UnoCSS (AC: #3)
-  - [ ] 4.1 Default state: flat on surface, no transform
-  - [ ] 4.2 Hover state (desktop only via `@media (hover: hover)`): `translateY(-4px)` with `timing-tactile` (120ms) transition
-  - [ ] 4.3 Selected state: `translateY(-8px)` + gold border (`gold-accent` token) with `timing-tactile` transition
-  - [ ] 4.4 Disabled state: `opacity: 0.5`, `pointer-events: none`
-  - [ ] 4.5 Use CSS custom properties from `theme.css` for timing: `var(--timing-tactile)`, `var(--ease-tactile)`
-  - [ ] 4.6 All transitions respect `prefers-reduced-motion` (already overridden to 0ms in theme.css)
+- [x] Task 4: Implement tile states with CSS/UnoCSS (AC: #3)
+  - [x]4.1 Default state: flat on surface, no transform
+  - [x]4.2 Hover state (desktop only via `@media (hover: hover)`): `translateY(-4px)` with `timing-tactile` (120ms) transition
+  - [x]4.3 Selected state: `translateY(-8px)` + gold border (`gold-accent` token) with `timing-tactile` transition
+  - [x]4.4 Disabled state: `opacity: 0.5`, `pointer-events: none`
+  - [x]4.5 Use CSS custom properties from `theme.css` for timing: `var(--timing-tactile)`, `var(--ease-tactile)`
+  - [x]4.6 All transitions respect `prefers-reduced-motion` (already overridden to 0ms in theme.css)
 
-- [ ] Task 5: Implement size variants (AC: #4)
-  - [ ] 5.1 `standard`: width ~50px (for player rack on iPad landscape)
-  - [ ] 5.2 `small`: width 30px (`tile-min-width` — for exposed groups, discard pools)
-  - [ ] 5.3 `celebration`: width ~70px (for fan-out display)
-  - [ ] 5.4 Maintain aspect ratio across all sizes (tiles are taller than wide, ~3:4 ratio)
-  - [ ] 5.5 Ensure SVG symbols scale cleanly at all sizes without pixel artifacts
+- [x] Task 5: Implement size variants (AC: #4)
+  - [x]5.1 `standard`: width ~50px (for player rack on iPad landscape)
+  - [x]5.2 `small`: width 30px (`tile-min-width` — for exposed groups, discard pools)
+  - [x]5.3 `celebration`: width ~70px (for fan-out display)
+  - [x]5.4 Maintain aspect ratio across all sizes (tiles are taller than wide, ~3:4 ratio)
+  - [x]5.5 Ensure SVG symbols scale cleanly at all sizes without pixel artifacts
 
-- [ ] Task 6: Create TileBack.vue component (AC: #3)
-  - [ ] 6.1 Create `packages/client/src/components/tiles/TileBack.vue` for concealed/face-down tiles
-  - [ ] 6.2 Render tile back pattern with same base styling (white base, shadow, radius) as Tile.vue
-  - [ ] 6.3 Accept `size` prop matching Tile.vue variants
+- [x] Task 6: Create TileBack.vue component (AC: #3)
+  - [x]6.1 Create `packages/client/src/components/tiles/TileBack.vue` for concealed/face-down tiles
+  - [x]6.2 Render tile back pattern with same base styling (white base, shadow, radius) as Tile.vue
+  - [x]6.3 Accept `size` prop matching Tile.vue variants
 
-- [ ] Task 7: Write unit tests (AC: all)
-  - [ ] 7.1 Create `packages/client/src/components/tiles/Tile.test.ts`
-  - [ ] 7.2 Test SVG symbol ID mapping for each tile category (suited, wind, dragon, flower, joker)
-  - [ ] 7.3 Test `aria-label` generation for each tile type
-  - [ ] 7.4 Test size variant class application
-  - [ ] 7.5 Test state class application (default, hover, selected, disabled, face-down)
-  - [ ] 7.6 Test face-down renders tile-back symbol instead of tile face
-  - [ ] 7.7 Test `role="button"` present when interactive, absent when not
-  - [ ] 7.8 Verify sprite sheet contains all 152 symbols (parse SVG file)
-  - [ ] 7.9 Create `packages/client/src/components/tiles/TileBack.test.ts` with size variant tests
+- [x] Task 7: Write unit tests (AC: all)
+  - [x]7.1 Create `packages/client/src/components/tiles/Tile.test.ts`
+  - [x]7.2 Test SVG symbol ID mapping for each tile category (suited, wind, dragon, flower, joker)
+  - [x]7.3 Test `aria-label` generation for each tile type
+  - [x]7.4 Test size variant class application
+  - [x]7.5 Test state class application (default, hover, selected, disabled, face-down)
+  - [x]7.6 Test face-down renders tile-back symbol instead of tile face
+  - [x]7.7 Test `role="button"` present when interactive, absent when not
+  - [x]7.8 Verify sprite sheet contains all 152 symbols (parse SVG file)
+  - [x]7.9 Create `packages/client/src/components/tiles/TileBack.test.ts` with size variant tests
 
-- [ ] Task 8: Create dev showcase route for visual verification (AC: all)
-  - [ ] 8.1 Create `packages/client/src/components/dev/TileShowcase.vue` displaying all unique tile faces at each size variant
-  - [ ] 8.2 Show all 34 unique faces: 27 suited (9 bam + 9 crak + 9 dot), 4 winds, 3 dragons, 2 flowers, 1 joker, plus tile back
-  - [ ] 8.3 Display tile state variations (default, hover, selected, disabled, face-down)
-  - [ ] 8.4 Add route `/dev/tiles` gated on `import.meta.env.DEV` (same pattern as `/dev/theme`)
-  - [ ] 8.5 Include 30px minimum width rendering for readability validation (story 5A.10 dependency)
+- [x]Task 8: Create dev showcase route for visual verification (AC: all)
+  - [x]8.1 Create `packages/client/src/components/dev/TileShowcase.vue` displaying all unique tile faces at each size variant
+  - [x]8.2 Show all 34 unique faces: 27 suited (9 bam + 9 crak + 9 dot), 4 winds, 3 dragons, 2 flowers, 1 joker, plus tile back
+  - [x]8.3 Display tile state variations (default, hover, selected, disabled, face-down)
+  - [x]8.4 Add route `/dev/tiles` gated on `import.meta.env.DEV` (same pattern as `/dev/theme`)
+  - [x]8.5 Include 30px minimum width rendering for readability validation (story 5A.10 dependency)
 
 ## Dev Notes
 
@@ -292,8 +292,38 @@ packages/client/src/components/dev/
 
 ### Agent Model Used
 
+Claude Opus 4.6
+
 ### Debug Log References
+
+- No blocking issues encountered during implementation.
+- Pre-existing 4 test failures in `theme.test.ts` (hex case sensitivity `#E8896E` vs `#e8896e`) — unrelated to this story.
 
 ### Completion Notes List
 
+- Created SVG sprite sheet with 38 symbols (27 suited + 4 winds + 3 dragons + 2 flowers + 1 joker + 1 tile-back)
+- Created TileSprite.vue provider component that inlines all symbols into the DOM (avoids v-html, compliant with no-v-html eslint rule)
+- Created Tile.vue with full state support (default, hover, selected, disabled, face-down), 3 size variants (standard 50px, small 30px, celebration 70px), accessibility markup (role, aria-label, keyboard navigation)
+- Created TileBack.vue standalone component for face-down tiles
+- Created tiles.css with CSS custom properties for suit colors
+- Created TileShowcase.vue dev page at /dev/tiles with all faces, sizes, states, and 30px readability validation section
+- 45 new tests: symbol ID mapping, aria-label generation, size variants, state classes, face-down rendering, accessibility roles, click/keyboard interactions, sprite sheet symbol coverage (both component and file)
+- Full regression: shared 591 passed, client 94 passed (4 pre-existing failures in theme.test.ts)
+
+### Change Log
+
+- 2026-03-29: Implemented story 5A.2 — Tile component, SVG sprite sheet, TileBack, TileShowcase, 45 tests
+- 2026-03-29: Code review — replaced hardcoded #c4a35a hex with var(--tile-accent-gold) CSS custom property in Tile.vue (anti-pattern compliance). Added --tile-accent-gold to tiles.css.
+
 ### File List
+
+- packages/client/src/components/tiles/tile-assets/tiles.svg (NEW)
+- packages/client/src/components/tiles/tile-assets/tiles.css (NEW)
+- packages/client/src/components/tiles/TileSprite.vue (NEW)
+- packages/client/src/components/tiles/Tile.vue (NEW)
+- packages/client/src/components/tiles/TileBack.vue (NEW)
+- packages/client/src/components/tiles/Tile.test.ts (NEW)
+- packages/client/src/components/tiles/TileBack.test.ts (NEW)
+- packages/client/src/components/dev/TileShowcase.vue (NEW)
+- packages/client/src/router/index.ts (MODIFIED — added /dev/tiles route)
+- packages/client/src/main.ts (MODIFIED — import tiles.css)
