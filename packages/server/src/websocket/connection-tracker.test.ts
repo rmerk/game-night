@@ -14,7 +14,7 @@ describe("ConnectionTracker", () => {
       const tracker = new ConnectionTracker();
       const ws = createMockWs();
 
-      tracker.addConnection(ws);
+      tracker.addConnection(ws, "127.0.0.1");
 
       expect(tracker.getConnectionCount()).toBe(1);
     });
@@ -24,8 +24,8 @@ describe("ConnectionTracker", () => {
       const ws1 = createMockWs();
       const ws2 = createMockWs();
 
-      tracker.addConnection(ws1);
-      tracker.addConnection(ws2);
+      tracker.addConnection(ws1, "127.0.0.1");
+      tracker.addConnection(ws2, "127.0.0.1");
 
       expect(tracker.getConnectionCount()).toBe(2);
     });
@@ -35,7 +35,7 @@ describe("ConnectionTracker", () => {
       const ws = createMockWs();
       const before = Date.now();
 
-      tracker.addConnection(ws);
+      tracker.addConnection(ws, "127.0.0.1");
 
       const connections = tracker.getAllConnections();
       const tracked = connections.get(ws);
@@ -50,7 +50,7 @@ describe("ConnectionTracker", () => {
       const tracker = new ConnectionTracker();
       const ws = createMockWs();
 
-      tracker.addConnection(ws);
+      tracker.addConnection(ws, "127.0.0.1");
       expect(tracker.getConnectionCount()).toBe(1);
 
       tracker.removeConnection(ws);
@@ -71,11 +71,58 @@ describe("ConnectionTracker", () => {
       const tracker = new ConnectionTracker();
       const ws = createMockWs();
 
-      tracker.addConnection(ws);
+      tracker.addConnection(ws, "127.0.0.1");
       expect(tracker.getConnectionCount()).toBe(1);
 
       ws.emit("close");
       expect(tracker.getConnectionCount()).toBe(0);
+    });
+  });
+
+  describe("per-IP tracking", () => {
+    it("tracks connection count per IP", () => {
+      const tracker = new ConnectionTracker();
+      const ws1 = createMockWs();
+      const ws2 = createMockWs();
+
+      tracker.addConnection(ws1, "192.168.1.1");
+      tracker.addConnection(ws2, "192.168.1.1");
+
+      expect(tracker.getConnectionCountByIp("192.168.1.1")).toBe(2);
+    });
+
+    it("decrements count when connection closes", () => {
+      const tracker = new ConnectionTracker();
+      const ws = createMockWs();
+
+      tracker.addConnection(ws, "192.168.1.1");
+      expect(tracker.getConnectionCountByIp("192.168.1.1")).toBe(1);
+
+      tracker.removeConnection(ws);
+      expect(tracker.getConnectionCountByIp("192.168.1.1")).toBe(0);
+    });
+
+    it("rejects connections exceeding per-IP limit", () => {
+      const tracker = new ConnectionTracker({ maxConnectionsPerIp: 5 });
+      const ip = "10.0.0.1";
+
+      for (let i = 0; i < 5; i++) {
+        expect(tracker.canConnect(ip)).toBe(true);
+        tracker.addConnection(createMockWs(), ip);
+      }
+
+      expect(tracker.canConnect(ip)).toBe(false);
+    });
+
+    it("allows connections from different IPs independently", () => {
+      const tracker = new ConnectionTracker({ maxConnectionsPerIp: 2 });
+
+      tracker.addConnection(createMockWs(), "10.0.0.1");
+      tracker.addConnection(createMockWs(), "10.0.0.1");
+      tracker.addConnection(createMockWs(), "10.0.0.2");
+
+      expect(tracker.canConnect("10.0.0.1")).toBe(false);
+      expect(tracker.canConnect("10.0.0.2")).toBe(true);
     });
   });
 
@@ -85,8 +132,8 @@ describe("ConnectionTracker", () => {
       const ws1 = createMockWs();
       const ws2 = createMockWs();
 
-      tracker.addConnection(ws1);
-      tracker.addConnection(ws2);
+      tracker.addConnection(ws1, "127.0.0.1");
+      tracker.addConnection(ws2, "127.0.0.1");
 
       const all = tracker.getAllConnections();
       expect(all.size).toBe(2);

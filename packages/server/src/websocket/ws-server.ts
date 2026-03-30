@@ -46,10 +46,21 @@ export function setupWebSocketServer(
     });
   }, HEARTBEAT_INTERVAL_MS);
 
-  wss.on("connection", (ws: WebSocket) => {
+  wss.on("connection", (ws: WebSocket, req) => {
+    const ip =
+      req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() ??
+      req.socket.remoteAddress ??
+      "unknown";
+
+    if (!connectionTracker.canConnect(ip)) {
+      logger.warn({ ip }, "Connection rejected: per-IP limit exceeded");
+      ws.close(4029, "TOO_MANY_CONNECTIONS");
+      return;
+    }
+
     ws.isAlive = true;
-    connectionTracker.addConnection(ws);
-    logger.info("WebSocket connection opened");
+    connectionTracker.addConnection(ws, ip);
+    logger.info({ ip }, "WebSocket connection opened");
 
     ws.on("pong", () => {
       ws.isAlive = true;
