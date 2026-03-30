@@ -87,20 +87,16 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 - [ ] Run `vp check` and `vp test` to validate changes.
 <!--VITE PLUS END-->
 
-<!-- RALPH OPERATIONAL GUIDE -->
+## Running Tests
+
+- **All packages:** `pnpm test` (from repo root, runs `pnpm -r test` across shared, client, server)
+- **Single package:** `pnpm --filter @mahjong-game/shared test` (or `client`, `server`)
+- **Single test file:** `cd packages/<pkg> && vp test run src/path/to/file.test.ts`
+
+Each package's test script is `vp test run`. Do not use `npx vitest` directly.
 
 ## Backpressure Gate (run before every commit)
 
 ```
-pnpm -r test && pnpm run typecheck && vp lint
+pnpm test && pnpm run typecheck && vp lint
 ```
-
-## Key Locations
-
-- Project rules: \_bmad-output/project-context.md
-- Story files: \_bmad-output/implementation-artifacts/
-- Sprint tracking: \_bmad-output/implementation-artifacts/sprint-status.yaml
-
-## Learnings
-
-<!-- Append operational discoveries here. Keep brief. No status or progress notes. -->

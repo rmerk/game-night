@@ -84,7 +84,8 @@ function handleRackKeydown(event: KeyboardEvent) {
 const RackDnDSetup = defineComponent({
   name: "RackDnDSetup",
   props: {
-    rackRef: { type: Object as PropType<{ value: HTMLElement | null }>, required: true },
+    // Untyped: vue-tsc unwraps template refs, but Vue passes the Ref object at runtime
+    rackRef: { required: true },
     tiles: { type: Array as PropType<Tile[]>, required: true },
   },
   setup(setupProps) {
@@ -95,8 +96,9 @@ const RackDnDSetup = defineComponent({
     provider.keyboard.keys.forMove = ["ArrowLeft", "ArrowRight"];
     provider.keyboard.keys.forCancel = ["Escape"];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vue-dnd-kit expects Ref but vue template passes unwrapped ref object
     makeDroppable(
-      setupProps.rackRef as { value: HTMLElement | null },
+      setupProps.rackRef as any,
       {
         events: {
           onDrop: (e: IDragEvent) => {

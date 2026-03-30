@@ -1,0 +1,76 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import GameTable from "../game/GameTable.vue";
+import TileSprite from "../tiles/TileSprite.vue";
+import type {
+  SuitedTile,
+  WindTile,
+  DragonTile,
+  FlowerTile,
+  JokerTile,
+  Tile,
+} from "@mahjong-game/shared";
+
+const mockTiles: Tile[] = [
+  { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+  { id: "bam-3-2", category: "suited", suit: "bam", value: 3, copy: 2 } as SuitedTile,
+  { id: "joker-1", category: "joker", copy: 1 } as JokerTile,
+  { id: "crak-5-1", category: "suited", suit: "crak", value: 5, copy: 1 } as SuitedTile,
+  { id: "wind-north-1", category: "wind", value: "north", copy: 1 } as WindTile,
+  { id: "bam-1-1", category: "suited", suit: "bam", value: 1, copy: 1 } as SuitedTile,
+  { id: "dragon-red-1", category: "dragon", value: "red", copy: 1 } as DragonTile,
+  { id: "dot-3-1", category: "suited", suit: "dot", value: 3, copy: 1 } as SuitedTile,
+  { id: "crak-9-1", category: "suited", suit: "crak", value: 9, copy: 1 } as SuitedTile,
+  { id: "flower-a-1", category: "flower", value: "a", copy: 1 } as FlowerTile,
+  { id: "bam-7-1", category: "suited", suit: "bam", value: 7, copy: 1 } as SuitedTile,
+  { id: "wind-east-1", category: "wind", value: "east", copy: 1 } as WindTile,
+  { id: "dot-1-1", category: "suited", suit: "dot", value: 1, copy: 1 } as SuitedTile,
+];
+
+const fourPlayers = {
+  top: { name: "Alice", initial: "A", connected: true },
+  left: { name: "Bob", initial: "B", connected: true },
+  right: { name: "Carol", initial: "C", connected: false },
+};
+
+const threePlayers = {
+  top: { name: "Alice", initial: "A", connected: true },
+  left: null,
+  right: { name: "Carol", initial: "C", connected: true },
+};
+
+type Scenario = "4-players" | "3-players";
+const activeScenario = ref<Scenario>("4-players");
+
+const scenarios: { key: Scenario; label: string }[] = [
+  { key: "4-players", label: "4 Players (1 disconnected)" },
+  { key: "3-players", label: "3 Players (1 waiting)" },
+];
+
+const opponents = {
+  "4-players": fourPlayers,
+  "3-players": threePlayers,
+};
+</script>
+
+<template>
+  <TileSprite />
+  <div
+    class="fixed top-0 left-0 right-0 z-50 bg-chrome-surface-dark/90 p-2 flex gap-2 items-center"
+  >
+    <span class="text-text-on-felt text-3.5 font-semibold mr-2">GameTable Showcase</span>
+    <button
+      v-for="scenario in scenarios"
+      :key="scenario.key"
+      class="min-tap px-3 py-1 rounded-md text-3 text-text-on-felt"
+      :class="activeScenario === scenario.key ? 'bg-state-success' : 'bg-chrome-surface'"
+      @click="activeScenario = scenario.key"
+    >
+      {{ scenario.label }}
+    </button>
+  </div>
+
+  <div class="pt-12">
+    <GameTable :opponents="opponents[activeScenario]" :tiles="mockTiles" :is-player-turn="true" />
+  </div>
+</template>

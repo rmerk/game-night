@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-30 # 5a-3-tilerack-with-drag-and-drop-sort → done (code review fixes applied)
+last_updated: 2026-03-30 # 5a-4-game-table-layout-immersive-table → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -93,7 +93,7 @@ development_status:
   5a-1-design-system-foundation: done
   5a-2-tile-component-svg-sprite-sheet: done
   5a-3-tilerack-with-drag-and-drop-sort: done
-  5a-4-game-table-layout-immersive-table: backlog
+  5a-4-game-table-layout-immersive-table: done
   5a-5-discard-pool-two-step-discard-interaction: backlog
   5a-6-action-zone-call-buttons: backlog
   5a-7-mahjong-button-declaration-ui: backlog

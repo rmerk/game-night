@@ -23,6 +23,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-rack",
         component: () => import("../components/dev/RackShowcase.vue"),
       },
+      {
+        path: "/dev/table",
+        name: "dev-table",
+        component: () => import("../components/dev/GameTableShowcase.vue"),
+      },
     ]
   : [];
 

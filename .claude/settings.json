@@ -1,0 +1,19 @@
+{
+  "enabledPlugins": {
+    "claude-mem@thedotmack": true
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "prompt=$(jq -r '.user_prompt // empty'); if echo \"$prompt\" | grep -qiE '(create-story|dev-story|dev this story|create story|create the next story|implement the next story|code-review|review this|retrospective|retro)'; then sqlite3 ~/.claude-mem/claude-mem.db \"SELECT json_object('hookSpecificOutput', json_object('hookEventName', 'UserPromptSubmit', 'additionalContext', '## claude-mem: Context for this task' || char(10) || 'Use mem-search to find relevant decisions and patterns before proceeding. Recent observations:' || char(10) || char(10) || group_concat(title || ' — ' || subtitle, char(10)))) FROM (SELECT title, subtitle FROM observations WHERE project = 'mahjong-game' ORDER BY created_at_epoch DESC LIMIT 8);\" 2>/dev/null; fi",
+            "timeout": 5,
+            "statusMessage": "Searching claude-mem for context..."
+          }
+        ]
+      }
+    ]
+  }
+}
