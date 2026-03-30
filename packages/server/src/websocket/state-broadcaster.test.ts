@@ -640,6 +640,135 @@ describe("buildSpectatorView", () => {
   });
 });
 
+describe("sensitive field filtering", () => {
+  it("callWindow state is identical for all players (no hidden data leaked)", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+      createTestPlayer("player-2", "west"),
+      createTestPlayer("player-3", "north"),
+    ];
+    const wsList = players.map(() => createMockWs());
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    gameState.callWindow = {
+      status: "frozen",
+      discardedTile: { id: "dot-5-1", category: "suited", suit: "dot", value: 5, copy: 1 },
+      discarderId: "player-0",
+      passes: ["player-2"],
+      calls: [
+        { callType: "pung", playerId: "player-1", tileIds: ["crak-5-1", "crak-5-2"] },
+        { callType: "kong", playerId: "player-3", tileIds: ["bam-7-1", "bam-7-2", "bam-7-3"] },
+      ],
+      openedAt: Date.now(),
+      confirmingPlayerId: null,
+      confirmationExpiresAt: null,
+      remainingCallers: [],
+      winningCall: null,
+    };
+
+    const view0 = buildPlayerView(room, gameState, "player-0");
+    const view1 = buildPlayerView(room, gameState, "player-1");
+    const view2 = buildPlayerView(room, gameState, "player-2");
+    const view3 = buildPlayerView(room, gameState, "player-3");
+
+    expect(view0.callWindow).toEqual(view1.callWindow);
+    expect(view1.callWindow).toEqual(view2.callWindow);
+    expect(view2.callWindow).toEqual(view3.callWindow);
+
+    expect(view0.callWindow?.calls).toHaveLength(2);
+    expect(view0.callWindow?.passes).toEqual(["player-2"]);
+  });
+
+  it("pendingMahjong state is identical for all players", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+      createTestPlayer("player-2", "west"),
+      createTestPlayer("player-3", "north"),
+    ];
+    const wsList = players.map(() => createMockWs());
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    gameState.pendingMahjong = {
+      playerId: "player-1",
+      path: "self-drawn",
+      previousTurnPhase: "draw",
+      previousCallWindow: null,
+    };
+
+    const views = players.map((p) => buildPlayerView(room, gameState, p.playerId));
+
+    for (let i = 1; i < views.length; i++) {
+      expect(views[i].pendingMahjong).toEqual(views[0].pendingMahjong);
+    }
+  });
+
+  it("challengeState is identical for all players", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+      createTestPlayer("player-2", "west"),
+      createTestPlayer("player-3", "north"),
+    ];
+    const wsList = players.map(() => createMockWs());
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    gameState.challengeState = {
+      challengerId: "player-2",
+      winnerId: "player-1",
+      votes: { "player-0": "valid", "player-3": "invalid" },
+      challengeExpiresAt: Date.now() + 30000,
+      originalGameResult: {
+        winnerId: "player-1",
+        patternId: "test-pattern",
+        patternName: "Test Pattern",
+        points: 25,
+        selfDrawn: false,
+        discarderId: "player-0",
+        payments: { "player-0": -50, "player-1": 75, "player-2": -25, "player-3": 0 },
+      },
+      calledTile: null,
+    };
+
+    const views = players.map((p) => buildPlayerView(room, gameState, p.playerId));
+
+    for (let i = 1; i < views.length; i++) {
+      expect(views[i].challengeState).toEqual(views[0].challengeState);
+    }
+  });
+
+  it("gameState.card (NMJL card data) is NOT included in PlayerGameView", () => {
+    const players = [createTestPlayer("player-0", "east", true)];
+    const wsList = [createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    gameState.card = { year: 2024, sections: [], patterns: [] } as any;
+
+    const view = buildPlayerView(room, gameState, "player-0");
+
+    expect("card" in view).toBe(false);
+  });
+
+  it("gameState.wall (tile draw pile) is NOT included in PlayerGameView", () => {
+    const players = [createTestPlayer("player-0", "east", true)];
+    const wsList = [createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    gameState.wall = [{ id: "bam-9-1", category: "suited", suit: "bam", value: 9, copy: 1 }];
+
+    const view = buildPlayerView(room, gameState, "player-0");
+
+    expect("wall" in view).toBe(false);
+    expect(view.wallRemaining).toBeDefined();
+  });
+});
+
 describe("shownHands in views", () => {
   it("shownHands are visible to all players in PlayerGameView", () => {
     const { room } = createFourPlayerRoom();
