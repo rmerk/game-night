@@ -37,6 +37,12 @@ export interface ActionMessage {
   action: GameAction;
 }
 
+/** Client → Server: request full state resync (e.g., after suspected missed update) */
+export interface RequestStateMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "REQUEST_STATE";
+}
+
 /** Public info about a player visible to all clients */
 export interface PlayerPublicInfo {
   playerId: string;

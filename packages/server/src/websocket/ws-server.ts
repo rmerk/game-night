@@ -6,6 +6,7 @@ import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
 import { handleJoinRoom } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
+import { sendCurrentState } from "./state-broadcaster";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -87,6 +88,20 @@ export function setupWebSocketServer(
           return;
         }
         handleActionMessage(ws, parsed, session.room, session.playerId, logger, roomManager);
+      } else if (parsed.type === "REQUEST_STATE") {
+        const session = roomManager.findSessionByWs(ws);
+        if (!session) {
+          ws.send(
+            JSON.stringify({
+              version: 1,
+              type: "ERROR",
+              code: "NOT_IN_ROOM",
+              message: "You must join a room before requesting state",
+            }),
+          );
+          return;
+        }
+        sendCurrentState(session.room, session.playerId, ws);
       }
     });
 

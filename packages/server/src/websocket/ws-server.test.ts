@@ -28,8 +28,16 @@ function connectClient(): Promise<WebSocket> {
 
 function waitForMessage(client: WebSocket): Promise<string> {
   return new Promise((resolve) => {
-    client.on("message", (data: RawData) => {
+    client.once("message", (data: RawData) => {
       resolve(wsDataToString(data));
+    });
+  });
+}
+
+function waitForParsedMessage(client: WebSocket): Promise<Record<string, unknown>> {
+  return new Promise((resolve) => {
+    client.once("message", (data: RawData) => {
+      resolve(JSON.parse(wsDataToString(data)));
     });
   });
 }
@@ -183,6 +191,99 @@ describe("WebSocket Server", () => {
 
       expect(client.readyState).toBe(WebSocket.CLOSED);
     });
+  });
+});
+
+describe("REQUEST_STATE", () => {
+  beforeEach(async () => {
+    await startServer();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("responds with current lobby state when in lobby", async () => {
+    const roomRes = await app.inject({
+      method: "POST",
+      url: "/api/rooms",
+      payload: { hostName: "Alice" },
+    });
+    const { roomCode } = roomRes.json();
+
+    const client = await connectClient();
+    const joinPromise = waitForParsedMessage(client);
+    client.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }));
+    await joinPromise;
+
+    const resyncPromise = waitForParsedMessage(client);
+    client.send(JSON.stringify({ version: 1, type: "REQUEST_STATE" }));
+    const resync = await resyncPromise;
+
+    expect(resync.type).toBe("STATE_UPDATE");
+    expect((resync.state as Record<string, unknown>).gamePhase).toBe("lobby");
+    expect((resync.state as Record<string, unknown>).myPlayerId).toBeDefined();
+
+    await closeClient(client);
+  });
+
+  it("responds with filtered game state when game is in progress", async () => {
+    const roomRes = await app.inject({
+      method: "POST",
+      url: "/api/rooms",
+      payload: { hostName: "Alice" },
+    });
+    const { roomCode } = roomRes.json();
+
+    const players: { ws: WebSocket; playerId: string }[] = [];
+    for (const name of ["Alice", "Bob", "Carol", "Dave"]) {
+      const ws = await connectClient();
+      // Set up promise BEFORE sending to avoid race
+      const broadcastPromises = players.map((p) => waitForParsedMessage(p.ws));
+      const joinPromise = waitForParsedMessage(ws);
+      ws.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: name }));
+      const msg = await joinPromise;
+      players.push({ ws, playerId: (msg.state as Record<string, unknown>).myPlayerId as string });
+      // Drain broadcasts to existing players
+      await Promise.all(broadcastPromises);
+    }
+
+    // Host starts game — set up listeners BEFORE sending
+    const startPromises = players.map((p) => waitForParsedMessage(p.ws));
+    players[0].ws.send(
+      JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }),
+    );
+    await Promise.all(startPromises);
+
+    // Player 0 requests resync
+    const resyncPromise = waitForParsedMessage(players[0].ws);
+    players[0].ws.send(JSON.stringify({ version: 1, type: "REQUEST_STATE" }));
+    const resync = await resyncPromise;
+
+    const state = resync.state as Record<string, unknown>;
+    expect(resync.type).toBe("STATE_UPDATE");
+    expect(state.gamePhase).toBe("play");
+    expect(state.myPlayerId).toBe(players[0].playerId);
+    expect((state.myRack as unknown[]).length).toBeGreaterThan(0);
+
+    // Ensure secret server state is not leaked
+    expect("wall" in state).toBe(false);
+    expect("card" in state).toBe(false);
+
+    for (const p of players) await closeClient(p.ws);
+  });
+
+  it("rejects REQUEST_STATE from unauthenticated connection", async () => {
+    const client = await connectClient();
+
+    const msgPromise = waitForParsedMessage(client);
+    client.send(JSON.stringify({ version: 1, type: "REQUEST_STATE" }));
+    const msg = await msgPromise;
+
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("NOT_IN_ROOM");
+
+    await closeClient(client);
   });
 });
 

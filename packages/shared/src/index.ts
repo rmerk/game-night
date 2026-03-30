@@ -74,6 +74,7 @@ export type {
   ServerErrorMessage,
   JoinRoomMessage,
   ActionMessage,
+  RequestStateMessage,
   PlayerPublicInfo,
   LobbyState,
   PlayerGameView,

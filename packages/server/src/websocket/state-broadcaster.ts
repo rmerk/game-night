@@ -5,6 +5,7 @@ import type {
   PlayerGameView,
   SpectatorGameView,
   StateUpdateMessage,
+  LobbyState,
 } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
@@ -129,4 +130,39 @@ export function broadcastGameState(
     };
     session.ws.send(JSON.stringify(message));
   }
+}
+
+/**
+ * Send the current state to a single player (for resync).
+ * Sends lobby state if no game is active, or filtered game view if game is in progress.
+ */
+export function sendCurrentState(room: Room, playerId: string, ws: WebSocket): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+
+  let state: LobbyState | PlayerGameView;
+  if (room.gameState) {
+    state = buildPlayerView(room, room.gameState, playerId);
+  } else {
+    const players = Array.from(room.players.values()).map((p) => ({
+      playerId: p.playerId,
+      displayName: p.displayName,
+      wind: p.wind,
+      isHost: p.isHost,
+      connected: p.connected,
+    }));
+    state = {
+      roomId: room.roomId,
+      roomCode: room.roomCode,
+      gamePhase: "lobby" as const,
+      players,
+      myPlayerId: playerId,
+    };
+  }
+
+  const message: StateUpdateMessage = {
+    version: PROTOCOL_VERSION,
+    type: "STATE_UPDATE",
+    state,
+  };
+  ws.send(JSON.stringify(message));
 }
