@@ -18,6 +18,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-tiles",
         component: () => import("../components/dev/TileShowcase.vue"),
       },
+      {
+        path: "/dev/rack",
+        name: "dev-rack",
+        component: () => import("../components/dev/RackShowcase.vue"),
+      },
     ]
   : [];
 

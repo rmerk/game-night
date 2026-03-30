@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-29 # 5a-2-tile-component-svg-sprite-sheet → done
+last_updated: 2026-03-29 # 5a-3-tilerack-with-drag-and-drop-sort → review
 project: mahjong-game
 
 project_key: NOKEY
@@ -92,7 +92,7 @@ development_status:
   epic-5a: in-progress
   5a-1-design-system-foundation: done
   5a-2-tile-component-svg-sprite-sheet: done
-  5a-3-tilerack-with-drag-and-drop-sort: backlog
+  5a-3-tilerack-with-drag-and-drop-sort: review
   5a-4-game-table-layout-immersive-table: backlog
   5a-5-discard-pool-two-step-discard-interaction: backlog
   5a-6-action-zone-call-buttons: backlog
