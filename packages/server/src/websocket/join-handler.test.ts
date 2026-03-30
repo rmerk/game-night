@@ -544,7 +544,7 @@ describe("grace period recovery", () => {
     setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
   });
 
-  it("recovers seat with matching displayName during grace period", async () => {
+  it("does not recover seat via displayName alone (token required)", async () => {
     const { roomCode } = await createRoom();
 
     // Player joins
@@ -552,23 +552,20 @@ describe("grace period recovery", () => {
     const msg1Promise = waitForMessage(ws1);
     sendJoin(ws1, roomCode, "Alice");
     const msg1 = await msg1Promise;
-    const originalPlayerId = (msg1.state as Record<string, unknown>).myPlayerId;
+    const playerId1 = (msg1.state as Record<string, unknown>).myPlayerId;
 
-    // Disconnect (simulating token delivery failure — no token stored)
+    // Player disconnects
     ws1.close();
     await new Promise((r) => setTimeout(r, 50));
 
-    // Reconnect without token but with same displayName (within grace period)
+    // New connection with same displayName but no token
     const ws2 = await connectWs(wsUrl);
     const msg2Promise = waitForMessage(ws2);
     sendJoin(ws2, roomCode, "Alice");
     const msg2 = await msg2Promise;
 
-    expect(msg2.type).toBe("STATE_UPDATE");
-    const state2 = msg2.state as Record<string, unknown>;
-    expect(state2.myPlayerId).toBe(originalPlayerId);
-    // Should get a new token
-    expect(msg2.token).toBeDefined();
+    // Should get a DIFFERENT playerId (new seat, not recovered)
+    expect((msg2.state as Record<string, unknown>).myPlayerId).not.toBe(playerId1);
 
     ws2.close();
   });
@@ -604,41 +601,7 @@ describe("grace period recovery", () => {
     ws2.close();
   });
 
-  it("does not recover when multiple disconnected seats match displayName", async () => {
-    const { roomCode } = await createRoom();
-
-    // Two players join with same name
-    const ws1 = await connectWs(wsUrl);
-    const msg1Promise = waitForMessage(ws1);
-    sendJoin(ws1, roomCode, "Alice");
-    await msg1Promise;
-
-    const ws2 = await connectWs(wsUrl);
-    const msg2Promise = waitForMessage(ws2);
-    sendJoin(ws2, roomCode, "Alice");
-    await msg2Promise;
-    // Consume broadcast
-    await waitForMessage(ws1);
-
-    // Both disconnect
-    ws1.close();
-    ws2.close();
-    await new Promise((r) => setTimeout(r, 50));
-
-    // New connection with "Alice" — ambiguous, should get a new seat
-    const ws3 = await connectWs(wsUrl);
-    const msg3Promise = waitForMessage(ws3);
-    sendJoin(ws3, roomCode, "Alice");
-    const msg3 = await msg3Promise;
-
-    const state3 = msg3.state as Record<string, unknown>;
-    // Should be assigned a new seat (player-2), not recovered to either existing one
-    expect(state3.myPlayerId).toBe("player-2");
-
-    ws3.close();
-  });
-
-  it("rejects tokenless connection to full room with no grace period match", async () => {
+  it("rejects tokenless connection to full room during grace period", async () => {
     const { roomCode } = await createRoom();
     const clients: WebSocket[] = [];
 

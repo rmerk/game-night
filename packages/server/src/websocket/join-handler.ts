@@ -5,12 +5,7 @@ import type { PlayerPublicInfo, LobbyState, StateUpdateMessage } from "@mahjong-
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
-import {
-  createSessionToken,
-  resolveToken,
-  revokeToken,
-  getGracePeriodMs,
-} from "../rooms/session-manager";
+import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 
 // eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
@@ -140,77 +135,6 @@ function handleTokenReconnection(
   return true;
 }
 
-function tryGracePeriodRecovery(
-  ws: WebSocket,
-  room: Room,
-  sanitizedName: string,
-  logger: FastifyBaseLogger,
-  roomManager?: RoomManager,
-): boolean {
-  // Find disconnected seats in grace period matching this displayName
-  const matches: string[] = [];
-  for (const [playerId, player] of room.players) {
-    if (
-      !player.connected &&
-      room.graceTimers.has(playerId) &&
-      player.displayName === sanitizedName
-    ) {
-      matches.push(playerId);
-    }
-  }
-
-  if (matches.length !== 1) return false;
-
-  const playerId = matches[0];
-  const player = room.players.get(playerId)!;
-
-  // Cancel grace period timer
-  const graceTimer = room.graceTimers.get(playerId);
-  if (graceTimer) {
-    clearTimeout(graceTimer);
-    room.graceTimers.delete(playerId);
-  }
-
-  // Cancel room disconnect-timeout since a player reconnected
-  cancelLifecycleTimer(room, "disconnect-timeout");
-
-  // Revoke old token and issue new one
-  revokeToken(room, playerId);
-  const newToken = createSessionToken(room, playerId);
-
-  // Restore connection
-  player.connected = true;
-  player.connectedAt = Date.now();
-
-  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
-  room.sessions.set(playerId, session);
-
-  logger.info(
-    { roomCode: room.roomCode, playerId, displayName: sanitizedName },
-    "Player restored via grace period recovery",
-  );
-
-  // Send full state with new token
-  const lobbyState = buildLobbyState(room, playerId);
-  const stateMessage: StateUpdateMessage = {
-    version: PROTOCOL_VERSION,
-    type: "STATE_UPDATE",
-    state: lobbyState,
-    token: newToken,
-  };
-  ws.send(JSON.stringify(stateMessage));
-
-  // Broadcast reconnection to others
-  broadcastStateToRoom(room, playerId, {
-    type: "PLAYER_RECONNECTED",
-    playerId,
-    playerName: sanitizedName,
-  });
-
-  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
-  return true;
-}
-
 function allPlayersDisconnected(room: Room): boolean {
   for (const player of room.players.values()) {
     if (player.connected) return false;
@@ -313,11 +237,6 @@ export function handleJoinRoom(
   if (!sanitizedName) {
     sendError(ws, "INVALID_DISPLAY_NAME", "Display name is required");
     ws.close(4000, "INVALID_DISPLAY_NAME");
-    return;
-  }
-
-  // Grace period recovery: tokenless client with matching displayName
-  if (!token && tryGracePeriodRecovery(ws, room, sanitizedName, logger, roomManager)) {
     return;
   }
 
