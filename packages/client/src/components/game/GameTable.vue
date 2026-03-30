@@ -6,8 +6,9 @@ import OpponentArea from "./OpponentArea.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
 import DiscardPool from "./DiscardPool.vue";
 import DiscardConfirm from "./DiscardConfirm.vue";
+import CallButtons from "./CallButtons.vue";
 import type { OpponentPlayer } from "./OpponentArea.vue";
-import type { Tile } from "@mahjong-game/shared";
+import type { Tile, CallType, CallWindowState } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
 
 const rackStore = useRackStore();
@@ -27,17 +28,23 @@ const props = withDefaults(
       left?: Tile[];
       right?: Tile[];
     };
+    callWindow?: CallWindowState | null;
+    validCallOptions?: CallType[];
   }>(),
   {
     opponents: () => ({}),
     tiles: () => [],
     isPlayerTurn: false,
     discardPools: () => ({}),
+    callWindow: null,
+    validCallOptions: () => [],
   },
 );
 
 const emit = defineEmits<{
   discard: [tileId: string];
+  call: [callType: CallType];
+  pass: [];
 }>();
 
 function handleDiscard(tileId: string) {
@@ -48,6 +55,10 @@ function handleDiscard(tileId: string) {
 const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
+
+const isCallWindowOpen = computed(
+  () => props.callWindow !== null && props.callWindow.status === "open",
+);
 
 const isDev = import.meta.env.DEV;
 </script>
@@ -124,7 +135,15 @@ const isDev = import.meta.env.DEV;
     <!-- Action Zone -->
     <div data-testid="action-zone">
       <ActionZone>
+        <CallButtons
+          v-if="isCallWindowOpen"
+          :valid-calls="validCallOptions"
+          :call-window-status="callWindow!.status"
+          @call="(callType: CallType) => emit('call', callType)"
+          @pass="emit('pass')"
+        />
         <DiscardConfirm
+          v-else
           :selected-tile-id="rackStore.selectedTileId"
           :is-player-turn="isPlayerTurn"
           @discard="handleDiscard"

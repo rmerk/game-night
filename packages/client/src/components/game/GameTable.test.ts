@@ -3,7 +3,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
-import type { SuitedTile, Tile } from "@mahjong-game/shared";
+import type { SuitedTile, Tile, CallWindowState } from "@mahjong-game/shared";
 
 // Mock Vue DnD Kit (needed by TileRack)
 vi.mock("@vue-dnd-kit/core", () => ({
@@ -216,5 +216,107 @@ describe("GameTable — two-step discard integration", () => {
     await wrapper.find("[data-testid='discard-confirm']").trigger("click");
     expect(wrapper.emitted("discard")).toEqual([["dot-7-1"]]);
     expect(rackStore.selectedTileId).toBeNull();
+  });
+});
+
+describe("GameTable — call buttons integration", () => {
+  const mockCallWindow: CallWindowState = {
+    status: "open",
+    discardedTile: {
+      id: "bam-1-1",
+      category: "suited",
+      suit: "bam",
+      value: 1,
+      copy: 1,
+    } as SuitedTile,
+    discarderId: "player-2",
+    passes: [],
+    calls: [],
+    openedAt: Date.now(),
+    confirmingPlayerId: null,
+    confirmationExpiresAt: null,
+    remainingCallers: [],
+    winningCall: null,
+  };
+
+  it("renders CallButtons when callWindow is open", () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung", "kong"],
+    });
+    expect(wrapper.find("[data-testid='call-pung']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='call-kong']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='call-pass']").exists()).toBe(true);
+  });
+
+  it("renders DiscardConfirm when callWindow is null", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const rackStore = useRackStore();
+    rackStore.selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        tiles: [
+          { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+        ],
+        isPlayerTurn: true,
+        callWindow: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    expect(wrapper.find("[data-testid='discard-confirm']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='call-pung']").exists()).toBe(false);
+  });
+
+  it("does not show DiscardConfirm when callWindow is open", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const rackStore = useRackStore();
+    rackStore.selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        tiles: [
+          { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+        ],
+        isPlayerTurn: true,
+        callWindow: mockCallWindow,
+        validCallOptions: ["pung"],
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    expect(wrapper.find("[data-testid='discard-confirm']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='call-pung']").exists()).toBe(true);
+  });
+
+  it("emits call event when call button clicked", async () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung"],
+    });
+
+    await wrapper.find("[data-testid='call-pung']").trigger("click");
+    expect(wrapper.emitted("call")).toEqual([["pung"]]);
+  });
+
+  it("emits pass event when pass button clicked", async () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung"],
+    });
+
+    await wrapper.find("[data-testid='call-pass']").trigger("click");
+    expect(wrapper.emitted("pass")).toHaveLength(1);
   });
 });

@@ -33,6 +33,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-discard",
         component: () => import("../components/dev/DiscardShowcase.vue"),
       },
+      {
+        path: "/dev/call-buttons",
+        name: "dev-call-buttons",
+        component: () => import("../components/dev/CallButtonsShowcase.vue"),
+      },
     ]
   : [];
 
