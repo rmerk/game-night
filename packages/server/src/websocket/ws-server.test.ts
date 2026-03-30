@@ -97,6 +97,59 @@ describe("WebSocket Server", () => {
       await closePromise;
       expect(client.readyState).toBe(WebSocket.CLOSED);
     });
+
+    it("closes connection when message exceeds 64KB with close code 1006 or 1009", async () => {
+      const localApp = createApp();
+      await localApp.ready();
+      const address = await localApp.listen({ port: 0 });
+      const localWsUrl = address.replace("http", "ws");
+
+      const ws = new WebSocket(localWsUrl, { maxPayload: 0 }); // Client allows any size
+      await new Promise((resolve) => ws.on("open", resolve));
+
+      const oversizedPayload = JSON.stringify({
+        version: 1,
+        type: "JOIN_ROOM",
+        roomCode: "TEST01",
+        displayName: "A".repeat(70_000),
+      });
+
+      const closePromise = new Promise<{ code: number }>((resolve) => {
+        ws.on("close", (code) => resolve({ code }));
+      });
+
+      ws.send(oversizedPayload);
+      const { code } = await closePromise;
+
+      expect([1006, 1009]).toContain(code);
+
+      await localApp.close();
+    });
+
+    it("accepts messages under 64KB", async () => {
+      const roomRes = await app.inject({
+        method: "POST",
+        url: "/api/rooms",
+        payload: { hostName: "Alice" },
+      });
+      const { roomCode } = roomRes.json();
+
+      const client = await connectClient();
+
+      client.send(
+        JSON.stringify({
+          version: 1,
+          type: "JOIN_ROOM",
+          roomCode,
+          displayName: "Alice",
+        }),
+      );
+
+      const msg = JSON.parse(await waitForMessage(client));
+      expect(msg.type).toBe("STATE_UPDATE");
+
+      await closeClient(client);
+    });
   });
 
   describe("message handling", () => {
