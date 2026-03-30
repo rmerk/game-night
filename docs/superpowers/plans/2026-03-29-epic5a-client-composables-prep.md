@@ -614,7 +614,7 @@ describe("useWebSocket", () => {
       const received: unknown[] = [];
       ws.onStateUpdate((msg) => received.push(msg));
 
-      latestMockWs().simulateMessage("not json {{{");
+      latestMockWs().simulateMessage("not json " + "{" + "{" + "{");
       latestMockWs().simulateMessage({ no_type: true });
 
       expect(received).toHaveLength(0);
