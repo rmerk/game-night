@@ -162,6 +162,49 @@ describe("GET /api/rooms/:code/status", () => {
   });
 });
 
+describe("rate limiting", () => {
+  it("rejects room creation after exceeding rate limit", async () => {
+    const app = buildApp();
+    await app.ready();
+
+    // Send 11 requests (limit is 10 per minute)
+    const responses = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/rooms",
+        payload: { hostName: `Host${i}` },
+      });
+      responses.push(res);
+    }
+
+    // First 10 should succeed
+    for (let i = 0; i < 10; i++) {
+      expect(responses[i].statusCode).toBe(201);
+    }
+
+    // 11th should be rate limited
+    expect(responses[10].statusCode).toBe(429);
+
+    await app.close();
+  });
+
+  it("does not rate limit health checks", async () => {
+    const app = buildApp();
+    await app.ready();
+
+    for (let i = 0; i < 20; i++) {
+      const res = await app.inject({
+        method: "GET",
+        url: "/health",
+      });
+      expect(res.statusCode).toBe(200);
+    }
+
+    await app.close();
+  });
+});
+
 describe("Integration: full room flow", () => {
   it("creates a room and retrieves its status", async () => {
     const app = buildApp();

@@ -1,4 +1,5 @@
 import fastify, { type FastifyInstance } from "fastify";
+import rateLimit from "@fastify/rate-limit";
 import { RoomManager } from "./rooms/room-manager";
 import { roomRoutes } from "./http/routes";
 import { setupWebSocketServer, type WsServerContext } from "./websocket/ws-server";
@@ -13,6 +14,12 @@ declare module "fastify" {
 export function createApp(): FastifyInstance {
   const app = fastify({ logger: { level: process.env.LOG_LEVEL || "info" } });
   const roomManager = new RoomManager();
+
+  app.register(rateLimit, {
+    max: 10,
+    timeWindow: "1 minute",
+    allowList: (req) => req.url === "/health",
+  });
 
   app.decorate("roomManager", roomManager);
   app.register(roomRoutes, { roomManager });

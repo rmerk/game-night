@@ -9,6 +9,7 @@
     "lint": "vp lint src/"
   },
   "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
     "@mahjong-game/shared": "workspace:*",
     "fastify": "^5.8.0",
     "pino": "^9.0.0",
