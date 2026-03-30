@@ -16,18 +16,24 @@ Integrate claude-mem as a passive memory layer underneath the existing GDS devel
 
 Claude-mem automatically records structured observations from every tool execution (file reads, edits, bash commands, searches) during sessions. No explicit write actions are needed — the database populates itself as the assistant works (`~/.claude-mem/claude-mem.db`). This spec focuses on when to *read* from that database.
 
-### Hook: UserPromptSubmit (fires before GDS skills)
+### GDS Skill Integration (direct workflow steps)
 
-Detects when the user is about to invoke a GDS workflow skill (`create-story`, `dev-story`, `code-review`, `retrospective`) and injects recent claude-mem observations plus a reminder to use `mem-search` for deeper context.
+Each GDS skill workflow includes a claude-mem query step at its natural context-loading phase. This ensures the structured skill prompts explicitly use claude-mem rather than relying on injected context that gets ignored.
 
-**Event:** `UserPromptSubmit`
-**Type:** `command`
-**Matcher pattern:** Regex on user prompt for GDS skill keywords
-**Output:** JSON with `hookSpecificOutput.additionalContext` when matched, silent otherwise.
+| Skill | Step | What it queries |
+|-------|------|-----------------|
+| `create-story` | Step 2 (artifact analysis) | Past decisions, patterns, gotchas for the story's domain |
+| `dev-story` | Step 2 (load context) | Implementation patterns, debugging experiences, review feedback |
+| `code-review` | Step 1 (load story) | Past review feedback patterns, known issues in reviewed areas |
+| `retrospective` | Step 2 (story analysis) | Full epic timeline, cross-session decisions and discoveries |
 
-### CLAUDE.md: Behavioral Guidance (not triggers)
+All steps use `<check if="claude-mem tools available">` so skills degrade gracefully without the plugin.
 
-Hooks handle *when* memory is injected. CLAUDE.md handles *how* to use it:
+### Hook: UserPromptSubmit (supplementary context)
+
+The UserPromptSubmit hook in `.claude/settings.json` still fires before GDS skills and injects recent observations as `additionalContext`. This provides a lightweight reminder but is **not the primary integration** — the workflow steps above are. The hook is retained for non-skill prompts where the assistant has more flexibility to use injected context.
+
+### CLAUDE.md: Behavioral Guidance
 
 - **mem-search usage:** The `mem-search` skill wraps a 3-layer workflow (`search` -> `timeline` -> `get_observations`). Use the `project` parameter to scope results. The assistant should follow this progressive disclosure pattern to avoid wasting tokens.
 - **Code review nuance:** A past reference provides *context*, not automatic justification — still flag issues if warranted.

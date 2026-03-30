@@ -85,6 +85,16 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
   <action>Read fully and follow `{installed_path}/discover-inputs.md` to load all input files</action>
   <action>Load {project_context} for coding standards (if exists)</action>
+
+  <!-- Cross-session memory integration -->
+  <check if="claude-mem tools available (smart_search, search)">
+    <action>Query claude-mem for review-relevant context:
+      - Use search with project scope to find past review feedback patterns for files/components being reviewed
+      - Look for recurring issues, architectural decisions, and known gotchas in the areas under review
+      - Find past debugging experiences that reveal fragile areas to scrutinize
+    </action>
+    <action>Use claude-mem findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
+  </check>
 </step>
 
 <step n="2" goal="Build review attack plan">

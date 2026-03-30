@@ -212,6 +212,21 @@ Bob (Scrum Master): "Before we start the team discussion, let me review all the 
 Charlie (Senior Dev): "Good idea - those dev notes always have gold in them."
 </output>
 
+<!-- Cross-session memory integration -->
+<check if="claude-mem tools available (timeline, search, get_observations)">
+  <action>Use claude-mem timeline to generate the full development history for Epic {{epic_number}}:
+    - Query timeline scoped to project for the epic's development period
+    - Pull observations covering decisions, discoveries, debugging sessions, and design changes
+    - Use get_observations on high-value entries for detailed context
+  </action>
+  <action>Store timeline findings as {{cross_session_timeline}} — this provides richer context than story files alone:
+    - Decisions and their rationale that may not be captured in story docs
+    - Debugging struggles and breakthroughs across sessions
+    - Design pivots and course corrections with original reasoning
+    - Cross-session patterns invisible from reading story files in isolation
+  </action>
+</check>
+
 <action>For each story in epic {{epic_number}}, read the complete story file from {implementation_artifacts}/{{epic_number}}-{{story_num}}-*.md</action>
 
 <action>Extract and analyze from each story:</action>

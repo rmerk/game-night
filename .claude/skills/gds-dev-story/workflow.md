@@ -181,6 +181,17 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     <action>Load comprehensive context from story file's Dev Notes section</action>
     <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
     <action>Use enhanced story context to inform implementation decisions and approaches</action>
+
+    <!-- Cross-session memory integration -->
+    <check if="claude-mem tools available (smart_search, search, timeline)">
+      <action>Query claude-mem for implementation-relevant context:
+        - Use smart_search to find existing code patterns for components this story will create or modify
+        - Use search with project scope to find past debugging experiences, implementation decisions, and gotchas in related areas
+        - Look for past review feedback on similar components to avoid repeating mistakes
+      </action>
+      <action>Incorporate claude-mem findings into implementation approach — treat as supplementary context alongside Dev Notes</action>
+    </check>
+
     <output>✅ **Context Loaded**
       Story and project context available for implementation
     </output>

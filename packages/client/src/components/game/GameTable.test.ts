@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
-import { createPinia } from "pinia";
+import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
+import { useRackStore } from "../../stores/rack";
+import type { SuitedTile, Tile } from "@mahjong-game/shared";
 
 // Mock Vue DnD Kit (needed by TileRack)
 vi.mock("@vue-dnd-kit/core", () => ({
@@ -144,5 +146,75 @@ describe("GameTable — accessibility", () => {
     const wrapper = mountTable();
     const table = wrapper.find("[data-testid='game-table']");
     expect(table.classes().some((c: string) => c.includes("min-h-"))).toBe(true);
+  });
+});
+
+describe("GameTable — discard pools", () => {
+  const mockDiscardTiles: Tile[] = [
+    { id: "bam-1-1", category: "suited", suit: "bam", value: 1, copy: 1 } as SuitedTile,
+    { id: "crak-2-1", category: "suited", suit: "crak", value: 2, copy: 1 } as SuitedTile,
+  ];
+
+  it("renders discard pools area", () => {
+    const wrapper = mountTable({
+      discardPools: { bottom: mockDiscardTiles },
+    });
+    expect(wrapper.find("[data-testid='discard-pools']").exists()).toBe(true);
+  });
+
+  it("renders discard pool tiles when provided", () => {
+    const wrapper = mountTable({
+      discardPools: { bottom: mockDiscardTiles },
+    });
+    const pools = wrapper.findAll("[data-testid='discard-pool']");
+    expect(pools.length).toBe(4);
+  });
+});
+
+describe("GameTable — two-step discard integration", () => {
+  const rackTiles: Tile[] = [
+    { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+    { id: "bam-3-2", category: "suited", suit: "bam", value: 3, copy: 2 } as SuitedTile,
+  ];
+
+  it("shows discard confirm button when tile is selected and it is player turn", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const rackStore = useRackStore();
+    rackStore.selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      props: { opponents: mockPlayers, tiles: rackTiles, isPlayerTurn: true },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    expect(wrapper.find("[data-testid='discard-confirm']").exists()).toBe(true);
+  });
+
+  it("does not show discard confirm when no tile selected", () => {
+    const wrapper = mountTable({ tiles: rackTiles, isPlayerTurn: true });
+    expect(wrapper.find("[data-testid='discard-confirm']").exists()).toBe(false);
+  });
+
+  it("emits discard event and clears selection on confirm", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const rackStore = useRackStore();
+    rackStore.selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      props: { opponents: mockPlayers, tiles: rackTiles, isPlayerTurn: true },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    await wrapper.find("[data-testid='discard-confirm']").trigger("click");
+    expect(wrapper.emitted("discard")).toEqual([["dot-7-1"]]);
+    expect(rackStore.selectedTileId).toBeNull();
   });
 });

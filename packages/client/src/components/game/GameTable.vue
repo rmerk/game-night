@@ -4,8 +4,13 @@ import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
+import DiscardPool from "./DiscardPool.vue";
+import DiscardConfirm from "./DiscardConfirm.vue";
 import type { OpponentPlayer } from "./OpponentArea.vue";
 import type { Tile } from "@mahjong-game/shared";
+import { useRackStore } from "../../stores/rack";
+
+const rackStore = useRackStore();
 
 const props = withDefaults(
   defineProps<{
@@ -16,13 +21,29 @@ const props = withDefaults(
     };
     tiles?: Tile[];
     isPlayerTurn?: boolean;
+    discardPools?: {
+      bottom?: Tile[];
+      top?: Tile[];
+      left?: Tile[];
+      right?: Tile[];
+    };
   }>(),
   {
     opponents: () => ({}),
     tiles: () => [],
     isPlayerTurn: false,
+    discardPools: () => ({}),
   },
 );
+
+const emit = defineEmits<{
+  discard: [tileId: string];
+}>();
+
+function handleDiscard(tileId: string) {
+  rackStore.deselectTile();
+  emit("discard", tileId);
+}
 
 const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
@@ -62,12 +83,24 @@ const isDev = import.meta.env.DEV;
           <OpponentArea position="right" :player="rightPlayer" />
         </div>
 
-        <!-- Placeholder: Discard Pool -->
+        <!-- Discard Pools -->
         <div
-          v-if="isDev"
-          class="border-2 border-dashed border-white/30 rounded-md p-4 text-text-on-felt/50 text-center w-full max-w-md"
+          data-testid="discard-pools"
+          class="discard-pools grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1 w-full max-w-lg"
         >
-          Discard Pool
+          <div class="col-start-2 flex justify-center">
+            <DiscardPool :tiles="discardPools?.top ?? []" position="top" />
+          </div>
+          <div class="row-start-2 flex items-center">
+            <DiscardPool :tiles="discardPools?.left ?? []" position="left" />
+          </div>
+          <div class="row-start-2 col-start-2" />
+          <div class="row-start-2 col-start-3 flex items-center">
+            <DiscardPool :tiles="discardPools?.right ?? []" position="right" />
+          </div>
+          <div class="col-start-2 row-start-3 flex justify-center">
+            <DiscardPool :tiles="discardPools?.bottom ?? []" position="bottom" />
+          </div>
         </div>
 
         <!-- Placeholder: Wall Counter -->
@@ -91,12 +124,11 @@ const isDev = import.meta.env.DEV;
     <!-- Action Zone -->
     <div data-testid="action-zone">
       <ActionZone>
-        <div
-          v-if="isDev"
-          class="border-2 border-dashed border-white/30 rounded-md px-4 py-1 text-text-on-felt/50 text-sm"
-        >
-          Action Buttons
-        </div>
+        <DiscardConfirm
+          :selected-tile-id="rackStore.selectedTileId"
+          :is-player-turn="isPlayerTurn"
+          @discard="handleDiscard"
+        />
       </ActionZone>
     </div>
 

@@ -28,6 +28,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-table",
         component: () => import("../components/dev/GameTableShowcase.vue"),
       },
+      {
+        path: "/dev/discard",
+        name: "dev-discard",
+        component: () => import("../components/dev/DiscardShowcase.vue"),
+      },
     ]
   : [];
 
