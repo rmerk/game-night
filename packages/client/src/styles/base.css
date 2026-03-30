@@ -1,0 +1,27 @@
+/* ==========================================================================
+   Base Styles — Global typography defaults and resets
+   Wind4 includes a built-in reset, so this focuses on typography.
+   ========================================================================== */
+
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 14px minimum font size floor (AC2) */
+small,
+.text-xs {
+  font-size: 14px;
+}

@@ -20,6 +20,7 @@
     "vue-router": "^4.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.19.15",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^9.0.0",

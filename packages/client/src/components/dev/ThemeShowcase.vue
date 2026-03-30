@@ -1,0 +1,243 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { themeColors } from "../../styles/design-tokens";
+
+const currentMood = ref<string>("mood-playing");
+const darkMode = ref(false);
+
+function setMood(mood: string) {
+  currentMood.value = mood;
+  document.documentElement.classList.remove("mood-arriving", "mood-playing", "mood-lingering");
+  document.documentElement.classList.add(mood);
+}
+
+function toggleDark() {
+  darkMode.value = !darkMode.value;
+  document.documentElement.classList.toggle("theme-dark", darkMode.value);
+}
+
+type ColorGroup = Record<string, string>;
+
+const colorGroups: Record<string, ColorGroup> = {
+  Felt: themeColors.felt,
+  Chrome: themeColors.chrome,
+  Gold: themeColors.gold,
+  Suit: themeColors.suit,
+  Text: themeColors.text,
+  State: themeColors.state,
+  Wall: themeColors.wall,
+  Guidance: themeColors.guidance,
+  Celebration: themeColors.celebration,
+  Focus: themeColors.focus,
+};
+
+const typographyRoles = [
+  { name: "text-game-critical", label: "Game Critical", desc: "20px / semibold" },
+  { name: "text-interactive", label: "Interactive", desc: "18px / semibold" },
+  { name: "text-body", label: "Body", desc: "16px / regular" },
+  { name: "text-card-pattern", label: "Card Pattern", desc: "16px / monospace" },
+  { name: "text-secondary", label: "Secondary", desc: "14px / regular" },
+];
+
+const spacingScale = [
+  { key: "1", value: "4px" },
+  { key: "2", value: "8px" },
+  { key: "3", value: "12px" },
+  { key: "4", value: "16px" },
+  { key: "6", value: "24px" },
+  { key: "8", value: "32px" },
+  { key: "12", value: "48px" },
+  { key: "16", value: "64px" },
+  { key: "24", value: "96px" },
+];
+
+const radiusScale = [
+  { key: "sm", value: "4px" },
+  { key: "md", value: "8px" },
+  { key: "lg", value: "12px" },
+  { key: "full", value: "9999px" },
+];
+
+const moods = ["mood-arriving", "mood-playing", "mood-lingering"];
+</script>
+
+<template>
+  <div class="p-8 max-w-6xl mx-auto">
+    <h1 class="text-8 font-bold mb-8">Design System Showcase</h1>
+
+    <!-- Color Swatches -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Color Tokens</h2>
+      <div v-for="(colors, group) in colorGroups" :key="group" class="mb-6">
+        <h3 class="text-4.5 font-semibold mb-2">{{ group }}</h3>
+        <div class="flex flex-wrap gap-3">
+          <div v-for="(hex, name) in colors" :key="name" class="flex flex-col items-center">
+            <div
+              class="w-16 h-16 rounded-md shadow-tile border border-chrome-border"
+              :style="{ backgroundColor: hex }"
+            />
+            <span class="text-secondary mt-1">{{ group.toLowerCase() }}-{{ name }}</span>
+            <span class="text-3.5 text-text-secondary">{{ hex }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Typography Roles -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Typography Roles</h2>
+      <div class="flex flex-col gap-4">
+        <div
+          v-for="role in typographyRoles"
+          :key="role.name"
+          class="flex items-baseline gap-4 p-3 bg-chrome-surface rounded-md"
+        >
+          <span :class="role.name" class="flex-1">
+            The quick brown fox jumps over the lazy dog
+          </span>
+          <code class="text-secondary">{{ role.name }}</code>
+          <span class="text-secondary">{{ role.desc }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Spacing Scale -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Spacing Scale (4px base)</h2>
+      <div class="flex flex-col gap-2">
+        <div v-for="space in spacingScale" :key="space.key" class="flex items-center gap-4">
+          <code class="text-secondary w-16">p-{{ space.key }}</code>
+          <div class="bg-gold-accent h-4" :style="{ width: space.value }" />
+          <span class="text-secondary">{{ space.value }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Border Radius -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Border Radius</h2>
+      <div class="flex gap-6">
+        <div v-for="r in radiusScale" :key="r.key" class="flex flex-col items-center gap-2">
+          <div class="w-16 h-16 bg-felt-teal" :class="`rounded-${r.key}`" />
+          <code class="text-secondary">rounded-{{ r.key }}</code>
+          <span class="text-3.5 text-text-secondary">{{ r.value }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shadows -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Shadows</h2>
+      <div class="flex gap-8">
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-24 h-16 bg-chrome-surface rounded-md shadow-tile" />
+          <code class="text-secondary">shadow-tile</code>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-24 h-16 bg-chrome-surface rounded-md shadow-panel" />
+          <code class="text-secondary">shadow-panel</code>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-24 h-16 bg-chrome-surface rounded-md shadow-modal" />
+          <code class="text-secondary">shadow-modal</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Focus Rings -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Focus Rings</h2>
+      <div class="flex gap-8">
+        <div class="flex flex-col items-center gap-2">
+          <button class="min-tap bg-chrome-surface rounded-md focus-ring-on-chrome">Chrome</button>
+          <code class="text-secondary">focus-ring-on-chrome</code>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <button class="min-tap bg-felt-teal text-text-on-felt rounded-md focus-ring-on-felt">
+            Felt
+          </button>
+          <code class="text-secondary">focus-ring-on-felt</code>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <button
+            class="min-tap bg-chrome-surface-dark text-text-on-dark rounded-md focus-ring-on-dark"
+          >
+            Dark
+          </button>
+          <code class="text-secondary">focus-ring-on-dark</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Animation Timing -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Animation Timing Tokens</h2>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-4">
+          <code class="text-secondary w-48">--timing-tactile</code>
+          <span>120ms, ease-out</span>
+          <span class="text-text-secondary">(tile lift, button press, rack snap)</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <code class="text-secondary w-48">--timing-expressive</code>
+          <span>400ms, cubic-bezier</span>
+          <span class="text-text-secondary">(celebration, mood crossfade)</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <code class="text-secondary w-48">--timing-entrance</code>
+          <span>200ms, ease-out</span>
+          <span class="text-text-secondary">(element entry)</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <code class="text-secondary w-48">--timing-exit</code>
+          <span>150ms, ease-in</span>
+          <span class="text-text-secondary">(element exit)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mood Switching -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Mood Switching</h2>
+      <div class="flex gap-4 mb-4">
+        <button
+          v-for="mood in moods"
+          :key="mood"
+          class="min-tap px-4 py-2 rounded-md text-interactive"
+          :class="currentMood === mood ? 'bg-gold-accent text-text-primary' : 'bg-chrome-surface'"
+          @click="setMood(mood)"
+        >
+          {{ mood.replace("mood-", "") }}
+        </button>
+      </div>
+      <div class="p-6 rounded-lg" :style="{ backgroundColor: 'var(--mood-surface)' }">
+        <p class="text-body">
+          Current mood: <strong>{{ currentMood }}</strong>
+        </p>
+        <div class="mt-2 flex gap-4">
+          <div class="p-3 rounded-md" :style="{ backgroundColor: 'var(--mood-emphasis)' }">
+            <span class="text-secondary">--mood-emphasis</span>
+          </div>
+          <div class="p-3 rounded-md" :style="{ backgroundColor: 'var(--mood-gold-temp)' }">
+            <span class="text-secondary">--mood-gold-temp</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dark Mode Toggle -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Dark Mode</h2>
+      <button
+        class="min-tap px-4 py-2 rounded-md text-interactive bg-chrome-surface"
+        @click="toggleDark()"
+      >
+        {{ darkMode ? "Switch to Light" : "Switch to Dark" }}
+      </button>
+      <p class="text-secondary mt-2">
+        Toggles .theme-dark class on root element. System preference (prefers-color-scheme) also
+        triggers dark mode automatically.
+      </p>
+    </section>
+  </div>
+</template>

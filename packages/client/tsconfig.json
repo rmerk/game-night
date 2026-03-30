@@ -4,7 +4,7 @@
     "rootDir": ".",
     "outDir": "dist",
     "composite": true,
-    "types": ["vite-plus/client"],
+    "types": ["vite-plus/client", "node"],
     "jsx": "preserve",
     "jsxImportSource": "vue"
   },

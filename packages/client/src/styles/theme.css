@@ -1,0 +1,118 @@
+/* ==========================================================================
+   Design System — CSS Custom Properties
+   Animation tokens, focus rings, mood switching, dark mode overrides.
+   UnoCSS handles color/spacing/shadow tokens; this file covers runtime-switchable values.
+   ========================================================================== */
+
+:root {
+  /* --- Chrome-layer Tokens (AC8 — remap in dark mode) --- */
+  --chrome-surface: #f5f0e8;
+  --chrome-elevated: #faf7f2;
+  --chrome-border: #d4cfc5;
+  --text-primary: #2c2420;
+  --text-secondary: #6b6158;
+
+  /* --- Animation Timing Tokens (AC3) --- */
+  --timing-tactile: 120ms;
+  --timing-expressive: 400ms;
+  --timing-entrance: 200ms;
+  --timing-exit: 150ms;
+
+  /* --- Easing Tokens --- */
+  --ease-tactile: ease-out;
+  --ease-expressive: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-entrance: ease-out;
+  --ease-exit: ease-in;
+
+  /* --- Focus Ring Tokens (AC5) --- */
+  --focus-ring-on-chrome: #8c7038;
+  --focus-ring-on-felt: #f5f0e8;
+  --focus-ring-on-dark: #c4a35a;
+
+  /* --- State Colors (light mode defaults, AC6) --- */
+  --state-error: #b8553a;
+
+  /* --- Mood Tokens (AC7) — defaults to neutral/playing --- */
+  --mood-surface: #f5f0e8;
+  --mood-emphasis: #c4a35a;
+  --mood-gold-temp: #c4a35a;
+}
+
+/* --- Mood: Arriving (AC7) — warmer/amber tone --- */
+.mood-arriving {
+  --mood-surface: #faf5ec;
+  --mood-emphasis: #d4a843;
+  --mood-gold-temp: #d4a843;
+}
+
+/* --- Mood: Playing (AC7) — cooler/brass tone --- */
+.mood-playing {
+  --mood-surface: #f5f0e8;
+  --mood-emphasis: #c4a35a;
+  --mood-gold-temp: #b89b52;
+}
+
+/* --- Mood: Lingering (AC7) — softer/muted tone --- */
+.mood-lingering {
+  --mood-surface: #f0ece4;
+  --mood-emphasis: #b8976e;
+  --mood-gold-temp: #b8976e;
+}
+
+/* --- Dark Mode Overrides (AC8) — chrome-layer tokens remap, felt/gold stay constant --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chrome-surface: #2c2a28;
+    --chrome-elevated: #3a3735;
+    --chrome-border: #4a4540;
+    --text-primary: #e8e0d4;
+    --text-secondary: #a89e94;
+    --mood-surface: #2c2a28;
+    --state-error: #e8896e;
+  }
+
+  .mood-arriving {
+    --mood-surface: #322f2a;
+  }
+
+  .mood-playing {
+    --mood-surface: #2c2a28;
+  }
+
+  .mood-lingering {
+    --mood-surface: #28262a;
+  }
+}
+
+/* --- Manual Dark Mode Toggle (mirrors prefers-color-scheme: dark) --- */
+.theme-dark {
+  --chrome-surface: #2c2a28;
+  --chrome-elevated: #3a3735;
+  --chrome-border: #4a4540;
+  --text-primary: #e8e0d4;
+  --text-secondary: #a89e94;
+  --mood-surface: #2c2a28;
+  --state-error: #e8896e;
+}
+
+.theme-dark .mood-arriving {
+  --mood-surface: #322f2a;
+}
+
+.theme-dark .mood-playing {
+  --mood-surface: #2c2a28;
+}
+
+.theme-dark .mood-lingering {
+  --mood-surface: #28262a;
+}
+
+/* --- Reduced Motion Override (AC3) --- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --timing-tactile: 0ms;
+    --timing-expressive: 0ms;
+    --timing-entrance: 0ms;
+    --timing-exit: 0ms;
+  }
+}

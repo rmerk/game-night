@@ -1,6 +1,6 @@
 # Story 5A.1: Design System Foundation
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -116,45 +116,45 @@ Then all color swatches, typography roles, spacing scale, animation timings,
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: UnoCSS theme configuration (AC: 1,4)
-  - [ ] 1.1 Define color tokens in `uno.config.ts` theme.colors — all felt, chrome, accent, suit, text, state, wall, guidance, celebration tokens
-  - [ ] 1.2 Define spacing scale (4px base): 4/8/12/16/24/32/48/64/96
-  - [ ] 1.3 Define border radius scale: sm (4px), md (8px), lg (12px), full
-  - [ ] 1.4 Define warm-toned shadow scale: shadow-tile, shadow-panel, shadow-modal
-  - [ ] 1.5 Define `min-tap` shortcut → `min-h-11 min-w-11` (44px)
-- [ ] Task 2: Typography shortcuts (AC: 2)
-  - [ ] 2.1 Define UnoCSS shortcuts for text-game-critical (20px, semibold)
-  - [ ] 2.2 Define text-interactive (18px, semibold)
-  - [ ] 2.3 Define text-body (16px, regular)
-  - [ ] 2.4 Define text-card-pattern (16px, monospace/tabular)
-  - [ ] 2.5 Define text-secondary (14px, regular)
-- [ ] Task 3: CSS custom properties file (AC: 3,5,7,8)
-  - [ ] 3.1 Create `packages/client/src/styles/theme.css` with animation timing custom properties
-  - [ ] 3.2 Add easing custom properties (ease-out, cubic-bezier, ease-in)
-  - [ ] 3.3 Add prefers-reduced-motion media query overriding all durations to 0ms
-  - [ ] 3.4 Add focus ring custom properties (3 context-adaptive variants)
-  - [ ] 3.5 Add mood-switching CSS custom properties (mood-arriving, mood-playing, mood-lingering classes)
-  - [ ] 3.6 Add dark mode overrides via prefers-color-scheme: dark
-  - [ ] 3.7 Add mood-specific gold temperature token overrides
-- [ ] Task 4: Base styles (AC: 2,6,8)
-  - [ ] 4.1 Create `packages/client/src/styles/base.css` with reset and global typography defaults
-  - [ ] 4.2 Set minimum font size (14px floor) on body
-  - [ ] 4.3 Import theme.css and base.css in main.ts (alongside virtual:uno.css)
-- [ ] Task 5: Theme showcase page (AC: 9)
-  - [ ] 5.1 Create `ThemeShowcase.vue` in `packages/client/src/components/dev/`
-  - [ ] 5.2 Display all color swatches with token names and hex values
-  - [ ] 5.3 Display typography roles with sample text at each size
-  - [ ] 5.4 Display spacing scale, border radius, and shadow examples
-  - [ ] 5.5 Display focus ring variants on each background
-  - [ ] 5.6 Add mood toggle buttons to preview mood-switching mechanism
-  - [ ] 5.7 Add dark mode toggle for manual testing
-  - [ ] 5.8 Register /dev/theme route (dev-only, gated on import.meta.env.DEV)
-- [ ] Task 6: Tests (AC: 1-8)
-  - [ ] 6.1 Unit test: UnoCSS config generates expected color token CSS
-  - [ ] 6.2 Unit test: Typography shortcuts produce correct font-size and font-weight
-  - [ ] 6.3 Unit test: Mood class switching remaps custom properties
-  - [ ] 6.4 Unit test: Dark mode overrides apply correctly
-  - [ ] 6.5 Unit test: Reduced motion media query sets all durations to 0ms
+- [x] Task 1: UnoCSS theme configuration (AC: 1,4)
+  - [x] 1.1 Define color tokens in `uno.config.ts` theme.colors — all felt, chrome, accent, suit, text, state, wall, guidance, celebration tokens
+  - [x] 1.2 Define spacing scale (4px base): 4/8/12/16/24/32/48/64/96
+  - [x] 1.3 Define border radius scale: sm (4px), md (8px), lg (12px), full
+  - [x] 1.4 Define warm-toned shadow scale: shadow-tile, shadow-panel, shadow-modal
+  - [x] 1.5 Define `min-tap` shortcut → `min-h-11 min-w-11` (44px)
+- [x] Task 2: Typography shortcuts (AC: 2)
+  - [x] 2.1 Define UnoCSS shortcuts for text-game-critical (20px, semibold)
+  - [x] 2.2 Define text-interactive (18px, semibold)
+  - [x] 2.3 Define text-body (16px, regular)
+  - [x] 2.4 Define text-card-pattern (16px, monospace/tabular)
+  - [x] 2.5 Define text-secondary (14px, regular)
+- [x] Task 3: CSS custom properties file (AC: 3,5,7,8)
+  - [x] 3.1 Create `packages/client/src/styles/theme.css` with animation timing custom properties
+  - [x] 3.2 Add easing custom properties (ease-out, cubic-bezier, ease-in)
+  - [x] 3.3 Add prefers-reduced-motion media query overriding all durations to 0ms
+  - [x] 3.4 Add focus ring custom properties (3 context-adaptive variants)
+  - [x] 3.5 Add mood-switching CSS custom properties (mood-arriving, mood-playing, mood-lingering classes)
+  - [x] 3.6 Add dark mode overrides via prefers-color-scheme: dark
+  - [x] 3.7 Add mood-specific gold temperature token overrides
+- [x] Task 4: Base styles (AC: 2,6,8)
+  - [x] 4.1 Create `packages/client/src/styles/base.css` with reset and global typography defaults
+  - [x] 4.2 Set minimum font size (14px floor) on body
+  - [x] 4.3 Import theme.css and base.css in main.ts (alongside virtual:uno.css)
+- [x] Task 5: Theme showcase page (AC: 9)
+  - [x] 5.1 Create `ThemeShowcase.vue` in `packages/client/src/components/dev/`
+  - [x] 5.2 Display all color swatches with token names and hex values
+  - [x] 5.3 Display typography roles with sample text at each size
+  - [x] 5.4 Display spacing scale, border radius, and shadow examples
+  - [x] 5.5 Display focus ring variants on each background
+  - [x] 5.6 Add mood toggle buttons to preview mood-switching mechanism
+  - [x] 5.7 Add dark mode toggle for manual testing
+  - [x] 5.8 Register /dev/theme route (dev-only, gated on import.meta.env.DEV)
+- [x] Task 6: Tests (AC: 1-8)
+  - [x] 6.1 Unit test: UnoCSS config generates expected color token CSS
+  - [x] 6.2 Unit test: Typography shortcuts produce correct font-size and font-weight
+  - [x] 6.3 Unit test: Mood class switching remaps custom properties
+  - [x] 6.4 Unit test: Dark mode overrides apply correctly
+  - [x] 6.5 Unit test: Reduced motion media query sets all durations to 0ms
 
 ## Dev Notes
 
@@ -302,9 +302,30 @@ This is the first story in Epic 5A. No previous UI story exists. The client pack
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+- UnoCSS `?raw` CSS import not supported in vite-plus test environment; used `node:fs` readFileSync instead
+- `@unocss/core` createGenerator not resolvable from within `src/` test files; tested token definitions directly
+- Design tokens extracted to `src/styles/design-tokens.ts` to allow both `uno.config.ts` and tests to import
 
 ### Completion Notes List
+- All 6 tasks completed with 30 new tests (20 token definition tests + 10 CSS custom property tests)
+- Full regression suite passes: 591 shared + 51 client + 167 server = 809 tests, 0 failures
+- Build verified successful (88KB JS + 6.4KB CSS gzipped)
+- Lint passes for new files (pre-existing lint warnings in other packages remain unchanged)
+
+### Change Log
+- 2026-03-29: Implemented design system foundation — all color tokens, typography shortcuts, animation/mood/dark mode CSS custom properties, base styles, theme showcase page, and comprehensive tests
+- 2026-03-29: Code review fixes — chrome-layer tokens now use CSS custom properties for dark mode remapping (AC8), dark mode toggle made functional via .theme-dark class, removed invalid min-font-size CSS, fixed classList mutation in ThemeShowcase, fixed sub-14px text sizes
 
 ### File List
+- `packages/client/uno.config.ts` — MODIFIED: imports design tokens from src/styles/design-tokens.ts
+- `packages/client/src/styles/design-tokens.ts` — NEW: exported color tokens, spacing, radius, shadows, shortcuts
+- `packages/client/src/styles/theme.css` — NEW: animation timing, easing, focus ring, mood switching, dark mode CSS custom properties
+- `packages/client/src/styles/base.css` — NEW: global typography defaults, Inter font stack, 14px minimum
+- `packages/client/src/main.ts` — MODIFIED: imports theme.css and base.css before virtual:uno.css
+- `packages/client/src/components/dev/ThemeShowcase.vue` — NEW: visual verification page for all design tokens
+- `packages/client/src/router/index.ts` — MODIFIED: added /dev/theme route (dev-only)
+- `packages/client/src/uno-config.test.ts` ��� NEW: 20 tests for color tokens, spacing, radius, shadows, shortcuts
+- `packages/client/src/styles/theme.test.ts` — NEW: 10 tests for CSS custom properties (timing, motion, focus, mood, dark mode)

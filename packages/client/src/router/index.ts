@@ -8,6 +8,11 @@ const devRoutes = import.meta.env.DEV
         name: "dev-harness",
         component: () => import("../components/dev/TestHarness.vue"),
       },
+      {
+        path: "/dev/theme",
+        name: "dev-theme",
+        component: () => import("../components/dev/ThemeShowcase.vue"),
+      },
     ]
   : [];
 
