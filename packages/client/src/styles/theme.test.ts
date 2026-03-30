@@ -35,9 +35,9 @@ describe("theme.css custom properties", () => {
 
   describe("focus ring tokens (AC5)", () => {
     it("defines three context-adaptive focus ring colors", () => {
-      expect(themeCSS).toContain("--focus-ring-on-chrome: #8C7038");
-      expect(themeCSS).toContain("--focus-ring-on-felt: #F5F0E8");
-      expect(themeCSS).toContain("--focus-ring-on-dark: #C4A35A");
+      expect(themeCSS).toContain("--focus-ring-on-chrome: #8c7038");
+      expect(themeCSS).toContain("--focus-ring-on-felt: #f5f0e8");
+      expect(themeCSS).toContain("--focus-ring-on-dark: #c4a35a");
     });
   });
 
@@ -63,11 +63,11 @@ describe("theme.css custom properties", () => {
 
   describe("chrome-layer tokens (AC8)", () => {
     it("defines chrome-layer custom properties in :root", () => {
-      expect(themeCSS).toContain("--chrome-surface: #F5F0E8");
-      expect(themeCSS).toContain("--chrome-elevated: #FAF7F2");
-      expect(themeCSS).toContain("--chrome-border: #D4CFC5");
-      expect(themeCSS).toContain("--text-primary: #2C2420");
-      expect(themeCSS).toContain("--text-secondary: #6B6158");
+      expect(themeCSS).toContain("--chrome-surface: #f5f0e8");
+      expect(themeCSS).toContain("--chrome-elevated: #faf7f2");
+      expect(themeCSS).toContain("--chrome-border: #d4cfc5");
+      expect(themeCSS).toContain("--text-primary: #2c2420");
+      expect(themeCSS).toContain("--text-secondary: #6b6158");
     });
   });
 
@@ -79,15 +79,15 @@ describe("theme.css custom properties", () => {
     });
 
     it("remaps chrome-layer tokens in dark mode", () => {
-      expect(darkBlock).toContain("--chrome-surface: #2C2A28");
-      expect(darkBlock).toContain("--chrome-elevated: #3A3735");
-      expect(darkBlock).toContain("--chrome-border: #4A4540");
-      expect(darkBlock).toContain("--text-primary: #E8E0D4");
-      expect(darkBlock).toContain("--text-secondary: #A89E94");
+      expect(darkBlock).toContain("--chrome-surface: #2c2a28");
+      expect(darkBlock).toContain("--chrome-elevated: #3a3735");
+      expect(darkBlock).toContain("--chrome-border: #4a4540");
+      expect(darkBlock).toContain("--text-primary: #e8e0d4");
+      expect(darkBlock).toContain("--text-secondary: #a89e94");
     });
 
     it("remaps state-error to brighter coral in dark mode", () => {
-      expect(darkBlock).toContain("--state-error: #E8896E");
+      expect(darkBlock).toContain("--state-error: #e8896e");
     });
   });
 });
