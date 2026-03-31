@@ -288,13 +288,20 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     <critical>FOLLOW THE STORY FILE TASKS/SUBTASKS SEQUENCE EXACTLY AS WRITTEN - NO DEVIATION</critical>
 
     <action>Review the current task/subtask from the story file - this is your authoritative implementation guide</action>
+    <action>Before coding, use smart tools to understand the code you will touch:
+      - smart_outline on each file you will modify — understand its structure before changing it
+      - smart_search to find similar patterns and existing tests in the codebase
+      - Reference Step 2 outlines already in context — don't re-read files you already outlined
+    </action>
     <action>Plan implementation following red-green-refactor cycle</action>
 
     <!-- RED PHASE -->
+    <action>Use smart_search to find existing test patterns for similar functionality. Use smart_outline on related test files to understand test structure before writing new tests</action>
     <action>Write FAILING tests first for the task/subtask functionality</action>
     <action>Confirm tests fail before implementation - this validates test correctness</action>
 
     <!-- GREEN PHASE -->
+    <action>Use smart_outline to understand modules being modified. Use smart_unfold on specific functions you need to integrate with. Full file reads only for files being actively edited</action>
     <action>Implement MINIMAL code to make tests pass</action>
     <action>Run tests to confirm they now pass</action>
     <action>Handle error conditions and edge cases as specified in task/subtask</action>
@@ -302,6 +309,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     <!-- REFACTOR PHASE -->
     <action>Improve code structure while keeping tests green</action>
     <action>Ensure code follows architecture patterns and coding standards from Dev Notes</action>
+    <action>Use smart_outline to verify structural result of changes. Use smart_search to confirm no callers or consumers were missed</action>
 
     <action>Document technical approach and decisions in Dev Agent Record → Implementation Plan</action>
 
