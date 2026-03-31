@@ -1117,6 +1117,11 @@ Bob (Scrum Master): "I mean truly production-ready, stakeholders happy, no loose
 Bob (Scrum Master): "{user_name}, let's walk through this together."
 </output>
 
+<action>Use smart_search to surface cross-session observations about codebase stability, unresolved issues, and technical concerns from Epic {{epic_number}} development:
+  - Search for debugging struggles, workarounds, or fragility observations
+  - Look for technical debt observations that weren't captured in story files
+</action>
+
 <action>Explore testing and quality state through natural conversation</action>
 
 <output>
