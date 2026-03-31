@@ -319,4 +319,14 @@ describe("GameTable — call buttons integration", () => {
     await wrapper.find("[data-testid='call-pass']").trigger("click");
     expect(wrapper.emitted("pass")).toHaveLength(1);
   });
+
+  it("wraps CallButtons in a Transition for exit animation", () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung"],
+    });
+    const transition = wrapper.findComponent({ name: "Transition" });
+    expect(transition.exists()).toBe(true);
+    expect(transition.find("[data-testid='call-pung']").exists()).toBe(true);
+  });
 });

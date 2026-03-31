@@ -135,15 +135,17 @@ const isDev = import.meta.env.DEV;
     <!-- Action Zone -->
     <div data-testid="action-zone">
       <ActionZone>
-        <CallButtons
-          v-if="isCallWindowOpen"
-          :valid-calls="validCallOptions"
-          :call-window-status="callWindow!.status"
-          @call="(callType: CallType) => emit('call', callType)"
-          @pass="emit('pass')"
-        />
+        <Transition name="call-buttons">
+          <CallButtons
+            v-if="isCallWindowOpen"
+            :valid-calls="validCallOptions"
+            :call-window-status="callWindow!.status"
+            @call="(callType: CallType) => emit('call', callType)"
+            @pass="emit('pass')"
+          />
+        </Transition>
         <DiscardConfirm
-          v-else
+          v-if="!isCallWindowOpen"
           :selected-tile-id="rackStore.selectedTileId"
           :is-player-turn="isPlayerTurn"
           @discard="handleDiscard"
@@ -162,3 +164,17 @@ const isDev = import.meta.env.DEV;
     </div>
   </div>
 </template>
+
+<style scoped>
+.call-buttons-leave-active {
+  position: absolute;
+  transition:
+    opacity var(--timing-exit, 150ms) ease-in,
+    transform var(--timing-exit, 150ms) ease-in;
+}
+
+.call-buttons-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+</style>

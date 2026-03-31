@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import CallButtons from "./CallButtons.vue";
@@ -161,11 +161,12 @@ describe("CallButtons — button labels", () => {
 });
 
 describe("CallButtons — exit animation", () => {
-  it("has Transition wrapper for exit animation", () => {
+  it("exit animation is owned by parent GameTable via Transition wrapper", () => {
+    // CallButtons is a pure renderer — the <Transition> wrapping it lives in GameTable
+    // so that the leave animation fires when the parent unmounts CallButtons.
+    // See GameTable.test.ts for integration-level exit animation verification.
     const wrapper = mountCallButtons({ validCalls: ["pung"] });
-    // The component should use a Transition with a name for CSS-based exit
-    const transition = wrapper.findComponent({ name: "Transition" });
-    expect(transition.exists()).toBe(true);
+    expect(wrapper.find(".call-buttons").exists()).toBe(true);
   });
 });
 

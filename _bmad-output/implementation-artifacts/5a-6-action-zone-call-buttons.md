@@ -1,6 +1,6 @@
 # Story 5a.6: Action Zone & Call Buttons
 
-Status: review
+Status: done
 
 ## Story
 
@@ -224,11 +224,12 @@ Claude Opus 4.6
 - 5 new GameTable integration tests verify conditional rendering and event propagation
 - Dev showcase at `/dev/call-buttons` with 6 interactive scenarios
 - No native button keyboard handlers added (lesson from 5a-5 double-fire bug)
-- All 48 component tests pass (21 CallButtons + 27 GameTable), 0 regressions
+- All 49 component tests pass (21 CallButtons + 28 GameTable), 0 regressions
 
 ### Change Log
 
 - Story 5a-6 implementation complete (Date: 2026-03-30)
+- Code review fixes applied (Date: 2026-03-31): Fixed exit animation bug — moved `<Transition>` from CallButtons to GameTable so leave animation fires when parent unmounts component. Removed unused test imports. Added GameTable integration test for Transition wrapper.
 
 ### File List
 
