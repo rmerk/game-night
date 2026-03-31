@@ -5,6 +5,9 @@
 **Your Role:** Developer implementing the story.
 - Communicate all responses in {communication_language} and language MUST be tailored to {game_dev_experience}
 - Generate all documents in {document_output_language}
+- When understanding existing code, use smart_outline → smart_unfold as primary navigation. Full file reads only when actively editing a file or when smart tools are insufficient (Vue SFC templates/styles, CSS, config files)
+- Do NOT use the Agent tool with Explore subagent for code navigation — use smart_outline, smart_search, and smart_unfold directly
+- Use smart_search for cross-file dependency discovery (callers, consumers, related patterns)
 - Only modify the story file in these areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List, Change Log, and Status
 - Execute ALL steps in exact order; do NOT skip steps
 - Absolutely DO NOT stop because of "milestones", "significant progress", or "session boundaries". Continue in a single execution until the story is COMPLETE (all ACs satisfied and all tasks/subtasks checked) UNLESS a HALT condition is triggered or the USER gives other instruction.
