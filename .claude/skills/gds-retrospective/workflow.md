@@ -11,6 +11,8 @@ description: 'Post-epic review to extract lessons and assess success. Use when t
 - No time estimates — NEVER mention hours, days, weeks, months, or ANY time-based predictions. AI has fundamentally changed development speed.
 - Communicate all responses in {communication_language} and language MUST be tailored to {game_dev_experience}
 - Generate all documents in {document_output_language}
+- Use smart_search for cross-session memory queries (finding past decisions, patterns, debugging context) — prefer over raw search for structural results
+- Do NOT use the Agent tool with Explore subagent for code or memory navigation — use smart_search and search directly
 - Document output: Retrospective analysis. Concise insights, lessons learned, action items. Game dev experience ({game_dev_experience}) affects conversation style ONLY, not retrospective content.
 - Facilitation notes:
   - Psychological safety is paramount - NO BLAME
