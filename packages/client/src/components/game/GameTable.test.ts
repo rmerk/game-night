@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect, vi } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
-import type { SuitedTile, Tile, CallWindowState } from "@mahjong-game/shared";
+import type { SuitedTile, Tile, CallWindowState, GameResult } from "@mahjong-game/shared";
+import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 
 // Mock Vue DnD Kit (needed by TileRack)
 vi.mock("@vue-dnd-kit/core", () => ({
@@ -25,10 +26,53 @@ vi.mock("@vue-dnd-kit/core", () => ({
   }),
 }));
 
-const mockPlayers = {
-  top: { name: "Alice", initial: "A", connected: true },
-  left: { name: "Bob", initial: "B", connected: true },
-  right: { name: "Carol", initial: "C", connected: false },
+const mockPlayers: { top: OpponentPlayer; left: OpponentPlayer; right: OpponentPlayer } = {
+  top: {
+    id: "player-north",
+    name: "Alice",
+    initial: "A",
+    connected: true,
+    seatWind: "north",
+    score: 30,
+  },
+  left: {
+    id: "player-west",
+    name: "Bob",
+    initial: "B",
+    connected: true,
+    seatWind: "west",
+    score: -5,
+  },
+  right: {
+    id: "player-east",
+    name: "Carol",
+    initial: "C",
+    connected: false,
+    seatWind: "east",
+    score: -25,
+  },
+};
+
+const localPlayer: LocalPlayerSummary = {
+  id: "player-south",
+  name: "You",
+  seatWind: "south",
+  score: 25,
+};
+
+const mockGameResult: GameResult = {
+  winnerId: "player-south",
+  patternId: "double-run",
+  patternName: "Double Run",
+  points: 50,
+  selfDrawn: false,
+  discarderId: "player-east",
+  payments: {
+    "player-south": 150,
+    "player-east": -50,
+    "player-west": -50,
+    "player-north": -50,
+  },
 };
 
 const mockCallWindow: CallWindowState = {
@@ -165,6 +209,70 @@ describe("GameTable — accessibility", () => {
     const wrapper = mountTable();
     const table = wrapper.find("[data-testid='game-table']");
     expect(table.classes().some((c: string) => c.includes("min-h-"))).toBe(true);
+  });
+
+  it("renders a turn indicator badge with the active player's name", () => {
+    const wrapper = mountTable({
+      localPlayer,
+      currentTurnSeat: "south",
+    });
+
+    expect(wrapper.get("[data-testid='turn-indicator']").text()).toContain("You");
+  });
+
+  it("shows compact local player score and highlights only the active seat", () => {
+    const wrapper = mountTable({
+      localPlayer,
+      currentTurnSeat: "north",
+    });
+
+    expect(wrapper.get("[data-testid='local-player-score']").text()).toBe("Score: 25");
+    expect(wrapper.get("[data-testid='opponent-area-shell']").classes()).toContain(
+      "ring-state-turn-active",
+    );
+    expect(wrapper.get("[data-testid='local-player-status-shell']").classes()).not.toContain(
+      "ring-state-turn-active",
+    );
+  });
+
+  it("replaces the wall placeholder with the real wall counter component", () => {
+    const wrapper = mountTable({
+      wallRemaining: 20,
+    });
+
+    expect(wrapper.get("[data-testid='wall-counter']").text()).toContain("Wall: 20");
+    expect(wrapper.get("[data-testid='wall-counter']").classes()).toContain("wall-warning");
+  });
+
+  it("positions the wall counter above the discard pools in the center area", () => {
+    const wrapper = mountTable({
+      wallRemaining: 20,
+    });
+    const center = wrapper.get("[data-testid='table-center']").element;
+    const wallCounter = center.querySelector("[data-testid='wall-counter']");
+    const discardPools = center.querySelector("[data-testid='discard-pools']");
+
+    expect(wallCounter).not.toBeNull();
+    expect(discardPools).not.toBeNull();
+    expect(
+      Boolean(
+        wallCounter &&
+        discardPools &&
+        wallCounter.compareDocumentPosition(discardPools) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+  });
+
+  it("renders the scoreboard breakdown only during scoreboard phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+    });
+
+    expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("You");
+    expect(wrapper.find("[data-testid='wall-counter']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='rack-area']").exists()).toBe(false);
   });
 });
 

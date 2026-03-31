@@ -1,20 +1,28 @@
 <script setup lang="ts">
-export interface OpponentPlayer {
-  name: string;
-  initial: string;
-  connected: boolean;
-}
+import type { OpponentPlayer } from "./seat-types";
 
-defineProps<{
-  position: "top" | "left" | "right";
-  player: OpponentPlayer | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    position: "top" | "left" | "right";
+    player: OpponentPlayer | null;
+    isActiveTurn?: boolean;
+    score?: number | null;
+  }>(),
+  {
+    isActiveTurn: false,
+    score: null,
+  },
+);
 
 const isDev = import.meta.env.DEV;
 </script>
 
 <template>
-  <div class="opponent-area flex flex-col items-center gap-1 w-10 h-auto md:w-20 lg:w-35">
+  <div
+    data-testid="opponent-area-shell"
+    class="opponent-area flex flex-col items-center gap-1 w-10 h-auto rounded-xl px-2 py-1 transition md:w-20 lg:w-35"
+    :class="props.isActiveTurn ? 'bg-chrome-surface-dark/25 ring-2 ring-state-turn-active' : ''"
+  >
     <template v-if="player">
       <!-- Avatar circle -->
       <div
@@ -34,6 +42,22 @@ const isDev = import.meta.env.DEV;
       <!-- Player name -->
       <span class="text-text-on-felt text-3 lg:text-3.5 truncate max-w-full text-center">
         {{ player.name }}
+      </span>
+
+      <span
+        v-if="props.isActiveTurn"
+        data-testid="seat-status"
+        class="rounded-full bg-state-turn-active/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-on-felt"
+      >
+        Current turn
+      </span>
+
+      <span
+        v-if="props.score !== null"
+        data-testid="seat-score"
+        class="text-3 text-text-on-felt/85"
+      >
+        Score: {{ props.score }}
       </span>
 
       <!-- Exposed groups placeholder (dev only) -->

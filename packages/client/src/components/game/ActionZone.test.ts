@@ -22,10 +22,10 @@ describe("ActionZone", () => {
     expect(wrapper.find("button").text()).toBe("Pung");
   });
 
-  it("has fixed height class (h-20)", () => {
+  it("has minimum height class (min-h-20)", () => {
     const wrapper = mount(ActionZone);
     const zone = wrapper.find(".action-zone");
-    expect(zone.classes()).toContain("h-20");
+    expect(zone.classes()).toContain("min-h-20");
   });
 
   it("has min-h-20 for minimum height", () => {

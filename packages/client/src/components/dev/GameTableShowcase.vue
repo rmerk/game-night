@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import GameTable from "../game/GameTable.vue";
+import type { LocalPlayerSummary, OpponentPlayer } from "../game/seat-types";
 import TileSprite from "../tiles/TileSprite.vue";
 import type {
   SuitedTile,
@@ -28,15 +29,57 @@ const mockTiles: Tile[] = [
 ];
 
 const fourPlayers = {
-  top: { name: "Alice", initial: "A", connected: true },
-  left: { name: "Bob", initial: "B", connected: true },
-  right: { name: "Carol", initial: "C", connected: false },
-};
+  top: {
+    id: "player-north",
+    name: "Alice",
+    initial: "A",
+    connected: true,
+    seatWind: "north",
+    score: 30,
+  },
+  left: {
+    id: "player-west",
+    name: "Bob",
+    initial: "B",
+    connected: true,
+    seatWind: "west",
+    score: -5,
+  },
+  right: {
+    id: "player-east",
+    name: "Carol",
+    initial: "C",
+    connected: false,
+    seatWind: "east",
+    score: -25,
+  },
+} satisfies { top: OpponentPlayer; left: OpponentPlayer | null; right: OpponentPlayer | null };
 
 const threePlayers = {
-  top: { name: "Alice", initial: "A", connected: true },
+  top: {
+    id: "player-north",
+    name: "Alice",
+    initial: "A",
+    connected: true,
+    seatWind: "north",
+    score: 30,
+  },
   left: null,
-  right: { name: "Carol", initial: "C", connected: true },
+  right: {
+    id: "player-east",
+    name: "Carol",
+    initial: "C",
+    connected: true,
+    seatWind: "east",
+    score: -25,
+  },
+} satisfies { top: OpponentPlayer; left: OpponentPlayer | null; right: OpponentPlayer | null };
+
+const localPlayer: LocalPlayerSummary = {
+  id: "player-south",
+  name: "You",
+  seatWind: "south",
+  score: 25,
 };
 
 type Scenario = "4-players" | "3-players";
@@ -50,7 +93,10 @@ const scenarios: { key: Scenario; label: string }[] = [
 const opponents = {
   "4-players": fourPlayers,
   "3-players": threePlayers,
-};
+} satisfies Record<
+  Scenario,
+  { top: OpponentPlayer | null; left: OpponentPlayer | null; right: OpponentPlayer | null }
+>;
 </script>
 
 <template>
@@ -71,6 +117,13 @@ const opponents = {
   </div>
 
   <div class="pt-12">
-    <GameTable :opponents="opponents[activeScenario]" :tiles="mockTiles" :is-player-turn="true" />
+    <GameTable
+      :opponents="opponents[activeScenario]"
+      :local-player="localPlayer"
+      :current-turn-seat="'south'"
+      :wall-remaining="48"
+      :tiles="mockTiles"
+      :is-player-turn="true"
+    />
   </div>
 </template>

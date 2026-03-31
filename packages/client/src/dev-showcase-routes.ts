@@ -45,6 +45,13 @@ export const devShowcaseDefs: DevShowcaseDef[] = [
     component: () => import("./components/dev/GameTableShowcase.vue"),
   },
   {
+    path: "/dev/game-status",
+    name: "dev-game-status",
+    label: "Game status",
+    blurb: "Turn indicator, wall counter, and scoreboard states.",
+    component: () => import("./components/dev/GameStatusShowcase.vue"),
+  },
+  {
     path: "/dev/discard",
     name: "dev-discard",
     label: "Discard pool",

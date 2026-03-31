@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-03-31 # 5a-7-mahjong-button-declaration-ui → done
+last_updated: 2026-03-31 # 5a-8-turn-indicator-wall-counter-game-scoreboard → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -97,7 +97,7 @@ development_status:
   5a-5-discard-pool-two-step-discard-interaction: done
   5a-6-action-zone-call-buttons: done
   5a-7-mahjong-button-declaration-ui: done
-  5a-8-turn-indicator-wall-counter-game-scoreboard: backlog
+  5a-8-turn-indicator-wall-counter-game-scoreboard: done
   5a-9-keyboard-navigation-accessibility-foundation: backlog
   5a-10-shared-primitive-extraction-tile-readability-validation: backlog
   epic-5a-retrospective: optional
