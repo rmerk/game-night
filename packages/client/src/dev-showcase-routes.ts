@@ -58,6 +58,13 @@ export const devShowcaseDefs: DevShowcaseDef[] = [
     blurb: "Mahjong / pong / etc. actions.",
     component: () => import("./components/dev/CallButtonsShowcase.vue"),
   },
+  {
+    path: "/dev/mahjong-button",
+    name: "dev-mahjong-button",
+    label: "Mahjong button",
+    blurb: "Persistent Mahjong CTA and invalid declaration feedback.",
+    component: () => import("./components/dev/MahjongButtonShowcase.vue"),
+  },
 ];
 
 export function devShowcaseRouteRecords(): RouteRecordRaw[] {

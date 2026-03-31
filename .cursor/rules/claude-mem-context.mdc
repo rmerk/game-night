@@ -1,0 +1,92 @@
+---
+alwaysApply: true
+description: "Claude-mem context from past sessions (auto-updated)"
+---
+
+# Memory Context from Past Sessions
+
+The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
+
+# $CMEM mahjong-game 2026-03-31 4:09pm CDT
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 50 obs (25,497t read) | 497,012t work | 95% savings
+
+### Mar 30, 2026
+70 3:43p 🔵 GDS Story Creation Infrastructure Analyzed
+71 3:44p 🔵 Story 5a-6 Requirements Analyzed for Call Buttons Implementation
+72 3:50p ✅ Story 5a-6 marked in-progress in sprint tracking
+73 3:51p 🟣 CallButtons test suite created with comprehensive coverage
+74 " 🟣 CallButtons component implemented with full accessibility and responsive design
+75 3:52p 🟣 CallButtons integrated into GameTable with conditional ActionZone rendering
+76 " 🟣 GameTable integration tests added for CallButtons conditional rendering
+77 3:53p 🟣 CallButtonsShowcase dev page created with six interactive scenarios
+78 3:54p 🔴 Mock CallWindowState updated with missing winningCall field
+79 " ✅ Story 5a-6 completion documented in story file with comprehensive implementation summary
+80 3:55p ✅ Sprint status updated to mark story 5a-6 ready for review
+### Mar 31, 2026
+81 5:00a 🔵 Mahjong game project uses custom Game Development System (GDS) skills framework
+82 " 🔵 GDS code-review workflow integrates claude-mem for cross-session review context
+83 " 🔵 GDS code-review skill architecture uses 5-step adversarial validation with smart code navigation tools
+84 5:01a ✅ Enhanced gds-code-review Step 1 with explicit smart_outline and smart_search usage for token-efficient code navigation
+85 5:02a ✅ Updated gds-code-review Step 3 to use smart_search, smart_unfold, and smart_outline throughout adversarial review process
+86 5:03a ✅ Updated gds-code-review role description to mandate smart tools usage and prohibit Explore subagent for code navigation
+87 5:04a ✅ Removed conditional checks for claude-mem tools in Step 1, making smart_outline and smart_search mandatory operations
+88 " ✅ Comprehensively refactored Step 3 adversarial review to mandate smart tools with prescriptive usage patterns and context reuse from Step 1
+89 5:10a ✅ Created specification document for code review smart tools migration
+90 5:14a ⚖️ Structured brainstorming workflow established
+91 5:15a 🔵 Mahjong Night project structure and implementation state mapped
+92 5:16a 🔵 GDS Dev Story Workflow methodology documented in project
+93 5:24a ✅ Smart tools migration design document created for create-story and dev-story workflows
+94 5:26a ✅ Implementation plan created for smart tools migration with six detailed tasks
+95 5:28a 🔄 Conditional wrapper removed from gds-create-story cross-session memory integration
+96 5:29a 🔄 Smart tools mandate added to gds-dev-story role directive with Explore ban
+97 5:31a 🔄 Conditional wrapper removed and structural understanding added to gds-dev-story Step 2
+98 5:47a ⚖️ Structured design workflow established for mahjong game project
+S83 Design approval session for gds-retrospective smart tools migration with detailed edit specifications (Mar 31 at 5:52 AM)
+S84 Design specification for retrospective smart tools migration with self-review and user approval (Mar 31 at 5:52 AM)
+99 5:53a ⚖️ Design specification for retrospective smart tools migration
+S85 Design and planning phase for retrospective smart tools migration with execution approach decision (Mar 31 at 5:53 AM)
+100 5:54a ✅ Committed design specification for retrospective smart tools migration
+101 5:55a ✅ Implementation plan created for retrospective smart tools migration
+S86 Migrate gds-retrospective workflow to mandate claude-mem smart tools throughout the retrospective process (Mar 31 at 5:55 AM)
+102 6:00a 🟣 Added smart tools mandate to retrospective role directive
+103 6:07a 🔄 Retrospective Workflow Memory Integration Made Unconditional
+104 6:08a 🟣 Retrospective Workflow Enhanced with Smart Search for Action Item Follow-Through
+105 6:09a 🟣 Critical Readiness Exploration Enhanced with Proactive Stability Search
+S87 Push completed gds-retrospective workflow migration commits to remote repository (Mar 31 at 6:09 AM)
+S88 Create comprehensive story file for 5a-7 Mahjong Button & Declaration UI using gds-create-story workflow (Mar 31 at 6:10 AM)
+106 6:29a 🔵 GDS Story Creation Workflow System
+107 " 🔵 Mahjong Game Project Configuration and Sprint Status
+S122 Research claude-mem installation instructions for Cursor IDE integration (Mar 31 at 6:35 AM)
+120 3:57p 🔵 Claude-Mem Cursor IDE Integration Architecture Documented
+S123 Install claude-mem Cursor IDE integration for persistent AI memory (Mar 31 at 3:58 PM)
+121 3:58p 🟣 Claude-Mem Cursor Hooks Installed for Project
+S124 Install and configure claude-mem for Cursor IDE persistent memory (Mar 31 at 3:58 PM)
+122 4:01p 🟣 Mahjong Button Test Suite Created
+123 4:02p 🟣 MahjongButton Component Implemented
+124 " 🔴 Fixed MahjongButton Visibility Test Assertion
+125 " 🟣 InvalidMahjongNotification Test Suite Created
+126 " 🟣 InvalidMahjongNotification Component Implemented
+127 4:03p 🟣 GameTable Mahjong Button Integration Tests Added
+128 " 🟣 MahjongButton and InvalidMahjongNotification Integrated into GameTable
+129 " 🔴 Fixed GameTable Button Visibility Test Assertion
+130 4:04p 🟣 MahjongButton Development Showcase Created
+131 " ✅ MahjongButton Showcase Route Added to Dev Menu
+S125 Install claude-mem for Cursor IDE and understand monitoring options (Mar 31 at 4:09 PM)
+**Investigated**: Explored claude-mem Cursor integration documentation, installation procedures, and post-installation verification methods. Reviewed hook execution monitoring locations including Cursor Settings, context files, web viewer interface, and worker logs.
+
+**Learned**: Claude-mem hooks run silently in background capturing observations and injecting context without visible UI in Cursor chat. Monitoring available through four locations: Cursor Settings → Hooks tab for execution logs/errors, .cursor/rules/claude-mem-context.mdc for injected context file, http://localhost:37777 web viewer for all observations/sessions, and ~/.claude-mem/logs/worker-YYYY-MM-DD.log for worker service logs. Context file updates after each session ends via stop hook.
+
+**Completed**: Successfully installed claude-mem Cursor hooks at project level (.cursor/hooks.json), generated initial context to .cursor/rules/claude-mem-context.mdc, configured unified CLI mode with Bun runtime, and started worker service on port 37777. Installation ready for use after Cursor IDE restart.
+
+**Next Steps**: User to restart Cursor IDE to activate hooks, then verify integration by checking Cursor Settings → Hooks tab and monitoring first session's observations in web viewer at http://localhost:37777.
+
+
+Access 497k tokens of past work via get_observations([IDs]) or mem-search skill.
+
+---
+*Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

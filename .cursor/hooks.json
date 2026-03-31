@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor session-init"
+      },
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor context"
+      }
+    ],
+    "afterMCPExecution": [
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor observation"
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor observation"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor file-edit"
+      }
+    ],
+    "stop": [
+      {
+        "command": "\"/Users/rchoi/.bun/bin/bun\" \"/Users/rchoi/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs\" hook cursor summarize"
+      }
+    ]
+  }
+}

@@ -7,6 +7,8 @@ import MobileBottomBar from "./MobileBottomBar.vue";
 import DiscardPool from "./DiscardPool.vue";
 import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
+import MahjongButton from "./MahjongButton.vue";
+import InvalidMahjongNotification from "./InvalidMahjongNotification.vue";
 import type { OpponentPlayer } from "./OpponentArea.vue";
 import type { Tile, CallType, CallWindowState } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
@@ -30,6 +32,7 @@ const props = withDefaults(
     };
     callWindow?: CallWindowState | null;
     validCallOptions?: CallType[];
+    invalidMahjongMessage?: string | null;
   }>(),
   {
     opponents: () => ({}),
@@ -38,6 +41,7 @@ const props = withDefaults(
     discardPools: () => ({}),
     callWindow: null,
     validCallOptions: () => [],
+    invalidMahjongMessage: null,
   },
 );
 
@@ -45,6 +49,8 @@ const emit = defineEmits<{
   discard: [tileId: string];
   call: [callType: CallType];
   pass: [];
+  declareMahjong: [];
+  cancelMahjong: [];
 }>();
 
 function handleDiscard(tileId: string) {
@@ -56,9 +62,16 @@ const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
 
-const isCallWindowOpen = computed(
-  () => props.callWindow !== null && props.callWindow.status === "open",
+const openCallWindow = computed(() => {
+  const cw = props.callWindow;
+  return cw !== null && cw.status === "open" ? cw : null;
+});
+
+const isCallWindowOpen = computed(() => openCallWindow.value !== null);
+const callWindowHasMahjong = computed(
+  () => isCallWindowOpen.value && props.validCallOptions.includes("mahjong"),
 );
+const invalidMahjongVisible = computed(() => props.invalidMahjongMessage !== null);
 
 const isDev = import.meta.env.DEV;
 </script>
@@ -135,21 +148,36 @@ const isDev = import.meta.env.DEV;
     <!-- Action Zone -->
     <div data-testid="action-zone">
       <ActionZone>
-        <Transition name="call-buttons">
-          <CallButtons
-            v-if="isCallWindowOpen"
-            :valid-calls="validCallOptions"
-            :call-window-status="callWindow!.status"
-            @call="(callType: CallType) => emit('call', callType)"
-            @pass="emit('pass')"
+        <div class="flex flex-col items-center justify-center gap-2">
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <MahjongButton
+              :is-call-window-open="isCallWindowOpen"
+              :hide-for-call-duplication="callWindowHasMahjong"
+              @declare-mahjong="emit('declareMahjong')"
+              @call-mahjong="emit('call', 'mahjong')"
+            />
+            <Transition name="call-buttons">
+              <CallButtons
+                v-if="openCallWindow"
+                :valid-calls="validCallOptions"
+                :call-window-status="openCallWindow.status"
+                @call="(callType: CallType) => emit('call', callType)"
+                @pass="emit('pass')"
+              />
+            </Transition>
+            <DiscardConfirm
+              v-if="!isCallWindowOpen"
+              :selected-tile-id="rackStore.selectedTileId"
+              :is-player-turn="isPlayerTurn"
+              @discard="handleDiscard"
+            />
+          </div>
+          <InvalidMahjongNotification
+            :visible="invalidMahjongVisible"
+            :message="invalidMahjongMessage ?? ''"
+            @cancel="emit('cancelMahjong')"
           />
-        </Transition>
-        <DiscardConfirm
-          v-if="!isCallWindowOpen"
-          :selected-tile-id="rackStore.selectedTileId"
-          :is-player-turn="isPlayerTurn"
-          @discard="handleDiscard"
-        />
+        </div>
       </ActionZone>
     </div>
 

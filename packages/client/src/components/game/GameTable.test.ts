@@ -31,6 +31,25 @@ const mockPlayers = {
   right: { name: "Carol", initial: "C", connected: false },
 };
 
+const mockCallWindow: CallWindowState = {
+  status: "open",
+  discardedTile: {
+    id: "bam-1-1",
+    category: "suited",
+    suit: "bam",
+    value: 1,
+    copy: 1,
+  } as SuitedTile,
+  discarderId: "player-2",
+  passes: [],
+  calls: [],
+  openedAt: Date.now(),
+  confirmingPlayerId: null,
+  confirmationExpiresAt: null,
+  remainingCallers: [],
+  winningCall: null,
+};
+
 function mountTable(props: Record<string, unknown> = {}) {
   return mount(GameTable, {
     props: {
@@ -220,25 +239,6 @@ describe("GameTable — two-step discard integration", () => {
 });
 
 describe("GameTable — call buttons integration", () => {
-  const mockCallWindow: CallWindowState = {
-    status: "open",
-    discardedTile: {
-      id: "bam-1-1",
-      category: "suited",
-      suit: "bam",
-      value: 1,
-      copy: 1,
-    } as SuitedTile,
-    discarderId: "player-2",
-    passes: [],
-    calls: [],
-    openedAt: Date.now(),
-    confirmingPlayerId: null,
-    confirmationExpiresAt: null,
-    remainingCallers: [],
-    winningCall: null,
-  };
-
   it("renders CallButtons when callWindow is open", () => {
     const wrapper = mountTable({
       callWindow: mockCallWindow,
@@ -328,5 +328,73 @@ describe("GameTable — call buttons integration", () => {
     const transition = wrapper.findComponent({ name: "Transition" });
     expect(transition.exists()).toBe(true);
     expect(transition.find("[data-testid='call-pung']").exists()).toBe(true);
+  });
+});
+
+describe("GameTable — Mahjong button integration", () => {
+  it("always renders the Mahjong button when no call window is open", () => {
+    const wrapper = mountTable();
+    expect(wrapper.find("[data-testid='mahjong-button']").exists()).toBe(true);
+  });
+
+  it("hides the persistent Mahjong button when the call window already offers Mahjong", () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["mahjong", "pung"],
+    });
+
+    const button = wrapper.get("[data-testid='mahjong-button']");
+    expect(button.attributes("style")).toContain("display: none");
+    expect(wrapper.find("[data-testid='call-mahjong']").exists()).toBe(true);
+  });
+
+  it("keeps the persistent Mahjong button visible when the call window does not offer Mahjong", () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung"],
+    });
+
+    const button = wrapper.get("[data-testid='mahjong-button']");
+    expect(button.attributes("style")).toBeUndefined();
+    expect(wrapper.find("[data-testid='call-pung']").exists()).toBe(true);
+  });
+
+  it("emits declareMahjong when the persistent button is clicked outside a call window", async () => {
+    const wrapper = mountTable();
+
+    await wrapper.get("[data-testid='mahjong-button']").trigger("click");
+
+    expect(wrapper.emitted("declareMahjong")).toEqual([[]]);
+  });
+
+  it("emits call('mahjong') when the persistent button is clicked during a call window", async () => {
+    const wrapper = mountTable({
+      callWindow: mockCallWindow,
+      validCallOptions: ["pung"],
+    });
+
+    await wrapper.get("[data-testid='mahjong-button']").trigger("click");
+
+    expect(wrapper.emitted("call")).toContainEqual(["mahjong"]);
+  });
+
+  it("renders invalid Mahjong feedback only when a message is provided", () => {
+    const hiddenWrapper = mountTable();
+    expect(hiddenWrapper.find("[data-testid='invalid-mahjong-notification']").exists()).toBe(false);
+
+    const visibleWrapper = mountTable({
+      invalidMahjongMessage: "Not a valid Mahjong hand.",
+    });
+    expect(visibleWrapper.find("[data-testid='invalid-mahjong-notification']").exists()).toBe(true);
+  });
+
+  it("emits cancelMahjong when the invalid Mahjong notification is cancelled", async () => {
+    const wrapper = mountTable({
+      invalidMahjongMessage: "Not a valid Mahjong hand.",
+    });
+
+    await wrapper.get("[data-testid='cancel-mahjong']").trigger("click");
+
+    expect(wrapper.emitted("cancelMahjong")).toEqual([[]]);
   });
 });
