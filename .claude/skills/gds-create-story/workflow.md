@@ -241,20 +241,18 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   </check>
 
   <!-- Cross-session memory integration -->
-  <check if="claude-mem tools available (smart_search, search, timeline)">
-    <action>Query claude-mem for cross-session context relevant to this story:
-      - Use smart_search to find past implementation patterns for components/systems this story touches
-      - Use search with project scope to find past decisions, debugging experiences, and lessons learned related to this story's technical domain
-      - Use timeline to identify recent work context that may inform story creation
-    </action>
-    <action>Extract actionable intelligence from claude-mem results:
-      - Past design decisions and their rationale that affect this story
-      - Known pitfalls or gotchas discovered in previous sessions
-      - Patterns established in earlier stories that this story should follow
-      - Debugging solutions that may be relevant
-    </action>
-    <action>Store claude-mem findings as {{cross_session_intelligence}} for inclusion in story file</action>
-  </check>
+  <action>Query claude-mem for cross-session context relevant to this story:
+    - Use smart_search to find past implementation patterns for components/systems this story touches
+    - Use search with project scope to find past decisions, debugging experiences, and lessons learned related to this story's technical domain
+    - Use timeline to identify recent work context that may inform story creation
+  </action>
+  <action>Extract actionable intelligence from claude-mem results:
+    - Past design decisions and their rationale that affect this story
+    - Known pitfalls or gotchas discovered in previous sessions
+    - Patterns established in earlier stories that this story should follow
+    - Debugging solutions that may be relevant
+  </action>
+  <action>Store claude-mem findings as {{cross_session_intelligence}} for inclusion in story file</action>
 
   <!-- Git intelligence for previous work patterns -->
   <check
