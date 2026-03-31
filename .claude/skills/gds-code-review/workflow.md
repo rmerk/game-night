@@ -14,7 +14,8 @@ description: 'Perform adversarial code review finding specific issues. Use when 
 - Your purpose: Validate story file claims against actual implementation
 - Challenge everything: Are tasks marked [x] actually done? Are ACs really implemented?
 - Be thorough and specific — find real issues, not manufactured ones. If the code is genuinely good after fixes, say so
-- Read EVERY file in the File List - verify implementation against story requirements
+- Verify EVERY file in the File List against story requirements using claude-mem smart tools (smart_outline → smart_unfold) to avoid reading entire files. Only fall back to full file reads for files where AST parsing is insufficient (e.g., Vue SFC templates/styles) or when smart tools are unavailable
+- Do NOT use the Agent tool with Explore subagent for code navigation — use smart_outline, smart_search, and smart_unfold directly
 - Tasks marked complete but not done = CRITICAL finding
 - Acceptance Criteria not implemented = HIGH severity finding
 - Do not review files that are not part of the application's source code. Always exclude the `_bmad/` and `_bmad-output/` folders from the review. Always exclude IDE and CLI configuration folders like `.cursor/` and `.windsurf/` and `.claude/`
@@ -87,14 +88,23 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <action>Load {project_context} for coding standards (if exists)</action>
 
   <!-- Cross-session memory integration -->
-  <check if="claude-mem tools available (smart_search, search)">
-    <action>Query claude-mem for review-relevant context:
-      - Use search with project scope to find past review feedback patterns for files/components being reviewed
-      - Look for recurring issues, architectural decisions, and known gotchas in the areas under review
-      - Find past debugging experiences that reveal fragile areas to scrutinize
-    </action>
-    <action>Use claude-mem findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
-  </check>
+  <action>Query claude-mem search with project scope for review-relevant context:
+    - Past review feedback patterns for files/components being reviewed
+    - Recurring issues, architectural decisions, and known gotchas
+    - Past debugging experiences that reveal fragile areas to scrutinize
+  </action>
+  <action>Use claude-mem findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
+
+  <!-- Build structural understanding of files under review using smart tools -->
+  <action>For EACH file in the review list, run smart_outline to get structural overview:
+    - Function/method signatures, type definitions, exports
+    - This is the PRIMARY way to understand files — do NOT read full files for initial understanding
+  </action>
+  <action>Use smart_search to map cross-file dependencies:
+    - Search for key types, functions, and constants referenced by changed files
+    - Identify callers and consumers of modified APIs
+    - Understand how changed code connects to the rest of the codebase
+  </action>
 </step>
 
 <step n="2" goal="Build review attack plan">
@@ -123,29 +133,43 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <!-- Use combined file list: story File List + git discovered files -->
   <action>Create comprehensive review file list from story File List and git changes</action>
 
+  <!-- Code navigation rules for this step -->
+  <critical>
+    - Do NOT use the Agent tool with Explore subagent — use smart_outline, smart_search, smart_unfold directly
+    - Do NOT read entire files when smart_outline + smart_unfold can answer the question
+    - The smart_outline results from Step 1 are already in context — reference them, don't re-read
+    - Only do a full file read when: (a) reviewing Vue SFC template/style sections, or (b) smart tools are unavailable
+  </critical>
+
   <!-- AC Validation -->
   <action>For EACH Acceptance Criterion:
     1. Read the AC requirement
-    2. Search implementation files for evidence
-    3. Determine: IMPLEMENTED, PARTIAL, or MISSING
-    4. If MISSING/PARTIAL → HIGH SEVERITY finding
+    2. Use smart_search to find implementations across changed files
+    3. Use smart_unfold to read the specific functions/symbols that implement the AC
+    4. Determine: IMPLEMENTED, PARTIAL, or MISSING
+    5. If MISSING/PARTIAL → HIGH SEVERITY finding
   </action>
 
   <!-- Task Completion Audit -->
   <action>For EACH task marked [x]:
     1. Read the task description
-    2. Search files for evidence it was actually done
-    3. **CRITICAL**: If marked [x] but NOT DONE → CRITICAL finding
-    4. Record specific proof (file:line)
+    2. Use smart_search to find evidence across codebase
+    3. Use smart_unfold to verify the specific symbol exists and is correct
+    4. **CRITICAL**: If marked [x] but NOT DONE → CRITICAL finding
+    5. Record specific proof (file:line)
   </action>
 
   <!-- Code Quality Deep Dive -->
   <action>For EACH file in comprehensive review list:
-    1. **Security**: Look for injection risks, missing validation, auth issues
-    2. **Performance**: N+1 queries, inefficient loops, missing caching
-    3. **Error Handling**: Missing try/catch, poor error messages
-    4. **Code Quality**: Complex functions, magic numbers, poor naming
-    5. **Test Quality**: Are tests real assertions or placeholders?
+    Reference the smart_outline from Step 1 — do NOT re-read the file. Use smart_unfold to
+    expand only the functions/types that need deep inspection. Full file read is a LAST RESORT
+    for content not captured by AST (Vue SFC templates, CSS, inline HTML).
+
+    1. **Security**: smart_unfold suspicious functions → check for injection risks, missing validation, auth issues
+    2. **Performance**: smart_unfold hot paths → check for N+1 queries, inefficient loops, missing caching
+    3. **Error Handling**: smart_unfold error-adjacent code → check for missing try/catch, poor error messages
+    4. **Code Quality**: Review smart_outline for complexity signals (large functions, deep nesting) → smart_unfold to confirm
+    5. **Test Quality**: smart_outline test files → smart_unfold individual test cases → verify real assertions not placeholders
   </action>
 
   <check if="total_issues_found == 0">
