@@ -337,6 +337,11 @@ Bob (Scrum Master): "I found our retrospectives from Epic {{prev_epic_num}}. Let
 
     <action>Cross-reference with current epic execution:</action>
 
+    <action>Use smart_search to find evidence of action item follow-through beyond story files:
+      - Search for observations about process changes, technical debt resolution, and team agreements
+      - Look for debugging sessions or decisions that relate to previous retro commitments
+    </action>
+
     **Action Item Follow-Through:**
     - For each action item from Epic {{prev_epic_num}} retro, check if it was completed
     - Look for evidence in current epic's story records
