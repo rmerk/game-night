@@ -324,6 +324,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   </step>
 
   <step n="6" goal="Author comprehensive tests">
+    <action>Use smart_search to find existing test coverage for related code. Use smart_outline on existing test files to understand test structure and patterns before adding new tests</action>
     <action>Create unit tests for business logic and core functionality introduced/changed by the task</action>
     <action>Add integration tests for component interactions specified in story requirements</action>
     <action>Include end-to-end tests for critical user flows when story requirements demand them</action>
