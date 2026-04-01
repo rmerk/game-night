@@ -1,18 +1,58 @@
 import { MAX_PLAYERS, SEATS } from "../../constants";
-import type { CharlestonPassAction } from "../../types/actions";
+import type { CharlestonPassAction, CharlestonVoteAction } from "../../types/actions";
 import type {
   ActionResult,
   CharlestonDirection,
+  CharlestonPairing,
+  CharlestonStage,
+  CharlestonStatus,
   GameState,
   SeatWind,
 } from "../../types/game-state";
 import type { Tile } from "../../types/tiles";
 
+type PassingCharlestonStage = Exclude<CharlestonStage, "courtesy">;
+
+const PASS_ORDER_BY_STAGE: Record<PassingCharlestonStage, readonly CharlestonDirection[]> = {
+  first: ["right", "across", "left"],
+  second: ["left", "across", "right"],
+};
+
+const BLIND_PASS_DIRECTION_BY_STAGE: Record<PassingCharlestonStage, CharlestonDirection> = {
+  first: "left",
+  second: "right",
+};
+
+const COURTESY_PAIR_SEATS = [
+  ["east", "west"],
+  ["south", "north"],
+] as const satisfies readonly (readonly [SeatWind, SeatWind])[];
+
+function isPassingCharlestonStage(stage: CharlestonStage): stage is PassingCharlestonStage {
+  return stage === "first" || stage === "second";
+}
+
 function getCharlestonState(state: GameState) {
   if (
     state.gamePhase !== "charleston" ||
     !state.charleston ||
-    state.charleston.status !== "passing"
+    state.charleston.status !== "passing" ||
+    !state.charleston.currentDirection ||
+    !isPassingCharlestonStage(state.charleston.stage)
+  ) {
+    return null;
+  }
+
+  return state.charleston;
+}
+
+function getVoteReadyCharlestonState(state: GameState) {
+  if (
+    state.gamePhase !== "charleston" ||
+    !state.charleston ||
+    state.charleston.stage !== "second" ||
+    state.charleston.status !== "vote-ready" ||
+    state.charleston.currentDirection !== null
   ) {
     return null;
   }
@@ -22,6 +62,29 @@ function getCharlestonState(state: GameState) {
 
 function hasDuplicateTileIds(tileIds: readonly string[]): boolean {
   return new Set(tileIds).size !== tileIds.length;
+}
+
+function getCharlestonPassOrder(stage: PassingCharlestonStage): readonly CharlestonDirection[] {
+  return PASS_ORDER_BY_STAGE[stage];
+}
+
+function getBlindPassDirection(stage: PassingCharlestonStage): CharlestonDirection {
+  return BLIND_PASS_DIRECTION_BY_STAGE[stage];
+}
+
+function getNextDirection(
+  stage: PassingCharlestonStage,
+  direction: CharlestonDirection,
+): CharlestonDirection | null {
+  const order = getCharlestonPassOrder(stage);
+  const directionIndex = order.indexOf(direction);
+  if (directionIndex === -1) {
+    throw new Error(
+      `getNextDirection: direction '${direction}' is not valid for Charleston stage '${stage}'`,
+    );
+  }
+
+  return order[directionIndex + 1] ?? null;
 }
 
 export function getCharlestonTargetSeat(
@@ -66,11 +129,16 @@ function validateCharlestonPass(
   action: CharlestonPassAction,
 ): ActionResult | null {
   const charleston = getCharlestonState(state);
-  if (
-    !charleston ||
-    !charleston.currentDirection ||
-    !charleston.activePlayerIds.includes(action.playerId)
-  ) {
+  if (!charleston) {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+
+  const player = state.players[action.playerId];
+  if (!player) {
+    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
+  }
+
+  if (!charleston.activePlayerIds.includes(action.playerId)) {
     return { accepted: false, reason: "WRONG_PHASE" };
   }
 
@@ -84,11 +152,6 @@ function validateCharlestonPass(
 
   if (charleston.submittedPlayerIds.includes(action.playerId)) {
     return { accepted: false, reason: "CHARLESTON_PASS_ALREADY_LOCKED" };
-  }
-
-  const player = state.players[action.playerId];
-  if (!player) {
-    throw new Error(`handleCharlestonPass: no player found for id '${action.playerId}'`);
   }
 
   const visibleTileIds = new Set(player.rack.map((tile) => tile.id));
@@ -151,9 +214,84 @@ function resetPassingState(state: GameState): void {
   charleston.lockedTileIdsByPlayerId = {};
 }
 
+function resetVoteState(state: GameState): void {
+  const charleston = state.charleston;
+  if (!charleston) {
+    return;
+  }
+
+  charleston.submittedPlayerIds = [];
+  charleston.votesByPlayerId = {};
+}
+
+function getPlayerIdBySeat(state: GameState, seatWind: SeatWind): string {
+  const player = Object.values(state.players).find((candidate) => candidate.seatWind === seatWind);
+  if (!player) {
+    throw new Error(`getPlayerIdBySeat: no player found for seat '${seatWind}'`);
+  }
+
+  return player.id;
+}
+
+function buildCourtesyPairings(state: GameState): CharlestonPairing[] {
+  return COURTESY_PAIR_SEATS.map(([firstSeat, secondSeat]) => [
+    getPlayerIdBySeat(state, firstSeat),
+    getPlayerIdBySeat(state, secondSeat),
+  ]);
+}
+
+/** Shared setup when leaving a passing or vote round (clears hidden tiles, resets submissions). */
+function transitionCharlestonPhase(
+  state: GameState,
+  params: {
+    stage: CharlestonStage;
+    status: CharlestonStatus;
+    currentDirection: CharlestonDirection | null;
+    courtesyPairings?: readonly CharlestonPairing[];
+  },
+): void {
+  const charleston = state.charleston;
+  if (!charleston) {
+    throw new Error("transitionCharlestonPhase: no Charleston state");
+  }
+
+  charleston.stage = params.stage;
+  charleston.status = params.status;
+  charleston.currentDirection = params.currentDirection;
+  charleston.hiddenAcrossTilesByPlayerId = {};
+  charleston.courtesyPairings = params.courtesyPairings ?? [];
+  resetPassingState(state);
+  resetVoteState(state);
+}
+
+function transitionToSecondVoteReady(state: GameState): void {
+  transitionCharlestonPhase(state, {
+    stage: "second",
+    status: "vote-ready",
+    currentDirection: null,
+  });
+}
+
+function transitionToSecondPassing(state: GameState): void {
+  transitionCharlestonPhase(state, {
+    stage: "second",
+    status: "passing",
+    currentDirection: "left",
+  });
+}
+
+function transitionToCourtesyReady(state: GameState): void {
+  transitionCharlestonPhase(state, {
+    stage: "courtesy",
+    status: "courtesy-ready",
+    currentDirection: null,
+    courtesyPairings: buildCourtesyPairings(state),
+  });
+}
+
 function resolveCurrentDirection(state: GameState): ActionResult {
   const charleston = state.charleston;
-  if (!charleston || !charleston.currentDirection) {
+  if (!charleston || !charleston.currentDirection || !isPassingCharlestonStage(charleston.stage)) {
     throw new Error("resolveCurrentDirection: no active Charleston direction");
   }
 
@@ -189,20 +327,14 @@ function resolveCurrentDirection(state: GameState): ActionResult {
   }
 
   resetPassingState(state);
+  const nextDirection = getNextDirection(charleston.stage, direction);
 
-  switch (direction) {
-    case "right":
-      charleston.currentDirection = "across";
-      break;
-    case "across":
-      charleston.currentDirection = "left";
-      break;
-    case "left":
-      charleston.stage = "second";
-      charleston.status = "vote-ready";
-      charleston.currentDirection = null;
-      charleston.hiddenAcrossTilesByPlayerId = {};
-      break;
+  if (nextDirection) {
+    charleston.currentDirection = nextDirection;
+  } else if (charleston.stage === "first") {
+    transitionToSecondVoteReady(state);
+  } else {
+    transitionToCourtesyReady(state);
   }
 
   return {
@@ -210,7 +342,7 @@ function resolveCurrentDirection(state: GameState): ActionResult {
     resolved: {
       type: "CHARLESTON_PHASE_COMPLETE",
       direction,
-      nextDirection: charleston.currentDirection,
+      nextDirection: state.charleston?.currentDirection ?? null,
       stage: charleston.stage,
       status: charleston.status,
     },
@@ -223,11 +355,14 @@ export function handleCharlestonPass(state: GameState, action: CharlestonPassAct
     return validationError;
   }
 
-  const charleston = state.charleston!;
+  const charleston = getCharlestonState(state)!;
   charleston.lockedTileIdsByPlayerId[action.playerId] = [...action.tileIds];
   charleston.submittedPlayerIds.push(action.playerId);
 
-  if (charleston.currentDirection === "left") {
+  if (
+    isPassingCharlestonStage(charleston.stage) &&
+    charleston.currentDirection === getBlindPassDirection(charleston.stage)
+  ) {
     revealHiddenAcrossTiles(state, action.playerId);
   }
 
@@ -236,4 +371,78 @@ export function handleCharlestonPass(state: GameState, action: CharlestonPassAct
   }
 
   return resolveCurrentDirection(state);
+}
+
+function validateCharlestonVote(
+  state: GameState,
+  action: CharlestonVoteAction,
+): ActionResult | null {
+  const charleston = getVoteReadyCharlestonState(state);
+  if (!charleston) {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+
+  if (!state.players[action.playerId]) {
+    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
+  }
+
+  if (!charleston.activePlayerIds.includes(action.playerId)) {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+
+  if (charleston.votesByPlayerId[action.playerId] !== undefined) {
+    return { accepted: false, reason: "CHARLESTON_VOTE_ALREADY_CAST" };
+  }
+
+  return null;
+}
+
+export function handleCharlestonVote(state: GameState, action: CharlestonVoteAction): ActionResult {
+  const validationError = validateCharlestonVote(state, action);
+  if (validationError) {
+    return validationError;
+  }
+
+  const charleston = getVoteReadyCharlestonState(state)!;
+  charleston.votesByPlayerId[action.playerId] = action.accept;
+  charleston.submittedPlayerIds.push(action.playerId);
+
+  if (!action.accept) {
+    transitionToCourtesyReady(state);
+    const after = state.charleston!;
+    return {
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_VOTE_RESOLVED",
+        outcome: "rejected",
+        nextDirection: null,
+        stage: after.stage,
+        status: after.status,
+      },
+    };
+  }
+
+  const votesReceivedCount = charleston.submittedPlayerIds.length;
+  if (votesReceivedCount < MAX_PLAYERS) {
+    return {
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_VOTE_CAST",
+        votesReceivedCount,
+      },
+    };
+  }
+
+  transitionToSecondPassing(state);
+  const after = state.charleston!;
+  return {
+    accepted: true,
+    resolved: {
+      type: "CHARLESTON_VOTE_RESOLVED",
+      outcome: "accepted",
+      nextDirection: after.currentDirection,
+      stage: after.stage,
+      status: after.status,
+    },
+  };
 }

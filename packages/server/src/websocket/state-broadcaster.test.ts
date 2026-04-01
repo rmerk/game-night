@@ -274,6 +274,8 @@ describe("buildPlayerView", () => {
           { id: "flower-a-3", category: "flower", value: "a", copy: 3 },
         ],
       },
+      votesByPlayerId: {},
+      courtesyPairings: [],
     };
 
     const playerView = buildPlayerView(room, gameState, "player-0");
@@ -286,8 +288,11 @@ describe("buildPlayerView", () => {
       status: "passing",
       currentDirection: "left",
       submittedPlayerIds: ["player-0"],
+      votesReceivedCount: 0,
+      courtesyPairings: [],
       myHiddenTileCount: 3,
       mySubmissionLocked: true,
+      myVote: null,
     });
     expect(playerView.charleston).not.toHaveProperty("lockedTileIdsByPlayerId");
     expect(playerView.charleston).not.toHaveProperty("hiddenAcrossTilesByPlayerId");
@@ -296,6 +301,8 @@ describe("buildPlayerView", () => {
       status: "passing",
       currentDirection: "left",
       submittedPlayerIds: ["player-0"],
+      votesReceivedCount: 0,
+      courtesyPairings: [],
     });
     expect(spectatorView.charleston).not.toHaveProperty("myHiddenTileCount");
 
@@ -303,6 +310,105 @@ describe("buildPlayerView", () => {
       expect(playerViewJson).not.toContain(hiddenTileId);
       expect(spectatorViewJson).not.toContain(hiddenTileId);
     }
+  });
+
+  it("exposes only aggregate vote progress plus the requesting player's own vote", () => {
+    const { room } = createFourPlayerRoom();
+    const gameState = createFourPlayerGameState();
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: ["player-0", "player-1"],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {
+        "player-0": true,
+        "player-1": false,
+      },
+      courtesyPairings: [],
+    };
+
+    const playerZeroView = buildPlayerView(room, gameState, "player-0");
+    const playerTwoView = buildPlayerView(room, gameState, "player-2");
+    const spectatorView = buildSpectatorView(room, gameState);
+
+    expect(playerZeroView.charleston).toMatchObject({
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      submittedPlayerIds: [],
+      votesReceivedCount: 2,
+      mySubmissionLocked: true,
+      myVote: true,
+    });
+    expect(playerTwoView.charleston).toMatchObject({
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      submittedPlayerIds: [],
+      votesReceivedCount: 2,
+      mySubmissionLocked: false,
+      myVote: null,
+    });
+    expect(spectatorView.charleston).toMatchObject({
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      submittedPlayerIds: [],
+      votesReceivedCount: 2,
+    });
+
+    expect(playerZeroView.charleston).not.toHaveProperty("votesByPlayerId");
+    expect(playerTwoView.charleston).not.toHaveProperty("votesByPlayerId");
+    expect(spectatorView.charleston).not.toHaveProperty("votesByPlayerId");
+  });
+
+  it("exposes courtesy pairings without leaking stale vote or hidden-tile internals", () => {
+    const { room } = createFourPlayerRoom();
+    const gameState = createFourPlayerGameState();
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+    };
+
+    const playerView = buildPlayerView(room, gameState, "player-0");
+    const spectatorView = buildSpectatorView(room, gameState);
+
+    expect(playerView.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      myVote: null,
+    });
+    expect(spectatorView.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+    });
+    expect(playerView.charleston).not.toHaveProperty("hiddenAcrossTilesByPlayerId");
+    expect(playerView.charleston).not.toHaveProperty("lockedTileIdsByPlayerId");
   });
 
   it("includes all public state fields", () => {
@@ -458,6 +564,41 @@ describe("broadcastGameState", () => {
       playerId: "player-0",
       tileId: "dot-5-1",
     });
+  });
+
+  it("broadcasts CHARLESTON_VOTE_CAST without peer vote fields on every socket", () => {
+    const { room, wsList } = createFourPlayerRoom();
+    const gameState = createFourPlayerGameState();
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: ["player-0"],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: { "player-0": true },
+      courtesyPairings: [],
+    };
+
+    broadcastGameState(room, gameState, {
+      type: "CHARLESTON_VOTE_CAST",
+      votesReceivedCount: 1,
+    });
+
+    for (let i = 0; i < 4; i++) {
+      const msg = parseSentMessage(wsList[i]);
+      expect(msg.resolvedAction).toEqual({
+        type: "CHARLESTON_VOTE_CAST",
+        votesReceivedCount: 1,
+      });
+      const ra = JSON.stringify(msg.resolvedAction);
+      expect(ra).not.toContain("accept");
+      for (const pid of ["player-0", "player-1", "player-2", "player-3"]) {
+        expect(ra).not.toContain(pid);
+      }
+    }
   });
 
   it("skips players with closed WebSocket connections", () => {

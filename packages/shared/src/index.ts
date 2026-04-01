@@ -29,6 +29,7 @@ export type {
   CharlestonDirection,
   CharlestonStage,
   CharlestonStatus,
+  CharlestonPairing,
   CharlestonState,
   ActionResult,
   ResolvedAction,
@@ -46,6 +47,7 @@ export type {
   GameAction,
   StartGameAction,
   CharlestonPassAction,
+  CharlestonVoteAction,
   DrawTileAction,
   DiscardTileAction,
   PassCallAction,
@@ -141,6 +143,7 @@ export { createGame } from "./engine/state/create-game";
 export { createLobbyState, handleAction } from "./engine/game-engine";
 export {
   handleCharlestonPass,
+  handleCharlestonVote,
   getCharlestonTargetSeat,
   getCharlestonTargetPlayerId,
 } from "./engine/actions/charleston";

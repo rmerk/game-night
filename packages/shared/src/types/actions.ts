@@ -2,6 +2,7 @@
 export type GameAction =
   | StartGameAction
   | CharlestonPassAction
+  | CharlestonVoteAction
   | DrawTileAction
   | DiscardTileAction
   | PassCallAction
@@ -38,6 +39,13 @@ export interface CharlestonPassAction {
   readonly type: "CHARLESTON_PASS";
   readonly playerId: string;
   readonly tileIds: readonly string[];
+}
+
+/** Action for a player to vote on whether the optional second Charleston should occur */
+export interface CharlestonVoteAction {
+  readonly type: "CHARLESTON_VOTE";
+  readonly playerId: string;
+  readonly accept: boolean;
 }
 
 /** Action for the current player to discard a tile from their rack */

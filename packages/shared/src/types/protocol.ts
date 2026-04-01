@@ -3,6 +3,7 @@ import type {
   ResolvedAction,
   GamePhase,
   TurnPhase,
+  CharlestonPairing,
   CharlestonDirection,
   CharlestonStage,
   CharlestonStatus,
@@ -71,12 +72,15 @@ export interface PublicCharlestonView {
   currentDirection: CharlestonDirection | null;
   activePlayerIds: string[];
   submittedPlayerIds: string[];
+  votesReceivedCount: number;
+  courtesyPairings: readonly CharlestonPairing[];
 }
 
 /** Per-player Charleston metadata that never exposes hidden tile identities */
 export interface PlayerCharlestonView extends PublicCharlestonView {
   myHiddenTileCount: number;
   mySubmissionLocked: boolean;
+  myVote: boolean | null;
 }
 
 /** Spectator Charleston metadata — public information only */

@@ -26,6 +26,21 @@ function submitCharlestonPass(state: GameState, playerId: string, tileIds: reado
   return handleAction(state, action);
 }
 
+function submitCharlestonVote(state: GameState, playerId: string, accept: boolean) {
+  const action: GameAction = {
+    type: "CHARLESTON_VOTE",
+    playerId,
+    accept,
+  };
+  return handleAction(state, action);
+}
+
+function advanceToSecondCharlestonVote(state: GameState): void {
+  completeDirection(state, "right");
+  completeDirection(state, "across");
+  completeDirection(state, "left");
+}
+
 function senderPlayerIdForRecipient(
   state: GameState,
   recipientPlayerId: string,
@@ -238,5 +253,156 @@ describe("Charleston passes", () => {
     expect(firstResult.accepted).toBe(true);
     expect(repeatResult).toEqual({ accepted: false, reason: "CHARLESTON_PASS_ALREADY_LOCKED" });
     expectParsedStateEqual(state, beforeRepeat);
+  });
+
+  test('requires unanimous "yes" votes before starting the reversed second Charleston', () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToSecondCharlestonVote(state);
+
+    const firstVote = submitCharlestonVote(state, "p1", true);
+    expect(firstVote).toEqual({
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_VOTE_CAST",
+        votesReceivedCount: 1,
+      },
+    });
+
+    submitCharlestonVote(state, "p2", true);
+    submitCharlestonVote(state, "p3", true);
+    const finalVote = submitCharlestonVote(state, "p4", true);
+
+    expect(finalVote).toEqual({
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_VOTE_RESOLVED",
+        outcome: "accepted",
+        nextDirection: "left",
+        stage: "second",
+        status: "passing",
+      },
+    });
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "second",
+      status: "passing",
+      currentDirection: "left",
+      submittedPlayerIds: [],
+    });
+  });
+
+  test('skips directly to courtesy-ready state on the first "no" vote', () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToSecondCharlestonVote(state);
+
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const southPlayerId = getPlayerBySeat(state, "south");
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const northPlayerId = getPlayerBySeat(state, "north");
+
+    const result = submitCharlestonVote(state, eastPlayerId, false);
+
+    expect(result).toEqual({
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_VOTE_RESOLVED",
+        outcome: "rejected",
+        nextDirection: null,
+        stage: "courtesy",
+        status: "courtesy-ready",
+      },
+    });
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      submittedPlayerIds: [],
+      courtesyPairings: [
+        [eastPlayerId, westPlayerId],
+        [southPlayerId, northPlayerId],
+      ],
+    });
+  });
+
+  test("rejects wrong-phase and duplicate Charleston votes without mutating state", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    const beforeWrongPhase = JSON.stringify(state);
+
+    const wrongPhaseResult = submitCharlestonVote(state, "p1", true);
+
+    expect(wrongPhaseResult).toEqual({ accepted: false, reason: "WRONG_PHASE" });
+    expectParsedStateEqual(state, beforeWrongPhase);
+
+    advanceToSecondCharlestonVote(state);
+    const firstVote = submitCharlestonVote(state, "p1", true);
+    const beforeRepeat = JSON.stringify(state);
+    const repeatVote = submitCharlestonVote(state, "p1", true);
+
+    expect(firstVote.accepted).toBe(true);
+    expect(repeatVote).toEqual({ accepted: false, reason: "CHARLESTON_VOTE_ALREADY_CAST" });
+    expectParsedStateEqual(state, beforeRepeat);
+  });
+
+  test("stores second-Charleston across receipts as hidden tiles until the relevant right-pass lock", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToSecondCharlestonVote(state);
+    submitCharlestonVote(state, "p1", true);
+    submitCharlestonVote(state, "p2", true);
+    submitCharlestonVote(state, "p3", true);
+    submitCharlestonVote(state, "p4", true);
+
+    completeDirection(state, "left");
+    const { selections } = completeDirection(state, "across");
+
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const acrossSenderId = senderPlayerIdForRecipient(state, eastPlayerId, "across");
+    const hiddenAcrossTileIds = selections[acrossSenderId];
+
+    expect(state.charleston).toMatchObject({
+      stage: "second",
+      status: "passing",
+      currentDirection: "right",
+    });
+    expect(rackIds(state, eastPlayerId)).not.toEqual(expect.arrayContaining(hiddenAcrossTileIds));
+    expect(
+      state.charleston?.hiddenAcrossTilesByPlayerId[eastPlayerId]?.map((tile) => tile.id),
+    ).toEqual(hiddenAcrossTileIds);
+
+    const rightSelection = visibleSelection(state, eastPlayerId);
+    const lockResult = submitCharlestonPass(state, eastPlayerId, rightSelection);
+
+    expect(lockResult.accepted).toBe(true);
+    expect(rackIds(state, eastPlayerId)).toEqual(expect.arrayContaining(hiddenAcrossTileIds));
+  });
+
+  test("completes the reversed second Charleston and hands off to courtesy-ready instead of play", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToSecondCharlestonVote(state);
+    submitCharlestonVote(state, "p1", true);
+    submitCharlestonVote(state, "p2", true);
+    submitCharlestonVote(state, "p3", true);
+    submitCharlestonVote(state, "p4", true);
+
+    completeDirection(state, "left");
+    completeDirection(state, "across");
+    const { lastResult } = completeDirection(state, "right");
+
+    expect(lastResult).toEqual({
+      accepted: true,
+      resolved: {
+        type: "CHARLESTON_PHASE_COMPLETE",
+        direction: "right",
+        nextDirection: null,
+        stage: "courtesy",
+        status: "courtesy-ready",
+      },
+    });
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+    });
   });
 });

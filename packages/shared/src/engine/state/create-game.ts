@@ -13,6 +13,8 @@ function createInitialCharlestonState(playerIds: string[]): CharlestonState {
     submittedPlayerIds: [],
     lockedTileIdsByPlayerId: {},
     hiddenAcrossTilesByPlayerId: {},
+    votesByPlayerId: {},
+    courtesyPairings: [],
   };
 }
 

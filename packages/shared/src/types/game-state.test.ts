@@ -19,6 +19,7 @@ import type {
   GameAction,
   StartGameAction,
   CharlestonPassAction,
+  CharlestonVoteAction,
   DrawTileAction,
   DiscardTileAction,
 } from "./actions";
@@ -110,12 +111,16 @@ describe("GameState types", () => {
     expectTypeOf<"left">().toMatchTypeOf<CharlestonDirection>();
     expectTypeOf<"first">().toMatchTypeOf<CharlestonStage>();
     expectTypeOf<"second">().toMatchTypeOf<CharlestonStage>();
+    expectTypeOf<"courtesy">().toMatchTypeOf<CharlestonStage>();
     expectTypeOf<"passing">().toMatchTypeOf<CharlestonStatus>();
     expectTypeOf<"vote-ready">().toMatchTypeOf<CharlestonStatus>();
+    expectTypeOf<"courtesy-ready">().toMatchTypeOf<CharlestonStatus>();
     expectTypeOf<CharlestonState>().toHaveProperty("currentDirection");
     expectTypeOf<CharlestonState>().toHaveProperty("activePlayerIds");
     expectTypeOf<CharlestonState>().toHaveProperty("submittedPlayerIds");
     expectTypeOf<CharlestonState>().toHaveProperty("hiddenAcrossTilesByPlayerId");
+    expectTypeOf<CharlestonState>().toHaveProperty("votesByPlayerId");
+    expectTypeOf<CharlestonState>().toHaveProperty("courtesyPairings");
   });
 });
 
@@ -139,6 +144,11 @@ describe("GameAction types", () => {
   it("GameAction includes CharlestonPassAction", () => {
     expectTypeOf<CharlestonPassAction>().toMatchTypeOf<GameAction>();
     expectTypeOf<CharlestonPassAction["tileIds"]>().toEqualTypeOf<readonly string[]>();
+  });
+
+  it("GameAction includes CharlestonVoteAction", () => {
+    expectTypeOf<CharlestonVoteAction>().toMatchTypeOf<GameAction>();
+    expectTypeOf<CharlestonVoteAction["accept"]>().toEqualTypeOf<boolean>();
   });
 
   it("GameAction includes DiscardTileAction", () => {

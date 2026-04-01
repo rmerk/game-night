@@ -3,26 +3,51 @@ import type {
   GameState,
   ResolvedAction,
   PlayerGameView,
+  PublicCharlestonView,
   SpectatorGameView,
   StateUpdateMessage,
   LobbyState,
 } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
-import type { Room } from "../rooms/room";
+import type { PlayerInfo, Room } from "../rooms/room";
 
-function buildPublicCharlestonView(gameState: GameState) {
-  const ch = gameState.charleston;
-  if (!ch) {
-    return null;
-  }
+type RoomPlayerPublic = Pick<
+  PlayerInfo,
+  "playerId" | "displayName" | "wind" | "isHost" | "connected"
+>;
+
+function mapRoomPlayersPublic(room: Room): RoomPlayerPublic[] {
+  return Array.from(room.players.values()).map((p) => ({
+    playerId: p.playerId,
+    displayName: p.displayName,
+    wind: p.wind,
+    isHost: p.isHost,
+    connected: p.connected,
+  }));
+}
+
+function publicCharlestonFromState(
+  charleston: NonNullable<GameState["charleston"]>,
+): PublicCharlestonView {
+  const submittedPlayerIds =
+    charleston.status === "vote-ready" ? [] : [...charleston.submittedPlayerIds];
 
   return {
-    stage: ch.stage,
-    status: ch.status,
-    currentDirection: ch.currentDirection,
-    activePlayerIds: [...ch.activePlayerIds],
-    submittedPlayerIds: [...ch.submittedPlayerIds],
+    stage: charleston.stage,
+    status: charleston.status,
+    currentDirection: charleston.currentDirection,
+    activePlayerIds: [...charleston.activePlayerIds],
+    submittedPlayerIds,
+    votesReceivedCount: Object.keys(charleston.votesByPlayerId).length,
+    courtesyPairings: charleston.courtesyPairings.map(
+      ([firstPlayerId, secondPlayerId]) => [firstPlayerId, secondPlayerId] as const,
+    ),
   };
+}
+
+function buildPublicCharlestonView(gameState: GameState): PublicCharlestonView | null {
+  const charleston = gameState.charleston;
+  return charleston ? publicCharlestonFromState(charleston) : null;
 }
 
 /**
@@ -34,13 +59,7 @@ export function buildPlayerView(
   gameState: GameState,
   playerId: string,
 ): PlayerGameView {
-  const players = Array.from(room.players.values()).map((p) => ({
-    playerId: p.playerId,
-    displayName: p.displayName,
-    wind: p.wind,
-    isHost: p.isHost,
-    connected: p.connected,
-  }));
+  const players = mapRoomPlayersPublic(room);
 
   const playerState = gameState.players[playerId];
   if (!playerState) {
@@ -50,28 +69,24 @@ export function buildPlayerView(
     );
   }
 
-  // Per-player exposed groups — all players' groups are public
-  const exposedGroups: Record<string, typeof playerState.exposedGroups> = {};
+  const exposedGroups: Record<string, (typeof gameState.players)[string]["exposedGroups"]> = {};
+  const discardPools: Record<string, (typeof gameState.players)[string]["discardPool"]> = {};
   for (const [pid, ps] of Object.entries(gameState.players)) {
     exposedGroups[pid] = ps.exposedGroups;
-  }
-
-  // Per-player discard pools — all are public
-  const discardPools: Record<string, typeof playerState.discardPool> = {};
-  for (const [pid, ps] of Object.entries(gameState.players)) {
     discardPools[pid] = ps.discardPool;
   }
 
   const publicCharleston = buildPublicCharlestonView(gameState);
-  const ch = gameState.charleston;
   const charleston =
-    publicCharleston && ch
-      ? {
+    publicCharleston === null
+      ? null
+      : {
           ...publicCharleston,
-          myHiddenTileCount: ch.hiddenAcrossTilesByPlayerId[playerId]?.length ?? 0,
-          mySubmissionLocked: ch.submittedPlayerIds.includes(playerId),
-        }
-      : null;
+          myHiddenTileCount:
+            gameState.charleston!.hiddenAcrossTilesByPlayerId[playerId]?.length ?? 0,
+          mySubmissionLocked: gameState.charleston!.submittedPlayerIds.includes(playerId),
+          myVote: gameState.charleston!.votesByPlayerId[playerId] ?? null,
+        };
 
   return {
     roomId: room.roomId,
@@ -100,21 +115,12 @@ export function buildPlayerView(
  * Build a spectator view with public information only — no player racks.
  */
 export function buildSpectatorView(room: Room, gameState: GameState): SpectatorGameView {
-  const players = Array.from(room.players.values()).map((p) => ({
-    playerId: p.playerId,
-    displayName: p.displayName,
-    wind: p.wind,
-    isHost: p.isHost,
-    connected: p.connected,
-  }));
+  const players = mapRoomPlayersPublic(room);
 
   const exposedGroups: Record<string, (typeof gameState.players)[string]["exposedGroups"]> = {};
-  for (const [pid, ps] of Object.entries(gameState.players)) {
-    exposedGroups[pid] = ps.exposedGroups;
-  }
-
   const discardPools: Record<string, (typeof gameState.players)[string]["discardPool"]> = {};
   for (const [pid, ps] of Object.entries(gameState.players)) {
+    exposedGroups[pid] = ps.exposedGroups;
     discardPools[pid] = ps.discardPool;
   }
 
@@ -173,13 +179,7 @@ export function sendCurrentState(room: Room, playerId: string, ws: WebSocket): v
   if (room.gameState) {
     state = buildPlayerView(room, room.gameState, playerId);
   } else {
-    const players = Array.from(room.players.values()).map((p) => ({
-      playerId: p.playerId,
-      displayName: p.displayName,
-      wind: p.wind,
-      isHost: p.isHost,
-      connected: p.connected,
-    }));
+    const players = mapRoomPlayersPublic(room);
     state = {
       roomId: room.roomId,
       roomCode: room.roomCode,

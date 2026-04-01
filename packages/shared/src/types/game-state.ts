@@ -113,10 +113,13 @@ export const CHALLENGE_TIMEOUT_SECONDS = 30;
 export type CharlestonDirection = "right" | "across" | "left";
 
 /** Current Charleston round */
-export type CharlestonStage = "first" | "second";
+export type CharlestonStage = "first" | "second" | "courtesy";
 
 /** Charleston lifecycle state */
-export type CharlestonStatus = "passing" | "vote-ready";
+export type CharlestonStatus = "passing" | "vote-ready" | "courtesy-ready";
+
+/** Player pair that will negotiate the courtesy pass */
+export type CharlestonPairing = readonly [string, string];
 
 /** Internal Charleston engine state */
 export interface CharlestonState {
@@ -127,6 +130,8 @@ export interface CharlestonState {
   submittedPlayerIds: string[];
   lockedTileIdsByPlayerId: Partial<Record<string, readonly string[]>>;
   hiddenAcrossTilesByPlayerId: Partial<Record<string, Tile[]>>;
+  votesByPlayerId: Partial<Record<string, boolean>>;
+  courtesyPairings: readonly CharlestonPairing[];
 }
 
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
@@ -168,6 +173,17 @@ export type ResolvedAction =
   | {
       readonly type: "CHARLESTON_PHASE_COMPLETE";
       readonly direction: CharlestonDirection;
+      readonly nextDirection: CharlestonDirection | null;
+      readonly stage: CharlestonStage;
+      readonly status: CharlestonStatus;
+    }
+  | {
+      readonly type: "CHARLESTON_VOTE_CAST";
+      readonly votesReceivedCount: number;
+    }
+  | {
+      readonly type: "CHARLESTON_VOTE_RESOLVED";
+      readonly outcome: "accepted" | "rejected";
       readonly nextDirection: CharlestonDirection | null;
       readonly stage: CharlestonStage;
       readonly status: CharlestonStatus;

@@ -1,6 +1,6 @@
 # Story 3B.2: Second Charleston Vote & Reversed Passes
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,49 +23,49 @@ so that **the group controls the pacing and the second Charleston follows correc
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend shared Charleston contracts for second-Charleston voting and courtesy handoff (AC: 1, 2, 3, 6, 7, 8)
-  - [ ] 1.1 Add `CHARLESTON_VOTE` to `packages/shared/src/types/actions.ts` with `playerId` and `accept: boolean`.
-  - [ ] 1.2 Extend `packages/shared/src/types/game-state.ts` so the internal `CharlestonState` can represent vote collection and the post-vote courtesy handoff cleanly, without forcing Story `3B.3` to redesign the shape again.
-  - [ ] 1.3 Update `ResolvedAction` to cover vote resolution and second-Charleston / courtesy transitions in a way that stays consistent with the existing `CHARLESTON_PHASE_COMPLETE` pattern and client animation expectations.
-  - [ ] 1.4 Extend `packages/shared/src/types/protocol.ts` only with safe Charleston metadata needed for the vote-ready and courtesy-ready views; do not expose raw internal vote maps or hidden tile identities unless a field is truly required by downstream UI.
-  - [ ] 1.5 Update any exhaustiveness tests affected by the new action / state / resolved-action unions.
+- [x] Task 1: Extend shared Charleston contracts for second-Charleston voting and courtesy handoff (AC: 1, 2, 3, 6, 7, 8)
+  - [x] 1.1 Add `CHARLESTON_VOTE` to `packages/shared/src/types/actions.ts` with `playerId` and `accept: boolean`.
+  - [x] 1.2 Extend `packages/shared/src/types/game-state.ts` so the internal `CharlestonState` can represent vote collection and the post-vote courtesy handoff cleanly, without forcing Story `3B.3` to redesign the shape again.
+  - [x] 1.3 Update `ResolvedAction` to cover vote resolution and second-Charleston / courtesy transitions in a way that stays consistent with the existing `CHARLESTON_PHASE_COMPLETE` pattern and client animation expectations.
+  - [x] 1.4 Extend `packages/shared/src/types/protocol.ts` only with safe Charleston metadata needed for the vote-ready and courtesy-ready views; do not expose raw internal vote maps or hidden tile identities unless a field is truly required by downstream UI.
+  - [x] 1.5 Update any exhaustiveness tests affected by the new action / state / resolved-action unions.
 
-- [ ] Task 2: Implement `CHARLESTON_VOTE` handling in shared engine code (AC: 1, 2, 3, 7)
-  - [ ] 2.1 Add vote validation to reject wrong-phase submissions, duplicate votes, and unknown players with zero mutation.
-  - [ ] 2.2 Resolve `accept: false` immediately on the first "no" vote and hand off to the courtesy-ready state required by Story `3B.3`.
-  - [ ] 2.3 Resolve unanimous "yes" only after all 4 required votes are present, then begin second-Charleston passing at direction `left`.
-  - [ ] 2.4 Keep the shared engine pure: no timers, no grace-period fallbacks, and no server-only behavior in `shared/`.
+- [x] Task 2: Implement `CHARLESTON_VOTE` handling in shared engine code (AC: 1, 2, 3, 7)
+  - [x] 2.1 Add vote validation to reject wrong-phase submissions, duplicate votes, and unknown players with zero mutation.
+  - [x] 2.2 Resolve `accept: false` immediately on the first "no" vote and hand off to the courtesy-ready state required by Story `3B.3`.
+  - [x] 2.3 Resolve unanimous "yes" only after all 4 required votes are present, then begin second-Charleston passing at direction `left`.
+  - [x] 2.4 Keep the shared engine pure: no timers, no grace-period fallbacks, and no server-only behavior in `shared/`.
 
-- [ ] Task 3: Generalize the current Charleston pass engine for stage-aware ordering and blind-pass behavior (AC: 2, 4, 5, 6, 7)
-  - [ ] 3.1 Refactor `packages/shared/src/engine/actions/charleston.ts` so pass order is derived from Charleston stage instead of hardcoding only `right -> across -> left`.
-  - [ ] 3.2 Reuse existing simultaneous exchange helpers (`captureLockedTiles`, `removeLockedTiles`, reset helpers, seat math) instead of creating a second parallel pass engine for Story `3B.2`.
-  - [ ] 3.3 Generalize blind-pass handling so the hidden-across reveal rule applies to `left` during the first Charleston and `right` during the second Charleston from one stage-aware source of truth.
-  - [ ] 3.4 Ensure the final reversed-pass resolution transitions to a courtesy-ready Charleston state, not directly to `play`.
+- [x] Task 3: Generalize the current Charleston pass engine for stage-aware ordering and blind-pass behavior (AC: 2, 4, 5, 6, 7)
+  - [x] 3.1 Refactor `packages/shared/src/engine/actions/charleston.ts` so pass order is derived from Charleston stage instead of hardcoding only `right -> across -> left`.
+  - [x] 3.2 Reuse existing simultaneous exchange helpers (`captureLockedTiles`, `removeLockedTiles`, reset helpers, seat math) instead of creating a second parallel pass engine for Story `3B.2`.
+  - [x] 3.3 Generalize blind-pass handling so the hidden-across reveal rule applies to `left` during the first Charleston and `right` during the second Charleston from one stage-aware source of truth.
+  - [x] 3.4 Ensure the final reversed-pass resolution transitions to a courtesy-ready Charleston state, not directly to `play`.
 
-- [ ] Task 4: Wire vote / second-Charleston state through engine dispatch and filtered WebSocket views (AC: 1, 2, 3, 6, 8)
-  - [ ] 4.1 Register `CHARLESTON_VOTE` in `packages/shared/src/engine/game-engine.ts` and export any new helpers from `packages/shared/src/index.ts`.
-  - [ ] 4.2 Update `packages/server/src/websocket/state-broadcaster.ts` so vote-ready, second-pass, blind-pass, and courtesy-ready states are serializable and filtered safely for each player.
-  - [ ] 4.3 Preserve the reconnect guarantees added in Story `3B.1`: the first reconnect payload during Charleston must restore the active filtered game view, not regress to lobby-like snapshots.
-  - [ ] 4.4 Keep transport behavior generic through the existing action-handler / broadcaster pipeline; do not invent Charleston-specific socket flows.
+- [x] Task 4: Wire vote / second-Charleston state through engine dispatch and filtered WebSocket views (AC: 1, 2, 3, 6, 8)
+  - [x] 4.1 Register `CHARLESTON_VOTE` in `packages/shared/src/engine/game-engine.ts` and export any new helpers from `packages/shared/src/index.ts`.
+  - [x] 4.2 Update `packages/server/src/websocket/state-broadcaster.ts` so vote-ready, second-pass, blind-pass, and courtesy-ready states are serializable and filtered safely for each player.
+  - [x] 4.3 Preserve the reconnect guarantees added in Story `3B.1`: the first reconnect payload during Charleston must restore the active filtered game view, not regress to lobby-like snapshots.
+  - [x] 4.4 Keep transport behavior generic through the existing action-handler / broadcaster pipeline; do not invent Charleston-specific socket flows.
 
-- [ ] Task 5: Add focused shared and server coverage for vote resolution, reversed passes, and no-leak rules (AC: 1-8)
-  - [ ] 5.1 Extend `packages/shared/src/engine/actions/charleston.test.ts` with blackbox vote tests covering unanimous "yes", early "no", wrong phase, duplicate vote, and zero-mutation failures.
-  - [ ] 5.2 Add a full reversed-pass happy-path test (`left -> across -> right`) that proves the final handoff is courtesy-ready rather than `play`.
-  - [ ] 5.3 Add blind-pass tests proving second-Charleston `right` keeps across-received tiles hidden until that player locks their right-pass selection.
-  - [ ] 5.4 Extend `packages/server/src/websocket/state-broadcaster.test.ts` and `packages/server/src/integration/full-game-flow.test.ts` so JSON-stringified `STATE_UPDATE` payloads never leak hidden tiles, locked pass tile IDs, or unsafe vote internals.
-  - [ ] 5.5 Update reconnect / join-handler coverage if Charleston view shape changes, so vote-ready and second-pass states survive reconnect with the same filtering guarantees introduced by Story `3B.1`.
+- [x] Task 5: Add focused shared and server coverage for vote resolution, reversed passes, and no-leak rules (AC: 1-8)
+  - [x] 5.1 Extend `packages/shared/src/engine/actions/charleston.test.ts` with blackbox vote tests covering unanimous "yes", early "no", wrong phase, duplicate vote, and zero-mutation failures.
+  - [x] 5.2 Add a full reversed-pass happy-path test (`left -> across -> right`) that proves the final handoff is courtesy-ready rather than `play`.
+  - [x] 5.3 Add blind-pass tests proving second-Charleston `right` keeps across-received tiles hidden until that player locks their right-pass selection.
+  - [x] 5.4 Extend `packages/server/src/websocket/state-broadcaster.test.ts` and `packages/server/src/integration/full-game-flow.test.ts` so JSON-stringified `STATE_UPDATE` payloads never leak hidden tiles, locked pass tile IDs, or unsafe vote internals.
+  - [x] 5.5 Update reconnect / join-handler coverage if Charleston view shape changes, so vote-ready and second-pass states survive reconnect with the same filtering guarantees introduced by Story `3B.1`.
 
-- [ ] Task 6: Preserve scope boundaries and keep future stories unblocked (AC: 3, 6, 8)
-  - [ ] 6.1 Hand off into courtesy-ready state only; Story `3B.3` still owns `COURTESY_PASS` count negotiation, lower-count resolution, and the actual `charleston -> play` transition.
-  - [ ] 6.2 Do **not** build the inline Yes/No UI, `CharlestonZone`, or `TileSelectionAction` in this story; Story `3B.4` owns that work even though this story must expose the state shape it will consume.
-  - [ ] 6.3 Do **not** implement disconnect default-"No" logic or auto-pass timers here; Story `3B.5` owns grace-period and fallback behavior.
+- [x] Task 6: Preserve scope boundaries and keep future stories unblocked (AC: 3, 6, 8)
+  - [x] 6.1 Hand off into courtesy-ready state only; Story `3B.3` still owns `COURTESY_PASS` count negotiation, lower-count resolution, and the actual `charleston -> play` transition.
+  - [x] 6.2 Do **not** build the inline Yes/No UI, `CharlestonZone`, or `TileSelectionAction` in this story; Story `3B.4` owns that work even though this story must expose the state shape it will consume.
+  - [x] 6.3 Do **not** implement disconnect default-"No" logic or auto-pass timers here; Story `3B.5` owns grace-period and fallback behavior.
 
-- [ ] Task 7: Validation and backpressure gate (AC: all)
-  - [ ] 7.1 Run targeted shared Charleston tests plus touched server Charleston / reconnect integration tests.
-  - [ ] 7.2 Run `pnpm test`.
-  - [ ] 7.3 Run `pnpm run typecheck`.
-  - [ ] 7.4 Run `vp lint`.
-  - [ ] 7.5 Verify each acceptance criterion is covered by at least one automated test, especially early "no" resolution, second-Charleston blind pass privacy, and courtesy-ready handoff.
+- [x] Task 7: Validation and backpressure gate (AC: all)
+  - [x] 7.1 Run targeted shared Charleston tests plus touched server Charleston / reconnect integration tests.
+  - [x] 7.2 Run `pnpm test`.
+  - [x] 7.3 Run `pnpm run typecheck`.
+  - [x] 7.4 Run `vp lint`.
+  - [x] 7.5 Verify each acceptance criterion is covered by at least one automated test, especially early "no" resolution, second-Charleston blind pass privacy, and courtesy-ready handoff.
 
 ## Dev Notes
 
@@ -242,6 +242,13 @@ GPT-5.4
 ### Debug Log References
 
 - `rg` searches over Epic `3B`, Charleston architecture, UX constraints, previous `3B.1` artifact handoff notes, and current Charleston engine / protocol files
+- Targeted verification runs:
+  - `vp test run src/engine/actions/charleston.test.ts`
+  - `vp test run src/types/game-state.test.ts`
+  - `vp test run src/websocket/state-broadcaster.test.ts`
+  - `vp test run src/integration/full-game-flow.test.ts`
+  - `vp test run src/websocket/join-handler.test.ts`
+  - `pnpm test && pnpm run typecheck && vp lint`
 
 ### Implementation Plan
 
@@ -252,15 +259,35 @@ GPT-5.4
 ### Completion Notes List
 
 - Story context created from Epic `3B` planning artifacts, Story `3B.1` handoff notes, current Charleston engine code, and existing server filtering / integration tests.
+- Added `CHARLESTON_VOTE`, Charleston vote bookkeeping, courtesy-ready pairings, and resolved-action variants for second-Charleston vote acceptance / rejection.
+- Generalized Charleston pass sequencing and blind-pass reveal rules so both Charlestons run through one stage-aware shared engine and the second Charleston now hands off to courtesy-ready instead of `play`.
+- Extended filtered Charleston protocol views with safe aggregate vote / courtesy metadata (`votesReceivedCount`, `myVote`, `courtesyPairings`) without leaking raw vote maps, hidden across tiles, or locked pass tile IDs.
+- Added shared, broadcaster, integration, and reconnect regression coverage for unanimous yes, early no, reversed pass order, second blind-pass privacy, courtesy-ready handoff, and reconnect-safe vote-ready restoration.
+- Final validation passed with `pnpm test && pnpm run typecheck && vp lint`.
 
 ### File List
 
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/3b-2-second-charleston-vote-reversed-passes.md`
+- `packages/shared/src/types/actions.ts`
+- `packages/shared/src/types/game-state.ts`
+- `packages/shared/src/types/protocol.ts`
+- `packages/shared/src/types/game-state.test.ts`
+- `packages/shared/src/engine/state/create-game.ts`
+- `packages/shared/src/engine/game-engine.ts`
+- `packages/shared/src/engine/actions/charleston.ts`
+- `packages/shared/src/engine/actions/charleston.test.ts`
+- `packages/shared/src/index.ts`
+- `packages/server/src/websocket/state-broadcaster.ts`
+- `packages/server/src/websocket/state-broadcaster.test.ts`
+- `packages/server/src/integration/full-game-flow.test.ts`
+- `packages/server/src/websocket/join-handler.test.ts`
 
 ### Change Log
 
 - 2026-04-01: Created Story `3B.2` context with explicit vote-ready handoff, reversed-pass guardrails, courtesy-ready boundary, and no-leak testing guidance.
+- 2026-04-01: Implemented second-Charleston vote handling, reversed pass sequencing, courtesy-ready handoff, reconnect-safe filtered Charleston views, and shared/server regression coverage.
 
 ### Status
 
-ready-for-dev
+done
