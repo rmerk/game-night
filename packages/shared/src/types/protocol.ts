@@ -74,6 +74,7 @@ export interface PublicCharlestonView {
   submittedPlayerIds: string[];
   votesReceivedCount: number;
   courtesyPairings: readonly CharlestonPairing[];
+  courtesyResolvedPairCount: number;
 }
 
 /** Per-player Charleston metadata that never exposes hidden tile identities */
@@ -81,6 +82,12 @@ export interface PlayerCharlestonView extends PublicCharlestonView {
   myHiddenTileCount: number;
   mySubmissionLocked: boolean;
   myVote: boolean | null;
+  myCourtesySubmission:
+    | {
+        count: number;
+        tileIds: string[];
+      }
+    | null;
 }
 
 /** Spectator Charleston metadata — public information only */

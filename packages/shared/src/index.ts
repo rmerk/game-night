@@ -48,6 +48,7 @@ export type {
   StartGameAction,
   CharlestonPassAction,
   CharlestonVoteAction,
+  CourtesyPassAction,
   DrawTileAction,
   DiscardTileAction,
   PassCallAction,
@@ -144,6 +145,7 @@ export { createLobbyState, handleAction } from "./engine/game-engine";
 export {
   handleCharlestonPass,
   handleCharlestonVote,
+  handleCourtesyPass,
   getCharlestonTargetSeat,
   getCharlestonTargetPlayerId,
 } from "./engine/actions/charleston";

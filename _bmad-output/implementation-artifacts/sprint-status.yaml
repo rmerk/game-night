@@ -106,7 +106,7 @@ development_status:
   epic-3b: in-progress # gated by epic-5a retro follow-through items below
   3b-1-first-charleston-with-blind-pass-enforcement: done
   3b-2-second-charleston-vote-reversed-passes: done
-  3b-3-courtesy-pass-negotiation: ready-for-dev
+  3b-3-courtesy-pass-negotiation: in-progress
   3b-4-charleston-ui-direction-indicator-tileselectionaction-pass-interaction: backlog
   3b-5-charleston-disconnect-handling: backlog
   epic-3b-retrospective: optional

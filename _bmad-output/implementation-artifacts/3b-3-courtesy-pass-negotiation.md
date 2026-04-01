@@ -234,6 +234,9 @@ GPT-5.4
 - `rg` searches over Epic `3B`, courtesy-pass planning text, Charleston architecture / UX constraints, previous `3B.1` and `3B.2` artifacts, and current Charleston code / protocol files
 - Repository state check:
   - `git log --oneline -5`
+- Workflow initialization:
+  - Loaded `_bmad/gds/config.yaml`, `_bmad-output/project-context.md`, and `_bmad-output/implementation-artifacts/sprint-status.yaml`
+  - Read the complete `3b-3-courtesy-pass-negotiation.md` story file and current shared/server Charleston implementation files
 
 ### Implementation Plan
 
@@ -258,4 +261,4 @@ GPT-5.4
 
 ### Status
 
-ready-for-dev
+in-progress

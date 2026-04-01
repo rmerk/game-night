@@ -35,10 +35,30 @@ function submitCharlestonVote(state: GameState, playerId: string, accept: boolea
   return handleAction(state, action);
 }
 
+function submitCourtesyPass(
+  state: GameState,
+  playerId: string,
+  count: number,
+  tileIds: readonly string[],
+) {
+  const action: GameAction = {
+    type: "COURTESY_PASS",
+    playerId,
+    count,
+    tileIds,
+  };
+  return handleAction(state, action);
+}
+
 function advanceToSecondCharlestonVote(state: GameState): void {
   completeDirection(state, "right");
   completeDirection(state, "across");
   completeDirection(state, "left");
+}
+
+function advanceToCourtesyReady(state: GameState): void {
+  advanceToSecondCharlestonVote(state);
+  submitCharlestonVote(state, "p1", false);
 }
 
 function senderPlayerIdForRecipient(
@@ -404,5 +424,224 @@ describe("Charleston passes", () => {
       status: "courtesy-ready",
       currentDirection: null,
     });
+  });
+
+  test("locks a courtesy submission without resolving until the partner submits", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToCourtesyReady(state);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const eastSelection = visibleSelection(state, eastPlayerId);
+
+    const result = submitCourtesyPass(state, eastPlayerId, 3, eastSelection);
+
+    expect(result).toEqual({
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PASS_LOCKED",
+        playerId: eastPlayerId,
+        pairing: [eastPlayerId, getPlayerBySeat(state, "west")],
+        count: 3,
+      },
+    });
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      courtesyResolvedPairings: [],
+      courtesySubmissionsByPlayerId: {
+        [eastPlayerId]: {
+          count: 3,
+          tileIds: eastSelection,
+        },
+      },
+    });
+  });
+
+  test("resolves a courtesy pair with the same requested count and keeps unresolved pairs active", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToCourtesyReady(state);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const eastSelection = visibleSelection(state, eastPlayerId).slice(0, 2);
+    const westSelection = visibleSelection(state, westPlayerId).slice(0, 2);
+
+    submitCourtesyPass(state, eastPlayerId, 2, eastSelection);
+    const result = submitCourtesyPass(state, westPlayerId, 2, westSelection);
+
+    expect(result).toEqual({
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PAIR_RESOLVED",
+        pairing: [eastPlayerId, westPlayerId],
+        playerRequests: {
+          [eastPlayerId]: 2,
+          [westPlayerId]: 2,
+        },
+        appliedCount: 2,
+        entersPlay: false,
+      },
+    });
+    expectRackContainsPassedTiles(state, eastPlayerId, westSelection);
+    expectRackContainsPassedTiles(state, westPlayerId, eastSelection);
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      courtesyResolvedPairings: [[eastPlayerId, westPlayerId]],
+    });
+    expect(state.charleston?.courtesySubmissionsByPlayerId[eastPlayerId]).toBeUndefined();
+    expect(state.charleston?.courtesySubmissionsByPlayerId[westPlayerId]).toBeUndefined();
+  });
+
+  test("trims to the lower courtesy count using the original tile order", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToCourtesyReady(state);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const eastSelection = visibleSelection(state, eastPlayerId);
+    const westSelection = visibleSelection(state, westPlayerId).slice(0, 2);
+
+    submitCourtesyPass(state, eastPlayerId, 3, eastSelection);
+    const result = submitCourtesyPass(state, westPlayerId, 2, westSelection);
+
+    expect(result).toEqual({
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PAIR_RESOLVED",
+        pairing: [eastPlayerId, westPlayerId],
+        playerRequests: {
+          [eastPlayerId]: 3,
+          [westPlayerId]: 2,
+        },
+        appliedCount: 2,
+        entersPlay: false,
+      },
+    });
+    expectRackContainsPassedTiles(state, westPlayerId, eastSelection.slice(0, 2));
+    expect(rackIds(state, westPlayerId)).not.toContain(eastSelection[2]);
+  });
+
+  test("supports zero-count courtesy skips without mutating either rack", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToCourtesyReady(state);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const beforeEast = rackIds(state, eastPlayerId);
+    const beforeWest = rackIds(state, westPlayerId);
+
+    submitCourtesyPass(state, eastPlayerId, 0, []);
+    const result = submitCourtesyPass(state, westPlayerId, 3, visibleSelection(state, westPlayerId));
+
+    expect(result).toEqual({
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PAIR_RESOLVED",
+        pairing: [eastPlayerId, westPlayerId],
+        playerRequests: {
+          [eastPlayerId]: 0,
+          [westPlayerId]: 3,
+        },
+        appliedCount: 0,
+        entersPlay: false,
+      },
+    });
+    expect(rackIds(state, eastPlayerId)).toEqual(beforeEast);
+    expect(rackIds(state, westPlayerId)).toEqual(beforeWest);
+  });
+
+  test("transitions to play only after both courtesy pairs resolve and clears Charleston bookkeeping", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    advanceToCourtesyReady(state);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const southPlayerId = getPlayerBySeat(state, "south");
+    const northPlayerId = getPlayerBySeat(state, "north");
+
+    submitCourtesyPass(state, eastPlayerId, 1, visibleSelection(state, eastPlayerId).slice(0, 1));
+    submitCourtesyPass(state, westPlayerId, 1, visibleSelection(state, westPlayerId).slice(0, 1));
+    submitCourtesyPass(state, southPlayerId, 0, []);
+    const finalResult = submitCourtesyPass(state, northPlayerId, 2, visibleSelection(state, northPlayerId).slice(0, 2));
+
+    expect(finalResult).toEqual({
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PAIR_RESOLVED",
+        pairing: [southPlayerId, northPlayerId],
+        playerRequests: {
+          [southPlayerId]: 0,
+          [northPlayerId]: 2,
+        },
+        appliedCount: 0,
+        entersPlay: true,
+      },
+    });
+    expect(state.gamePhase).toBe("play");
+    expect(state.turnPhase).toBe("discard");
+    expect(state.currentTurn).toBe(eastPlayerId);
+    expect(state.charleston).toBeNull();
+  });
+
+  test("rejects invalid courtesy submissions with zero mutation", () => {
+    const state = createGame([...PLAYER_IDS], SEED);
+    const eastPlayerId = getPlayerBySeat(state, "east");
+
+    const wrongPhaseBefore = JSON.stringify(state);
+    expect(submitCourtesyPass(state, eastPlayerId, 1, visibleSelection(state, eastPlayerId).slice(0, 1))).toEqual({
+      accepted: false,
+      reason: "WRONG_PHASE",
+    });
+    expectParsedStateEqual(state, wrongPhaseBefore);
+
+    advanceToCourtesyReady(state);
+    const westPlayerId = getPlayerBySeat(state, "west");
+    const southPlayerId = getPlayerBySeat(state, "south");
+    const duplicateSelection = visibleSelection(state, eastPlayerId);
+    const [firstTileId, secondTileId] = duplicateSelection;
+
+    const invalidCases = [
+      {
+        action: () => submitCourtesyPass(state, "missing-player", 1, [firstTileId]),
+        expected: { accepted: false, reason: "PLAYER_NOT_FOUND" },
+      },
+      {
+        action: () => submitCourtesyPass(state, southPlayerId, 4, visibleSelection(state, southPlayerId)),
+        expected: { accepted: false, reason: "INVALID_COURTESY_COUNT" },
+      },
+      {
+        action: () => submitCourtesyPass(state, southPlayerId, 2, [firstTileId]),
+        expected: { accepted: false, reason: "COURTESY_TILE_COUNT_MISMATCH" },
+      },
+      {
+        action: () => submitCourtesyPass(state, southPlayerId, 2, [firstTileId, firstTileId]),
+        expected: { accepted: false, reason: "DUPLICATE_TILE_IDS" },
+      },
+      {
+        action: () => submitCourtesyPass(state, southPlayerId, 1, [visibleSelection(state, eastPlayerId)[0]]),
+        expected: { accepted: false, reason: "TILE_NOT_IN_RACK" },
+      },
+    ] as const;
+
+    for (const invalidCase of invalidCases) {
+      const before = JSON.stringify(state);
+      expect(invalidCase.action()).toEqual(invalidCase.expected);
+      expectParsedStateEqual(state, before);
+    }
+
+    const validLock = submitCourtesyPass(state, eastPlayerId, 2, [firstTileId, secondTileId]);
+    expect(validLock.accepted).toBe(true);
+    const beforeRepeat = JSON.stringify(state);
+    expect(submitCourtesyPass(state, eastPlayerId, 2, [firstTileId, secondTileId])).toEqual({
+      accepted: false,
+      reason: "COURTESY_PASS_ALREADY_LOCKED",
+    });
+    expectParsedStateEqual(state, beforeRepeat);
+
+    const beforeInactivePair = JSON.stringify(state);
+    submitCourtesyPass(state, westPlayerId, 2, visibleSelection(state, westPlayerId).slice(0, 2));
+    expect(submitCourtesyPass(state, eastPlayerId, 1, visibleSelection(state, eastPlayerId).slice(0, 1))).toEqual({
+      accepted: false,
+      reason: "COURTESY_PAIR_ALREADY_RESOLVED",
+    });
+    expectParsedStateEqual(state, beforeInactivePair);
   });
 });

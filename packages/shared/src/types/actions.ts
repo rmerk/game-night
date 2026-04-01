@@ -3,6 +3,7 @@ export type GameAction =
   | StartGameAction
   | CharlestonPassAction
   | CharlestonVoteAction
+  | CourtesyPassAction
   | DrawTileAction
   | DiscardTileAction
   | PassCallAction
@@ -46,6 +47,14 @@ export interface CharlestonVoteAction {
   readonly type: "CHARLESTON_VOTE";
   readonly playerId: string;
   readonly accept: boolean;
+}
+
+/** Action for a player to lock in their courtesy pass count and ordered tile selection */
+export interface CourtesyPassAction {
+  readonly type: "COURTESY_PASS";
+  readonly playerId: string;
+  readonly count: number;
+  readonly tileIds: readonly string[];
 }
 
 /** Action for the current player to discard a tile from their rack */
