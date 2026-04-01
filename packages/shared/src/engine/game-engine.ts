@@ -1,7 +1,11 @@
 import type { GameState, ActionResult } from "../types/game-state";
 import type { GameAction } from "../types/actions";
 import { handleStartGame } from "./actions/game-flow";
-import { handleCharlestonPass, handleCharlestonVote } from "./actions/charleston";
+import {
+  handleCharlestonPass,
+  handleCharlestonVote,
+  handleCourtesyPass,
+} from "./actions/charleston";
 import { handleDrawTile } from "./actions/draw";
 import { handleDiscardTile } from "./actions/discard";
 import {
@@ -55,6 +59,8 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleCharlestonPass(state, action);
     case "CHARLESTON_VOTE":
       return handleCharlestonVote(state, action);
+    case "COURTESY_PASS":
+      return handleCourtesyPass(state, action);
     case "DRAW_TILE":
       return handleDrawTile(state, action);
     case "DISCARD_TILE":

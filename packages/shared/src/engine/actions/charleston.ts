@@ -1,11 +1,16 @@
 import { MAX_PLAYERS, SEATS } from "../../constants";
-import type { CharlestonPassAction, CharlestonVoteAction } from "../../types/actions";
+import type {
+  CharlestonPassAction,
+  CharlestonVoteAction,
+  CourtesyPassAction,
+} from "../../types/actions";
 import type {
   ActionResult,
   CharlestonDirection,
   CharlestonPairing,
   CharlestonStage,
   CharlestonStatus,
+  CourtesySubmission,
   GameState,
   SeatWind,
 } from "../../types/game-state";
@@ -52,6 +57,20 @@ function getVoteReadyCharlestonState(state: GameState) {
     !state.charleston ||
     state.charleston.stage !== "second" ||
     state.charleston.status !== "vote-ready" ||
+    state.charleston.currentDirection !== null
+  ) {
+    return null;
+  }
+
+  return state.charleston;
+}
+
+function getCourtesyReadyCharlestonState(state: GameState) {
+  if (
+    state.gamePhase !== "charleston" ||
+    !state.charleston ||
+    state.charleston.stage !== "courtesy" ||
+    state.charleston.status !== "courtesy-ready" ||
     state.charleston.currentDirection !== null
   ) {
     return null;
@@ -240,6 +259,45 @@ function buildCourtesyPairings(state: GameState): CharlestonPairing[] {
   ]);
 }
 
+function findCourtesyPairing(
+  charleston: NonNullable<GameState["charleston"]>,
+  playerId: string,
+): CharlestonPairing | null {
+  return charleston.courtesyPairings.find((pairing) => pairing.includes(playerId)) ?? null;
+}
+
+function pairingKey([firstPlayerId, secondPlayerId]: CharlestonPairing): string {
+  return [firstPlayerId, secondPlayerId].sort().join(":");
+}
+
+function trimSelection(
+  submission: CourtesySubmission,
+  appliedCount: number,
+): readonly string[] {
+  if (appliedCount === 0) {
+    return [];
+  }
+
+  return submission.tileIds.slice(0, appliedCount);
+}
+
+function isCourtesyPairResolved(
+  charleston: NonNullable<GameState["charleston"]>,
+  pairing: CharlestonPairing,
+): boolean {
+  const targetKey = pairingKey(pairing);
+  return charleston.courtesyResolvedPairings.some(
+    (resolvedPairing) => pairingKey(resolvedPairing) === targetKey,
+  );
+}
+
+function clearCourtesySubmission(
+  charleston: NonNullable<GameState["charleston"]>,
+  playerId: string,
+): void {
+  delete charleston.courtesySubmissionsByPlayerId[playerId];
+}
+
 /** Shared setup when leaving a passing or vote round (clears hidden tiles, resets submissions). */
 function transitionCharlestonPhase(
   state: GameState,
@@ -287,6 +345,12 @@ function transitionToCourtesyReady(state: GameState): void {
     currentDirection: null,
     courtesyPairings: buildCourtesyPairings(state),
   });
+}
+
+function transitionCourtesyToPlay(state: GameState): void {
+  state.gamePhase = "play";
+  state.turnPhase = "discard";
+  state.charleston = null;
 }
 
 function resolveCurrentDirection(state: GameState): ActionResult {
@@ -371,6 +435,137 @@ export function handleCharlestonPass(state: GameState, action: CharlestonPassAct
   }
 
   return resolveCurrentDirection(state);
+}
+
+function validateCourtesyPass(state: GameState, action: CourtesyPassAction): ActionResult | null {
+  const charleston = getCourtesyReadyCharlestonState(state);
+  if (!charleston) {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+
+  const player = state.players[action.playerId];
+  if (!player) {
+    return { accepted: false, reason: "PLAYER_NOT_FOUND" };
+  }
+
+  const pairing = findCourtesyPairing(charleston, action.playerId);
+  if (!pairing) {
+    return { accepted: false, reason: "WRONG_PHASE" };
+  }
+
+  if (isCourtesyPairResolved(charleston, pairing)) {
+    return { accepted: false, reason: "COURTESY_PAIR_ALREADY_RESOLVED" };
+  }
+
+  if (action.count < 0 || action.count > 3) {
+    return { accepted: false, reason: "INVALID_COURTESY_COUNT" };
+  }
+
+  if (action.tileIds.length !== action.count) {
+    return { accepted: false, reason: "COURTESY_TILE_COUNT_MISMATCH" };
+  }
+
+  if (hasDuplicateTileIds(action.tileIds)) {
+    return { accepted: false, reason: "DUPLICATE_TILE_IDS" };
+  }
+
+  if (charleston.courtesySubmissionsByPlayerId[action.playerId]) {
+    return { accepted: false, reason: "COURTESY_PASS_ALREADY_LOCKED" };
+  }
+
+  const visibleTileIds = new Set(player.rack.map((tile) => tile.id));
+  if (action.tileIds.some((tileId) => !visibleTileIds.has(tileId))) {
+    return { accepted: false, reason: "TILE_NOT_IN_RACK" };
+  }
+
+  return null;
+}
+
+function resolveCourtesyPair(
+  state: GameState,
+  pairing: CharlestonPairing,
+  firstSubmission: CourtesySubmission,
+  secondSubmission: CourtesySubmission,
+): ActionResult {
+  const [firstPlayerId, secondPlayerId] = pairing;
+  const appliedCount = Math.min(firstSubmission.count, secondSubmission.count);
+  const firstTrimmedTileIds = trimSelection(firstSubmission, appliedCount);
+  const secondTrimmedTileIds = trimSelection(secondSubmission, appliedCount);
+  const incomingTilesByPlayerId: Partial<Record<string, Tile[]>> = {};
+
+  if (appliedCount > 0) {
+    incomingTilesByPlayerId[firstPlayerId] = captureLockedTiles(state, secondPlayerId, secondTrimmedTileIds);
+    incomingTilesByPlayerId[secondPlayerId] = captureLockedTiles(state, firstPlayerId, firstTrimmedTileIds);
+
+    removeLockedTiles(state, firstPlayerId, firstTrimmedTileIds);
+    removeLockedTiles(state, secondPlayerId, secondTrimmedTileIds);
+
+    state.players[firstPlayerId].rack.push(...(incomingTilesByPlayerId[firstPlayerId] ?? []));
+    state.players[secondPlayerId].rack.push(...(incomingTilesByPlayerId[secondPlayerId] ?? []));
+  }
+
+  const charleston = getCourtesyReadyCharlestonState(state);
+  if (!charleston) {
+    throw new Error("resolveCourtesyPair: courtesy state disappeared");
+  }
+
+  clearCourtesySubmission(charleston, firstPlayerId);
+  clearCourtesySubmission(charleston, secondPlayerId);
+  charleston.courtesyResolvedPairings = [...charleston.courtesyResolvedPairings, pairing];
+
+  const entersPlay = charleston.courtesyResolvedPairings.length === charleston.courtesyPairings.length;
+  if (entersPlay) {
+    transitionCourtesyToPlay(state);
+  }
+
+  return {
+    accepted: true,
+    resolved: {
+      type: "COURTESY_PAIR_RESOLVED",
+      pairing,
+      playerRequests: {
+        [firstPlayerId]: firstSubmission.count,
+        [secondPlayerId]: secondSubmission.count,
+      },
+      appliedCount,
+      entersPlay,
+    },
+  };
+}
+
+export function handleCourtesyPass(state: GameState, action: CourtesyPassAction): ActionResult {
+  const validationError = validateCourtesyPass(state, action);
+  if (validationError) {
+    return validationError;
+  }
+
+  const charleston = getCourtesyReadyCharlestonState(state)!;
+  const pairing = findCourtesyPairing(charleston, action.playerId);
+  if (!pairing) {
+    throw new Error(`handleCourtesyPass: no courtesy pair found for player '${action.playerId}'`);
+  }
+
+  charleston.courtesySubmissionsByPlayerId[action.playerId] = {
+    count: action.count,
+    tileIds: [...action.tileIds],
+  };
+
+  const [firstPlayerId, secondPlayerId] = pairing;
+  const firstSubmission = charleston.courtesySubmissionsByPlayerId[firstPlayerId];
+  const secondSubmission = charleston.courtesySubmissionsByPlayerId[secondPlayerId];
+
+  if (!firstSubmission || !secondSubmission) {
+    return {
+      accepted: true,
+      resolved: {
+        type: "COURTESY_PASS_LOCKED",
+        playerId: action.playerId,
+        pairing,
+      },
+    };
+  }
+
+  return resolveCourtesyPair(state, pairing, firstSubmission, secondSubmission);
 }
 
 function validateCharlestonVote(

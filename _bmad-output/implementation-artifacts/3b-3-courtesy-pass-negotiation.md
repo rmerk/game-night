@@ -1,6 +1,6 @@
 # Story 3B.3: Courtesy Pass Negotiation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,49 +24,49 @@ so that **the final fine-tuning pass happens fairly with transparent negotiation
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend shared courtesy contracts from the existing courtesy-ready handoff (AC: 1, 5, 6, 7, 8, 9)
-  - [ ] 1.1 Add `CourtesyPassAction` to `packages/shared/src/types/actions.ts` and extend `GameAction` with `type: "COURTESY_PASS"`, `playerId`, `count`, and ordered `tileIds`.
-  - [ ] 1.2 Extend `packages/shared/src/types/game-state.ts` so `CharlestonState` can track courtesy submissions and resolved-pair progress without redesigning the already-landed `stage: "courtesy"` / `status: "courtesy-ready"` contract from Story `3B.2`.
-  - [ ] 1.3 Extend `ResolvedAction` with courtesy-specific variants (recommended: a lightweight lock/cast event plus a pair-resolution event carrying requested counts and applied count) so narration and integration tests do not need to infer negotiation outcomes from raw state diffs.
-  - [ ] 1.4 Update `packages/shared/src/types/protocol.ts` only with the minimum safe courtesy metadata needed for reconnect restore and future `3B.4` UI consumption; keep partner count / tile selection private until pair resolution.
-  - [ ] 1.5 Update any exhaustiveness tests affected by the new action / state / resolved-action unions.
+- [x] Task 1: Extend shared courtesy contracts from the existing courtesy-ready handoff (AC: 1, 5, 6, 7, 8, 9)
+  - [x] 1.1 Add `CourtesyPassAction` to `packages/shared/src/types/actions.ts` and extend `GameAction` with `type: "COURTESY_PASS"`, `playerId`, `count`, and ordered `tileIds`.
+  - [x] 1.2 Extend `packages/shared/src/types/game-state.ts` so `CharlestonState` can track courtesy submissions and resolved-pair progress without redesigning the already-landed `stage: "courtesy"` / `status: "courtesy-ready"` contract from Story `3B.2`.
+  - [x] 1.3 Extend `ResolvedAction` with courtesy-specific variants (recommended: a lightweight lock/cast event plus a pair-resolution event carrying requested counts and applied count) so narration and integration tests do not need to infer negotiation outcomes from raw state diffs.
+  - [x] 1.4 Update `packages/shared/src/types/protocol.ts` only with the minimum safe courtesy metadata needed for reconnect restore and future `3B.4` UI consumption; keep partner count / tile selection private until pair resolution.
+  - [x] 1.5 Update any exhaustiveness tests affected by the new action / state / resolved-action unions.
 
-- [ ] Task 2: Implement courtesy-pass validation and pair resolution in the shared Charleston engine (AC: 1, 2, 3, 4, 5, 6, 8)
-  - [ ] 2.1 Add courtesy-specific validation to `packages/shared/src/engine/actions/charleston.ts` for wrong phase, unknown player, inactive pair membership, invalid count range, tile-count mismatch, duplicate tile IDs, invisible tile selection, and repeat submission.
-  - [ ] 2.2 Reuse the current Charleston helper patterns (`captureLockedTiles`, simultaneous removal/application, seat math, filtered-state assumptions) instead of creating a parallel courtesy-only engine file.
-  - [ ] 2.3 Resolve a courtesy pair only when both members of that pair have submitted valid choices; one player's lock must not resolve or reveal the partner's requested count early.
-  - [ ] 2.4 Apply lower-count trimming deterministically from the submitted `tileIds` order; do not sort, randomize, or re-select tiles on the player's behalf.
-  - [ ] 2.5 Support `count: 0` as an explicit skip for a pair without mutating either rack.
-  - [ ] 2.6 Keep the game in courtesy mode until both across-seat pairs are complete, then clear Charleston state and hand off cleanly into `play`.
+- [x] Task 2: Implement courtesy-pass validation and pair resolution in the shared Charleston engine (AC: 1, 2, 3, 4, 5, 6, 8)
+  - [x] 2.1 Add courtesy-specific validation to `packages/shared/src/engine/actions/charleston.ts` for wrong phase, unknown player, inactive pair membership, invalid count range, tile-count mismatch, duplicate tile IDs, invisible tile selection, and repeat submission.
+  - [x] 2.2 Reuse the current Charleston helper patterns (`captureLockedTiles`, simultaneous removal/application, seat math, filtered-state assumptions) instead of creating a parallel courtesy-only engine file.
+  - [x] 2.3 Resolve a courtesy pair only when both members of that pair have submitted valid choices; one player's lock must not resolve or reveal the partner's requested count early.
+  - [x] 2.4 Apply lower-count trimming deterministically from the submitted `tileIds` order; do not sort, randomize, or re-select tiles on the player's behalf.
+  - [x] 2.5 Support `count: 0` as an explicit skip for a pair without mutating either rack.
+  - [x] 2.6 Keep the game in courtesy mode until both across-seat pairs are complete, then clear Charleston state and hand off cleanly into `play`.
 
-- [ ] Task 3: Preserve correct play-start semantics after courtesy completion (AC: 5, 6, 7)
-  - [ ] 3.1 Transition from `gamePhase: "charleston"` to `gamePhase: "play"` only after both courtesy pairs resolve or skip.
-  - [ ] 3.2 Preserve the existing opening-turn contract established by `createGame()`: East is still the first discarder and must not draw before discarding.
-  - [ ] 3.3 Clear stale Charleston bookkeeping (`votesByPlayerId`, `hiddenAcrossTilesByPlayerId`, courtesy submissions, and pair-progress state) when the game enters play so later phases are not polluted by pre-game state.
+- [x] Task 3: Preserve correct play-start semantics after courtesy completion (AC: 5, 6, 7)
+  - [x] 3.1 Transition from `gamePhase: "charleston"` to `gamePhase: "play"` only after both courtesy pairs resolve or skip.
+  - [x] 3.2 Preserve the existing opening-turn contract established by `createGame()`: East is still the first discarder and must not draw before discarding.
+  - [x] 3.3 Clear stale Charleston bookkeeping (`votesByPlayerId`, `hiddenAcrossTilesByPlayerId`, courtesy submissions, and pair-progress state) when the game enters play so later phases are not polluted by pre-game state.
 
-- [ ] Task 4: Wire courtesy handling through engine dispatch, exports, and filtered server views (AC: 1, 6, 7, 9)
-  - [ ] 4.1 Register `COURTESY_PASS` in `packages/shared/src/engine/game-engine.ts` and export any new action / helper types from `packages/shared/src/index.ts`.
-  - [ ] 4.2 Update `packages/server/src/websocket/state-broadcaster.ts` so courtesy-ready / courtesy-in-progress views remain reconnect-safe and filtered, exposing only self-safe submission state plus public pair metadata when truly needed.
-  - [ ] 4.3 Preserve the current reconnect guarantee: the first reconnect `STATE_UPDATE` during courtesy must restore the filtered active game view, not regress to a lobby-style snapshot.
-  - [ ] 4.4 Keep transport behavior inside the existing action-handler / broadcaster pipeline; do not introduce Charleston-specific WebSocket routes or server-only side channels.
+- [x] Task 4: Wire courtesy handling through engine dispatch, exports, and filtered server views (AC: 1, 6, 7, 9)
+  - [x] 4.1 Register `COURTESY_PASS` in `packages/shared/src/engine/game-engine.ts` and export any new action / helper types from `packages/shared/src/index.ts`.
+  - [x] 4.2 Update `packages/server/src/websocket/state-broadcaster.ts` so courtesy-ready / courtesy-in-progress views remain reconnect-safe and filtered, exposing only self-safe submission state plus public pair metadata when truly needed.
+  - [x] 4.3 Preserve the current reconnect guarantee: the first reconnect `STATE_UPDATE` during courtesy must restore the filtered active game view, not regress to a lobby-style snapshot.
+  - [x] 4.4 Keep transport behavior inside the existing action-handler / broadcaster pipeline; do not introduce Charleston-specific WebSocket routes or server-only side channels.
 
-- [ ] Task 5: Add focused shared and server coverage for courtesy negotiation, no-leak guarantees, and play handoff (AC: 1-9)
-  - [ ] 5.1 Extend `packages/shared/src/engine/actions/charleston.test.ts` with blackbox tests for same-count exchange, lower-count trimming, zero-count skip, wrong-phase rejection, invalid count, tile-count mismatch, duplicate tile IDs, invisible tile selection, and repeat submission.
-  - [ ] 5.2 Add at least one shared test proving one courtesy pair can resolve while the other remains pending and that the game does not transition to `play` early.
-  - [ ] 5.3 Add a shared test proving the final courtesy resolution clears Charleston state and enters `play` with East still in discard-only opening-turn state.
-  - [ ] 5.4 Extend `packages/server/src/websocket/state-broadcaster.test.ts` so serialized `STATE_UPDATE` payloads do not leak the partner's requested count or selected tile IDs before pair resolution.
-  - [ ] 5.5 Extend `packages/server/src/integration/full-game-flow.test.ts` with a real WebSocket courtesy flow that starts from `courtesy-ready`, resolves both across-seat pairs, verifies lower-count narration payloads, and confirms the final transition into `play`.
-  - [ ] 5.6 Update reconnect / join-handler coverage if courtesy metadata changes so courtesy negotiation survives reconnect with the same filtering guarantees established in Stories `3B.1` and `3B.2`.
+- [x] Task 5: Add focused shared and server coverage for courtesy negotiation, no-leak guarantees, and play handoff (AC: 1-9)
+  - [x] 5.1 Extend `packages/shared/src/engine/actions/charleston.test.ts` with blackbox tests for same-count exchange, lower-count trimming, zero-count skip, wrong-phase rejection, invalid count, tile-count mismatch, duplicate tile IDs, invisible tile selection, and repeat submission.
+  - [x] 5.2 Add at least one shared test proving one courtesy pair can resolve while the other remains pending and that the game does not transition to `play` early.
+  - [x] 5.3 Add a shared test proving the final courtesy resolution clears Charleston state and enters `play` with East still in discard-only opening-turn state.
+  - [x] 5.4 Extend `packages/server/src/websocket/state-broadcaster.test.ts` so serialized `STATE_UPDATE` payloads do not leak the partner's requested count or selected tile IDs before pair resolution.
+  - [x] 5.5 Extend `packages/server/src/integration/full-game-flow.test.ts` with a real WebSocket courtesy flow that starts from `courtesy-ready`, resolves both across-seat pairs, verifies lower-count narration payloads, and confirms the final transition into `play`.
+  - [x] 5.6 Update reconnect / join-handler coverage if courtesy metadata changes so courtesy negotiation survives reconnect with the same filtering guarantees established in Stories `3B.1` and `3B.2`.
 
-- [ ] Task 6: Respect scope boundaries and complete validation gate (AC: all)
-  - [ ] 6.1 Do **not** build `CharlestonZone`, `TileSelectionAction`, vote buttons, or inline courtesy UI here; Story `3B.4` owns that UI work.
-  - [ ] 6.2 Do **not** add disconnect grace periods, auto-pass fallback, or timeout scheduling here; Story `3B.5` owns those server-timer behaviors.
-  - [ ] 6.3 Do **not** treat the Epic `5A` client-integration retro items as completed; keep any client changes minimal and only in service of safe protocol alignment or dev-harness realism if strictly required.
-  - [ ] 6.4 Run targeted Charleston tests plus touched server integration tests.
-  - [ ] 6.5 Run `pnpm test`.
-  - [ ] 6.6 Run `pnpm run typecheck`.
-  - [ ] 6.7 Run `vp lint`.
-  - [ ] 6.8 Verify each acceptance criterion is covered by at least one automated test, especially lower-count trimming, zero-count skip, no-leak courtesy privacy, and the final `charleston -> play` handoff.
+- [x] Task 6: Respect scope boundaries and complete validation gate (AC: all)
+  - [x] 6.1 Do **not** build `CharlestonZone`, `TileSelectionAction`, vote buttons, or inline courtesy UI here; Story `3B.4` owns that UI work.
+  - [x] 6.2 Do **not** add disconnect grace periods, auto-pass fallback, or timeout scheduling here; Story `3B.5` owns those server-timer behaviors.
+  - [x] 6.3 Do **not** treat the Epic `5A` client-integration retro items as completed; keep any client changes minimal and only in service of safe protocol alignment or dev-harness realism if strictly required.
+  - [x] 6.4 Run targeted Charleston tests plus touched server integration tests.
+  - [x] 6.5 Run `pnpm test`.
+  - [x] 6.6 Run `pnpm run typecheck`.
+  - [x] 6.7 Run `vp lint`.
+  - [x] 6.8 Verify each acceptance criterion is covered by at least one automated test, especially lower-count trimming, zero-count skip, no-leak courtesy privacy, and the final `charleston -> play` handoff.
 
 ## Dev Notes
 
@@ -234,6 +234,16 @@ GPT-5.4
 - `rg` searches over Epic `3B`, courtesy-pass planning text, Charleston architecture / UX constraints, previous `3B.1` and `3B.2` artifacts, and current Charleston code / protocol files
 - Repository state check:
   - `git log --oneline -5`
+- Workflow initialization:
+  - Loaded `_bmad/gds/config.yaml`, `_bmad-output/project-context.md`, and `_bmad-output/implementation-artifacts/sprint-status.yaml`
+  - Read the complete `3b-3-courtesy-pass-negotiation.md` story file and current shared/server Charleston implementation files
+- Validation:
+  - `pnpm exec vp test run packages/shared/src/engine/actions/charleston.test.ts`
+  - `pnpm exec vp test run packages/server/src/websocket/state-broadcaster.test.ts packages/server/src/websocket/join-handler.test.ts packages/server/src/integration/full-game-flow.test.ts`
+  - `pnpm exec vp test run packages/shared/src/types/game-state.test.ts packages/shared/src/engine/game-engine.test.ts packages/shared/src/engine/state/create-game.test.ts packages/server/src/websocket/action-handler.test.ts`
+  - `pnpm test`
+  - `pnpm run typecheck`
+  - `pnpm exec vp lint`
 
 ### Implementation Plan
 
@@ -246,16 +256,33 @@ GPT-5.4
 - Story context created from Epic `3B` planning artifacts, current courtesy-ready Charleston code, previous `3B.1` / `3B.2` learnings, and existing server filtering / integration tests.
 - Added a dedicated validation checklist section to satisfy the Epic `5A` retrospective requirement for future story specs.
 - Scoped the story to shared / server courtesy negotiation so Epic `3B` can continue without pretending the deferred live client integration layer is already complete.
+- Implemented `COURTESY_PASS` shared contracts, courtesy submission tracking, resolved-pair progress, and narration-ready `COURTESY_PAIR_RESOLVED` payloads while keeping `COURTESY_PASS_LOCKED` privacy-safe.
+- Added courtesy validation and pair-local resolution to the shared Charleston engine, including deterministic lower-count trimming, explicit zero-count skips, and the final `charleston -> play` handoff with stale Charleston bookkeeping cleared.
+- Extended filtered server Charleston views and reconnect restore so players only see their own courtesy submission details before resolution; partner counts and tile IDs remain private until the pair resolves.
+- Added focused shared, broadcaster, reconnect, and end-to-end WebSocket coverage for courtesy negotiation, no-leak guarantees, and play-start correctness; full test, typecheck, and lint validation passed.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/3b-3-courtesy-pass-negotiation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `packages/shared/src/types/actions.ts`
+- `packages/shared/src/types/game-state.ts`
+- `packages/shared/src/types/protocol.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/engine/state/create-game.ts`
+- `packages/shared/src/engine/game-engine.ts`
+- `packages/shared/src/engine/actions/charleston.ts`
+- `packages/shared/src/engine/actions/charleston.test.ts`
+- `packages/server/src/websocket/state-broadcaster.ts`
+- `packages/server/src/websocket/state-broadcaster.test.ts`
+- `packages/server/src/websocket/join-handler.test.ts`
+- `packages/server/src/integration/full-game-flow.test.ts`
 
 ### Change Log
 
 - 2026-04-01: Created Story `3B.3` context with courtesy-ready guardrails, lower-count negotiation rules, no-leak privacy requirements, final play handoff guidance, and a dedicated validation checklist.
+- 2026-04-01: Implemented courtesy-pass negotiation across shared engine and server filtering, added pair-local narration payloads, preserved courtesy privacy through reconnect/broadcast flows, and validated with targeted plus full repo test/typecheck/lint runs.
 
 ### Status
 
-ready-for-dev
+review

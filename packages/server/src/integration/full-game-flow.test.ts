@@ -68,6 +68,10 @@ function rackTileIdsFromStateMessage(message: Record<string, unknown>): string[]
   return state.myRack.map((tile) => tile.id);
 }
 
+function charlestonViewFromMessage(message: Record<string, unknown>): Record<string, unknown> {
+  return (message.state as { charleston: Record<string, unknown> | null }).charleston ?? {};
+}
+
 describe("Full Game Flow Integration", () => {
   let app: FastifyInstance;
   let wsUrl: string;
@@ -591,6 +595,8 @@ describe("Full Game Flow Integration", () => {
         hiddenAcrossTilesByPlayerId: {},
         votesByPlayerId: {},
         courtesyPairings: [],
+        courtesySubmissionsByPlayerId: {},
+        courtesyResolvedPairings: [],
       };
 
       aliceWs.send(
@@ -765,6 +771,8 @@ describe("Full Game Flow Integration", () => {
         hiddenAcrossTilesByPlayerId: {},
         votesByPlayerId: {},
         courtesyPairings: [],
+        courtesySubmissionsByPlayerId: {},
+        courtesyResolvedPairings: [],
       };
 
       const firstVoteUpdates = await submitActionAndCollect(alicePlayerId, {
@@ -958,6 +966,242 @@ describe("Full Game Flow Integration", () => {
             [bobPlayerId, davePlayerId],
           ],
         });
+      }
+    },
+  );
+
+  it(
+    "room creation → courtesy negotiation resolves pair-locally, preserves privacy, and enters play",
+    { timeout: 15_000 },
+    async () => {
+      app = createApp();
+      await app.ready();
+      const address = await app.listen({ port: 0 });
+      wsUrl = address.replace("http", "ws");
+
+      const roomRes = await app.inject({
+        method: "POST",
+        url: "/api/rooms",
+        payload: { hostName: "Alice" },
+      });
+      expect(roomRes.statusCode).toBe(201);
+      const { roomCode } = roomRes.json();
+
+      const aliceWs = createWs();
+      await waitForOpen(aliceWs);
+      const aliceReader = createMessageReader(aliceWs);
+      aliceWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }));
+      const aliceJoinMsg = await aliceReader.next();
+      const alicePlayerId = aliceJoinMsg.state.myPlayerId as string;
+
+      const bobWs = createWs();
+      await waitForOpen(bobWs);
+      const bobReader = createMessageReader(bobWs);
+      bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
+      const bobJoinMsg = await bobReader.next();
+      const bobPlayerId = bobJoinMsg.state.myPlayerId as string;
+
+      const carolWs = createWs();
+      await waitForOpen(carolWs);
+      const carolReader = createMessageReader(carolWs);
+      carolWs.send(
+        JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
+      );
+      const carolJoinMsg = await carolReader.next();
+      const carolPlayerId = carolJoinMsg.state.myPlayerId as string;
+
+      const daveWs = createWs();
+      await waitForOpen(daveWs);
+      const daveReader = createMessageReader(daveWs);
+      daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
+      const daveJoinMsg = await daveReader.next();
+      const davePlayerId = daveJoinMsg.state.myPlayerId as string;
+
+      await Promise.all([
+        aliceReader.next(),
+        aliceReader.next(),
+        aliceReader.next(),
+        bobReader.next(),
+        bobReader.next(),
+        carolReader.next(),
+      ]);
+
+      aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+
+      const initialStates = await Promise.all([
+        aliceReader.next(),
+        bobReader.next(),
+        carolReader.next(),
+        daveReader.next(),
+      ]);
+
+      const players = [
+        { id: alicePlayerId, ws: aliceWs, reader: aliceReader, latestState: initialStates[0] },
+        { id: bobPlayerId, ws: bobWs, reader: bobReader, latestState: initialStates[1] },
+        { id: carolPlayerId, ws: carolWs, reader: carolReader, latestState: initialStates[2] },
+        { id: davePlayerId, ws: daveWs, reader: daveReader, latestState: initialStates[3] },
+      ];
+
+      const playersById = Object.fromEntries(
+        players.map((player) => [player.id, player]),
+      ) as Record<string, (typeof players)[number]>;
+
+      function visibleSelection(playerId: string, count = 3): string[] {
+        return rackTileIdsFromStateMessage(playersById[playerId].latestState).slice(0, count);
+      }
+
+      async function submitActionAndCollect(
+        senderPlayerId: string,
+        action: Record<string, unknown>,
+      ): Promise<Array<Record<string, unknown>>> {
+        playersById[senderPlayerId].ws.send(
+          JSON.stringify({
+            version: 1,
+            type: "ACTION",
+            action,
+          }),
+        );
+
+        const updates = await Promise.all(players.map((player) => player.reader.next()));
+        players.forEach((player, index) => {
+          player.latestState = updates[index];
+        });
+        return updates;
+      }
+
+      const room = app.roomManager.getRoom(roomCode)!;
+      room.gameState!.charleston = {
+        stage: "courtesy",
+        status: "courtesy-ready",
+        currentDirection: null,
+        activePlayerIds: [alicePlayerId, bobPlayerId, carolPlayerId, davePlayerId],
+        submittedPlayerIds: [],
+        lockedTileIdsByPlayerId: {},
+        hiddenAcrossTilesByPlayerId: {},
+        votesByPlayerId: {},
+        courtesyPairings: [
+          [alicePlayerId, carolPlayerId],
+          [bobPlayerId, davePlayerId],
+        ],
+        courtesySubmissionsByPlayerId: {},
+        courtesyResolvedPairings: [],
+      };
+
+      const aliceCourtesySelection = visibleSelection(alicePlayerId, 3);
+      const aliceLockUpdates = await submitActionAndCollect(alicePlayerId, {
+        type: "COURTESY_PASS",
+        playerId: alicePlayerId,
+        count: 3,
+        tileIds: aliceCourtesySelection,
+      });
+
+      for (const update of aliceLockUpdates) {
+        expect(update.type).toBe("STATE_UPDATE");
+        expect(update.resolvedAction).toMatchObject({
+          type: "COURTESY_PASS_LOCKED",
+          playerId: alicePlayerId,
+          pairing: [alicePlayerId, carolPlayerId],
+        });
+      }
+
+      const aliceLockState = aliceLockUpdates.find(
+        (update) => (update.state as { myPlayerId: string }).myPlayerId === alicePlayerId,
+      )!;
+      expect(charlestonViewFromMessage(aliceLockState)).toMatchObject({
+        courtesyResolvedPairCount: 0,
+        myCourtesySubmission: {
+          count: 3,
+          tileIds: aliceCourtesySelection,
+        },
+      });
+
+      const bobLockState = aliceLockUpdates.find(
+        (update) => (update.state as { myPlayerId: string }).myPlayerId === bobPlayerId,
+      )!;
+      const bobCourtesyView = charlestonViewFromMessage(bobLockState);
+      expect(bobCourtesyView.myCourtesySubmission).toBeNull();
+      expect(JSON.stringify(bobLockState)).not.toContain(aliceCourtesySelection[0]);
+      expect(JSON.stringify(bobLockState)).not.toContain('"count":3');
+
+      const carolCourtesySelection = visibleSelection(carolPlayerId, 2);
+      const firstPairResolvedUpdates = await submitActionAndCollect(carolPlayerId, {
+        type: "COURTESY_PASS",
+        playerId: carolPlayerId,
+        count: 2,
+        tileIds: carolCourtesySelection,
+      });
+
+      for (const update of firstPairResolvedUpdates) {
+        expect(update.resolvedAction).toEqual({
+          type: "COURTESY_PAIR_RESOLVED",
+          pairing: [alicePlayerId, carolPlayerId],
+          playerRequests: {
+            [alicePlayerId]: 3,
+            [carolPlayerId]: 2,
+          },
+          appliedCount: 2,
+          entersPlay: false,
+        });
+        const charleston = charlestonViewFromMessage(update);
+        expect(charleston).toMatchObject({
+          stage: "courtesy",
+          status: "courtesy-ready",
+          courtesyResolvedPairCount: 1,
+        });
+      }
+
+      const aliceStateAfterResolution = firstPairResolvedUpdates.find(
+        (update) => (update.state as { myPlayerId: string }).myPlayerId === alicePlayerId,
+      )!;
+      expect(rackTileIdsFromStateMessage(aliceStateAfterResolution)).toEqual(
+        expect.arrayContaining(carolCourtesySelection),
+      );
+      const carolStateAfterResolution = firstPairResolvedUpdates.find(
+        (update) => (update.state as { myPlayerId: string }).myPlayerId === carolPlayerId,
+      )!;
+      expect(rackTileIdsFromStateMessage(carolStateAfterResolution)).toEqual(
+        expect.arrayContaining(aliceCourtesySelection.slice(0, 2)),
+      );
+      expect(rackTileIdsFromStateMessage(carolStateAfterResolution)).not.toContain(
+        aliceCourtesySelection[2],
+      );
+
+      await submitActionAndCollect(bobPlayerId, {
+        type: "COURTESY_PASS",
+        playerId: bobPlayerId,
+        count: 0,
+        tileIds: [],
+      });
+
+      const daveSelection = visibleSelection(davePlayerId, 2);
+      const finalCourtesyUpdates = await submitActionAndCollect(davePlayerId, {
+        type: "COURTESY_PASS",
+        playerId: davePlayerId,
+        count: 2,
+        tileIds: daveSelection,
+      });
+
+      for (const update of finalCourtesyUpdates) {
+        expect(update.resolvedAction).toEqual({
+          type: "COURTESY_PAIR_RESOLVED",
+          pairing: [bobPlayerId, davePlayerId],
+          playerRequests: {
+            [bobPlayerId]: 0,
+            [davePlayerId]: 2,
+          },
+          appliedCount: 0,
+          entersPlay: true,
+        });
+        const state = update.state as {
+          gamePhase: string;
+          currentTurn: string;
+          turnPhase: string;
+          charleston: Record<string, unknown> | null;
+        };
+        expect(state.gamePhase).toBe("play");
+        expect(state.currentTurn).toBe(alicePlayerId);
+        expect(state.turnPhase).toBe("discard");
+        expect(state.charleston).toBeNull();
       }
     },
   );

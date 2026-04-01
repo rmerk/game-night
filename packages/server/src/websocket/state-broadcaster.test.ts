@@ -276,6 +276,8 @@ describe("buildPlayerView", () => {
       },
       votesByPlayerId: {},
       courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
     };
 
     const playerView = buildPlayerView(room, gameState, "player-0");
@@ -329,6 +331,8 @@ describe("buildPlayerView", () => {
         "player-1": false,
       },
       courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
     };
 
     const playerZeroView = buildPlayerView(room, gameState, "player-0");
@@ -383,6 +387,8 @@ describe("buildPlayerView", () => {
         ["player-0", "player-2"],
         ["player-1", "player-3"],
       ],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
     };
 
     const playerView = buildPlayerView(room, gameState, "player-0");
@@ -396,7 +402,9 @@ describe("buildPlayerView", () => {
         ["player-0", "player-2"],
         ["player-1", "player-3"],
       ],
+      courtesyResolvedPairCount: 0,
       myVote: null,
+      myCourtesySubmission: null,
     });
     expect(spectatorView.charleston).toMatchObject({
       stage: "courtesy",
@@ -406,9 +414,89 @@ describe("buildPlayerView", () => {
         ["player-0", "player-2"],
         ["player-1", "player-3"],
       ],
+      courtesyResolvedPairCount: 0,
     });
     expect(playerView.charleston).not.toHaveProperty("hiddenAcrossTilesByPlayerId");
     expect(playerView.charleston).not.toHaveProperty("lockedTileIdsByPlayerId");
+  });
+
+  it("restores only the requesting player's courtesy submission without leaking partner details", () => {
+    const { room } = createFourPlayerRoom();
+    const gameState = createFourPlayerGameState();
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      courtesySubmissionsByPlayerId: {
+        "player-0": {
+          count: 3,
+          tileIds: ["bam-1-1", "bam-2-1", "bam-3-1"],
+        },
+        "player-2": {
+          count: 2,
+          tileIds: ["dot-1-1", "dot-2-1"],
+        },
+      },
+      courtesyResolvedPairings: [["player-1", "player-3"]],
+    };
+
+    const playerZeroView = buildPlayerView(room, gameState, "player-0");
+    const playerOneView = buildPlayerView(room, gameState, "player-1");
+    const spectatorView = buildSpectatorView(room, gameState);
+    const playerZeroJson = JSON.stringify(playerZeroView);
+    const playerOneJson = JSON.stringify(playerOneView);
+    const spectatorJson = JSON.stringify(spectatorView);
+
+    expect(playerZeroView.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      courtesyResolvedPairCount: 1,
+      mySubmissionLocked: true,
+      myCourtesySubmission: {
+        count: 3,
+        tileIds: ["bam-1-1", "bam-2-1", "bam-3-1"],
+      },
+    });
+    expect(playerOneView.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      courtesyResolvedPairCount: 1,
+      mySubmissionLocked: false,
+      myCourtesySubmission: null,
+    });
+    expect(spectatorView.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      courtesyResolvedPairCount: 1,
+    });
+
+    for (const serialized of [playerOneJson, spectatorJson]) {
+      expect(serialized).not.toContain('"count":3');
+      expect(serialized).not.toContain('"count":2');
+      expect(serialized).not.toContain("bam-1-1");
+      expect(serialized).not.toContain("bam-2-1");
+      expect(serialized).not.toContain("bam-3-1");
+      expect(serialized).not.toContain("dot-1-1");
+      expect(serialized).not.toContain("dot-2-1");
+    }
+    expect(playerZeroJson).toContain("bam-1-1");
+    expect(playerZeroJson).not.toContain("dot-1-1");
+    expect(playerZeroView.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");
+    expect(spectatorView.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");
   });
 
   it("includes all public state fields", () => {
@@ -580,6 +668,8 @@ describe("broadcastGameState", () => {
       hiddenAcrossTilesByPlayerId: {},
       votesByPlayerId: { "player-0": true },
       courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
     };
 
     broadcastGameState(room, gameState, {

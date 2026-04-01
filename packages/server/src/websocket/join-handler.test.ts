@@ -553,6 +553,8 @@ describe("token-based reconnection", () => {
         "player-1": false,
       },
       courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
     };
 
     const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));

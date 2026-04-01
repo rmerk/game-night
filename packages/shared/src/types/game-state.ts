@@ -121,6 +121,12 @@ export type CharlestonStatus = "passing" | "vote-ready" | "courtesy-ready";
 /** Player pair that will negotiate the courtesy pass */
 export type CharlestonPairing = readonly [string, string];
 
+/** A player's courtesy request before the pair resolves */
+export interface CourtesySubmission {
+  readonly count: number;
+  readonly tileIds: readonly string[];
+}
+
 /** Internal Charleston engine state */
 export interface CharlestonState {
   stage: CharlestonStage;
@@ -132,6 +138,8 @@ export interface CharlestonState {
   hiddenAcrossTilesByPlayerId: Partial<Record<string, Tile[]>>;
   votesByPlayerId: Partial<Record<string, boolean>>;
   courtesyPairings: readonly CharlestonPairing[];
+  courtesySubmissionsByPlayerId: Partial<Record<string, CourtesySubmission>>;
+  courtesyResolvedPairings: readonly CharlestonPairing[];
 }
 
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
@@ -187,6 +195,18 @@ export type ResolvedAction =
       readonly nextDirection: CharlestonDirection | null;
       readonly stage: CharlestonStage;
       readonly status: CharlestonStatus;
+    }
+  | {
+      readonly type: "COURTESY_PASS_LOCKED";
+      readonly playerId: string;
+      readonly pairing: CharlestonPairing;
+    }
+  | {
+      readonly type: "COURTESY_PAIR_RESOLVED";
+      readonly pairing: CharlestonPairing;
+      readonly playerRequests: Record<string, number>;
+      readonly appliedCount: number;
+      readonly entersPlay: boolean;
     }
   | { readonly type: "DRAW_TILE"; readonly playerId: string }
   | { readonly type: "DISCARD_TILE"; readonly playerId: string; readonly tileId: string }

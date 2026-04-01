@@ -42,6 +42,7 @@ function publicCharlestonFromState(
     courtesyPairings: charleston.courtesyPairings.map(
       ([firstPlayerId, secondPlayerId]) => [firstPlayerId, secondPlayerId] as const,
     ),
+    courtesyResolvedPairCount: charleston.courtesyResolvedPairings.length,
   };
 }
 
@@ -77,6 +78,7 @@ export function buildPlayerView(
   }
 
   const publicCharleston = buildPublicCharlestonView(gameState);
+  const courtesySubmission = gameState.charleston?.courtesySubmissionsByPlayerId[playerId];
   const charleston =
     publicCharleston === null
       ? null
@@ -84,8 +86,16 @@ export function buildPlayerView(
           ...publicCharleston,
           myHiddenTileCount:
             gameState.charleston!.hiddenAcrossTilesByPlayerId[playerId]?.length ?? 0,
-          mySubmissionLocked: gameState.charleston!.submittedPlayerIds.includes(playerId),
+          mySubmissionLocked:
+            gameState.charleston!.submittedPlayerIds.includes(playerId) ||
+            courtesySubmission !== undefined,
           myVote: gameState.charleston!.votesByPlayerId[playerId] ?? null,
+          myCourtesySubmission: courtesySubmission
+            ? {
+                count: courtesySubmission.count,
+                tileIds: [...courtesySubmission.tileIds],
+              }
+            : null,
         };
 
   return {
