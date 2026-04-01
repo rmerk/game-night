@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { GameResult, MahjongGameResult } from "@mahjong-game/shared";
+import BasePanel from "../ui/BasePanel.vue";
 import SessionScores from "./SessionScores.vue";
+import { formatSignedNumber } from "./format-signed-number";
 
 const props = defineProps<{
   gameResult: GameResult | null;
@@ -31,16 +33,14 @@ const paymentEntries = computed(() => {
     amount: mahjongResult.value?.payments[playerId] ?? 0,
   }));
 });
-
-function formatDelta(value: number): string {
-  return value > 0 ? `+${value}` : `${value}`;
-}
 </script>
 
 <template>
-  <section
+  <BasePanel
     data-testid="scoreboard"
-    class="flex w-full max-w-3xl flex-col gap-4 rounded-2xl bg-chrome-surface-dark/85 p-4 text-text-on-felt shadow-panel"
+    tag="section"
+    variant="dark-raised"
+    class="flex w-full max-w-3xl flex-col gap-4 rounded-2xl p-4"
   >
     <header class="flex flex-col gap-2">
       <h2 class="text-5 font-semibold">Scoreboard</h2>
@@ -48,7 +48,7 @@ function formatDelta(value: number): string {
       <template v-if="mahjongResult">
         <p class="text-4.5 font-semibold">{{ winnerName }} wins</p>
         <p class="text-4 text-text-on-felt/85">
-          {{ mahjongResult?.patternName }} · {{ mahjongResult?.points }} points
+          {{ mahjongResult.patternName }} · {{ mahjongResult.points }} points
         </p>
       </template>
 
@@ -61,14 +61,16 @@ function formatDelta(value: number): string {
     <section class="flex flex-col gap-2">
       <h3 class="text-4 font-semibold">Payments</h3>
       <ul class="grid gap-2 md:grid-cols-2">
-        <li
+        <BasePanel
           v-for="entry in paymentEntries"
           :key="entry.playerId"
-          class="flex items-center justify-between rounded-lg bg-chrome-surface-dark/50 px-3 py-2"
+          tag="li"
+          variant="dark-muted"
+          class="flex items-center justify-between rounded-lg px-3 py-2"
         >
           <span>{{ entry.playerName }}</span>
-          <span class="font-semibold">{{ formatDelta(entry.amount) }}</span>
-        </li>
+          <span class="font-semibold">{{ formatSignedNumber(entry.amount) }}</span>
+        </BasePanel>
       </ul>
     </section>
 
@@ -77,5 +79,5 @@ function formatDelta(value: number): string {
       :player-order="props.playerOrder"
       :session-scores="props.sessionScores"
     />
-  </section>
+  </BasePanel>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from "vue";
 import { SEATS, type SeatWind } from "@mahjong-game/shared";
+import BasePanel from "../ui/BasePanel.vue";
 
 const STEP_DURATION_MS = 400;
 
@@ -77,13 +78,15 @@ const currentPlayerName = computed(() => {
 </script>
 
 <template>
-  <div
+  <BasePanel
     data-testid="turn-indicator"
+    tag="div"
+    variant="dark-raised"
     role="status"
     aria-live="polite"
-    class="inline-flex items-center gap-2 rounded-full bg-chrome-surface-dark/85 px-4 py-2 text-text-on-felt shadow-panel"
+    class="inline-flex items-center gap-2 rounded-full px-4 py-2"
   >
     <span class="text-secondary uppercase tracking-[0.2em] text-text-on-felt/75">Turn</span>
     <span class="text-interactive">{{ currentPlayerName }}</span>
-  </div>
+  </BasePanel>
 </template>

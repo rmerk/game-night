@@ -71,6 +71,26 @@ describe("CallButtons — pass-only fallback", () => {
     expect(buttons[0].text()).toBe("Pass");
     expect(wrapper.find("[data-testid='call-pass']").exists()).toBe(true);
   });
+
+  it("focuses the Pass button when it is the only available action", async () => {
+    const wrapper = mount(CallButtons, {
+      attachTo: document.body,
+      props: {
+        validCalls: [],
+        callWindowStatus: "open",
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    const passButton = wrapper.get("[data-testid='call-pass']");
+    await wrapper.vm.$nextTick();
+
+    expect(document.activeElement).toBe(passButton.element);
+
+    wrapper.unmount();
+  });
 });
 
 describe("CallButtons — event emissions", () => {

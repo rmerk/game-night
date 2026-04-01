@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BaseButton from "../ui/BaseButton.vue";
+
 const props = defineProps<{
   selectedTileId: string | null;
   isPlayerTurn: boolean;
@@ -17,13 +19,13 @@ function handleDiscard() {
 </script>
 
 <template>
-  <button
+  <BaseButton
     v-if="selectedTileId !== null && isPlayerTurn"
     data-testid="discard-confirm"
-    class="min-h-11 px-6 rounded-md bg-gold-accent text-text-primary text-game-critical shadow-tile hover:bg-gold-accent-hover focus-visible:focus-ring-on-felt"
     aria-label="Discard selected tile"
+    variant="primary"
     @click="handleDiscard"
   >
     Discard
-  </button>
+  </BaseButton>
 </template>

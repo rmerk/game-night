@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { onMounted, shallowRef, useTemplateRef } from "vue";
+import BasePanel from "../ui/BasePanel.vue";
 
 const controlsRef = useTemplateRef<HTMLElement>("controls");
 const activeButtonIndex = shallowRef(0);
 
+function getControlsElement(): HTMLElement | null {
+  const controls = controlsRef.value;
+  if (!controls) {
+    return null;
+  }
+
+  return controls instanceof HTMLElement
+    ? controls
+    : ((controls as { $el?: HTMLElement }).$el ?? null);
+}
+
 function getButtons(): HTMLButtonElement[] {
-  return Array.from(controlsRef.value?.querySelectorAll<HTMLButtonElement>("button") ?? []);
+  return Array.from(getControlsElement()?.querySelectorAll<HTMLButtonElement>("button") ?? []);
 }
 
 function syncButtons() {
@@ -67,10 +79,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
+  <BasePanel
     ref="controls"
     data-testid="mobile-bottom-bar"
-    class="mobile-bottom-bar flex w-full max-w-sm items-center justify-around rounded-xl bg-chrome-surface/85 px-2 py-1 pb-[env(safe-area-inset-bottom)] shadow-panel"
+    tag="div"
+    variant="chrome-raised"
+    class="mobile-bottom-bar flex w-full max-w-sm items-center justify-around rounded-xl px-2 py-1 pb-[env(safe-area-inset-bottom)]"
     role="group"
     aria-label="Placeholder table controls"
     @focusin="handleFocusIn"
@@ -95,5 +109,5 @@ onMounted(() => {
       <span class="text-5">🎤</span>
       <span>A/V</span>
     </button>
-  </div>
+  </BasePanel>
 </template>

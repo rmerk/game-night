@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from "vue";
+import BaseBadge from "../ui/BaseBadge.vue";
 
 const props = defineProps<{
   wallRemaining: number;
@@ -22,60 +23,43 @@ const tone = computed<WallTone>(() => {
 const liveMessage = shallowRef("");
 
 watch(
-  tone,
-  (nextTone, previousTone) => {
-    if (!previousTone || previousTone === nextTone) {
+  () => [tone.value, props.wallRemaining] as const,
+  (nextState, previousState) => {
+    const [nextTone, wallRemaining] = nextState;
+    const previousTone = previousState?.[0];
+
+    if (!previousTone) {
       return;
     }
 
     if (nextTone === "warning") {
-      liveMessage.value = `Wall warning: ${props.wallRemaining} tiles remain.`;
+      liveMessage.value = `Wall warning: ${wallRemaining} tiles remain.`;
       return;
     }
 
     if (nextTone === "critical") {
-      liveMessage.value = `Wall critical: only ${props.wallRemaining} tiles remain.`;
+      liveMessage.value = `Wall critical: only ${wallRemaining} tiles remain.`;
+      return;
     }
+
+    liveMessage.value = "";
   },
   { immediate: true },
 );
-
-const counterClasses = computed(() => ({
-  "wall-normal": tone.value === "normal",
-  "wall-warning": tone.value === "warning",
-  "wall-critical": tone.value === "critical",
-}));
 </script>
 
 <template>
   <div class="flex flex-col items-center gap-1">
-    <div
+    <BaseBadge
       data-testid="wall-counter"
-      class="wall-counter text-game-critical inline-flex items-center rounded-full border px-4 py-2 shadow-panel"
-      :class="counterClasses"
+      variant="wall-counter"
+      :tone="tone"
+      class="px-4 py-2 text-game-critical"
     >
       Wall: {{ wallRemaining }}
-    </div>
+    </BaseBadge>
     <div data-testid="wall-counter-live" aria-live="polite" class="sr-only">
       {{ liveMessage }}
     </div>
   </div>
 </template>
-
-<style scoped>
-.wall-counter {
-  @apply bg-chrome-surface-dark/85 text-text-on-felt;
-}
-
-.wall-normal {
-  @apply border-wall-normal;
-}
-
-.wall-warning {
-  @apply border-wall-warning text-wall-warning;
-}
-
-.wall-critical {
-  @apply border-wall-critical text-wall-critical;
-}
-</style>

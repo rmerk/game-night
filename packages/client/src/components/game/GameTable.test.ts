@@ -291,7 +291,7 @@ describe("GameTable — accessibility", () => {
     });
 
     expect(wrapper.get("[data-testid='wall-counter']").text()).toContain("Wall: 20");
-    expect(wrapper.get("[data-testid='wall-counter']").classes()).toContain("wall-warning");
+    expect(wrapper.get("[data-testid='wall-counter']").classes()).toContain("border-wall-warning");
   });
 
   it("positions the wall counter above the discard pools in the center area", () => {

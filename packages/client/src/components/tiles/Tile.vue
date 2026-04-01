@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { Tile } from "@mahjong-game/shared";
+import { getTileSizeStyle, type TileDisplaySize } from "./tile-sizing";
 
-export type TileSize = "standard" | "small" | "celebration";
+export type TileSize = TileDisplaySize;
 export type TileState = "default" | "hover" | "selected" | "disabled" | "face-down";
 
 const props = withDefaults(
@@ -51,7 +52,14 @@ const ariaLabel = computed(() => {
   const t = props.tile;
   switch (t.category) {
     case "suited": {
-      const suitName = t.suit === "bam" ? "Bamboo" : t.suit === "crak" ? "Crack" : "Dot";
+      let suitName: string;
+      if (t.suit === "bam") {
+        suitName = "Bamboo";
+      } else if (t.suit === "crak") {
+        suitName = "Crack";
+      } else {
+        suitName = "Dot";
+      }
       return `${t.value} of ${suitName}`;
     }
     case "wind": {
@@ -59,8 +67,15 @@ const ariaLabel = computed(() => {
       return `${w} Wind`;
     }
     case "dragon": {
-      const d = t.value === "soap" ? "Soap" : t.value === "red" ? "Red" : "Green";
-      return `${d} Dragon`;
+      let dragonLabel: string;
+      if (t.value === "soap") {
+        dragonLabel = "Soap";
+      } else if (t.value === "red") {
+        dragonLabel = "Red";
+      } else {
+        dragonLabel = "Green";
+      }
+      return `${dragonLabel} Dragon`;
     }
     case "flower":
       return `Flower ${t.value.toUpperCase()}`;
@@ -71,12 +86,14 @@ const ariaLabel = computed(() => {
 
 const role = computed(() => (props.interactive ? "button" : "img"));
 const resolvedTabIndex = computed(() => (props.interactive ? (props.tabIndex ?? 0) : undefined));
+const tileSizeStyle = computed(() => getTileSizeStyle(props.size));
 </script>
 
 <template>
   <div
     class="tile"
     :class="[`tile--size-${size}`, `tile--${state}`, { 'tile--interactive': interactive }]"
+    :style="tileSizeStyle"
     :role="role"
     :aria-label="ariaLabel"
     :tabindex="resolvedTabIndex"
@@ -120,22 +137,6 @@ const resolvedTabIndex = computed(() => (props.interactive ? (props.tabIndex ?? 
   display: block;
   width: 100%;
   height: 100%;
-}
-
-/* --- Size variants --- */
-.tile--size-standard {
-  width: 50px;
-  height: 67px; /* 3:4 ratio */
-}
-
-.tile--size-small {
-  width: 30px;
-  height: 40px;
-}
-
-.tile--size-celebration {
-  width: 70px;
-  height: 93px;
 }
 
 /* --- Interactive cursor --- */

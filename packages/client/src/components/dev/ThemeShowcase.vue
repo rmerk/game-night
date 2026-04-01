@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import BaseBadge from "../ui/BaseBadge.vue";
+import BaseButton from "../ui/BaseButton.vue";
+import BasePanel from "../ui/BasePanel.vue";
+import BaseToast from "../ui/BaseToast.vue";
 import { themeColors } from "../../styles/design-tokens";
 
 const currentMood = ref<string>("mood-playing");
@@ -167,6 +171,52 @@ const moods = ["mood-arriving", "mood-playing", "mood-lingering"];
           <code class="text-secondary">focus-ring-on-dark</code>
         </div>
       </div>
+    </section>
+
+    <!-- Shared Primitives -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Shared Primitives</h2>
+      <div class="mb-6 flex flex-wrap items-center gap-3">
+        <BaseButton variant="primary">Mahjong</BaseButton>
+        <BaseButton variant="urgent">Call Pung</BaseButton>
+        <BaseButton variant="secondary">Pass</BaseButton>
+        <BaseButton variant="subtle-danger" class="px-4">Cancel</BaseButton>
+      </div>
+
+      <div class="mb-6 grid gap-4 md:grid-cols-3">
+        <BasePanel variant="dark-raised" class="rounded-xl p-4">
+          <p class="text-4.5 font-semibold">Dark Raised Panel</p>
+          <p class="text-secondary">Scoreboard and status-shell surface treatment.</p>
+        </BasePanel>
+        <BasePanel variant="dark-muted" class="rounded-lg p-4">
+          <p class="text-4.5 font-semibold">Dark Muted Panel</p>
+          <p class="text-secondary">Score rows and quieter secondary surfaces.</p>
+        </BasePanel>
+        <BasePanel variant="chrome-raised" class="rounded-xl p-4">
+          <p class="text-4.5 font-semibold">Chrome Raised Panel</p>
+          <p class="text-secondary">Mobile control shell treatment.</p>
+        </BasePanel>
+      </div>
+
+      <div class="mb-6 flex flex-wrap items-center gap-3">
+        <BaseBadge variant="pill" tone="active" class="text-text-on-felt">Current turn</BaseBadge>
+        <BaseBadge variant="wall-counter" tone="warning" class="px-4 py-2 text-game-critical">
+          Wall: 20
+        </BaseBadge>
+        <span class="inline-flex items-center gap-2">
+          <BaseBadge variant="status-dot" tone="success" aria-label="Connected" />
+          <span class="text-secondary">Connected seat</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <BaseBadge variant="status-dot" tone="muted" aria-label="Disconnected" />
+          <span class="text-secondary">Disconnected seat</span>
+        </span>
+      </div>
+
+      <BaseToast visible class="max-w-md">
+        <span class="flex-1">Invalid Mahjong declaration.</span>
+        <BaseButton variant="subtle-danger" class="px-4">Cancel</BaseButton>
+      </BaseToast>
     </section>
 
     <!-- Animation Timing -->

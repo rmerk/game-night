@@ -11,6 +11,8 @@ import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
 import MahjongButton from "./MahjongButton.vue";
 import InvalidMahjongNotification from "./InvalidMahjongNotification.vue";
+import BaseBadge from "../ui/BaseBadge.vue";
+import BasePanel from "../ui/BasePanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 import {
@@ -299,23 +301,27 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
     >
       <div data-testid="rack-zone-entry">
         <div v-if="localPlayer" class="mb-2 flex justify-center">
-          <div
+          <BasePanel
             data-testid="local-player-status-shell"
-            class="inline-flex flex-wrap items-center justify-center gap-2 rounded-full bg-chrome-surface-dark/85 px-4 py-2 text-text-on-felt shadow-panel"
-            :class="isLocalPlayerTurn ? 'ring-2 ring-state-turn-active' : ''"
+            tag="div"
+            variant="dark-raised"
+            class="inline-flex flex-wrap items-center justify-center gap-2 rounded-full px-4 py-2"
+            :class="{ 'ring-2 ring-state-turn-active': isLocalPlayerTurn }"
           >
             <span class="text-interactive">{{ localPlayer.name }}</span>
-            <span
+            <BaseBadge
               v-if="isLocalPlayerTurn"
               data-testid="local-player-status"
-              class="rounded-full bg-state-turn-active/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
+              variant="pill"
+              tone="active"
+              class="text-text-on-felt"
             >
               Current turn
-            </span>
+            </BaseBadge>
             <span data-testid="local-player-score" class="text-3 text-text-on-felt/85">
               Score: {{ localPlayer.score }}
             </span>
-          </div>
+          </BasePanel>
         </div>
         <TileRack :tiles="tiles" :is-player-turn="isPlayerTurn" />
       </div>

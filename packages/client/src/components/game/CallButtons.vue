@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import type { CallType } from "@mahjong-game/shared";
+import BaseButton from "../ui/BaseButton.vue";
 
 const props = defineProps<{
   validCalls: CallType[];
@@ -27,13 +28,23 @@ const orderedCalls = computed(() => {
   return CALL_ORDER.filter((ct) => props.validCalls.includes(ct));
 });
 
-const firstButtonRef = ref<HTMLButtonElement | null>(null);
+type FocusableButton = {
+  focus: () => void;
+} | null;
+
+const firstButtonRef = ref<FocusableButton>(null);
+const passButtonRef = useTemplateRef<FocusableButton>("passButton");
 
 watch(
   () => props.validCalls,
   () => {
     nextTick(() => {
-      firstButtonRef.value?.focus();
+      if (firstButtonRef.value) {
+        firstButtonRef.value.focus();
+        return;
+      }
+
+      passButtonRef.value?.focus();
     });
   },
   { immediate: true },
@@ -46,36 +57,39 @@ function handleCall(callType: CallType) {
 function handlePass() {
   emit("pass");
 }
+
+function setFirstButtonRef(instance: FocusableButton, index: number) {
+  if (index === 0) {
+    firstButtonRef.value = instance;
+  }
+}
 </script>
 
 <template>
   <div
     aria-live="assertive"
     class="call-buttons flex flex-wrap items-center justify-center gap-2"
-    :class="[orderedCalls.length >= 3 ? 'max-md:grid max-md:grid-cols-2' : '']"
+    :class="{ 'max-md:grid max-md:grid-cols-2': orderedCalls.length >= 3 }"
   >
-    <button
+    <BaseButton
       v-for="(callType, index) in orderedCalls"
       :key="callType"
-      :ref="
-        (el) => {
-          if (index === 0) firstButtonRef = el as HTMLButtonElement | null;
-        }
-      "
+      :ref="(instance) => setFirstButtonRef(instance as FocusableButton, index)"
       :data-testid="`call-${callType}`"
       :aria-label="`Call ${CALL_LABELS[callType]}`"
-      class="min-h-11 px-6 rounded-md bg-state-call-window text-white text-game-critical shadow-tile hover:brightness-110 focus-visible:focus-ring-on-felt"
+      variant="urgent"
       @click="handleCall(callType)"
     >
       {{ CALL_LABELS[callType] }}
-    </button>
-    <button
+    </BaseButton>
+    <BaseButton
+      ref="passButton"
       data-testid="call-pass"
       aria-label="Pass on call"
-      class="min-h-11 px-6 rounded-md bg-chrome-surface border border-chrome-border text-text-primary text-interactive shadow-tile hover:brightness-110 focus-visible:focus-ring-on-felt"
+      variant="secondary"
       @click="handlePass"
     >
       Pass
-    </button>
+    </BaseButton>
   </div>
 </template>

@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import type { Tile } from "@mahjong-game/shared";
 import TileComponent from "../tiles/Tile.vue";
 import type { TileState } from "../tiles/Tile.vue";
+import { TILE_MIN_WIDTH_CSS } from "../tiles/tile-sizing";
 import { useRackTileDraggable } from "../../composables/useRackDragDrop";
 
 const props = defineProps<{
@@ -31,7 +32,7 @@ const { isDragging } = useRackTileDraggable(itemRef, indexRef, tilesRef);
     role="listitem"
     class="tile-rack__item"
     :class="{ 'tile-rack__item--dragging': isDragging }"
-    :style="{ pointerEvents: isPlayerTurn ? undefined : 'none' }"
+    :style="{ minWidth: TILE_MIN_WIDTH_CSS, pointerEvents: isPlayerTurn ? undefined : 'none' }"
   >
     <TileComponent
       :tile="tile"
@@ -47,7 +48,6 @@ const { isDragging } = useRackTileDraggable(itemRef, indexRef, tilesRef);
 <style scoped>
 .tile-rack__item {
   flex-shrink: 0;
-  min-width: 30px;
 }
 
 .tile-rack__item--dragging {

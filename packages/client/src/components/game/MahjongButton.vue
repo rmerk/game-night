@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import BaseButton from "../ui/BaseButton.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -29,13 +30,13 @@ function handleClick() {
 </script>
 
 <template>
-  <button
+  <BaseButton
     v-show="!hideForCallDuplication"
     data-testid="mahjong-button"
     :aria-label="ariaLabel"
-    class="min-h-11 px-6 rounded-md bg-gold-accent text-text-primary text-game-critical shadow-tile hover:bg-gold-accent-hover focus-visible:focus-ring-on-felt"
+    variant="primary"
     @click="handleClick"
   >
     Mahjong
-  </button>
+  </BaseButton>
 </template>

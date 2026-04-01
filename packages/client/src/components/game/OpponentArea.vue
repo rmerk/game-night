@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { OpponentPlayer } from "./seat-types";
+import BaseBadge from "../ui/BaseBadge.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -21,7 +22,7 @@ const isDev = import.meta.env.DEV;
   <div
     data-testid="opponent-area-shell"
     class="opponent-area flex flex-col items-center gap-1 w-10 h-auto rounded-xl px-2 py-1 transition md:w-20 lg:w-35"
-    :class="props.isActiveTurn ? 'bg-chrome-surface-dark/25 ring-2 ring-state-turn-active' : ''"
+    :class="{ 'bg-chrome-surface-dark/25 ring-2 ring-state-turn-active': isActiveTurn }"
   >
     <template v-if="player">
       <!-- Avatar circle -->
@@ -32,9 +33,10 @@ const isDev = import.meta.env.DEV;
         <span class="text-4 lg:text-6 font-semibold">{{ player.initial }}</span>
 
         <!-- Connection status dot -->
-        <span
-          class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-felt-teal"
-          :class="player.connected ? 'bg-state-success' : 'bg-text-secondary'"
+        <BaseBadge
+          class="absolute -bottom-0.5 -right-0.5"
+          variant="status-dot"
+          :tone="player.connected ? 'success' : 'muted'"
           :aria-label="player.connected ? 'Connected' : 'Disconnected'"
         />
       </div>
@@ -44,13 +46,15 @@ const isDev = import.meta.env.DEV;
         {{ player.name }}
       </span>
 
-      <span
-        v-if="props.isActiveTurn"
+      <BaseBadge
+        v-if="isActiveTurn"
         data-testid="seat-status"
-        class="rounded-full bg-state-turn-active/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-on-felt"
+        variant="pill"
+        tone="active"
+        class="text-text-on-felt"
       >
         Current turn
-      </span>
+      </BaseBadge>
 
       <span
         v-if="props.score !== null"
