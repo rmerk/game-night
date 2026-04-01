@@ -543,15 +543,15 @@ Four players join a room via shared link and play a synchronized game in real ti
 **Implementation notes:** Per GLaDOS — view filtering security test (AR31: state-broadcaster.test.ts verifying no rack data leaks) must be an explicit story, not buried in a WebSocket integration story. Include Playwright multi-client integration test for call window fairness.
 
 ### Epic 5A: Core Game UI
-A real, usable browser UI — the vertical slice. Players see tiles, draw, discard, call, declare Mahjong, and see scores in a responsive layout. First real 4-player playtest with humans. Includes basic audio (tile clack + Mahjong motif) for playtest personality.
+A strong, reusable browser UI vertical slice for the live table surface. Players see tiles, draw, discard, call, declare Mahjong, and see scores in a responsive layout. This epic delivers the core table UI, keyboard foundation, and shared primitives, but does not by itself deliver live client-state integration or basic audio.
 **Phase:** 2 — Playable Game
 **Dependencies:** Epic 3A, Epic 4A
 **FRs covered:** FR10, FR17, FR18, FR30, FR59, FR64, FR75 (game-level), FR117-FR122
 **ARs covered:** AR18, AR21, AR22, AR23, AR24
 **UX-DRs covered:** UX-DR1-9 (design system), UX-DR10-11 (layout), UX-DR13 (action zone), UX-DR15 (phone rack scroll), UX-DR20-22 (Tile, TileRack, CallButtons), UX-DR30-31 (button hierarchy, acknowledgment), UX-DR39-40 (primitive extraction), UX-DR42 (dead zone), UX-DR43 (keyboard zones), UX-DR45 (tile readability validation)
 **Est. stories:** 10-14
-**Implementation notes:** Per Max — this is the biggest epic. Sequence stories for early visual feedback: Tile + TileRack rendering first, then game table layout, then interaction wiring. Primitive extraction as a dedicated refactoring story before epic closes. Per Samus Shepard — basic audio (2 sounds: tile discard clack + Mahjong motif) included for playtest feel.
-**>>> MILESTONE: First 4-player playtest <<<**
+**Implementation notes:** Per Max — this is the biggest epic. Sequence stories for early visual feedback: Tile + TileRack rendering first, then game table layout, then interaction wiring. Primitive extraction as a dedicated refactoring story before epic closes. Retro correction: Epic 5A closed as a UI milestone; live client-state integration (`useWebSocket`, `useGameState`, room/table orchestration) and basic audio remain deferred follow-through rather than delivered scope.
+**>>> MILESTONE: Core table UI ready for live-state integration <<<**
 
 ### Epic 3B: Charleston
 Full Charleston pre-game passing ritual with blind pass enforcement, optional second Charleston vote, courtesy pass negotiation. All with social interaction fully active.
@@ -560,6 +560,7 @@ Full Charleston pre-game passing ritual with blind pass enforcement, optional se
 **FRs covered:** FR32-FR38
 **UX-DRs covered:** UX-DR17 (Charleston NMJL), UX-DR26 (CharlestonZone), UX-DR29 (TileSelectionAction)
 **Est. stories:** 5-7
+**Implementation notes:** Do not begin Epic 3B story execution until the table UI is driven by live client-state integration and the Epic 3B plan is reviewed for `TileSelectionAction` reuse plus Charleston reconnect / auto-pass behavior.
 
 ### Epic 3C: Advanced Rules
 Complete rules engine — Joker exchange, dead hands, social governance (Social Override + Table Talk Report), wall end scenarios, concealed hand validation.
@@ -637,6 +638,7 @@ Phase 2 - Playable Game:
 
 Phase 3 - Complete Rules:
   [Epic 3B] + [Epic 3C] + [Epic 6A]
+  Gate: Epic 3B starts only after Epic 5A follow-through on client integration and planning review
 
 Phase 4 - Polish & Social:
   [Epic 4B] + [Epic 5B] + [Epic 6B] + [Epic 7] + [Epic 8]

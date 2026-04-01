@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-01 # epic-5a-retrospective -> done
+last_updated: 2026-04-01 # epic-5a reconciled with retro follow-through
 project: mahjong-game
 
 project_key: NOKEY
@@ -89,7 +89,7 @@ development_status:
   epic-4a-retrospective: done
 
   # Epic 5A: Core Game UI
-  epic-5a: in-progress
+  epic-5a: done
   5a-1-design-system-foundation: done
   5a-2-tile-component-svg-sprite-sheet: done
   5a-3-tilerack-with-drag-and-drop-sort: done
@@ -103,7 +103,7 @@ development_status:
   epic-5a-retrospective: done
 
   # Epic 3B: Charleston
-  epic-3b: backlog
+  epic-3b: backlog # gated by epic-5a retro follow-through items below
   3b-1-first-charleston-with-blind-pass-enforcement: backlog
   3b-2-second-charleston-vote-reversed-passes: backlog
   3b-3-courtesy-pass-negotiation: backlog
@@ -177,3 +177,12 @@ development_status:
   8-4-screen-reader-testing-accessibility-hardening: backlog
   8-5-visual-accessibility-settings-high-contrast-color-blind-font-size: backlog
   epic-8-retrospective: optional
+
+retro_follow_through:
+  # Track retrospective follow-through as first-class work items, not prose-only notes.
+  epic-5a:
+    5a-retro-1-validation-checklist-in-story-specs: backlog
+    5a-retro-2-retro-action-items-in-sprint-status: done
+    5a-retro-3-milestone-language-clarified-in-epics: done
+    5a-retro-4-client-integration-layer-before-epic-3b: backlog
+    5a-retro-5-epic-3b-planning-review: backlog
