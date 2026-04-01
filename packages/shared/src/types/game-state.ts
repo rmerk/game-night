@@ -200,7 +200,6 @@ export type ResolvedAction =
       readonly type: "COURTESY_PASS_LOCKED";
       readonly playerId: string;
       readonly pairing: CharlestonPairing;
-      readonly count: number;
     }
   | {
       readonly type: "COURTESY_PAIR_RESOLVED";

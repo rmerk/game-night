@@ -440,7 +440,6 @@ describe("Charleston passes", () => {
         type: "COURTESY_PASS_LOCKED",
         playerId: eastPlayerId,
         pairing: [eastPlayerId, getPlayerBySeat(state, "west")],
-        count: 3,
       },
     });
     expect(state.gamePhase).toBe("charleston");
@@ -636,12 +635,14 @@ describe("Charleston passes", () => {
     });
     expectParsedStateEqual(state, beforeRepeat);
 
-    const beforeInactivePair = JSON.stringify(state);
     submitCourtesyPass(state, westPlayerId, 2, visibleSelection(state, westPlayerId).slice(0, 2));
-    expect(submitCourtesyPass(state, eastPlayerId, 1, visibleSelection(state, eastPlayerId).slice(0, 1))).toEqual({
+    const afterResolvedPair = JSON.stringify(state);
+    expect(
+      submitCourtesyPass(state, eastPlayerId, 1, visibleSelection(state, eastPlayerId).slice(0, 1)),
+    ).toEqual({
       accepted: false,
       reason: "COURTESY_PAIR_ALREADY_RESOLVED",
     });
-    expectParsedStateEqual(state, beforeInactivePair);
+    expectParsedStateEqual(state, afterResolvedPair);
   });
 });

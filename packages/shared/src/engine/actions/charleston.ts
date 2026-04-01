@@ -561,7 +561,6 @@ export function handleCourtesyPass(state: GameState, action: CourtesyPassAction)
         type: "COURTESY_PASS_LOCKED",
         playerId: action.playerId,
         pairing,
-        count: action.count,
       },
     };
   }
