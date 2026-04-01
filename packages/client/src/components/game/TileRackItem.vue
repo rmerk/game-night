@@ -11,6 +11,7 @@ const props = defineProps<{
   tiles: Tile[];
   isPlayerTurn: boolean;
   state: TileState;
+  tabIndex?: number;
 }>();
 
 defineEmits<{
@@ -36,6 +37,7 @@ const { isDragging } = useRackTileDraggable(itemRef, indexRef, tilesRef);
       :tile="tile"
       :state="state"
       :interactive="isPlayerTurn"
+      :tab-index="tabIndex"
       size="standard"
       @select="$emit('select', tile)"
     />

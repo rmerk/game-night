@@ -1,32 +1,96 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { onMounted, shallowRef, useTemplateRef } from "vue";
+
+const controlsRef = useTemplateRef<HTMLElement>("controls");
+const activeButtonIndex = shallowRef(0);
+
+function getButtons(): HTMLButtonElement[] {
+  return Array.from(controlsRef.value?.querySelectorAll<HTMLButtonElement>("button") ?? []);
+}
+
+function syncButtons() {
+  const buttons = getButtons();
+  buttons.forEach((button, index) => {
+    button.tabIndex = index === activeButtonIndex.value ? 0 : -1;
+  });
+}
+
+function focusButton(index: number) {
+  const buttons = getButtons();
+  if (buttons.length === 0) {
+    return;
+  }
+
+  activeButtonIndex.value = (index + buttons.length) % buttons.length;
+  syncButtons();
+  buttons[activeButtonIndex.value]?.focus();
+}
+
+function handleFocusIn(event: FocusEvent) {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const nextIndex = getButtons().indexOf(target);
+  if (nextIndex === -1) {
+    return;
+  }
+
+  activeButtonIndex.value = nextIndex;
+  syncButtons();
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const currentIndex = getButtons().indexOf(target);
+  if (currentIndex === -1) {
+    return;
+  }
+
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    focusButton(currentIndex + 1);
+  } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    focusButton(currentIndex - 1);
+  }
+}
+
+onMounted(() => {
+  syncButtons();
+});
+</script>
 
 <template>
   <div
+    ref="controls"
     data-testid="mobile-bottom-bar"
-    class="mobile-bottom-bar flex items-center justify-around bg-chrome-surface shadow-panel px-2 py-1 pb-[env(safe-area-inset-bottom)]"
+    class="mobile-bottom-bar flex w-full max-w-sm items-center justify-around rounded-xl bg-chrome-surface/85 px-2 py-1 pb-[env(safe-area-inset-bottom)] shadow-panel"
+    role="group"
+    aria-label="Placeholder table controls"
+    @focusin="handleFocusIn"
+    @keydown="handleKeydown"
   >
     <button
-      class="min-tap flex flex-col items-center justify-center text-text-on-felt/60 text-3"
+      type="button"
+      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/65 focus-visible:focus-ring-on-chrome"
       aria-label="Show NMJL card"
-      disabled
+      aria-disabled="true"
     >
       <span class="text-5">🀄</span>
       <span>Card</span>
     </button>
 
     <button
-      class="min-tap flex flex-col items-center justify-center text-text-on-felt/60 text-3"
-      aria-label="Open chat"
-      disabled
-    >
-      <span class="text-5">💬</span>
-      <span>Chat</span>
-    </button>
-
-    <button
-      class="min-tap flex flex-col items-center justify-center text-text-on-felt/60 text-3"
+      type="button"
+      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/65 focus-visible:focus-ring-on-chrome"
       aria-label="Audio video controls"
-      disabled
+      aria-disabled="true"
     >
       <span class="text-5">🎤</span>
       <span>A/V</span>

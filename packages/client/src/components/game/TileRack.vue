@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, h, watch, defineComponent, type PropType } from "vue";
+import {
+  computed,
+  shallowRef,
+  h,
+  watch,
+  defineComponent,
+  useTemplateRef,
+  type PropType,
+} from "vue";
 import { DnDProvider, makeDroppable, useDnDProvider } from "@vue-dnd-kit/core";
 import type { IDragEvent } from "@vue-dnd-kit/core";
 import type { Tile } from "@mahjong-game/shared";
@@ -36,19 +44,101 @@ const orderedTiles = computed(() => {
   return rackStore.tileOrder.map((id) => tileMap.get(id)).filter((t): t is Tile => t !== undefined);
 });
 
+const activeFocusTarget = shallowRef<string | "sort" | null>(null);
+
+watch(
+  [orderedTiles, () => props.isPlayerTurn],
+  ([tiles, isPlayerTurn]) => {
+    if (!isPlayerTurn) {
+      activeFocusTarget.value = null;
+      return;
+    }
+
+    if (activeFocusTarget.value === "sort") {
+      return;
+    }
+
+    if (
+      tiles.length === 0 ||
+      activeFocusTarget.value === null ||
+      !tiles.some((tile) => tile.id === activeFocusTarget.value)
+    ) {
+      activeFocusTarget.value = tiles[0]?.id ?? "sort";
+    }
+  },
+  { immediate: true },
+);
+
 function getTileState(tile: Tile): TileState {
   if (!props.isPlayerTurn) return "default";
   if (rackStore.selectedTileId === tile.id) return "selected";
   return "default";
 }
 
+function getTileTabIndex(tileId: string): number | undefined {
+  if (!props.isPlayerTurn) {
+    return undefined;
+  }
+
+  return tileId === activeFocusTarget.value ? 0 : -1;
+}
+
+function focusTileAtIndex(index: number) {
+  const tile = orderedTiles.value[index];
+  if (!tile) {
+    return;
+  }
+
+  activeFocusTarget.value = tile.id;
+  const tileButton = rackRef.value?.querySelector<HTMLElement>(
+    `[data-rack-tile-id="${tile.id}"] [role="button"]`,
+  );
+  tileButton?.focus();
+}
+
+function focusSortButton() {
+  activeFocusTarget.value = "sort";
+  const sortButton = rackRef.value
+    ?.closest(".tile-rack-container")
+    ?.querySelector<HTMLElement>('[aria-label="Sort tiles by suit"]');
+  sortButton?.focus();
+}
+
 function handleTileSelect(tile: Tile) {
   if (!props.isPlayerTurn) return;
+  activeFocusTarget.value = tile.id;
   rackStore.selectTile(tile.id);
+}
+
+function handleTileFocus(tileId: string) {
+  if (!props.isPlayerTurn) {
+    return;
+  }
+
+  activeFocusTarget.value = tileId;
+}
+
+function handleSortFocus() {
+  if (!props.isPlayerTurn) {
+    return;
+  }
+
+  activeFocusTarget.value = "sort";
 }
 
 function handleSort() {
   rackStore.sortTiles(props.tiles);
+}
+
+function handleSortKeydown(event: KeyboardEvent) {
+  if (!props.isPlayerTurn) {
+    return;
+  }
+
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    focusTileAtIndex(orderedTiles.value.length - 1);
+  }
 }
 
 // Keyboard navigation within rack
@@ -56,23 +146,23 @@ function handleRackKeydown(event: KeyboardEvent) {
   if (!props.isPlayerTurn) return;
 
   const target = event.target as HTMLElement;
-  const items = Array.from(
-    target.closest('[role="list"]')?.querySelectorAll('[role="listitem"]') ?? [],
-  );
-  const currentIndex = items.indexOf(target.closest('[role="listitem"]') as Element);
+  const currentTileId =
+    target.closest<HTMLElement>("[data-rack-tile-id]")?.dataset.rackTileId ?? null;
+  if (currentTileId === null) return;
+
+  const currentIndex = orderedTiles.value.findIndex((tile) => tile.id === currentTileId);
 
   if (currentIndex === -1) return;
 
-  if (event.key === "ArrowRight" && currentIndex < items.length - 1) {
+  if (event.key === "ArrowRight" && currentIndex < orderedTiles.value.length - 1) {
     event.preventDefault();
-    const nextItem = items[currentIndex + 1] as HTMLElement;
-    const focusable = nextItem.querySelector('[tabindex="0"]') as HTMLElement;
-    focusable?.focus();
+    focusTileAtIndex(currentIndex + 1);
+  } else if (event.key === "ArrowRight" && currentIndex === orderedTiles.value.length - 1) {
+    event.preventDefault();
+    focusSortButton();
   } else if (event.key === "ArrowLeft" && currentIndex > 0) {
     event.preventDefault();
-    const prevItem = items[currentIndex - 1] as HTMLElement;
-    const focusable = prevItem.querySelector('[tabindex="0"]') as HTMLElement;
-    focusable?.focus();
+    focusTileAtIndex(currentIndex - 1);
   }
 }
 
@@ -116,7 +206,7 @@ const RackDnDSetup = defineComponent({
   },
 });
 
-const rackRef = ref<HTMLElement | null>(null);
+const rackRef = useTemplateRef<HTMLElement>("rackRef");
 </script>
 
 <template>
@@ -139,7 +229,10 @@ const rackRef = ref<HTMLElement | null>(null);
             :tiles="orderedTiles"
             :is-player-turn="isPlayerTurn"
             :state="getTileState(tile)"
+            :tab-index="getTileTabIndex(tile.id)"
+            :data-rack-tile-id="tile.id"
             @select="handleTileSelect"
+            @focus="handleTileFocus(tile.id)"
           />
         </TransitionGroup>
       </div>
@@ -147,7 +240,10 @@ const rackRef = ref<HTMLElement | null>(null);
         type="button"
         class="tile-rack__sort-btn"
         :disabled="!isPlayerTurn"
+        :tabindex="isPlayerTurn ? (activeFocusTarget === 'sort' ? 0 : -1) : undefined"
         aria-label="Sort tiles by suit"
+        @focus="handleSortFocus"
+        @keydown="handleSortKeydown"
         @click="handleSort"
       >
         Sort

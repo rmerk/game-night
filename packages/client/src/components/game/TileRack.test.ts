@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vite-plus/test";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import TileRack from "./TileRack.vue";
@@ -41,8 +41,12 @@ const joker: JokerTile = { id: "joker-1", category: "joker", copy: 1 };
 
 const sampleTiles: Tile[] = [bam1, bam3, crak5, dot7, windNorth, dragonRed, flowerA, joker];
 
-function mountRack(props: { tiles: Tile[]; isPlayerTurn?: boolean } = { tiles: sampleTiles }) {
+function mountRack(
+  props: { tiles: Tile[]; isPlayerTurn?: boolean } = { tiles: sampleTiles },
+  options: { attachTo?: HTMLElement } = {},
+) {
   return mount(TileRack, {
+    attachTo: options.attachTo,
     props,
     global: {
       plugins: [createPinia()],
@@ -201,24 +205,93 @@ describe("TileRack — sort button", () => {
 });
 
 describe("TileRack — keyboard navigation", () => {
-  it("moves focus right with ArrowRight key", async () => {
+  it("uses roving tabindex so only one interactive tile is tabbable", () => {
     const wrapper = mountRack({ tiles: sampleTiles, isPlayerTurn: true });
-
     const items = wrapper.findAll('[role="listitem"]');
-    const firstTileButton = items[0].find('[role="button"]');
+    const tileButtons = items.map((item) => item.find('[role="button"]'));
+    const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
 
-    // Simulate ArrowRight from first tile
-    await firstTileButton.trigger("keydown", { key: "ArrowRight" });
-
-    // We can't easily assert focus in happy-dom, but we verify the handler doesn't throw
-    // and the event is handled. Full keyboard nav testing is done in the showcase/E2E.
+    expect(tileButtons[0].attributes("tabindex")).toBe("0");
+    for (const button of tileButtons.slice(1)) {
+      expect(button.attributes("tabindex")).toBe("-1");
+    }
+    expect(sortButton.attributes("tabindex")).toBe("-1");
   });
 
-  it("tiles have tabindex when interactive", () => {
-    const wrapper = mountRack({ tiles: sampleTiles, isPlayerTurn: true });
+  it("moves focus and the active tab stop right with ArrowRight", async () => {
+    const wrapper = mountRack(
+      { tiles: sampleTiles, isPlayerTurn: true },
+      { attachTo: document.body },
+    );
     const items = wrapper.findAll('[role="listitem"]');
-    const firstTile = items[0].find('[role="button"]');
-    expect(firstTile.attributes("tabindex")).toBe("0");
+    const firstTileButton = items[0].find('[role="button"]');
+    const secondTileButton = items[1].find('[role="button"]');
+
+    (firstTileButton.element as HTMLElement).focus();
+    await firstTileButton.trigger("keydown", { key: "ArrowRight" });
+
+    expect(document.activeElement).toBe(secondTileButton.element);
+    expect(firstTileButton.attributes("tabindex")).toBe("-1");
+    expect(secondTileButton.attributes("tabindex")).toBe("0");
+    wrapper.unmount();
+  });
+
+  it("moves focus and the active tab stop left with ArrowLeft", async () => {
+    const wrapper = mountRack(
+      { tiles: sampleTiles, isPlayerTurn: true },
+      { attachTo: document.body },
+    );
+    const items = wrapper.findAll('[role="listitem"]');
+    const firstTileButton = items[0].find('[role="button"]');
+    const secondTileButton = items[1].find('[role="button"]');
+
+    (firstTileButton.element as HTMLElement).focus();
+    await firstTileButton.trigger("keydown", { key: "ArrowRight" });
+    await secondTileButton.trigger("keydown", { key: "ArrowLeft" });
+
+    expect(document.activeElement).toBe(firstTileButton.element);
+    expect(firstTileButton.attributes("tabindex")).toBe("0");
+    expect(secondTileButton.attributes("tabindex")).toBe("-1");
+    wrapper.unmount();
+  });
+
+  it("moves focus from the last tile to Sort with ArrowRight", async () => {
+    const wrapper = mountRack(
+      { tiles: sampleTiles, isPlayerTurn: true },
+      { attachTo: document.body },
+    );
+    const items = wrapper.findAll('[role="listitem"]');
+    const lastTileButton = items[items.length - 1].find('[role="button"]');
+    const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
+
+    (lastTileButton.element as HTMLElement).focus();
+    await lastTileButton.trigger("focus");
+    await lastTileButton.trigger("keydown", { key: "ArrowRight" });
+
+    expect(document.activeElement).toBe(sortButton.element);
+    expect(lastTileButton.attributes("tabindex")).toBe("-1");
+    expect(sortButton.attributes("tabindex")).toBe("0");
+    wrapper.unmount();
+  });
+
+  it("moves focus from Sort back to the last tile with ArrowLeft", async () => {
+    const wrapper = mountRack(
+      { tiles: sampleTiles, isPlayerTurn: true },
+      { attachTo: document.body },
+    );
+    const items = wrapper.findAll('[role="listitem"]');
+    const lastTileButton = items[items.length - 1].find('[role="button"]');
+    const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
+
+    (lastTileButton.element as HTMLElement).focus();
+    await lastTileButton.trigger("focus");
+    await lastTileButton.trigger("keydown", { key: "ArrowRight" });
+    await sortButton.trigger("keydown", { key: "ArrowLeft" });
+
+    expect(document.activeElement).toBe(lastTileButton.element);
+    expect(lastTileButton.attributes("tabindex")).toBe("0");
+    expect(sortButton.attributes("tabindex")).toBe("-1");
+    wrapper.unmount();
   });
 
   it("tiles have no tabindex when not interactive", () => {
@@ -226,6 +299,22 @@ describe("TileRack — keyboard navigation", () => {
     const items = wrapper.findAll('[role="listitem"]');
     const firstTile = items[0].find('[role="img"]');
     expect(firstTile.attributes("tabindex")).toBeUndefined();
+  });
+
+  it("restores a single tabbable rack entry when the player turn starts", async () => {
+    const wrapper = mountRack({ tiles: sampleTiles, isPlayerTurn: false });
+
+    await wrapper.setProps({ isPlayerTurn: true });
+
+    const items = wrapper.findAll('[role="listitem"]');
+    const tileButtons = items.map((item) => item.find('[role="button"]'));
+    const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
+
+    expect(tileButtons[0].attributes("tabindex")).toBe("0");
+    for (const button of tileButtons.slice(1)) {
+      expect(button.attributes("tabindex")).toBe("-1");
+    }
+    expect(sortButton.attributes("tabindex")).toBe("-1");
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
@@ -193,6 +193,56 @@ describe("GameTable — layout integration", () => {
 });
 
 describe("GameTable — accessibility", () => {
+  it("renders a skip link that targets the gameplay region", () => {
+    const wrapper = mountTable();
+    const skipLink = wrapper.get("[data-testid='skip-to-game-table']");
+
+    expect(skipLink.attributes("href")).toBe("#gameplay-region");
+    expect(skipLink.text()).toBe("Skip to game table");
+  });
+
+  it("exposes gameplay focus zones in rack, actions, chat, controls order", () => {
+    const wrapper = mountTable();
+
+    const rackEntry = wrapper.get("[data-testid='rack-zone-entry']").element;
+    const actionEntry = wrapper.get("[data-testid='action-zone-entry']").element;
+    const chatZone = wrapper.get("[data-testid='chat-placeholder-zone']").element;
+    const controlsEntry = wrapper.get("[data-testid='controls-zone-entry']").element;
+
+    expect(
+      rackEntry.compareDocumentPosition(actionEntry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      actionEntry.compareDocumentPosition(chatZone) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      chatZone.compareDocumentPosition(controlsEntry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("returns focus to the action zone when Escape is pressed in the chat placeholder", async () => {
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+        },
+      },
+    });
+    const actionEntry = wrapper.get("[data-testid='action-zone-entry']").element as HTMLElement;
+    const chatZone = wrapper.get("[data-testid='chat-placeholder-zone']");
+
+    (chatZone.element as HTMLElement).focus();
+    await chatZone.trigger("keydown", { key: "Escape" });
+
+    expect(document.activeElement).toBe(actionEntry);
+    wrapper.unmount();
+  });
+
   it("action zone has role='toolbar' with aria-label", () => {
     const wrapper = mountTable();
     const toolbar = wrapper.find("[role='toolbar']");
@@ -504,5 +554,114 @@ describe("GameTable — Mahjong button integration", () => {
     await wrapper.get("[data-testid='cancel-mahjong']").trigger("click");
 
     expect(wrapper.emitted("cancelMahjong")).toEqual([[]]);
+  });
+});
+
+describe("GameTable — action zone keyboard navigation", () => {
+  const rackTiles: Tile[] = [
+    { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+    { id: "bam-3-2", category: "suited", suit: "bam", value: 3, copy: 2 } as SuitedTile,
+  ];
+
+  it("moves focus across action controls with ArrowRight and ArrowLeft", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useRackStore().selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        tiles: rackTiles,
+        isPlayerTurn: true,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    const mahjongButton = wrapper.get("[data-testid='mahjong-button']");
+    const discardButton = wrapper.get("[data-testid='discard-confirm']");
+
+    (mahjongButton.element as HTMLElement).focus();
+    await mahjongButton.trigger("keydown", { key: "ArrowRight" });
+    expect(document.activeElement).toBe(discardButton.element);
+
+    await discardButton.trigger("keydown", { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(mahjongButton.element);
+
+    wrapper.unmount();
+  });
+
+  it("keeps focus on a valid action control when the available controls change", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useRackStore().selectTile("dot-7-1");
+
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        tiles: rackTiles,
+        isPlayerTurn: true,
+        callWindow: mockCallWindow,
+        validCallOptions: ["pung", "kong"],
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    const kongButton = wrapper.get("[data-testid='call-kong']");
+    (kongButton.element as HTMLElement).focus();
+
+    await wrapper.setProps({
+      callWindow: null,
+      validCallOptions: [],
+    });
+    await flushPromises();
+
+    const activeElement = document.activeElement as HTMLElement | null;
+    const toolbar = wrapper.get("[role='toolbar']").element;
+    const validControls = [
+      wrapper.get("[data-testid='mahjong-button']").element,
+      wrapper.get("[data-testid='discard-confirm']").element,
+    ];
+
+    expect(activeElement).not.toBeNull();
+    expect(toolbar.contains(activeElement)).toBe(true);
+    expect(validControls).toContain(activeElement);
+
+    wrapper.unmount();
+  });
+
+  it("skips the hidden persistent Mahjong button when the call window already exposes Mahjong", async () => {
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        tiles: rackTiles,
+        isPlayerTurn: true,
+        callWindow: mockCallWindow,
+        validCallOptions: ["mahjong", "pung"],
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    const hiddenPersistentMahjongButton = wrapper.get("[data-testid='mahjong-button']");
+    const visibleCallMahjongButton = wrapper.get("[data-testid='call-mahjong']");
+    const passButton = wrapper.get("[data-testid='call-pass']");
+
+    expect(hiddenPersistentMahjongButton.attributes("style")).toContain("display: none");
+    expect(hiddenPersistentMahjongButton.attributes("tabindex")).toBeUndefined();
+    expect(visibleCallMahjongButton.attributes("tabindex")).toBe("0");
+    expect(passButton.attributes("tabindex")).toBe("-1");
+
+    wrapper.unmount();
   });
 });

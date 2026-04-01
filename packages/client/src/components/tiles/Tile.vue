@@ -11,6 +11,7 @@ const props = withDefaults(
     size?: TileSize;
     state?: TileState;
     interactive?: boolean;
+    tabIndex?: number;
   }>(),
   {
     size: "standard",
@@ -69,6 +70,7 @@ const ariaLabel = computed(() => {
 });
 
 const role = computed(() => (props.interactive ? "button" : "img"));
+const resolvedTabIndex = computed(() => (props.interactive ? (props.tabIndex ?? 0) : undefined));
 </script>
 
 <template>
@@ -77,7 +79,7 @@ const role = computed(() => (props.interactive ? "button" : "img"));
     :class="[`tile--size-${size}`, `tile--${state}`, { 'tile--interactive': interactive }]"
     :role="role"
     :aria-label="ariaLabel"
-    :tabindex="interactive ? 0 : undefined"
+    :tabindex="resolvedTabIndex"
     :aria-disabled="state === 'disabled' || undefined"
     @click="interactive && state !== 'disabled' && $emit('select', tile)"
     @keydown.enter="interactive && state !== 'disabled' && $emit('select', tile)"
@@ -175,7 +177,7 @@ const role = computed(() => (props.interactive ? "button" : "img"));
 
 /* --- Focus ring (keyboard navigation) --- */
 .tile:focus-visible {
-  outline: 2px solid var(--tile-accent-gold);
+  outline: 2px solid var(--focus-ring-on-felt);
   outline-offset: 2px;
 }
 </style>

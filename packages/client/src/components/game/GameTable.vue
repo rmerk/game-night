@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, useTemplateRef } from "vue";
 import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
@@ -155,15 +155,38 @@ const sessionScores = computed<Record<string, number>>(() => {
   return Object.fromEntries(entries);
 });
 
+const actionZoneEntryRef = useTemplateRef<HTMLDivElement>("actionZoneEntry");
+
 function isSeatActive(seatWind: SeatWind | undefined): boolean {
   return seatWind !== undefined && props.currentTurnSeat === seatWind;
 }
 
 const isLocalPlayerTurn = computed(() => isSeatActive(props.localPlayer?.seatWind));
+
+function focusActionZone() {
+  actionZoneEntryRef.value?.focus();
+}
+
+function handleChatPlaceholderKeydown(event: KeyboardEvent) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  event.preventDefault();
+  focusActionZone();
+}
 </script>
 
 <template>
+  <a
+    data-testid="skip-to-game-table"
+    href="#gameplay-region"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-chrome-surface focus:px-4 focus:py-2 focus:text-text-primary focus:focus-ring-on-chrome"
+  >
+    Skip to game table
+  </a>
   <div
+    id="gameplay-region"
     data-testid="game-table"
     class="game-table bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
   >
@@ -268,73 +291,98 @@ const isLocalPlayerTurn = computed(() => isSeatActive(props.localPlayer?.seatWin
       </div>
     </div>
 
-    <!-- Action Zone -->
-    <div v-if="!isScoreboardPhase" data-testid="action-zone">
-      <ActionZone>
-        <div class="flex flex-col items-center justify-center gap-2">
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            <MahjongButton
-              :is-call-window-open="isCallWindowOpen"
-              :hide-for-call-duplication="callWindowHasMahjong"
-              @declare-mahjong="emit('declareMahjong')"
-              @call-mahjong="emit('call', 'mahjong')"
-            />
-            <Transition name="call-buttons">
-              <CallButtons
-                v-if="openCallWindow"
-                :valid-calls="validCallOptions"
-                :call-window-status="openCallWindow.status"
-                @call="(callType: CallType) => emit('call', callType)"
-                @pass="emit('pass')"
-              />
-            </Transition>
-            <DiscardConfirm
-              v-if="!isCallWindowOpen"
-              :selected-tile-id="rackStore.selectedTileId"
-              :is-player-turn="isPlayerTurn"
-              @discard="handleDiscard"
-            />
-          </div>
-          <InvalidMahjongNotification
-            :visible="invalidMahjongVisible"
-            :message="invalidMahjongMessage ?? ''"
-            @cancel="emit('cancelMahjong')"
-          />
-        </div>
-      </ActionZone>
-    </div>
-
     <!-- Rack Area -->
     <div
       v-if="!isScoreboardPhase"
       data-testid="rack-area"
-      class="game-table__rack md:pb-[env(safe-area-inset-bottom)]"
+      class="game-table__rack order-4 md:pb-[env(safe-area-inset-bottom)]"
     >
-      <div v-if="localPlayer" class="mb-2 flex justify-center">
-        <div
-          data-testid="local-player-status-shell"
-          class="inline-flex flex-wrap items-center justify-center gap-2 rounded-full bg-chrome-surface-dark/85 px-4 py-2 text-text-on-felt shadow-panel"
-          :class="isLocalPlayerTurn ? 'ring-2 ring-state-turn-active' : ''"
-        >
-          <span class="text-interactive">{{ localPlayer.name }}</span>
-          <span
-            v-if="isLocalPlayerTurn"
-            data-testid="local-player-status"
-            class="rounded-full bg-state-turn-active/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
+      <div data-testid="rack-zone-entry">
+        <div v-if="localPlayer" class="mb-2 flex justify-center">
+          <div
+            data-testid="local-player-status-shell"
+            class="inline-flex flex-wrap items-center justify-center gap-2 rounded-full bg-chrome-surface-dark/85 px-4 py-2 text-text-on-felt shadow-panel"
+            :class="isLocalPlayerTurn ? 'ring-2 ring-state-turn-active' : ''"
           >
-            Current turn
-          </span>
-          <span data-testid="local-player-score" class="text-3 text-text-on-felt/85">
-            Score: {{ localPlayer.score }}
-          </span>
+            <span class="text-interactive">{{ localPlayer.name }}</span>
+            <span
+              v-if="isLocalPlayerTurn"
+              data-testid="local-player-status"
+              class="rounded-full bg-state-turn-active/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
+            >
+              Current turn
+            </span>
+            <span data-testid="local-player-score" class="text-3 text-text-on-felt/85">
+              Score: {{ localPlayer.score }}
+            </span>
+          </div>
         </div>
+        <TileRack :tiles="tiles" :is-player-turn="isPlayerTurn" />
       </div>
-      <TileRack :tiles="tiles" :is-player-turn="isPlayerTurn" />
     </div>
 
-    <!-- Mobile Bottom Bar (phone only) -->
-    <div class="md:hidden">
-      <MobileBottomBar />
+    <!-- Action Zone -->
+    <div v-if="!isScoreboardPhase" data-testid="action-zone" class="order-3">
+      <div ref="actionZoneEntry" data-testid="action-zone-entry" tabindex="-1">
+        <ActionZone>
+          <div class="flex flex-col items-center justify-center gap-2">
+            <div data-toolbar-controls class="flex flex-wrap items-center justify-center gap-2">
+              <MahjongButton
+                :is-call-window-open="isCallWindowOpen"
+                :hide-for-call-duplication="callWindowHasMahjong"
+                @declare-mahjong="emit('declareMahjong')"
+                @call-mahjong="emit('call', 'mahjong')"
+              />
+              <Transition name="call-buttons">
+                <CallButtons
+                  v-if="openCallWindow"
+                  :valid-calls="validCallOptions"
+                  :call-window-status="openCallWindow.status"
+                  @call="(callType: CallType) => emit('call', callType)"
+                  @pass="emit('pass')"
+                />
+              </Transition>
+              <DiscardConfirm
+                v-if="!isCallWindowOpen"
+                :selected-tile-id="rackStore.selectedTileId"
+                :is-player-turn="isPlayerTurn"
+                @discard="handleDiscard"
+              />
+            </div>
+            <InvalidMahjongNotification
+              :visible="invalidMahjongVisible"
+              :message="invalidMahjongMessage ?? ''"
+              @cancel="emit('cancelMahjong')"
+            />
+          </div>
+        </ActionZone>
+      </div>
+    </div>
+
+    <div
+      v-if="!isScoreboardPhase"
+      data-testid="chat-placeholder-shell"
+      class="order-5 flex justify-center"
+    >
+      <div
+        data-testid="chat-placeholder-zone"
+        tabindex="0"
+        class="min-h-11 w-full max-w-sm rounded-md border border-dashed border-chrome-border bg-chrome-surface/85 px-4 py-3 text-center text-3.5 text-text-primary/80 focus-visible:focus-ring-on-felt"
+        aria-label="Chat placeholder"
+        @keydown="handleChatPlaceholderKeydown"
+      >
+        Chat placeholder. Press Escape to return to game actions.
+      </div>
+    </div>
+
+    <div
+      v-if="!isScoreboardPhase"
+      data-testid="controls-zone-shell"
+      class="order-6 flex justify-center"
+    >
+      <div data-testid="controls-zone-entry" class="w-full max-w-sm">
+        <MobileBottomBar />
+      </div>
     </div>
   </div>
 </template>

@@ -72,6 +72,13 @@ export const devShowcaseDefs: DevShowcaseDef[] = [
     blurb: "Persistent Mahjong CTA and invalid declaration feedback.",
     component: () => import("./components/dev/MahjongButtonShowcase.vue"),
   },
+  {
+    path: "/dev/keyboard-accessibility",
+    name: "dev-keyboard-accessibility",
+    label: "Keyboard accessibility",
+    blurb: "Skip-link and zone-based keyboard traversal checks.",
+    component: () => import("./components/dev/KeyboardAccessibilityShowcase.vue"),
+  },
 ];
 
 export function devShowcaseRouteRecords(): RouteRecordRaw[] {
