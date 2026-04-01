@@ -8,6 +8,8 @@ import type {
   CharlestonStage,
   CharlestonStatus,
   CharlestonState,
+  CharlestonPairing,
+  CourtesySubmission,
   PlayerState,
   ActionResult,
   ResolvedAction,
@@ -20,6 +22,7 @@ import type {
   StartGameAction,
   CharlestonPassAction,
   CharlestonVoteAction,
+  CourtesyPassAction,
   DrawTileAction,
   DiscardTileAction,
 } from "./actions";
@@ -121,6 +124,34 @@ describe("GameState types", () => {
     expectTypeOf<CharlestonState>().toHaveProperty("hiddenAcrossTilesByPlayerId");
     expectTypeOf<CharlestonState>().toHaveProperty("votesByPlayerId");
     expectTypeOf<CharlestonState>().toHaveProperty("courtesyPairings");
+    expectTypeOf<CharlestonState>().toHaveProperty("courtesySubmissionsByPlayerId");
+    expectTypeOf<CharlestonState>().toHaveProperty("courtesyResolvedPairings");
+    expectTypeOf<CharlestonState["courtesyPairings"]>().toMatchTypeOf<readonly CharlestonPairing[]>();
+    expectTypeOf<CharlestonState["courtesySubmissionsByPlayerId"]>().toMatchTypeOf<
+      Partial<Record<string, CourtesySubmission>>
+    >();
+    expectTypeOf<CharlestonState["courtesyResolvedPairings"]>().toMatchTypeOf<readonly CharlestonPairing[]>();
+  });
+
+  it("CourtesySubmission carries count and ordered tile IDs", () => {
+    expectTypeOf<CourtesySubmission>().toHaveProperty("count");
+    expectTypeOf<CourtesySubmission>().toHaveProperty("tileIds");
+    expectTypeOf<CourtesySubmission["tileIds"]>().toMatchTypeOf<readonly string[]>();
+  });
+
+  it("ResolvedAction includes courtesy lock and pair-resolution variants", () => {
+    expectTypeOf<{
+      readonly type: "COURTESY_PASS_LOCKED";
+      readonly playerId: string;
+      readonly pairing: CharlestonPairing;
+    }>().toMatchTypeOf<ResolvedAction>();
+    expectTypeOf<{
+      readonly type: "COURTESY_PAIR_RESOLVED";
+      readonly pairing: CharlestonPairing;
+      readonly playerRequests: Record<string, number>;
+      readonly appliedCount: number;
+      readonly entersPlay: boolean;
+    }>().toMatchTypeOf<ResolvedAction>();
   });
 });
 
@@ -149,6 +180,19 @@ describe("GameAction types", () => {
   it("GameAction includes CharlestonVoteAction", () => {
     expectTypeOf<CharlestonVoteAction>().toMatchTypeOf<GameAction>();
     expectTypeOf<CharlestonVoteAction["accept"]>().toEqualTypeOf<boolean>();
+  });
+
+  it("CourtesyPassAction has correct shape", () => {
+    expectTypeOf<CourtesyPassAction>().toHaveProperty("type");
+    expectTypeOf<CourtesyPassAction>().toHaveProperty("playerId");
+    expectTypeOf<CourtesyPassAction>().toHaveProperty("count");
+    expectTypeOf<CourtesyPassAction>().toHaveProperty("tileIds");
+    expectTypeOf<CourtesyPassAction["type"]>().toEqualTypeOf<"COURTESY_PASS">();
+    expectTypeOf<CourtesyPassAction["tileIds"]>().toMatchTypeOf<readonly string[]>();
+  });
+
+  it("GameAction includes CourtesyPassAction", () => {
+    expectTypeOf<CourtesyPassAction>().toMatchTypeOf<GameAction>();
   });
 
   it("GameAction includes DiscardTileAction", () => {

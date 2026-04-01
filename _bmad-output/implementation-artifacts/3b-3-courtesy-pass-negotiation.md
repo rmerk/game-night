@@ -1,6 +1,6 @@
 # Story 3B.3: Courtesy Pass Negotiation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -273,6 +273,7 @@ GPT-5.4
 - `packages/shared/src/engine/game-engine.ts`
 - `packages/shared/src/engine/actions/charleston.ts`
 - `packages/shared/src/engine/actions/charleston.test.ts`
+- `packages/shared/src/types/game-state.test.ts`
 - `packages/server/src/websocket/state-broadcaster.ts`
 - `packages/server/src/websocket/state-broadcaster.test.ts`
 - `packages/server/src/websocket/join-handler.test.ts`
@@ -285,4 +286,10 @@ GPT-5.4
 
 ### Status
 
-review
+done
+
+### Code review (2026-04-01)
+
+- **Git vs story:** File list matches merged implementation; working tree clean on review branch.
+- **ACs:** Verified against `charleston.ts`, `state-broadcaster.ts`, and shared/server tests — all nine ACs satisfied; `COURTESY_PASS_LOCKED` omits partner counts/tile IDs; full narration on `COURTESY_PAIR_RESOLVED`.
+- **Follow-up:** Extended `packages/shared/src/types/game-state.test.ts` with `CourtesyPassAction`, courtesy `CharlestonState` fields, and `ResolvedAction` courtesy variants so Task 1.5 exhaustiveness coverage is explicit (previously relied on compile-only).
