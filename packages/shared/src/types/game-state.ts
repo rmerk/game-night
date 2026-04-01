@@ -109,6 +109,26 @@ export interface ChallengeState {
 /** Timeout constant for challenge vote (server schedules the timer) */
 export const CHALLENGE_TIMEOUT_SECONDS = 30;
 
+/** Charleston pass order within a round */
+export type CharlestonDirection = "right" | "across" | "left";
+
+/** Current Charleston round */
+export type CharlestonStage = "first" | "second";
+
+/** Charleston lifecycle state */
+export type CharlestonStatus = "passing" | "vote-ready";
+
+/** Internal Charleston engine state */
+export interface CharlestonState {
+  stage: CharlestonStage;
+  status: CharlestonStatus;
+  currentDirection: CharlestonDirection | null;
+  readonly activePlayerIds: string[];
+  submittedPlayerIds: string[];
+  lockedTileIdsByPlayerId: Partial<Record<string, readonly string[]>>;
+  hiddenAcrossTilesByPlayerId: Partial<Record<string, Tile[]>>;
+}
+
 /** Complete game state — mutated in-place by action handlers via validate-then-mutate pattern */
 export interface GameState {
   gamePhase: GamePhase;
@@ -127,6 +147,8 @@ export interface GameState {
   pendingMahjong: PendingMahjongState | null;
   /** Tracks an active challenge vote on a validated Mahjong */
   challengeState: ChallengeState | null;
+  /** Tracks Charleston pass sequencing and blind-pass visibility */
+  charleston: CharlestonState | null;
   /** Hands voluntarily shown during scoreboard phase — playerId → rack tiles */
   shownHands: Record<string, Tile[]>;
 }
@@ -143,6 +165,13 @@ export type ResolvedAction =
   | { readonly type: "PLAYER_JOINED"; readonly playerId: string; readonly playerName: string }
   | { readonly type: "PLAYER_RECONNECTED"; readonly playerId: string; readonly playerName: string }
   | { readonly type: "GAME_STARTED" }
+  | {
+      readonly type: "CHARLESTON_PHASE_COMPLETE";
+      readonly direction: CharlestonDirection;
+      readonly nextDirection: CharlestonDirection | null;
+      readonly stage: CharlestonStage;
+      readonly status: CharlestonStatus;
+    }
   | { readonly type: "DRAW_TILE"; readonly playerId: string }
   | { readonly type: "DISCARD_TILE"; readonly playerId: string; readonly tileId: string }
   | { readonly type: "WALL_GAME" }

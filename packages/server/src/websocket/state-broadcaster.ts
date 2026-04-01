@@ -10,6 +10,21 @@ import type {
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 
+function buildPublicCharlestonView(gameState: GameState) {
+  const ch = gameState.charleston;
+  if (!ch) {
+    return null;
+  }
+
+  return {
+    stage: ch.stage,
+    status: ch.status,
+    currentDirection: ch.currentDirection,
+    activePlayerIds: [...ch.activePlayerIds],
+    submittedPlayerIds: [...ch.submittedPlayerIds],
+  };
+}
+
 /**
  * Build a per-player filtered view of the game state.
  * Each player sees only their own rack — opponent racks are never transmitted.
@@ -47,6 +62,17 @@ export function buildPlayerView(
     discardPools[pid] = ps.discardPool;
   }
 
+  const publicCharleston = buildPublicCharlestonView(gameState);
+  const ch = gameState.charleston;
+  const charleston =
+    publicCharleston && ch
+      ? {
+          ...publicCharleston,
+          myHiddenTileCount: ch.hiddenAcrossTilesByPlayerId[playerId]?.length ?? 0,
+          mySubmissionLocked: ch.submittedPlayerIds.includes(playerId),
+        }
+      : null;
+
   return {
     roomId: room.roomId,
     roomCode: room.roomCode,
@@ -65,6 +91,7 @@ export function buildPlayerView(
     gameResult: gameState.gameResult,
     pendingMahjong: gameState.pendingMahjong,
     challengeState: gameState.challengeState,
+    charleston,
     shownHands: gameState.shownHands,
   };
 }
@@ -91,6 +118,8 @@ export function buildSpectatorView(room: Room, gameState: GameState): SpectatorG
     discardPools[pid] = ps.discardPool;
   }
 
+  const charleston = buildPublicCharlestonView(gameState);
+
   return {
     roomId: room.roomId,
     roomCode: room.roomCode,
@@ -105,6 +134,7 @@ export function buildSpectatorView(room: Room, gameState: GameState): SpectatorG
     scores: gameState.scores,
     lastDiscard: gameState.lastDiscard,
     gameResult: gameState.gameResult,
+    charleston,
     shownHands: gameState.shownHands,
   };
 }

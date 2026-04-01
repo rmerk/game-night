@@ -1,8 +1,12 @@
+/* eslint-disable no-await-in-loop -- sequential joins are intentional so each step can drain broadcasts deterministically */
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- parsed WebSocket payloads are intentionally inspected as loose JSON test fixtures */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import WebSocket from "ws";
+import WsClient from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
 import { createLobbyState, handleAction } from "@mahjong-game/shared";
+
+type WebSocket = WsClient;
 
 let app: FastifyInstance;
 let wsUrl: string;
@@ -18,7 +22,7 @@ async function createRoom(hostName = "TestHost"): Promise<{ roomCode: string }> 
 
 function connectWs(url: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WsClient(url);
     ws.on("open", () => resolve(ws));
     ws.on("error", reject);
   });
@@ -94,7 +98,7 @@ async function setupGameRoom(): Promise<{
   return { roomCode, players };
 }
 
-/** Set up a room with 4 players and an active game (play phase) */
+/** Set up a room with 4 players and a play-phase game using a test-only fast-forward. */
 async function setupGameInProgress(): Promise<{
   roomCode: string;
   players: Array<{ ws: WebSocket; token: string; playerId: string }>;
@@ -111,6 +115,8 @@ async function setupGameInProgress(): Promise<{
     seed: 42,
   });
   expect(startResult.accepted).toBe(true);
+  gameState.gamePhase = "play";
+  gameState.charleston = null;
   room.gameState = gameState;
 
   return { roomCode, players };
@@ -379,10 +385,15 @@ describe("handleActionMessage", () => {
         expect(msg.version).toBe(1);
       }
 
-      // All views should have gamePhase = "play"
+      // All views should have gamePhase = "charleston"
       for (const msg of messages) {
         const state = msg.state as Record<string, unknown>;
-        expect(state.gamePhase).toBe("play");
+        expect(state.gamePhase).toBe("charleston");
+        expect(state.charleston).toMatchObject({
+          currentDirection: "right",
+          status: "passing",
+          stage: "first",
+        });
       }
 
       // resolvedAction should be GAME_STARTED for all
@@ -395,7 +406,12 @@ describe("handleActionMessage", () => {
       // room.gameState should now exist
       const room = app.roomManager.getRoom(roomCode)!;
       expect(room.gameState).not.toBeNull();
-      expect(room.gameState!.gamePhase).toBe("play");
+      expect(room.gameState!.gamePhase).toBe("charleston");
+      expect(room.gameState!.charleston).toMatchObject({
+        currentDirection: "right",
+        status: "passing",
+        stage: "first",
+      });
 
       for (const p of players) p.ws.close();
     });
@@ -440,7 +456,7 @@ describe("handleActionMessage", () => {
 
       const messagePromises = players.map((p) => waitForMessage(p.ws));
       sendAction(host.ws, { type: "START_GAME" });
-      const messages = await Promise.all(messagePromises);
+      await Promise.all(messagePromises);
 
       const room = app.roomManager.getRoom(roomCode)!;
       const gameState = room.gameState!;

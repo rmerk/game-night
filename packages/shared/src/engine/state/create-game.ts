@@ -1,8 +1,20 @@
-import type { GameState, PlayerState, SeatWind } from "../../types/game-state";
+import type { CharlestonState, GameState, PlayerState, SeatWind } from "../../types/game-state";
 import { SEATS, MAX_PLAYERS } from "../../constants";
 import { createWall } from "./wall";
 import { dealTiles } from "./dealing";
 import { loadCard } from "../../card/card-loader";
+
+function createInitialCharlestonState(playerIds: string[]): CharlestonState {
+  return {
+    stage: "first",
+    status: "passing",
+    currentDirection: "right",
+    activePlayerIds: [...playerIds],
+    submittedPlayerIds: [],
+    lockedTileIdsByPlayerId: {},
+    hiddenAcrossTilesByPlayerId: {},
+  };
+}
 
 /**
  * Create a new game with 4 players, assign winds, deal tiles, and return initial state.
@@ -10,7 +22,7 @@ import { loadCard } from "../../card/card-loader";
  *
  * @param playerIds - Array of exactly 4 unique player IDs
  * @param seed - Optional seed for deterministic wall shuffle (for testing)
- * @returns Complete initial GameState ready for play
+ * @returns Complete initial GameState ready for Charleston
  */
 export function createGame(playerIds: string[], seed?: number): GameState {
   if (playerIds.length !== MAX_PLAYERS) {
@@ -45,7 +57,7 @@ export function createGame(playerIds: string[], seed?: number): GameState {
   const eastPlayerId = playerIds[0];
 
   return {
-    gamePhase: "play",
+    gamePhase: "charleston",
     players,
     wall: remainingWall,
     wallRemaining: remainingWall.length,
@@ -58,6 +70,7 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     card: loadCard("2026"),
     pendingMahjong: null,
     challengeState: null,
+    charleston: createInitialCharlestonState(playerIds),
     shownHands: {},
   };
 }

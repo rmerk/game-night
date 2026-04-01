@@ -26,6 +26,10 @@ export type {
   CallWindowState,
   CallType,
   CallRecord,
+  CharlestonDirection,
+  CharlestonStage,
+  CharlestonStatus,
+  CharlestonState,
   ActionResult,
   ResolvedAction,
   WallGameResult,
@@ -41,6 +45,7 @@ export { CHALLENGE_TIMEOUT_SECONDS } from "./types/game-state";
 export type {
   GameAction,
   StartGameAction,
+  CharlestonPassAction,
   DrawTileAction,
   DiscardTileAction,
   PassCallAction,
@@ -77,6 +82,9 @@ export type {
   RequestStateMessage,
   PlayerPublicInfo,
   LobbyState,
+  PublicCharlestonView,
+  PlayerCharlestonView,
+  SpectatorCharlestonView,
   PlayerGameView,
   SpectatorGameView,
   StateUpdateMessage,
@@ -131,6 +139,11 @@ export { createAllTiles, createWall } from "./engine/state/wall";
 export { dealTiles } from "./engine/state/dealing";
 export { createGame } from "./engine/state/create-game";
 export { createLobbyState, handleAction } from "./engine/game-engine";
+export {
+  handleCharlestonPass,
+  getCharlestonTargetSeat,
+  getCharlestonTargetPlayerId,
+} from "./engine/actions/charleston";
 export { handleDrawTile, advanceTurn } from "./engine/actions/draw";
 export { handleDiscardTile } from "./engine/actions/discard";
 export {

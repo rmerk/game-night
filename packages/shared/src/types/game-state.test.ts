@@ -4,6 +4,10 @@ import type {
   GamePhase,
   TurnPhase,
   SeatWind,
+  CharlestonDirection,
+  CharlestonStage,
+  CharlestonStatus,
+  CharlestonState,
   PlayerState,
   ActionResult,
   ResolvedAction,
@@ -11,7 +15,13 @@ import type {
   GroupIdentity,
   CallWindowState,
 } from "./game-state";
-import type { GameAction, StartGameAction, DrawTileAction, DiscardTileAction } from "./actions";
+import type {
+  GameAction,
+  StartGameAction,
+  CharlestonPassAction,
+  DrawTileAction,
+  DiscardTileAction,
+} from "./actions";
 import type { Tile } from "./tiles";
 
 describe("GameState types", () => {
@@ -73,6 +83,7 @@ describe("GameState types", () => {
     expectTypeOf<GameState>().toHaveProperty("callWindow");
     expectTypeOf<GameState>().toHaveProperty("scores");
     expectTypeOf<GameState>().toHaveProperty("gameResult");
+    expectTypeOf<GameState>().toHaveProperty("charleston");
   });
 
   it("GameState.callWindow is CallWindowState or null", () => {
@@ -92,6 +103,20 @@ describe("GameState types", () => {
     expectTypeOf<ActionResult["reason"]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<ActionResult["resolved"]>().toEqualTypeOf<ResolvedAction | undefined>();
   });
+
+  it("Charleston types describe the first and second Charleston flow", () => {
+    expectTypeOf<"right">().toMatchTypeOf<CharlestonDirection>();
+    expectTypeOf<"across">().toMatchTypeOf<CharlestonDirection>();
+    expectTypeOf<"left">().toMatchTypeOf<CharlestonDirection>();
+    expectTypeOf<"first">().toMatchTypeOf<CharlestonStage>();
+    expectTypeOf<"second">().toMatchTypeOf<CharlestonStage>();
+    expectTypeOf<"passing">().toMatchTypeOf<CharlestonStatus>();
+    expectTypeOf<"vote-ready">().toMatchTypeOf<CharlestonStatus>();
+    expectTypeOf<CharlestonState>().toHaveProperty("currentDirection");
+    expectTypeOf<CharlestonState>().toHaveProperty("activePlayerIds");
+    expectTypeOf<CharlestonState>().toHaveProperty("submittedPlayerIds");
+    expectTypeOf<CharlestonState>().toHaveProperty("hiddenAcrossTilesByPlayerId");
+  });
 });
 
 describe("GameAction types", () => {
@@ -109,6 +134,11 @@ describe("GameAction types", () => {
 
   it("GameAction includes DrawTileAction", () => {
     expectTypeOf<DrawTileAction>().toMatchTypeOf<GameAction>();
+  });
+
+  it("GameAction includes CharlestonPassAction", () => {
+    expectTypeOf<CharlestonPassAction>().toMatchTypeOf<GameAction>();
+    expectTypeOf<CharlestonPassAction["tileIds"]>().toEqualTypeOf<readonly string[]>();
   });
 
   it("GameAction includes DiscardTileAction", () => {

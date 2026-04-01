@@ -3,6 +3,9 @@ import type {
   ResolvedAction,
   GamePhase,
   TurnPhase,
+  CharlestonDirection,
+  CharlestonStage,
+  CharlestonStatus,
   ExposedGroup,
   CallWindowState,
   GameResult,
@@ -61,6 +64,24 @@ export interface LobbyState {
   myPlayerId: string;
 }
 
+/** Safe Charleston metadata shared with all viewers */
+export interface PublicCharlestonView {
+  stage: CharlestonStage;
+  status: CharlestonStatus;
+  currentDirection: CharlestonDirection | null;
+  activePlayerIds: string[];
+  submittedPlayerIds: string[];
+}
+
+/** Per-player Charleston metadata that never exposes hidden tile identities */
+export interface PlayerCharlestonView extends PublicCharlestonView {
+  myHiddenTileCount: number;
+  mySubmissionLocked: boolean;
+}
+
+/** Spectator Charleston metadata — public information only */
+export type SpectatorCharlestonView = PublicCharlestonView;
+
 /** Per-player filtered game view — each player sees only their own rack */
 export interface PlayerGameView {
   roomId: string;
@@ -80,6 +101,7 @@ export interface PlayerGameView {
   gameResult: GameResult | null;
   pendingMahjong: PendingMahjongState | null;
   challengeState: ChallengeState | null;
+  charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
 }
 
@@ -98,6 +120,7 @@ export interface SpectatorGameView {
   scores: Record<string, number>;
   lastDiscard: { tile: Tile; discarderId: string } | null;
   gameResult: GameResult | null;
+  charleston: SpectatorCharlestonView | null;
   shownHands: Record<string, Tile[]>;
 }
 

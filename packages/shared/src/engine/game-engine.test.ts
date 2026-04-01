@@ -33,7 +33,14 @@ describe("handleAction", () => {
     });
     expect(result.accepted).toBe(true);
     expect(result.resolved).toEqual({ type: "GAME_STARTED" });
-    expect(state.gamePhase).toBe("play");
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "right",
+      activePlayerIds: ["p1", "p2", "p3", "p4"],
+      submittedPlayerIds: [],
+    });
   });
 
   it("rejects START_GAME when not in lobby", () => {
@@ -51,6 +58,8 @@ describe("handleAction", () => {
   it("dispatches DRAW_TILE to draw handler", () => {
     const state = createLobbyState();
     handleAction(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"], seed: 42 });
+    state.gamePhase = "play";
+    state.charleston = null;
     // East starts in 'discard' phase — put South in draw phase
     const southId = getPlayerBySeat(state, "south");
     state.currentTurn = southId;
@@ -65,6 +74,8 @@ describe("handleAction", () => {
   it("dispatches DISCARD_TILE to discard handler (opens call window)", () => {
     const state = createLobbyState();
     handleAction(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"], seed: 42 });
+    state.gamePhase = "play";
+    state.charleston = null;
     // East starts in 'discard' phase with 14 tiles — discard immediately
     const eastId = getPlayerBySeat(state, "east");
     const tileId = state.players[eastId].rack[0].id;
@@ -81,6 +92,8 @@ describe("handleAction", () => {
   it("dispatches PASS_CALL to call window handler", () => {
     const state = createLobbyState();
     handleAction(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"], seed: 42 });
+    state.gamePhase = "play";
+    state.charleston = null;
     const eastId = getPlayerBySeat(state, "east");
     const tileId = state.players[eastId].rack[0].id;
     handleAction(state, { type: "DISCARD_TILE", playerId: eastId, tileId });
@@ -115,6 +128,12 @@ describe("handleAction", () => {
     expect(state.wallRemaining).toBe(99);
 
     // AC #4: initial state
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "right",
+    });
     expect(state.currentTurn).toBe("alice");
     expect(state.turnPhase).toBe("discard");
     for (const player of Object.values(state.players)) {

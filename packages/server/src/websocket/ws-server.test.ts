@@ -1,3 +1,5 @@
+/* eslint-disable no-await-in-loop -- sequential joins and shutdowns keep WebSocket message ordering deterministic in these integration tests */
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- parsed WebSocket payloads are intentionally inspected as loose JSON test fixtures */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket, type RawData } from "ws";
 import { createApp } from "../index";
@@ -315,7 +317,12 @@ describe("REQUEST_STATE", () => {
 
     const state = resync.state as Record<string, unknown>;
     expect(resync.type).toBe("STATE_UPDATE");
-    expect(state.gamePhase).toBe("play");
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      currentDirection: "right",
+      status: "passing",
+      stage: "first",
+    });
     expect(state.myPlayerId).toBe(players[0].playerId);
     expect((state.myRack as unknown[]).length).toBeGreaterThan(0);
 

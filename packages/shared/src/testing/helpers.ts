@@ -35,6 +35,13 @@ export function getPlayerBySeat(state: GameState, seat: string): string {
   return player.id;
 }
 
+/** Fast-forward a freshly created game past Charleston for play-phase-only tests. */
+export function fastForwardToPlayPhase(state: GameState): GameState {
+  state.gamePhase = "play";
+  state.charleston = null;
+  return state;
+}
+
 /**
  * Create a test game state with default player IDs and seed.
  * Useful for tests that need a fully initialized game state.
@@ -43,7 +50,7 @@ export function getPlayerBySeat(state: GameState, seat: string): string {
  * @param seed - Optional seed for deterministic state (defaults to 42)
  */
 export function createTestState(overrides?: Partial<GameState>, seed: number = 42): GameState {
-  const state = createGame(["p1", "p2", "p3", "p4"], seed);
+  const state = fastForwardToPlayPhase(createGame(["p1", "p2", "p3", "p4"], seed));
   if (overrides) {
     return { ...state, ...overrides };
   }

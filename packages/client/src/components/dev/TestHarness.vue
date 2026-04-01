@@ -18,11 +18,19 @@ function dispatch(action: GameAction): ActionResult {
   return result;
 }
 
+function fastForwardToPlayForHarness(state: GameState): void {
+  // The dev harness exercises play-phase engine flows only; Charleston has no UI here yet.
+  state.gamePhase = "play";
+  state.charleston = null;
+}
+
 function initGame(): void {
   const fresh = createLobbyState();
   gameState.value = fresh;
   triggerRef(gameState);
   dispatch({ type: "START_GAME", playerIds: PLAYER_IDS });
+  fastForwardToPlayForHarness(gameState.value);
+  triggerRef(gameState);
 }
 
 // ── Computed ─────────────────────────────────────────────────────────────────

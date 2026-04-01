@@ -61,6 +61,13 @@ function createMessageReader(ws: WebSocket) {
   };
 }
 
+function rackTileIdsFromStateMessage(message: Record<string, unknown>): string[] {
+  const state = message.state as {
+    myRack: Array<{ id: string }>;
+  };
+  return state.myRack.map((tile) => tile.id);
+}
+
 describe("Full Game Flow Integration", () => {
   let app: FastifyInstance;
   let wsUrl: string;
@@ -185,7 +192,12 @@ describe("Full Game Flow Integration", () => {
       const daveState = await daveReader.next();
 
       expect(aliceState.type).toBe("STATE_UPDATE");
-      expect(aliceState.state.gamePhase).toBe("play");
+      expect(aliceState.state.gamePhase).toBe("charleston");
+      expect(aliceState.state.charleston).toMatchObject({
+        currentDirection: "right",
+        status: "passing",
+        stage: "first",
+      });
 
       // 7. Verify per-player filtering — each player sees only their own rack
       expect(aliceState.state.myRack.length).toBeGreaterThan(0);
@@ -217,7 +229,12 @@ describe("Full Game Flow Integration", () => {
         expect(p.rack.length).toBe(13);
       }
 
-      // 10. East player discards a tile (they have 14, must discard)
+      // 10. Fast-forward to play for the discard/reconnect integration portion of the test.
+      const room = app.roomManager.getRoom(roomCode)!;
+      room.gameState!.gamePhase = "play";
+      room.gameState!.charleston = null;
+
+      // East player discards a tile (they have 14, must discard)
       const tileToDiscard = eastPlayer.rack[0];
       eastPlayer.ws.send(
         JSON.stringify({
@@ -257,6 +274,241 @@ describe("Full Game Flow Integration", () => {
       const reconnectMsg = await aliceReconnectReader.next();
       expect(reconnectMsg.type).toBe("STATE_UPDATE");
       expect(reconnectMsg.state.myPlayerId).toBe(alicePlayerId);
+    },
+  );
+
+  it(
+    "room creation → game start → Charleston pass flow hides locked selections and hidden across tiles",
+    { timeout: 15_000 },
+    async () => {
+      app = createApp();
+      await app.ready();
+      const address = await app.listen({ port: 0 });
+      wsUrl = address.replace("http", "ws");
+
+      const roomRes = await app.inject({
+        method: "POST",
+        url: "/api/rooms",
+        payload: { hostName: "Alice" },
+      });
+      expect(roomRes.statusCode).toBe(201);
+      const { roomCode } = roomRes.json();
+
+      const aliceWs = createWs();
+      await waitForOpen(aliceWs);
+      const aliceReader = createMessageReader(aliceWs);
+      aliceWs.send(
+        JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
+      );
+      const aliceJoinMsg = await aliceReader.next();
+      const alicePlayerId = aliceJoinMsg.state.myPlayerId;
+
+      const bobWs = createWs();
+      await waitForOpen(bobWs);
+      const bobReader = createMessageReader(bobWs);
+      bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
+      const bobJoinMsg = await bobReader.next();
+      const bobPlayerId = bobJoinMsg.state.myPlayerId;
+
+      const carolWs = createWs();
+      await waitForOpen(carolWs);
+      const carolReader = createMessageReader(carolWs);
+      carolWs.send(
+        JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
+      );
+      const carolJoinMsg = await carolReader.next();
+      const carolPlayerId = carolJoinMsg.state.myPlayerId;
+
+      const daveWs = createWs();
+      await waitForOpen(daveWs);
+      const daveReader = createMessageReader(daveWs);
+      daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
+      const daveJoinMsg = await daveReader.next();
+      const davePlayerId = daveJoinMsg.state.myPlayerId;
+
+      await Promise.all([
+        aliceReader.next(),
+        aliceReader.next(),
+        aliceReader.next(),
+        bobReader.next(),
+        bobReader.next(),
+        carolReader.next(),
+      ]);
+
+      aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+
+      const aliceState = await aliceReader.next();
+      const bobState = await bobReader.next();
+      const carolState = await carolReader.next();
+      const daveState = await daveReader.next();
+
+      expect(aliceState.type).toBe("STATE_UPDATE");
+      expect(bobState.type).toBe("STATE_UPDATE");
+      expect(carolState.type).toBe("STATE_UPDATE");
+      expect(daveState.type).toBe("STATE_UPDATE");
+
+      const players = [
+        { id: alicePlayerId, ws: aliceWs, reader: aliceReader, latestState: aliceState },
+        { id: bobPlayerId, ws: bobWs, reader: bobReader, latestState: bobState },
+        { id: carolPlayerId, ws: carolWs, reader: carolReader, latestState: carolState },
+        { id: davePlayerId, ws: daveWs, reader: daveReader, latestState: daveState },
+      ];
+
+      const playersById = Object.fromEntries(
+        players.map((player) => [player.id, player]),
+      ) as Record<string, (typeof players)[number]>;
+
+      function visibleSelection(playerId: string): string[] {
+        return rackTileIdsFromStateMessage(playersById[playerId].latestState).slice(0, 3);
+      }
+
+      function expectNoLeak(
+        updates: Array<Record<string, unknown>>,
+        forbiddenTileIds: readonly string[],
+      ): void {
+        for (const update of updates) {
+          const serializedUpdate = JSON.stringify(update);
+          for (const tileId of forbiddenTileIds) {
+            expect(serializedUpdate).not.toContain(tileId);
+          }
+        }
+      }
+
+      async function submitCharlestonPassAndCollect(
+        playerId: string,
+        tileIds: readonly string[],
+      ): Promise<Array<Record<string, unknown>>> {
+        playersById[playerId].ws.send(
+          JSON.stringify({
+            version: 1,
+            type: "ACTION",
+            action: { type: "CHARLESTON_PASS", playerId, tileIds },
+          }),
+        );
+
+        const updates = await Promise.all(players.map((player) => player.reader.next()));
+        for (const update of updates) {
+          expect(update.type).toBe("STATE_UPDATE");
+        }
+        players.forEach((player, index) => {
+          player.latestState = updates[index];
+        });
+        return updates;
+      }
+
+      const eastPlayerId = "player-0";
+      const westPlayerId = "player-2";
+
+      const eastRightSelection = visibleSelection(eastPlayerId);
+      const rightLockUpdates = await submitCharlestonPassAndCollect(
+        eastPlayerId,
+        eastRightSelection,
+      );
+      expectNoLeak(
+        rightLockUpdates.filter((_, index) => players[index].id !== eastPlayerId),
+        eastRightSelection,
+      );
+      expect(playersById[eastPlayerId].latestState.state.charleston).toMatchObject({
+        currentDirection: "right",
+        submittedPlayerIds: [eastPlayerId],
+        mySubmissionLocked: true,
+      });
+
+      await submitCharlestonPassAndCollect("player-1", visibleSelection("player-1"));
+      await submitCharlestonPassAndCollect(westPlayerId, visibleSelection(westPlayerId));
+      const rightResolvedUpdates = await submitCharlestonPassAndCollect(
+        "player-3",
+        visibleSelection("player-3"),
+      );
+
+      for (const update of rightResolvedUpdates) {
+        expect(update.resolvedAction).toMatchObject({
+          type: "CHARLESTON_PHASE_COMPLETE",
+          direction: "right",
+          nextDirection: "across",
+        });
+      }
+
+      const westAcrossSelection = visibleSelection(westPlayerId);
+      const acrossLockUpdates = await submitCharlestonPassAndCollect(
+        westPlayerId,
+        westAcrossSelection,
+      );
+      expectNoLeak(
+        acrossLockUpdates.filter((_, index) => players[index].id !== westPlayerId),
+        westAcrossSelection,
+      );
+
+      await submitCharlestonPassAndCollect(eastPlayerId, visibleSelection(eastPlayerId));
+      await submitCharlestonPassAndCollect("player-1", visibleSelection("player-1"));
+      const acrossResolvedUpdates = await submitCharlestonPassAndCollect(
+        "player-3",
+        visibleSelection("player-3"),
+      );
+
+      for (const update of acrossResolvedUpdates) {
+        expect(update.resolvedAction).toMatchObject({
+          type: "CHARLESTON_PHASE_COMPLETE",
+          direction: "across",
+          nextDirection: "left",
+        });
+      }
+      expect(playersById[eastPlayerId].latestState.state.charleston).toMatchObject({
+        currentDirection: "left",
+        myHiddenTileCount: 3,
+        mySubmissionLocked: false,
+      });
+      expectNoLeak(acrossResolvedUpdates, westAcrossSelection);
+      const eastRackBeforeLeftLock = rackTileIdsFromStateMessage(
+        playersById[eastPlayerId].latestState,
+      );
+      for (const hiddenTileId of westAcrossSelection) {
+        expect(eastRackBeforeLeftLock).not.toContain(hiddenTileId);
+      }
+
+      const eastLeftSelection = visibleSelection(eastPlayerId);
+      const leftLockUpdates = await submitCharlestonPassAndCollect(eastPlayerId, eastLeftSelection);
+      const eastRackAfterLeftLock = rackTileIdsFromStateMessage(
+        playersById[eastPlayerId].latestState,
+      );
+      for (const hiddenTileId of westAcrossSelection) {
+        expect(eastRackAfterLeftLock).toContain(hiddenTileId);
+      }
+      expectNoLeak(
+        leftLockUpdates.filter((_, index) => players[index].id !== eastPlayerId),
+        westAcrossSelection,
+      );
+      expectNoLeak(
+        leftLockUpdates.filter((_, index) => players[index].id !== eastPlayerId),
+        eastLeftSelection,
+      );
+
+      await submitCharlestonPassAndCollect("player-1", visibleSelection("player-1"));
+      await submitCharlestonPassAndCollect(westPlayerId, visibleSelection(westPlayerId));
+      const leftResolvedUpdates = await submitCharlestonPassAndCollect(
+        "player-3",
+        visibleSelection("player-3"),
+      );
+
+      for (const update of leftResolvedUpdates) {
+        const finalState = update.state as {
+          gamePhase: string;
+          charleston: Record<string, unknown> | null;
+        };
+        expect(update.resolvedAction).toMatchObject({
+          type: "CHARLESTON_PHASE_COMPLETE",
+          direction: "left",
+          nextDirection: null,
+          stage: "second",
+          status: "vote-ready",
+        });
+        expect(finalState.gamePhase).toBe("charleston");
+        expect(finalState.charleston).toMatchObject({
+          currentDirection: null,
+          stage: "second",
+          status: "vote-ready",
+        });
+      }
     },
   );
 });

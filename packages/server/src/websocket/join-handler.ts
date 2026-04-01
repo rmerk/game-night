@@ -7,6 +7,7 @@ import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
+import { buildPlayerView } from "./state-broadcaster";
 
 // eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
@@ -41,6 +42,12 @@ function buildLobbyState(room: Room, myPlayerId: string): LobbyState {
   };
 }
 
+function stateViewForPlayer(room: Room, playerId: string): StateUpdateMessage["state"] {
+  return room.gameState
+    ? buildPlayerView(room, room.gameState, playerId)
+    : buildLobbyState(room, playerId);
+}
+
 function broadcastStateToRoom(
   room: Room,
   excludePlayerId?: string,
@@ -50,7 +57,7 @@ function broadcastStateToRoom(
     if (session.player.playerId === excludePlayerId) continue;
     if (session.ws.readyState !== WebSocket.OPEN) continue;
 
-    const state = buildLobbyState(room, session.player.playerId);
+    const state = stateViewForPlayer(room, session.player.playerId);
     const message: StateUpdateMessage = {
       version: PROTOCOL_VERSION,
       type: "STATE_UPDATE",
@@ -114,12 +121,12 @@ function handleTokenReconnection(
 
   logger.info({ roomCode: room.roomCode, playerId }, "Player reconnected via token");
 
-  // Send full state with token
-  const lobbyState = buildLobbyState(room, playerId);
+  // Reconnection should immediately restore the active filtered game view when a game is in progress.
+  const state = stateViewForPlayer(room, playerId);
   const stateMessage: StateUpdateMessage = {
     version: PROTOCOL_VERSION,
     type: "STATE_UPDATE",
-    state: lobbyState,
+    state,
     token,
   };
   ws.send(JSON.stringify(stateMessage));

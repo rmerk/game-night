@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- message payloads are intentionally inspected as loose JSON fixtures in broadcaster tests */
 import { describe, expect, it, vi, type Mock } from "vitest";
 import { WebSocket } from "ws";
-import type { GameState, SeatWind } from "@mahjong-game/shared";
+import { loadCard, type GameState, type SeatWind } from "@mahjong-game/shared";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { buildPlayerView, buildSpectatorView, broadcastGameState } from "./state-broadcaster";
@@ -113,6 +114,7 @@ function createTestGameState(): GameState {
     card: null,
     pendingMahjong: null,
     challengeState: null,
+    charleston: null,
     shownHands: {},
   };
 }
@@ -182,6 +184,7 @@ function createFourPlayerGameState(): GameState {
     card: null,
     pendingMahjong: null,
     challengeState: null,
+    charleston: null,
     shownHands: {},
   };
 }
@@ -249,6 +252,57 @@ describe("buildPlayerView", () => {
     // Each sees their own rack
     expect(view0.myRack).toHaveLength(2);
     expect(view1.myRack).toHaveLength(2);
+  });
+
+  it("includes only filtered Charleston metadata and never leaks hidden across tiles", () => {
+    const { room } = createFourPlayerRoom();
+    const gameState = createFourPlayerGameState();
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "first",
+      status: "passing",
+      currentDirection: "left",
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: ["player-0"],
+      lockedTileIdsByPlayerId: {
+        "player-0": ["bam-1-1", "bam-2-1", "bam-3-1"],
+      },
+      hiddenAcrossTilesByPlayerId: {
+        "player-0": [
+          { id: "flower-a-1", category: "flower", value: "a", copy: 1 },
+          { id: "flower-a-2", category: "flower", value: "a", copy: 2 },
+          { id: "flower-a-3", category: "flower", value: "a", copy: 3 },
+        ],
+      },
+    };
+
+    const playerView = buildPlayerView(room, gameState, "player-0");
+    const spectatorView = buildSpectatorView(room, gameState);
+    const playerViewJson = JSON.stringify(playerView);
+    const spectatorViewJson = JSON.stringify(spectatorView);
+
+    expect(playerView.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "left",
+      submittedPlayerIds: ["player-0"],
+      myHiddenTileCount: 3,
+      mySubmissionLocked: true,
+    });
+    expect(playerView.charleston).not.toHaveProperty("lockedTileIdsByPlayerId");
+    expect(playerView.charleston).not.toHaveProperty("hiddenAcrossTilesByPlayerId");
+    expect(spectatorView.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "left",
+      submittedPlayerIds: ["player-0"],
+    });
+    expect(spectatorView.charleston).not.toHaveProperty("myHiddenTileCount");
+
+    for (const hiddenTileId of ["flower-a-1", "flower-a-2", "flower-a-3"]) {
+      expect(playerViewJson).not.toContain(hiddenTileId);
+      expect(spectatorViewJson).not.toContain(hiddenTileId);
+    }
   });
 
   it("includes all public state fields", () => {
@@ -747,7 +801,7 @@ describe("sensitive field filtering", () => {
     const room = createTestRoom(players, wsList);
     const gameState = createTestGameState();
 
-    gameState.card = { year: 2024, sections: [], patterns: [] } as any;
+    gameState.card = loadCard("2026");
 
     const view = buildPlayerView(room, gameState, "player-0");
 

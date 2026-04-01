@@ -33,9 +33,9 @@ describe("createGame", () => {
       expect(new Set(winds).size).toBe(4);
     });
 
-    it("sets gamePhase to play", () => {
+    it("sets gamePhase to charleston", () => {
       const state = createGame(PLAYER_IDS, SEED);
-      expect(state.gamePhase).toBe("play");
+      expect(state.gamePhase).toBe("charleston");
     });
   });
 
@@ -79,6 +79,18 @@ describe("createGame", () => {
   });
 
   describe("initial game state (AC #4)", () => {
+    it("starts the first Charleston on the right pass", () => {
+      const state = createGame(PLAYER_IDS, SEED);
+      expect(state.charleston).not.toBeNull();
+      expect(state.charleston).toMatchObject({
+        stage: "first",
+        status: "passing",
+        currentDirection: "right",
+        activePlayerIds: PLAYER_IDS,
+        submittedPlayerIds: [],
+      });
+    });
+
     it("sets currentTurn to East player", () => {
       const state = createGame(PLAYER_IDS, SEED);
       expect(state.currentTurn).toBe("p1");

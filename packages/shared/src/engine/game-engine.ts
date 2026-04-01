@@ -1,6 +1,7 @@
 import type { GameState, ActionResult } from "../types/game-state";
 import type { GameAction } from "../types/actions";
 import { handleStartGame } from "./actions/game-flow";
+import { handleCharlestonPass } from "./actions/charleston";
 import { handleDrawTile } from "./actions/draw";
 import { handleDiscardTile } from "./actions/discard";
 import {
@@ -36,6 +37,7 @@ export function createLobbyState(): GameState {
     card: null,
     pendingMahjong: null,
     challengeState: null,
+    charleston: null,
     shownHands: {},
   };
 }
@@ -49,6 +51,8 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
   switch (action.type) {
     case "START_GAME":
       return handleStartGame(state, action);
+    case "CHARLESTON_PASS":
+      return handleCharlestonPass(state, action);
     case "DRAW_TILE":
       return handleDrawTile(state, action);
     case "DISCARD_TILE":

@@ -34,10 +34,17 @@ describe("handleStartGame", () => {
     expect(state.players).toBe(originalPlayers);
   });
 
-  it("transitions state to play phase on acceptance", () => {
+  it("transitions state to charleston phase on acceptance", () => {
     const state = createLobbyState();
     handleStartGame(state, START_ACTION);
-    expect(state.gamePhase).toBe("play");
+    expect(state.gamePhase).toBe("charleston");
+    expect(state.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "right",
+      activePlayerIds: START_ACTION.playerIds,
+      submittedPlayerIds: [],
+    });
   });
 
   it("deals tiles correctly after START_GAME", () => {

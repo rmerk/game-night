@@ -1,6 +1,7 @@
 /** Discriminated union of all game actions */
 export type GameAction =
   | StartGameAction
+  | CharlestonPassAction
   | DrawTileAction
   | DiscardTileAction
   | PassCallAction
@@ -30,6 +31,13 @@ export interface StartGameAction {
 export interface DrawTileAction {
   readonly type: "DRAW_TILE";
   readonly playerId: string;
+}
+
+/** Action for a player to lock in their Charleston pass selection */
+export interface CharlestonPassAction {
+  readonly type: "CHARLESTON_PASS";
+  readonly playerId: string;
+  readonly tileIds: readonly string[];
 }
 
 /** Action for the current player to discard a tile from their rack */

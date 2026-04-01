@@ -21,9 +21,15 @@ function makeHarness() {
     return handleAction(state, action);
   }
 
+  function fastForwardToPlayForHarness(): void {
+    state.gamePhase = "play";
+    state.charleston = null;
+  }
+
   function initGame() {
     state = createLobbyState();
     dispatch({ type: "START_GAME", playerIds: ["p1", "p2", "p3", "p4"] });
+    fastForwardToPlayForHarness();
   }
 
   function getState(): GameState {
@@ -292,9 +298,8 @@ describe("TestHarness – component rendering", () => {
       await rackButtons[0].trigger("click");
       await wrapper.vm.$nextTick();
 
-      // Verify state mutation: after discard, turnPhase is callWindow
-      const vm = wrapper.vm as unknown as { state: { turnPhase: string } };
-      expect(vm.state.turnPhase).toBe("callWindow");
+      // Verify the rendered phase banner reflects the call window transition.
+      expect(wrapper.text()).toMatch(/Turn Phase:\s*callWindow/);
     }
     wrapper.unmount();
   });
@@ -320,13 +325,8 @@ describe("TestHarness – component rendering", () => {
     await clickableTiles[0].trigger("click");
     await wrapper.vm.$nextTick();
 
-    // Verify state mutation: discard pool should have 1 tile after clicking a rack tile.
-    // Check state directly since shallowRef + computed can intermittently skip DOM updates.
-    const vm = wrapper.vm as unknown as {
-      state: { players: Record<string, { discardPool: unknown[] }> };
-    };
-    const p1Discards = vm.state.players.p1.discardPool.length;
-    expect(p1Discards).toBe(1);
+    // Verify the rendered discard count updates after the click.
+    expect(wrapper.text()).toContain("Discards (1)");
     wrapper.unmount();
   });
 });

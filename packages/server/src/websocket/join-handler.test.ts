@@ -1,8 +1,12 @@
+/* eslint-disable no-await-in-loop -- sequential WebSocket joins keep broadcast ordering deterministic in these integration tests */
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- parsed WebSocket payloads are intentionally inspected as loose JSON test fixtures */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import WebSocket from "ws";
+import WsClient from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
 import { setGracePeriodMs, DEFAULT_GRACE_PERIOD_MS } from "../rooms/session-manager";
+
+type WebSocket = WsClient;
 
 let app: FastifyInstance;
 let wsUrl: string;
@@ -18,7 +22,7 @@ async function createRoom(hostName = "TestHost"): Promise<{ roomCode: string }> 
 
 function connectWs(url: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WsClient(url);
     ws.on("open", () => resolve(ws));
     ws.on("error", reject);
   });
@@ -60,6 +64,10 @@ function waitForClose(ws: WebSocket): Promise<{ code: number; reason: string }> 
       resolve({ code, reason: reason.toString() });
     });
   });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 beforeEach(async () => {
@@ -409,7 +417,7 @@ describe("token-based reconnection", () => {
 
     // Disconnect
     ws1.close();
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // Reconnect with token
     const ws2 = await connectWs(wsUrl);
@@ -428,6 +436,136 @@ describe("token-based reconnection", () => {
     expect(alice?.displayName).toBe("Alice");
 
     ws2.close();
+  });
+
+  it("restores the filtered Charleston game view on token reconnection", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+    const tokens: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      const msg = await msgPromise;
+
+      clients.push(ws);
+      tokens.push(msg.token as string);
+      await Promise.all(broadcastPromises);
+    }
+
+    const gameStartMessages = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    const [aliceStartState] = await Promise.all(gameStartMessages);
+    const alicePlayerId = (aliceStartState.state as Record<string, unknown>).myPlayerId;
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+    await delay(50);
+
+    const reconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    const aliceReconnectWs = await connectWs(wsUrl);
+    const reconnectMessagePromise = waitForMessage(aliceReconnectWs);
+    sendJoinWithToken(aliceReconnectWs, roomCode, tokens[0]);
+
+    const reconnectMsg = await reconnectMessagePromise;
+    expect(reconnectMsg.type).toBe("STATE_UPDATE");
+    expect(reconnectMsg.token).toBe(tokens[0]);
+    const reconnectState = reconnectMsg.state as Record<string, unknown>;
+    expect(reconnectState.myPlayerId).toBe(alicePlayerId);
+    expect(reconnectState.gamePhase).toBe("charleston");
+    expect(reconnectState.myRack).toBeInstanceOf(Array);
+    expect((reconnectState.myRack as unknown[]).length).toBeGreaterThan(0);
+    expect(reconnectState.charleston).toMatchObject({
+      stage: "first",
+      status: "passing",
+      currentDirection: "right",
+      submittedPlayerIds: [],
+    });
+
+    const reconnectBroadcastMessages = await Promise.all(reconnectBroadcasts);
+    for (let index = 0; index < reconnectBroadcastMessages.length; index++) {
+      const broadcast = reconnectBroadcastMessages[index];
+      const expectedPlayerId = `player-${index + 1}`;
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      expect(broadcast.resolvedAction).toMatchObject({
+        type: "PLAYER_RECONNECTED",
+        playerId: alicePlayerId,
+        playerName: "Player0",
+      });
+
+      const state = broadcast.state as Record<string, unknown>;
+      expect(state.myPlayerId).toBe(expectedPlayerId);
+      expect(state.gamePhase).toBe("charleston");
+      expect(state.myRack).toBeInstanceOf(Array);
+      expect((state.myRack as unknown[]).length).toBeGreaterThan(0);
+      expect(state.charleston).toMatchObject({
+        stage: "first",
+        status: "passing",
+        currentDirection: "right",
+        submittedPlayerIds: [],
+      });
+    }
+
+    for (const ws of clients.slice(1)) {
+      ws.close();
+    }
+    aliceReconnectWs.close();
+  });
+
+  it("broadcasts filtered Charleston game state to remaining players when someone disconnects", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      await msgPromise;
+
+      clients.push(ws);
+      await Promise.all(broadcastPromises);
+    }
+
+    const gameStartMessages = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(gameStartMessages);
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+
+    const disconnectMessages = await Promise.all(disconnectBroadcasts);
+    for (let index = 0; index < disconnectMessages.length; index++) {
+      const broadcast = disconnectMessages[index];
+      const expectedPlayerId = `player-${index + 1}`;
+      expect(broadcast.type).toBe("STATE_UPDATE");
+
+      const state = broadcast.state as Record<string, unknown>;
+      expect(state.myPlayerId).toBe(expectedPlayerId);
+      expect(state.gamePhase).toBe("charleston");
+      expect(state.myRack).toBeInstanceOf(Array);
+      expect((state.myRack as unknown[]).length).toBeGreaterThan(0);
+      expect(state.charleston).toMatchObject({
+        stage: "first",
+        status: "passing",
+        currentDirection: "right",
+        submittedPlayerIds: [],
+      });
+
+      const players = state.players as Array<Record<string, unknown>>;
+      expect(players.find((player) => player.playerId === "player-0")).toMatchObject({
+        connected: false,
+      });
+    }
+
+    for (const ws of clients.slice(1)) {
+      ws.close();
+    }
   });
 
   it("treats invalid token as new player join", async () => {
@@ -470,7 +608,7 @@ describe("token-based reconnection", () => {
     // Consume disconnection broadcast on ws2
     await waitForMessage(ws2);
 
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // Listen for reconnection broadcast on ws2
     const reconnectBroadcast = waitForMessage(ws2);
@@ -556,7 +694,7 @@ describe("grace period recovery", () => {
 
     // Player disconnects
     ws1.close();
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // New connection with same displayName but no token
     const ws2 = await connectWs(wsUrl);
@@ -581,10 +719,10 @@ describe("grace period recovery", () => {
 
     // Disconnect
     ws1.close();
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // Wait for grace period to expire
-    await new Promise((r) => setTimeout(r, SHORT_GRACE_MS + 100));
+    await delay(SHORT_GRACE_MS + 100);
 
     // New player should get player-0 (seat was released)
     const ws2 = await connectWs(wsUrl);
@@ -644,7 +782,7 @@ describe("comprehensive lifecycle", () => {
 
     // Disconnect
     ws1.close();
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // Reconnect with token
     const ws2 = await connectWs(wsUrl);
@@ -691,7 +829,7 @@ describe("comprehensive lifecycle", () => {
     clients[2].close();
     await Promise.all(disconnectBroadcasts);
 
-    await new Promise((r) => setTimeout(r, 50));
+    await delay(50);
 
     // Player2 reconnects — set up listeners for reconnect broadcast
     const reconnectBroadcasts = [0, 1, 3].map((i) => waitForMessage(clients[i]));
