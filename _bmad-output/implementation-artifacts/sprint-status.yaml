@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-01 # 3b-2 story review completed and moved to done
+last_updated: 2026-04-01 # 3b-3 story context created; validation-checklist retro follow-through completed
 project: mahjong-game
 
 project_key: NOKEY
@@ -106,7 +106,7 @@ development_status:
   epic-3b: in-progress # gated by epic-5a retro follow-through items below
   3b-1-first-charleston-with-blind-pass-enforcement: done
   3b-2-second-charleston-vote-reversed-passes: done
-  3b-3-courtesy-pass-negotiation: backlog
+  3b-3-courtesy-pass-negotiation: ready-for-dev
   3b-4-charleston-ui-direction-indicator-tileselectionaction-pass-interaction: backlog
   3b-5-charleston-disconnect-handling: backlog
   epic-3b-retrospective: optional
@@ -181,7 +181,7 @@ development_status:
 retro_follow_through:
   # Track retrospective follow-through as first-class work items, not prose-only notes.
   epic-5a:
-    5a-retro-1-validation-checklist-in-story-specs: backlog
+    5a-retro-1-validation-checklist-in-story-specs: done
     5a-retro-2-retro-action-items-in-sprint-status: done
     5a-retro-3-milestone-language-clarified-in-epics: done
     5a-retro-4-client-integration-layer-before-epic-3b: backlog
