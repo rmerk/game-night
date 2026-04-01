@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-01 # 5a-10-shared-primitive-extraction-tile-readability-validation → done
+last_updated: 2026-04-01 # epic-5a-retrospective -> done
 project: mahjong-game
 
 project_key: NOKEY
@@ -100,7 +100,7 @@ development_status:
   5a-8-turn-indicator-wall-counter-game-scoreboard: done
   5a-9-keyboard-navigation-accessibility-foundation: done
   5a-10-shared-primitive-extraction-tile-readability-validation: done
-  epic-5a-retrospective: optional
+  epic-5a-retrospective: done
 
   # Epic 3B: Charleston
   epic-3b: backlog
