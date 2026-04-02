@@ -1,6 +1,4 @@
-/* eslint-disable no-await-in-loop -- sequential joins are intentional so each step can drain broadcasts deterministically */
-/* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- parsed WebSocket payloads are intentionally inspected as loose JSON test fixtures */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import WsClient from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
@@ -11,13 +9,56 @@ type WebSocket = WsClient;
 let app: FastifyInstance;
 let wsUrl: string;
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseWsJsonMessage(data: Buffer): Record<string, unknown> {
+  const raw: unknown = JSON.parse(Buffer.from(data).toString("utf-8"));
+  if (!isPlainObject(raw)) {
+    throw new Error("WebSocket message must be a JSON object");
+  }
+  return raw;
+}
+
+function isStateUpdateWithToken(msg: Record<string, unknown>): msg is Record<string, unknown> & {
+  token: string;
+  state: Record<string, unknown> & { myPlayerId: string };
+} {
+  if (msg.type !== "STATE_UPDATE" || typeof msg.token !== "string" || !isPlainObject(msg.state)) {
+    return false;
+  }
+  return typeof msg.state.myPlayerId === "string";
+}
+
+function expectMessageState(msg: Record<string, unknown>): Record<string, unknown> {
+  if (!isPlainObject(msg.state)) {
+    throw new Error(`Expected message.state object, got ${JSON.stringify(msg)}`);
+  }
+  return msg.state;
+}
+
+function resolvedActionRecord(msg: Record<string, unknown>): Record<string, unknown> | undefined {
+  const ra = msg.resolvedAction;
+  return isPlainObject(ra) ? ra : undefined;
+}
+
+function isTileRefList(x: unknown): x is Array<{ id: string }> {
+  return Array.isArray(x) && x.every((item) => isPlainObject(item) && typeof item.id === "string");
+}
+
 async function createRoom(hostName = "TestHost"): Promise<{ roomCode: string }> {
   const res = await app.inject({
     method: "POST",
     url: "/api/rooms",
     payload: { hostName },
   });
-  return JSON.parse(res.body);
+  expect(res.statusCode).toBe(201);
+  const raw: unknown = JSON.parse(res.body);
+  if (!isPlainObject(raw) || typeof raw.roomCode !== "string") {
+    throw new Error("Invalid create room response");
+  }
+  return { roomCode: raw.roomCode };
 }
 
 function connectWs(url: string): Promise<WebSocket> {
@@ -31,7 +72,7 @@ function connectWs(url: string): Promise<WebSocket> {
 function waitForMessage(ws: WebSocket): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
     ws.once("message", (data: Buffer) => {
-      resolve(JSON.parse(Buffer.from(data).toString("utf-8")));
+      resolve(parseWsJsonMessage(data));
     });
   });
 }
@@ -66,35 +107,38 @@ async function joinPlayer(
   const msgPromise = waitForMessage(ws);
   sendJoin(ws, roomCode, displayName);
   const msg = await msgPromise;
-  const state = msg.state as Record<string, unknown>;
+  if (!isStateUpdateWithToken(msg)) {
+    throw new Error(`Expected join STATE_UPDATE with token, got ${JSON.stringify(msg)}`);
+  }
   return {
     ws,
-    token: msg.token as string,
-    playerId: state.myPlayerId as string,
+    token: msg.token,
+    playerId: msg.state.myPlayerId,
   };
 }
+
+type JoinedPlayer = { ws: WebSocket; token: string; playerId: string };
 
 /** Set up a room with 4 players (lobby phase, no game started) */
 async function setupGameRoom(): Promise<{
   roomCode: string;
-  players: Array<{ ws: WebSocket; token: string; playerId: string }>;
+  players: JoinedPlayer[];
 }> {
   const { roomCode } = await createRoom();
-  const players: Array<{ ws: WebSocket; token: string; playerId: string }> = [];
-
-  for (const name of ["Alice", "Bob", "Charlie", "Diana"]) {
-    // Set up message listeners for existing players BEFORE new player joins
-    const broadcastPromises = players.map((p) => waitForMessage(p.ws));
-
-    const p = await joinPlayer(roomCode, name);
-    players.push(p);
-
-    // Drain broadcast messages sent to existing players
-    if (broadcastPromises.length > 0) {
-      await Promise.all(broadcastPromises);
-    }
-  }
-
+  const names = ["Alice", "Bob", "Charlie", "Diana"] as const;
+  const players = await names.reduce(
+    async (prevPlayersPromise, name) => {
+      const playersSoFar = await prevPlayersPromise;
+      const broadcastPromises = playersSoFar.map((p) => waitForMessage(p.ws));
+      const p = await joinPlayer(roomCode, name);
+      const next = [...playersSoFar, p];
+      if (broadcastPromises.length > 0) {
+        await Promise.all(broadcastPromises);
+      }
+      return next;
+    },
+    Promise.resolve([] as JoinedPlayer[]),
+  );
   return { roomCode, players };
 }
 
@@ -186,13 +230,13 @@ describe("handleActionMessage", () => {
     for (const msg of messages) {
       expect(msg.type).toBe("STATE_UPDATE");
       expect(msg.version).toBe(1);
-      const state = msg.state as Record<string, unknown>;
+      const state = expectMessageState(msg);
       expect(state.gamePhase).toBe("play");
     }
 
     // Verify each player's view has their own myPlayerId
     for (let i = 0; i < players.length; i++) {
-      const state = messages[i].state as Record<string, unknown>;
+      const state = expectMessageState(messages[i]);
       expect(state.myPlayerId).toBe(players[i].playerId);
     }
 
@@ -224,9 +268,9 @@ describe("handleActionMessage", () => {
     }
 
     // The resolved action should reference the real player, not the fake one
-    const resolvedAction = messages[0].resolvedAction as Record<string, unknown>;
+    const resolvedAction = resolvedActionRecord(messages[0]);
     expect(resolvedAction).toBeDefined();
-    expect(resolvedAction.playerId).toBe(currentTurnPlayerId);
+    expect(resolvedAction?.playerId).toBe(currentTurnPlayerId);
 
     for (const p of players) p.ws.close();
   });
@@ -319,10 +363,12 @@ describe("handleActionMessage", () => {
 
     // Each player should only see their own rack
     for (let i = 0; i < players.length; i++) {
-      const state = messages[i].state as Record<string, unknown>;
-      const myRack = state.myRack as Array<{ id: string }>;
-      expect(myRack).toBeDefined();
-      expect(Array.isArray(myRack)).toBe(true);
+      const state = expectMessageState(messages[i]);
+      const myRack = state.myRack;
+      expect(isTileRefList(myRack)).toBe(true);
+      if (!isTileRefList(myRack)) {
+        throw new Error("Expected myRack tile list");
+      }
 
       // Verify no opponent rack data leaks
       const stateStr = JSON.stringify(state);
@@ -365,6 +411,164 @@ describe("handleActionMessage", () => {
     for (const p of players) p.ws.close();
   });
 
+  it("rejects ACTION when action payload is an array (not a plain object)", async () => {
+    const { players } = await setupGameInProgress();
+    const msgPromise = waitForMessage(players[0].ws);
+    players[0].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "ACTION",
+        action: [{ type: "DRAW_TILE" }],
+      }),
+    );
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects START_GAME in lobby when seed is not a finite number", async () => {
+    const { players } = await setupGameRoom();
+    const host = players[0];
+    const msgPromise = waitForMessage(host.ws);
+    sendAction(host.ws, { type: "START_GAME", seed: "42" });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(String(msg.message)).toContain("START_GAME seed");
+    for (const p of players) p.ws.close();
+  });
+
+  it.each([
+    { seed: Number.NaN, label: "NaN" },
+    { seed: Number.POSITIVE_INFINITY, label: "Infinity" },
+  ] as const)("rejects START_GAME in lobby when seed is $label", async ({ seed }) => {
+    const { players } = await setupGameRoom();
+    const host = players[0];
+    const msgPromise = waitForMessage(host.ws);
+    sendAction(host.ws, { type: "START_GAME", seed });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(String(msg.message)).toContain("START_GAME seed");
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects START_GAME in lobby when playerIds is not string[]", async () => {
+    const { players } = await setupGameRoom();
+    const host = players[0];
+    const msgPromise = waitForMessage(host.ws);
+    sendAction(host.ws, { type: "START_GAME", playerIds: ["a", 1, "c"] });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(String(msg.message)).toContain("playerIds");
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects CALL_PUNG with empty tileIds", async () => {
+    const { players } = await setupGameInProgress();
+    const offender = players[0];
+    const msgPromise = waitForMessage(offender.ws);
+    sendAction(offender.ws, { type: "CALL_PUNG", playerId: offender.playerId, tileIds: [] });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(String(msg.message)).toContain("at least one tileId");
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects CONFIRM_CALL with duplicate tileIds", async () => {
+    const { players } = await setupGameInProgress();
+    const offender = players[0];
+    const msgPromise = waitForMessage(offender.ws);
+    sendAction(offender.ws, {
+      type: "CONFIRM_CALL",
+      playerId: offender.playerId,
+      tileIds: ["t-1", "t-1"],
+    });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(String(msg.message)).toContain("unique");
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects malformed COURTESY_PASS when tileIds is null", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    room.gameState!.gamePhase = "charleston";
+    room.gameState!.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      votesByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
+    };
+
+    const offender = players.find((p) => p.playerId === "player-0")!;
+    const msgPromise = waitForMessage(offender.ws);
+    sendAction(offender.ws, {
+      type: "COURTESY_PASS",
+      playerId: offender.playerId,
+      count: 1,
+      tileIds: null,
+    });
+
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects unknown action types before engine dispatch", async () => {
+    const { players } = await setupGameInProgress();
+    const offender = players[0];
+    const msgPromise = waitForMessage(offender.ws);
+
+    sendAction(offender.ws, {
+      type: "DOES_NOT_EXIST",
+      playerId: offender.playerId,
+    });
+
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(msg.message).toContain("Unsupported action type");
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("rejects malformed CHARLESTON_PASS when tileIds length is not 3", async () => {
+    const { players } = await setupGameInProgress();
+    const offender = players[0];
+    const msgPromise = waitForMessage(offender.ws);
+
+    sendAction(offender.ws, {
+      type: "CHARLESTON_PASS",
+      playerId: offender.playerId,
+      tileIds: [],
+    });
+
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_ACTION");
+    expect(msg.message).toContain("CHARLESTON_PASS requires exactly 3 tileIds");
+
+    for (const p of players) p.ws.close();
+  });
+
   describe("START_GAME action (4a-7)", () => {
     it("host can start game with 4 connected players", async () => {
       const { roomCode, players } = await setupGameRoom();
@@ -387,7 +591,7 @@ describe("handleActionMessage", () => {
 
       // All views should have gamePhase = "charleston"
       for (const msg of messages) {
-        const state = msg.state as Record<string, unknown>;
+        const state = expectMessageState(msg);
         expect(state.gamePhase).toBe("charleston");
         expect(state.charleston).toMatchObject({
           currentDirection: "right",
@@ -398,9 +602,9 @@ describe("handleActionMessage", () => {
 
       // resolvedAction should be GAME_STARTED for all
       for (const msg of messages) {
-        const resolved = msg.resolvedAction as Record<string, unknown>;
+        const resolved = resolvedActionRecord(msg);
         expect(resolved).toBeDefined();
-        expect(resolved.type).toBe("GAME_STARTED");
+        expect(resolved?.type).toBe("GAME_STARTED");
       }
 
       // room.gameState should now exist
@@ -428,11 +632,14 @@ describe("handleActionMessage", () => {
       const gameState = room.gameState!;
 
       for (let i = 0; i < players.length; i++) {
-        const state = messages[i].state as Record<string, unknown>;
-        const myRack = state.myRack as Array<{ id: string }>;
+        const state = expectMessageState(messages[i]);
+        const myRack = state.myRack;
+        expect(isTileRefList(myRack)).toBe(true);
+        if (!isTileRefList(myRack)) {
+          throw new Error("Expected myRack tile list");
+        }
 
         // Each player sees their own rack
-        expect(myRack).toBeDefined();
         expect(myRack.length).toBeGreaterThan(0);
         expect(state.myPlayerId).toBe(players[i].playerId);
 
@@ -493,16 +700,20 @@ describe("handleActionMessage", () => {
 
     it("rejects START_GAME with fewer than 4 connected players", async () => {
       const { roomCode } = await createRoom();
-      // Only join 3 players
-      const players: Array<{ ws: WebSocket; token: string; playerId: string }> = [];
-      for (const name of ["Alice", "Bob", "Charlie"]) {
-        const broadcastPromises = players.map((p) => waitForMessage(p.ws));
-        const p = await joinPlayer(roomCode, name);
-        players.push(p);
-        if (broadcastPromises.length > 0) {
-          await Promise.all(broadcastPromises);
-        }
-      }
+      const partialNames = ["Alice", "Bob", "Charlie"] as const;
+      const players = await partialNames.reduce(
+        async (prevPlayersPromise, name) => {
+          const playersSoFar = await prevPlayersPromise;
+          const broadcastPromises = playersSoFar.map((p) => waitForMessage(p.ws));
+          const p = await joinPlayer(roomCode, name);
+          const next = [...playersSoFar, p];
+          if (broadcastPromises.length > 0) {
+            await Promise.all(broadcastPromises);
+          }
+          return next;
+        },
+        Promise.resolve([] as JoinedPlayer[]),
+      );
 
       const host = players[0];
       const msgPromise = waitForMessage(host.ws);
@@ -590,13 +801,13 @@ describe("handleActionMessage", () => {
     // All players should receive STATE_UPDATE with callWindow field present (AC #5)
     for (const msg of messages) {
       expect(msg.type).toBe("STATE_UPDATE");
-      const state = msg.state as Record<string, unknown>;
+      const state = expectMessageState(msg);
       expect(state.gamePhase).toBe("play");
       // callWindow must always be present in the view (null or object)
       expect(state).toHaveProperty("callWindow");
       // If a call window opened, verify its structure
-      if (state.callWindow !== null) {
-        const cw = state.callWindow as Record<string, unknown>;
+      if (state.callWindow !== null && isPlainObject(state.callWindow)) {
+        const cw = state.callWindow;
         expect(cw).toHaveProperty("status");
         expect(cw).toHaveProperty("discardedTile");
         expect(cw).toHaveProperty("discarderId");

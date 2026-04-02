@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { SeatWind } from "@mahjong-game/shared";
 import { assignNextSeat } from "./seat-assignment";
 import type { Room } from "./room";
+import { createSilentTestLogger } from "../testing/silent-logger";
 
 function createTestRoom(playerIds: string[] = []): Room {
-  const room = {
+  const room: Room = {
     roomId: "test-room-id",
     roomCode: "TEST01",
     hostToken: "test-host-token",
@@ -16,7 +17,7 @@ function createTestRoom(playerIds: string[] = []): Room {
     lifecycleTimers: new Map(),
     gameState: null,
     createdAt: Date.now(),
-    logger: { info: () => {}, warn: () => {}, debug: () => {}, child: () => ({}) } as never,
+    logger: createSilentTestLogger(),
   };
 
   for (const id of playerIds) {

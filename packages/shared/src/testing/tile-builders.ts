@@ -39,13 +39,54 @@ export function jokerTile(copy: number = 1): JokerTile {
   return { id: `joker-${copy}`, category: "joker", copy };
 }
 
-type SuitMapping = Record<string, "bam" | "crak" | "dot">;
+/** Abstract NMJL suit colors on the card → concrete suits (full A/B/C mapping). */
+export type SuitMapping = Record<"A" | "B" | "C", TileSuit>;
+
+const DEFAULT_SUIT_MAPPING: SuitMapping = { A: "bam", B: "crak", C: "dot" };
 
 const CATEGORY_POOL: Record<string, string[]> = {
   dragon: ["red", "green", "soap"],
   wind: ["north", "east", "west", "south"],
   flower: ["a", "b"],
 };
+
+function asWindValue(s: string): WindValue {
+  if (s === "north" || s === "east" || s === "west" || s === "south") {
+    return s;
+  }
+  throw new Error(`Invalid wind value: ${s}`);
+}
+
+function asDragonValue(s: string): DragonValue {
+  if (s === "red" || s === "green" || s === "soap") {
+    return s;
+  }
+  throw new Error(`Invalid dragon value: ${s}`);
+}
+
+function asFlowerValue(s: string): FlowerValue {
+  if (s === "a" || s === "b") {
+    return s;
+  }
+  throw new Error(`Invalid flower value: ${s}`);
+}
+
+function asTileValue(n: number): TileValue {
+  switch (n) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+      return n;
+    default:
+      throw new Error(`Invalid suited tile value: ${n}`);
+  }
+}
 
 /**
  * Build a valid 14-tile array for a given hand pattern from the NMJL card.
@@ -56,7 +97,7 @@ const CATEGORY_POOL: Record<string, string[]> = {
 export function buildTilesForHand(
   card: NMJLCard,
   handId: string,
-  suitMapping: SuitMapping = { A: "bam", B: "crak", C: "dot" },
+  suitMapping: SuitMapping = DEFAULT_SUIT_MAPPING,
   nValue = 1,
 ): Tile[] {
   const allHands = card.categories.flatMap((c) => c.hands);
@@ -99,16 +140,26 @@ export function buildTilesForHand(
 
   function resolveValue(value: number | string | undefined): number {
     if (typeof value === "number") return value;
+    if (value === undefined) {
+      throw new Error("Suited tile requires value (expected 1–9, N, N+1, or N+2)");
+    }
     if (value === "N") return nValue;
     if (value === "N+1") return nValue + 1;
     if (value === "N+2") return nValue + 2;
-    return 1;
+    throw new Error(`Unexpected suited tile value: ${JSON.stringify(value)}`);
+  }
+
+  function resolveSuit(color: string): TileSuit {
+    if (color === "A" || color === "B" || color === "C") {
+      return suitMapping[color];
+    }
+    return "bam";
   }
 
   function pushTile(tileKey: string, builder: (copy: number) => Tile): void {
     const copy = nextCopy(tileKey);
     if (copy > 4) {
-      tiles.push({ id: `joker-${jokerCopy}`, category: "joker", copy: jokerCopy } as Tile);
+      tiles.push(jokerTile(jokerCopy));
       jokerCopy++;
     } else {
       tiles.push(builder(copy));
@@ -146,36 +197,41 @@ export function buildTilesForHand(
         const tileKey = `${group.tile.category}-${specific}`;
         const cat = group.tile.category;
         pushTile(tileKey, (copy) => {
-          if (cat === "wind")
+          if (cat === "wind") {
+            const value = asWindValue(specific);
             return {
-              id: `wind-${specific}-${copy}`,
+              id: `wind-${value}-${copy}`,
               category: "wind",
-              value: specific as WindValue,
+              value,
               copy,
             };
-          if (cat === "dragon")
+          }
+          if (cat === "dragon") {
+            const value = asDragonValue(specific);
             return {
-              id: `dragon-${specific}-${copy}`,
+              id: `dragon-${value}-${copy}`,
               category: "dragon",
-              value: specific as DragonValue,
+              value,
               copy,
             };
+          }
+          const value = asFlowerValue(specific);
           return {
-            id: `flower-${specific}-${copy}`,
+            id: `flower-${value}-${copy}`,
             category: "flower",
-            value: specific as FlowerValue,
+            value,
             copy,
           };
         });
       } else if (group.tile.color) {
-        const suit = suitMapping[group.tile.color] ?? "bam";
-        const value = resolveValue(group.tile.value);
+        const suit = resolveSuit(group.tile.color);
+        const value = asTileValue(resolveValue(group.tile.value));
         const tileKey = `${suit}-${value}`;
         pushTile(tileKey, (copy) => ({
           id: `${suit}-${value}-${copy}`,
           category: "suited" as const,
           suit,
-          value: value as TileValue,
+          value,
           copy,
         }));
       }

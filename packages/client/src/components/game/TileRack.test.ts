@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vite-plus/test";
-import { mount, VueWrapper } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
+import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import { createPinia, setActivePinia } from "pinia";
 import TileRack from "./TileRack.vue";
 import { useRackStore } from "../../stores/rack";
@@ -227,7 +228,7 @@ describe("TileRack — keyboard navigation", () => {
     const firstTileButton = items[0].find('[role="button"]');
     const secondTileButton = items[1].find('[role="button"]');
 
-    (firstTileButton.element as HTMLElement).focus();
+    expectHtmlElement(firstTileButton.element).focus();
     await firstTileButton.trigger("keydown", { key: "ArrowRight" });
 
     expect(document.activeElement).toBe(secondTileButton.element);
@@ -245,7 +246,7 @@ describe("TileRack — keyboard navigation", () => {
     const firstTileButton = items[0].find('[role="button"]');
     const secondTileButton = items[1].find('[role="button"]');
 
-    (firstTileButton.element as HTMLElement).focus();
+    expectHtmlElement(firstTileButton.element).focus();
     await firstTileButton.trigger("keydown", { key: "ArrowRight" });
     await secondTileButton.trigger("keydown", { key: "ArrowLeft" });
 
@@ -264,7 +265,7 @@ describe("TileRack — keyboard navigation", () => {
     const lastTileButton = items[items.length - 1].find('[role="button"]');
     const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
 
-    (lastTileButton.element as HTMLElement).focus();
+    expectHtmlElement(lastTileButton.element).focus();
     await lastTileButton.trigger("focus");
     await lastTileButton.trigger("keydown", { key: "ArrowRight" });
 
@@ -283,7 +284,7 @@ describe("TileRack — keyboard navigation", () => {
     const lastTileButton = items[items.length - 1].find('[role="button"]');
     const sortButton = wrapper.get('button[aria-label="Sort tiles by suit"]');
 
-    (lastTileButton.element as HTMLElement).focus();
+    expectHtmlElement(lastTileButton.element).focus();
     await lastTileButton.trigger("focus");
     await lastTileButton.trigger("keydown", { key: "ArrowRight" });
     await sortButton.trigger("keydown", { key: "ArrowLeft" });

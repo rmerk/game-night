@@ -1,4 +1,4 @@
-import type { GameState, ActionResult, MahjongGameResult } from "../../types/game-state";
+import type { GameState, ActionResult } from "../../types/game-state";
 import type { ChallengeMahjongAction, ChallengeVoteAction } from "../../types/actions";
 import { CHALLENGE_TIMEOUT_SECONDS } from "../../types/game-state";
 import { MAX_PLAYERS, SEATS } from "../../constants";

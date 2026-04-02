@@ -12,6 +12,7 @@ import {
   DEFAULT_ABANDONED_TIMEOUT_MS,
 } from "./room-lifecycle";
 import type { Room } from "./room";
+import { createSilentTestLogger } from "../testing/silent-logger";
 
 function createMockRoom(overrides?: Partial<Room>): Room {
   return {
@@ -26,15 +27,7 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     lifecycleTimers: new Map(),
     gameState: null,
     createdAt: Date.now(),
-    logger: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      fatal: vi.fn(),
-      trace: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    } as unknown as Room["logger"],
+    logger: createSilentTestLogger(),
     ...overrides,
   };
 }

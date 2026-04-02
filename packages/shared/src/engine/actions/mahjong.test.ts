@@ -14,10 +14,14 @@ import { getPlayerBySeat, injectTilesIntoRack } from "../../testing/helpers";
 import { buildTilesForHand } from "../../testing/tile-builders";
 import { loadCard } from "../../card/card-loader";
 import { validateHandWithExposure } from "../../card/exposure-validation";
-import type { GameState } from "../../types/game-state";
-import type { Tile } from "../../types/tiles";
+import type { GameState, GameResult, MahjongGameResult } from "../../types/game-state";
+import type { Tile, TileSuit, TileValue, SuitedTile } from "../../types/tiles";
 
 const card = loadCard("2026");
+
+function isMahjongGameResult(gr: GameResult | null): gr is MahjongGameResult {
+  return gr !== null && gr.winnerId !== null;
+}
 
 /**
  * Build a 14-tile hand matching pattern ev-2 ("Even Suited Kongs", 25pts, exposed):
@@ -31,24 +35,25 @@ function buildValidHand(): Tile[] {
 function buildInvalidHand(): Tile[] {
   // Cross-suit pairs: no NMJL hand matches this
   const tiles: Tile[] = [];
-  const specs = [
-    { suit: "bam" as const, value: 1 },
-    { suit: "crak" as const, value: 3 },
-    { suit: "dot" as const, value: 5 },
-    { suit: "bam" as const, value: 7 },
-    { suit: "crak" as const, value: 9 },
-    { suit: "dot" as const, value: 2 },
-    { suit: "bam" as const, value: 4 },
+  const specs: { suit: TileSuit; value: TileValue }[] = [
+    { suit: "bam", value: 1 },
+    { suit: "crak", value: 3 },
+    { suit: "dot", value: 5 },
+    { suit: "bam", value: 7 },
+    { suit: "crak", value: 9 },
+    { suit: "dot", value: 2 },
+    { suit: "bam", value: 4 },
   ];
   for (const s of specs) {
     for (let c = 1; c <= 2; c++) {
-      tiles.push({
+      const st: SuitedTile = {
         id: `${s.suit}-${s.value}-${c}`,
-        category: "suited" as const,
+        category: "suited",
         suit: s.suit,
         value: s.value,
         copy: c,
-      } as Tile);
+      };
+      tiles.push(st);
     }
   }
   return tiles;
@@ -151,12 +156,15 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     handleDeclareMahjong(state, { type: "DECLARE_MAHJONG", playerId: winnerId });
 
     // 25 points, self-drawn: each loser pays -50, winner receives 150
-    const result = state.gameResult as unknown as { payments: Record<string, number> };
+    const gr = state.gameResult;
+    if (!isMahjongGameResult(gr)) {
+      throw new Error("expected Mahjong game result");
+    }
     const loserIds = Object.keys(state.players).filter((id) => id !== winnerId);
     for (const loserId of loserIds) {
-      expect(result.payments[loserId]).toBe(-50);
+      expect(gr.payments[loserId]).toBe(-50);
     }
-    expect(result.payments[winnerId]).toBe(150);
+    expect(gr.payments[winnerId]).toBe(150);
   });
 
   test("scores are updated correctly", () => {
@@ -535,7 +543,7 @@ describe("Mahjong priority over other calls", () => {
         { callType: "pung", playerId: westId, tileIds: matchingTiles.map((t) => t.id) },
         { callType: "mahjong", playerId: callerId, tileIds: [] },
       );
-      (state.callWindow as unknown as { status: string }).status = "frozen";
+      state.callWindow!.status = "frozen";
 
       // Resolve — mahjong should win
       // resolveCallPriority imported at top level
@@ -683,16 +691,19 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
         tileIds: [],
       });
 
-      const result = state.gameResult as unknown as { payments: Record<string, number> };
+      const gr = state.gameResult;
+      if (!isMahjongGameResult(gr)) {
+        throw new Error("expected Mahjong game result");
+      }
       // ev-3 is 25 points
-      expect(result.payments[discarderId]).toBe(-50); // 2x
+      expect(gr.payments[discarderId]).toBe(-50); // 2x
       const otherLosers = Object.keys(state.players).filter(
         (id) => id !== callerId && id !== discarderId,
       );
       for (const loserId of otherLosers) {
-        expect(result.payments[loserId]).toBe(-25); // 1x
+        expect(gr.payments[loserId]).toBe(-25); // 1x
       }
-      expect(result.payments[callerId]).toBe(100); // 50 + 25 + 25
+      expect(gr.payments[callerId]).toBe(100); // 50 + 25 + 25
     } finally {
       vi.useRealTimers();
     }

@@ -11,7 +11,6 @@ import {
   getSeatDistance,
   resolveCallPriority,
   resolveCallWindow,
-  enterConfirmationPhase,
   handleConfirmCall,
   handleRetractCall,
   handleConfirmationTimeout,
@@ -28,8 +27,25 @@ import {
   injectTilesIntoRack,
 } from "../../testing/helpers";
 import { WINDS, DRAGONS, SEATS } from "../../constants";
-import type { GameState, CallRecord, SeatWind } from "../../types/game-state";
+import type { GameState, CallRecord, SeatWind, ResolvedAction } from "../../types/game-state";
 import type { Tile } from "../../types/tiles";
+
+function assertResolvedType<K extends ResolvedAction["type"]>(
+  resolved: ResolvedAction | null | undefined,
+  kind: K,
+): asserts resolved is Extract<ResolvedAction, { type: K }> {
+  if (!resolved || resolved.type !== kind) {
+    throw new Error(`Expected resolved type ${kind}, got ${JSON.stringify(resolved)}`);
+  }
+}
+
+function requireResolved<K extends ResolvedAction["type"]>(
+  resolved: ResolvedAction | null | undefined,
+  kind: K,
+): Extract<ResolvedAction, { type: K }> {
+  assertResolvedType(resolved, kind);
+  return resolved;
+}
 
 /** Discard a non-Joker tile from the given player's rack. Returns the discarded tile. */
 function discardTile(state: GameState, playerId: string) {
@@ -1595,7 +1611,7 @@ describe("handleCallAction — freeze on first call (Story 3A.4)", () => {
   test("first call freezes window — status becomes frozen, resolved action is CALL_WINDOW_FROZEN", () => {
     const { state, callerId } = setupCallScenario(2);
 
-    const result = handleCallAction(
+    handleCallAction(
       state,
       {
         type: "CALL_PUNG",
@@ -1836,12 +1852,7 @@ describe("resolveCallWindow", () => {
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
     expect(result.resolved!.type).toBe("CALL_CONFIRMATION_STARTED");
-    const resolved = result.resolved as {
-      type: "CALL_CONFIRMATION_STARTED";
-      callerId: string;
-      callType: string;
-      timerDuration: number;
-    };
+    const resolved = requireResolved(result.resolved, "CALL_CONFIRMATION_STARTED");
     expect(resolved.callerId).toBe(callerId);
     expect(resolved.callType).toBe("pung");
     expect(resolved.timerDuration).toBe(5000);
@@ -1875,11 +1886,7 @@ describe("resolveCallWindow", () => {
 
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
-    const resolved = result.resolved as {
-      type: "CALL_CONFIRMATION_STARTED";
-      callerId: string;
-      callType: string;
-    };
+    const resolved = requireResolved(result.resolved, "CALL_CONFIRMATION_STARTED");
     // South is closer counterclockwise from East — enters confirmation
     expect(resolved.callerId).toBe(southId);
     expect(state.callWindow!.confirmingPlayerId).toBe(southId);
@@ -1917,11 +1924,7 @@ describe("resolveCallWindow", () => {
 
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(true);
-    const resolved = result.resolved as {
-      type: "CALL_CONFIRMATION_STARTED";
-      callerId: string;
-      callType: string;
-    };
+    const resolved = requireResolved(result.resolved, "CALL_CONFIRMATION_STARTED");
     // Mahjong call wins — West enters confirmation
     expect(resolved.callerId).toBe(westId);
     expect(resolved.callType).toBe("mahjong");
@@ -1936,7 +1939,7 @@ describe("resolveCallWindow", () => {
     discardTile(state, eastId);
 
     // Manually set to frozen but with no calls (edge case)
-    (state.callWindow as { status: string }).status = "frozen";
+    state.callWindow!.status = "frozen";
 
     const result = resolveCallWindow(state);
     expect(result.accepted).toBe(false);
@@ -2211,12 +2214,7 @@ describe("enterConfirmationPhase (Story 3A.5)", () => {
 
       const result = resolveCallWindow(state);
       expect(result.resolved!.type).toBe("CALL_CONFIRMATION_STARTED");
-      const resolved = result.resolved as {
-        type: "CALL_CONFIRMATION_STARTED";
-        callerId: string;
-        callType: string;
-        timerDuration: number;
-      };
+      const resolved = requireResolved(result.resolved, "CALL_CONFIRMATION_STARTED");
       expect(resolved.callerId).toBe(callerId);
       expect(resolved.callType).toBe("pung");
       expect(resolved.timerDuration).toBe(CONFIRMATION_TIMER_MS);
@@ -2280,8 +2278,7 @@ describe("handleConfirmCall — valid confirmation (Story 3A.5)", () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
-      const { state, callerId, discardedTile, matchingTileIds } = setupCallScenario(3);
-      const discarderId = state.callWindow!.discarderId;
+      const { state, callerId, matchingTileIds } = setupCallScenario(3);
 
       // Call kong and resolve
       handleCallAction(
@@ -2310,8 +2307,7 @@ describe("handleConfirmCall — valid confirmation (Story 3A.5)", () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
-      const { state, callerId, discardedTile, matchingTileIds } = setupCallScenario(3, 1);
-      const discarderId = state.callWindow!.discarderId;
+      const { state, callerId, matchingTileIds } = setupCallScenario(3, 1);
 
       handleCallAction(
         state,
@@ -2455,14 +2451,7 @@ describe("handleConfirmCall — valid confirmation (Story 3A.5)", () => {
         tileIds: matchingTileIds,
       });
 
-      const resolved = result.resolved as {
-        type: "CALL_CONFIRMED";
-        callerId: string;
-        callType: string;
-        exposedTileIds: string[];
-        calledTileId: string;
-        fromPlayerId: string;
-      };
+      const resolved = requireResolved(result.resolved, "CALL_CONFIRMED");
       expect(resolved.callerId).toBe(callerId);
       expect(resolved.callType).toBe("pung");
       expect(resolved.calledTileId).toBe(discardedTile.id);
@@ -2577,7 +2566,7 @@ describe("handleConfirmCall — validation rejections (Story 3A.5)", () => {
 
 describe("handleRetractCall (Story 3A.5)", () => {
   test("retraction with remaining callers — next caller enters confirmation", () => {
-    const { state, southId, westId, westTileIds } = setupCompetingCallersConfirmation();
+    const { state, southId, westId } = setupCompetingCallersConfirmation();
     try {
       expect(state.callWindow!.confirmingPlayerId).toBe(southId);
 
@@ -2588,11 +2577,7 @@ describe("handleRetractCall (Story 3A.5)", () => {
 
       expect(result.accepted).toBe(true);
       expect(result.resolved!.type).toBe("CALL_RETRACTED");
-      const resolved = result.resolved as {
-        type: "CALL_RETRACTED";
-        callerId: string;
-        nextCallerId: string;
-      };
+      const resolved = requireResolved(result.resolved, "CALL_RETRACTED");
       expect(resolved.callerId).toBe(southId);
       expect(resolved.nextCallerId).toBe(westId);
 
@@ -2636,7 +2621,7 @@ describe("handleRetractCall (Story 3A.5)", () => {
   });
 
   test("wrong player attempts retraction — rejected with zero mutations", () => {
-    const { state, callerId } = setupConfirmationScenario(2);
+    const { state } = setupConfirmationScenario(2);
     try {
       const westId = getPlayerBySeat(state, "west");
       const stateBefore = JSON.stringify(state);
@@ -2666,12 +2651,7 @@ describe("handleConfirmationTimeout (Story 3A.5)", () => {
 
       expect(result.accepted).toBe(true);
       expect(result.resolved!.type).toBe("CALL_RETRACTED");
-      const resolved = result.resolved as {
-        type: "CALL_RETRACTED";
-        callerId: string;
-        reason: string;
-        nextCallerId: string;
-      };
+      const resolved = requireResolved(result.resolved, "CALL_RETRACTED");
       expect(resolved.callerId).toBe(southId);
       expect(resolved.reason).toBe("CONFIRMATION_TIMEOUT");
       expect(resolved.nextCallerId).toBe(westId);
@@ -2681,7 +2661,7 @@ describe("handleConfirmationTimeout (Story 3A.5)", () => {
   });
 
   test("timeout with remaining callers promotes next caller", () => {
-    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    const { state, westId } = setupCompetingCallersConfirmation();
     try {
       vi.advanceTimersByTime(CONFIRMATION_TIMER_MS);
       handleConfirmationTimeout(state);
@@ -2806,8 +2786,7 @@ describe("Integration: full call flow (Story 3A.5)", () => {
   });
 
   test("discard → call → freeze → resolve → retract → fallback caller confirms", () => {
-    const { state, southId, westId, westTileIds, discardedTile } =
-      setupCompetingCallersConfirmation();
+    const { state, southId, westId, westTileIds } = setupCompetingCallersConfirmation();
     try {
       // South retracts
       handleRetractCall(state, { type: "RETRACT_CALL", playerId: southId });
@@ -2833,7 +2812,7 @@ describe("Integration: full call flow (Story 3A.5)", () => {
   });
 
   test("discard → call → freeze → resolve → timeout → fallback or reopen", () => {
-    const { state, southId, westId } = setupCompetingCallersConfirmation();
+    const { state, westId } = setupCompetingCallersConfirmation();
     try {
       // Timeout for South
       vi.advanceTimersByTime(CONFIRMATION_TIMER_MS);

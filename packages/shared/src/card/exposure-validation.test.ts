@@ -3,7 +3,7 @@ import type { NMJLCard, HandPattern } from "../types/card";
 import type { TileValue } from "../types/tiles";
 import type { ExposedGroup } from "../types/game-state";
 import { loadCard } from "./card-loader";
-import { suitedTile, jokerTile, buildTilesForHand } from "../testing/tile-builders";
+import { suitedTile, buildTilesForHand } from "../testing/tile-builders";
 import {
   validateExposure,
   validateHandWithExposure,

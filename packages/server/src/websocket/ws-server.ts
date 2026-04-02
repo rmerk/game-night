@@ -1,6 +1,7 @@
-import { WebSocketServer, type WebSocket } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import type { FastifyInstance } from "fastify";
 import type { FastifyBaseLogger } from "fastify";
+import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
@@ -20,6 +21,24 @@ declare module "ws" {
 export interface WsServerContext {
   wss: WebSocketServer;
   connectionTracker: ConnectionTracker;
+}
+
+function trySendJson(
+  ws: WebSocket,
+  payload: Record<string, unknown>,
+  logger: FastifyBaseLogger,
+  context: string,
+): void {
+  if (ws.readyState !== WebSocket.OPEN) {
+    logger.debug({ context, readyState: ws.readyState }, "Skipping send on non-open WebSocket");
+    return;
+  }
+
+  try {
+    ws.send(JSON.stringify(payload));
+  } catch (error) {
+    logger.warn({ error, context }, "Failed to send WebSocket message");
+  }
 }
 
 export function setupWebSocketServer(
@@ -69,39 +88,60 @@ export function setupWebSocketServer(
     });
 
     ws.on("message", (data) => {
-      const parsed = handleMessage(ws, data, logger);
-      if (!parsed) return;
+      try {
+        const parsed = handleMessage(ws, data, logger);
+        if (!parsed) return;
 
-      if (parsed.type === "JOIN_ROOM") {
-        handleJoinRoom(ws, parsed, roomManager, logger);
-      } else if (parsed.type === "ACTION") {
-        const session = roomManager.findSessionByWs(ws);
-        if (!session) {
-          ws.send(
-            JSON.stringify({
-              version: 1,
-              type: "ERROR",
-              code: "NOT_IN_ROOM",
-              message: "You must join a room before sending actions",
-            }),
-          );
-          return;
+        if (parsed.type === "JOIN_ROOM") {
+          handleJoinRoom(ws, parsed, roomManager, logger);
+        } else if (parsed.type === "ACTION") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before sending actions",
+              },
+              logger,
+              "action-not-in-room",
+            );
+            return;
+          }
+          handleActionMessage(ws, parsed, session.room, session.playerId, logger, roomManager);
+        } else if (parsed.type === "REQUEST_STATE") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before requesting state",
+              },
+              logger,
+              "request-state-not-in-room",
+            );
+            return;
+          }
+          sendCurrentState(session.room, session.playerId, ws);
         }
-        handleActionMessage(ws, parsed, session.room, session.playerId, logger, roomManager);
-      } else if (parsed.type === "REQUEST_STATE") {
-        const session = roomManager.findSessionByWs(ws);
-        if (!session) {
-          ws.send(
-            JSON.stringify({
-              version: 1,
-              type: "ERROR",
-              code: "NOT_IN_ROOM",
-              message: "You must join a room before requesting state",
-            }),
-          );
-          return;
-        }
-        sendCurrentState(session.room, session.playerId, ws);
+      } catch (error) {
+        logger.error({ error }, "Unhandled WebSocket message processing error");
+        trySendJson(
+          ws,
+          {
+            version: PROTOCOL_VERSION,
+            type: "ERROR",
+            code: "INTERNAL_ERROR",
+            message: "Failed to process message",
+          },
+          logger,
+          "message-processing-failure",
+        );
       }
     });
 

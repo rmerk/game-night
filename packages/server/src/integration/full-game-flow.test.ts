@@ -1,6 +1,14 @@
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, afterEach } from "vite-plus/test";
 import { WebSocket } from "ws";
 import type { FastifyInstance } from "fastify";
+import {
+  PROTOCOL_VERSION,
+  type StateUpdateMessage,
+  type ServerErrorMessage,
+  type LobbyState,
+  type PlayerGameView,
+  type Tile,
+} from "@mahjong-game/shared";
 import { createApp } from "../index";
 
 /**
@@ -20,13 +28,53 @@ function waitForOpen(ws: WebSocket): Promise<void> {
 }
 
 function waitForClose(ws: WebSocket): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (ws.readyState === WebSocket.CLOSED) {
       resolve();
       return;
     }
     ws.on("close", () => resolve());
+    ws.on("error", reject);
   });
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isServerErrorMessage(msg: unknown): msg is ServerErrorMessage {
+  return isPlainObject(msg) && msg.type === "ERROR" && typeof msg.code === "string";
+}
+
+function isStateUpdateMessage(msg: unknown): msg is StateUpdateMessage {
+  if (!isPlainObject(msg)) {
+    return false;
+  }
+  if (msg.version !== PROTOCOL_VERSION) {
+    return false;
+  }
+  if (msg.type !== "STATE_UPDATE") {
+    return false;
+  }
+  if (!isPlainObject(msg.state)) {
+    return false;
+  }
+  return typeof msg.state.myPlayerId === "string";
+}
+
+function isLobbyState(state: LobbyState | PlayerGameView): state is LobbyState {
+  return state.gamePhase === "lobby";
+}
+
+function isPlayerGameViewState(state: LobbyState | PlayerGameView): state is PlayerGameView {
+  return !isLobbyState(state);
+}
+
+function requirePlayerGameView(state: LobbyState | PlayerGameView): PlayerGameView {
+  if (!isPlayerGameViewState(state)) {
+    throw new Error("Expected PlayerGameView");
+  }
+  return state;
 }
 
 /**
@@ -34,42 +82,74 @@ function waitForClose(ws: WebSocket): Promise<void> {
  * Messages are buffered as they arrive so none are lost between awaits.
  */
 function createMessageReader(ws: WebSocket) {
-  const buffer: Record<string, unknown>[] = [];
-  let waiting: ((msg: Record<string, unknown>) => void) | null = null;
+  const buffer: unknown[] = [];
+  let parseFailure: Error | null = null;
+  let waiting: { resolve: (msg: unknown) => void; reject: (reason: unknown) => void } | null = null;
 
   ws.on("message", (data: Buffer) => {
-    const parsed = JSON.parse(data.toString("utf8")) as Record<string, unknown>;
+    const raw = data.toString("utf8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch {
+      const snippet = raw.length > 120 ? `${raw.slice(0, 120)}…` : raw;
+      const err = new Error(`Invalid WebSocket JSON: ${snippet}`);
+      if (waiting) {
+        const w = waiting;
+        waiting = null;
+        w.reject(err);
+      } else {
+        parseFailure = err;
+      }
+      return;
+    }
     if (waiting) {
-      const resolve = waiting;
+      const w = waiting;
       waiting = null;
-      resolve(parsed);
+      w.resolve(parsed);
     } else {
       buffer.push(parsed);
     }
   });
 
+  function next(): Promise<unknown> {
+    if (parseFailure) {
+      const err = parseFailure;
+      parseFailure = null;
+      return Promise.reject(err);
+    }
+    if (buffer.length > 0) {
+      return Promise.resolve(buffer.shift()!);
+    }
+    return new Promise((resolve, reject) => {
+      waiting = { resolve, reject };
+    });
+  }
+
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test helper returns dynamic server messages
-    next(): Promise<Record<string, any>> {
-      if (buffer.length > 0) {
-        return Promise.resolve(buffer.shift()!);
+    next,
+    async nextStateUpdate(): Promise<StateUpdateMessage> {
+      const msg = await next();
+      if (!isStateUpdateMessage(msg)) {
+        throw new Error(`Expected STATE_UPDATE, got: ${JSON.stringify(msg)}`);
       }
-      return new Promise((resolve) => {
-        waiting = resolve;
-      });
+      return msg;
     },
   };
 }
 
-function rackTileIdsFromStateMessage(message: Record<string, unknown>): string[] {
-  const state = message.state as {
-    myRack: Array<{ id: string }>;
-  };
-  return state.myRack.map((tile) => tile.id);
+function rackTileIdsFromStateMessage(message: StateUpdateMessage): string[] {
+  if (isLobbyState(message.state)) {
+    throw new Error("Expected in-game state with myRack");
+  }
+  return message.state.myRack.map((tile) => tile.id);
 }
 
-function charlestonViewFromMessage(message: Record<string, unknown>): Record<string, unknown> {
-  return (message.state as { charleston: Record<string, unknown> | null }).charleston ?? {};
+function charlestonViewFromMessage(message: StateUpdateMessage): PlayerGameView["charleston"] {
+  if (isLobbyState(message.state)) {
+    return null;
+  }
+  return message.state.charleston;
 }
 
 describe("Full Game Flow Integration", () => {
@@ -128,7 +208,7 @@ describe("Full Game Flow Integration", () => {
       aliceWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
       );
-      const aliceJoinMsg = await aliceReader.next();
+      const aliceJoinMsg = await aliceReader.nextStateUpdate();
       expect(aliceJoinMsg.type).toBe("STATE_UPDATE");
       const alicePlayerId = aliceJoinMsg.state.myPlayerId;
       const aliceToken = aliceJoinMsg.token;
@@ -138,7 +218,7 @@ describe("Full Game Flow Integration", () => {
       const bobReader = createMessageReader(bobWs);
 
       bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
-      const bobJoinMsg = await bobReader.next();
+      const bobJoinMsg = await bobReader.nextStateUpdate();
       expect(bobJoinMsg.type).toBe("STATE_UPDATE");
       const bobPlayerId = bobJoinMsg.state.myPlayerId;
 
@@ -149,7 +229,7 @@ describe("Full Game Flow Integration", () => {
       carolWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
       );
-      const carolJoinMsg = await carolReader.next();
+      const carolJoinMsg = await carolReader.nextStateUpdate();
       expect(carolJoinMsg.type).toBe("STATE_UPDATE");
       const carolPlayerId = carolJoinMsg.state.myPlayerId;
 
@@ -158,18 +238,18 @@ describe("Full Game Flow Integration", () => {
       const daveReader = createMessageReader(daveWs);
 
       daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
-      const daveJoinMsg = await daveReader.next();
+      const daveJoinMsg = await daveReader.nextStateUpdate();
       expect(daveJoinMsg.type).toBe("STATE_UPDATE");
       const davePlayerId = daveJoinMsg.state.myPlayerId;
 
       // Consume PLAYER_JOINED broadcasts (Alice gets 3, Bob gets 2, Carol gets 1)
       await Promise.all([
-        aliceReader.next(),
-        aliceReader.next(),
-        aliceReader.next(),
-        bobReader.next(),
-        bobReader.next(),
-        carolReader.next(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
       ]);
 
       // 4. Verify room is full
@@ -183,47 +263,54 @@ describe("Full Game Flow Integration", () => {
       // 5. Non-host tries to start → rejected
       bobWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
       const rejectMsg = await bobReader.next();
-      expect(rejectMsg.type).toBe("ERROR");
+      if (!isServerErrorMessage(rejectMsg)) {
+        throw new Error(`expected ERROR message, got ${JSON.stringify(rejectMsg)}`);
+      }
       expect(rejectMsg.code).toBe("NOT_HOST");
 
       // 6. Host starts game
       aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
 
       // All 4 players receive STATE_UPDATE with game state
-      const aliceState = await aliceReader.next();
-      const bobState = await bobReader.next();
-      const carolState = await carolReader.next();
-      const daveState = await daveReader.next();
+      const aliceState = await aliceReader.nextStateUpdate();
+      const bobState = await bobReader.nextStateUpdate();
+      const carolState = await carolReader.nextStateUpdate();
+      const daveState = await daveReader.nextStateUpdate();
 
       expect(aliceState.type).toBe("STATE_UPDATE");
-      expect(aliceState.state.gamePhase).toBe("charleston");
-      expect(aliceState.state.charleston).toMatchObject({
+      const alicePv = requirePlayerGameView(aliceState.state);
+      const bobPv = requirePlayerGameView(bobState.state);
+      const carolPv = requirePlayerGameView(carolState.state);
+      const davePv = requirePlayerGameView(daveState.state);
+
+      expect(alicePv.gamePhase).toBe("charleston");
+      expect(alicePv.charleston).toMatchObject({
         currentDirection: "right",
         status: "passing",
         stage: "first",
       });
 
       // 7. Verify per-player filtering — each player sees only their own rack
-      expect(aliceState.state.myRack.length).toBeGreaterThan(0);
-      expect(bobState.state.myRack.length).toBeGreaterThan(0);
+      expect(alicePv.myRack.length).toBeGreaterThan(0);
+      expect(bobPv.myRack.length).toBeGreaterThan(0);
 
       // Verify racks are different (different players have different tiles)
-      const aliceRackIds = aliceState.state.myRack.map((t: Record<string, unknown>) => t.id).sort();
-      const bobRackIds = bobState.state.myRack.map((t: Record<string, unknown>) => t.id).sort();
+      const aliceRackIds = alicePv.myRack.map((t) => t.id).sort();
+      const bobRackIds = bobPv.myRack.map((t) => t.id).sort();
       expect(aliceRackIds).not.toEqual(bobRackIds);
 
       // 8. Verify no opponent racks leaked
-      const aliceStr = JSON.stringify(aliceState.state);
+      const aliceStr = JSON.stringify(alicePv);
       for (const id of bobRackIds) {
         expect(aliceStr).not.toContain(id);
       }
 
       // 9. East player (player-0) has 14 tiles, others have 13
       const players = [
-        { id: alicePlayerId, rack: aliceState.state.myRack, ws: aliceWs, reader: aliceReader },
-        { id: bobPlayerId, rack: bobState.state.myRack, ws: bobWs, reader: bobReader },
-        { id: carolPlayerId, rack: carolState.state.myRack, ws: carolWs, reader: carolReader },
-        { id: davePlayerId, rack: daveState.state.myRack, ws: daveWs, reader: daveReader },
+        { id: alicePlayerId, rack: alicePv.myRack, ws: aliceWs, reader: aliceReader },
+        { id: bobPlayerId, rack: bobPv.myRack, ws: bobWs, reader: bobReader },
+        { id: carolPlayerId, rack: carolPv.myRack, ws: carolWs, reader: carolReader },
+        { id: davePlayerId, rack: davePv.myRack, ws: daveWs, reader: daveReader },
       ];
       const eastPlayer = players.find((p) => p.id === "player-0")!;
       expect(eastPlayer.rack.length).toBe(14);
@@ -239,9 +326,7 @@ describe("Full Game Flow Integration", () => {
       room.gameState!.charleston = null;
 
       // East player discards a tile (they have 14, must discard)
-      const tileToDiscard = eastPlayer.rack.find(
-        (tile: Record<string, unknown>) => tile.category !== "joker",
-      )!;
+      const tileToDiscard = eastPlayer.rack.find((tile: Tile) => tile.category !== "joker")!;
       eastPlayer.ws.send(
         JSON.stringify({
           version: 1,
@@ -251,7 +336,7 @@ describe("Full Game Flow Integration", () => {
       );
 
       // East player should get STATE_UPDATE after discard
-      const postDiscard = await eastPlayer.reader.next();
+      const postDiscard = await eastPlayer.reader.nextStateUpdate();
       expect(postDiscard.type).toBe("STATE_UPDATE");
 
       // 11. Verify room status shows game in progress
@@ -277,7 +362,7 @@ describe("Full Game Flow Integration", () => {
           token: aliceToken,
         }),
       );
-      const reconnectMsg = await aliceReconnectReader.next();
+      const reconnectMsg = await aliceReconnectReader.nextStateUpdate();
       expect(reconnectMsg.type).toBe("STATE_UPDATE");
       expect(reconnectMsg.state.myPlayerId).toBe(alicePlayerId);
     },
@@ -306,14 +391,14 @@ describe("Full Game Flow Integration", () => {
       aliceWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
       );
-      const aliceJoinMsg = await aliceReader.next();
+      const aliceJoinMsg = await aliceReader.nextStateUpdate();
       const alicePlayerId = aliceJoinMsg.state.myPlayerId;
 
       const bobWs = createWs();
       await waitForOpen(bobWs);
       const bobReader = createMessageReader(bobWs);
       bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
-      const bobJoinMsg = await bobReader.next();
+      const bobJoinMsg = await bobReader.nextStateUpdate();
       const bobPlayerId = bobJoinMsg.state.myPlayerId;
 
       const carolWs = createWs();
@@ -322,31 +407,31 @@ describe("Full Game Flow Integration", () => {
       carolWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
       );
-      const carolJoinMsg = await carolReader.next();
+      const carolJoinMsg = await carolReader.nextStateUpdate();
       const carolPlayerId = carolJoinMsg.state.myPlayerId;
 
       const daveWs = createWs();
       await waitForOpen(daveWs);
       const daveReader = createMessageReader(daveWs);
       daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
-      const daveJoinMsg = await daveReader.next();
+      const daveJoinMsg = await daveReader.nextStateUpdate();
       const davePlayerId = daveJoinMsg.state.myPlayerId;
 
       await Promise.all([
-        aliceReader.next(),
-        aliceReader.next(),
-        aliceReader.next(),
-        bobReader.next(),
-        bobReader.next(),
-        carolReader.next(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
       ]);
 
       aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
 
-      const aliceState = await aliceReader.next();
-      const bobState = await bobReader.next();
-      const carolState = await carolReader.next();
-      const daveState = await daveReader.next();
+      const aliceState = await aliceReader.nextStateUpdate();
+      const bobState = await bobReader.nextStateUpdate();
+      const carolState = await carolReader.nextStateUpdate();
+      const daveState = await daveReader.nextStateUpdate();
 
       expect(aliceState.type).toBe("STATE_UPDATE");
       expect(bobState.type).toBe("STATE_UPDATE");
@@ -360,16 +445,17 @@ describe("Full Game Flow Integration", () => {
         { id: davePlayerId, ws: daveWs, reader: daveReader, latestState: daveState },
       ];
 
-      const playersById = Object.fromEntries(
-        players.map((player) => [player.id, player]),
-      ) as Record<string, (typeof players)[number]>;
+      const playersById = players.reduce<Record<string, (typeof players)[number]>>((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
 
       function visibleSelection(playerId: string): string[] {
         return rackTileIdsFromStateMessage(playersById[playerId].latestState).slice(0, 3);
       }
 
       function expectNoLeak(
-        updates: Array<Record<string, unknown>>,
+        updates: StateUpdateMessage[],
         forbiddenTileIds: readonly string[],
       ): void {
         for (const update of updates) {
@@ -383,7 +469,7 @@ describe("Full Game Flow Integration", () => {
       async function submitCharlestonPassAndCollect(
         playerId: string,
         tileIds: readonly string[],
-      ): Promise<Array<Record<string, unknown>>> {
+      ): Promise<StateUpdateMessage[]> {
         playersById[playerId].ws.send(
           JSON.stringify({
             version: 1,
@@ -392,7 +478,7 @@ describe("Full Game Flow Integration", () => {
           }),
         );
 
-        const updates = await Promise.all(players.map((player) => player.reader.next()));
+        const updates = await Promise.all(players.map((player) => player.reader.nextStateUpdate()));
         for (const update of updates) {
           expect(update.type).toBe("STATE_UPDATE");
         }
@@ -414,7 +500,9 @@ describe("Full Game Flow Integration", () => {
         rightLockUpdates.filter((_, index) => players[index].id !== eastPlayerId),
         eastRightSelection,
       );
-      expect(playersById[eastPlayerId].latestState.state.charleston).toMatchObject({
+      expect(
+        requirePlayerGameView(playersById[eastPlayerId].latestState.state).charleston,
+      ).toMatchObject({
         currentDirection: "right",
         submittedPlayerIds: [eastPlayerId],
         mySubmissionLocked: true,
@@ -459,7 +547,9 @@ describe("Full Game Flow Integration", () => {
           nextDirection: "left",
         });
       }
-      expect(playersById[eastPlayerId].latestState.state.charleston).toMatchObject({
+      expect(
+        requirePlayerGameView(playersById[eastPlayerId].latestState.state).charleston,
+      ).toMatchObject({
         currentDirection: "left",
         myHiddenTileCount: 3,
         mySubmissionLocked: false,
@@ -497,10 +587,7 @@ describe("Full Game Flow Integration", () => {
       );
 
       for (const update of leftResolvedUpdates) {
-        const finalState = update.state as {
-          gamePhase: string;
-          charleston: Record<string, unknown> | null;
-        };
+        const finalState = requirePlayerGameView(update.state);
         expect(update.resolvedAction).toMatchObject({
           type: "CHARLESTON_PHASE_COMPLETE",
           direction: "left",
@@ -541,14 +628,14 @@ describe("Full Game Flow Integration", () => {
       aliceWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
       );
-      const aliceJoinMsg = await aliceReader.next();
+      const aliceJoinMsg = await aliceReader.nextStateUpdate();
       const alicePlayerId = aliceJoinMsg.state.myPlayerId;
 
       const bobWs = createWs();
       await waitForOpen(bobWs);
       const bobReader = createMessageReader(bobWs);
       bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
-      const bobJoinMsg = await bobReader.next();
+      const bobJoinMsg = await bobReader.nextStateUpdate();
       const bobPlayerId = bobJoinMsg.state.myPlayerId;
 
       const carolWs = createWs();
@@ -557,31 +644,31 @@ describe("Full Game Flow Integration", () => {
       carolWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
       );
-      const carolJoinMsg = await carolReader.next();
+      const carolJoinMsg = await carolReader.nextStateUpdate();
       const carolPlayerId = carolJoinMsg.state.myPlayerId;
 
       const daveWs = createWs();
       await waitForOpen(daveWs);
       const daveReader = createMessageReader(daveWs);
       daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
-      const daveJoinMsg = await daveReader.next();
+      const daveJoinMsg = await daveReader.nextStateUpdate();
       const davePlayerId = daveJoinMsg.state.myPlayerId;
 
       await Promise.all([
-        aliceReader.next(),
-        aliceReader.next(),
-        aliceReader.next(),
-        bobReader.next(),
-        bobReader.next(),
-        carolReader.next(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
       ]);
 
       aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
       await Promise.all([
-        aliceReader.next(),
-        bobReader.next(),
-        carolReader.next(),
-        daveReader.next(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
       ]);
 
       const room = app.roomManager.getRoom(roomCode)!;
@@ -608,10 +695,10 @@ describe("Full Game Flow Integration", () => {
       );
 
       const updates = await Promise.all([
-        aliceReader.next(),
-        bobReader.next(),
-        carolReader.next(),
-        daveReader.next(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
       ]);
 
       for (const update of updates) {
@@ -624,10 +711,7 @@ describe("Full Game Flow Integration", () => {
           status: "courtesy-ready",
         });
 
-        const state = update.state as {
-          gamePhase: string;
-          charleston: Record<string, unknown> | null;
-        };
+        const state = requirePlayerGameView(update.state);
         expect(state.gamePhase).toBe("charleston");
         expect(state.charleston).toMatchObject({
           stage: "courtesy",
@@ -670,14 +754,14 @@ describe("Full Game Flow Integration", () => {
       aliceWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
       );
-      const aliceJoinMsg = await aliceReader.next();
+      const aliceJoinMsg = await aliceReader.nextStateUpdate();
       const alicePlayerId = aliceJoinMsg.state.myPlayerId;
 
       const bobWs = createWs();
       await waitForOpen(bobWs);
       const bobReader = createMessageReader(bobWs);
       bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
-      const bobJoinMsg = await bobReader.next();
+      const bobJoinMsg = await bobReader.nextStateUpdate();
       const bobPlayerId = bobJoinMsg.state.myPlayerId;
 
       const carolWs = createWs();
@@ -686,32 +770,32 @@ describe("Full Game Flow Integration", () => {
       carolWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
       );
-      const carolJoinMsg = await carolReader.next();
+      const carolJoinMsg = await carolReader.nextStateUpdate();
       const carolPlayerId = carolJoinMsg.state.myPlayerId;
 
       const daveWs = createWs();
       await waitForOpen(daveWs);
       const daveReader = createMessageReader(daveWs);
       daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
-      const daveJoinMsg = await daveReader.next();
+      const daveJoinMsg = await daveReader.nextStateUpdate();
       const davePlayerId = daveJoinMsg.state.myPlayerId;
 
       await Promise.all([
-        aliceReader.next(),
-        aliceReader.next(),
-        aliceReader.next(),
-        bobReader.next(),
-        bobReader.next(),
-        carolReader.next(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
       ]);
 
       aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
 
       const initialStates = await Promise.all([
-        aliceReader.next(),
-        bobReader.next(),
-        carolReader.next(),
-        daveReader.next(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
       ]);
 
       const players = [
@@ -721,16 +805,17 @@ describe("Full Game Flow Integration", () => {
         { id: davePlayerId, ws: daveWs, reader: daveReader, latestState: initialStates[3] },
       ];
 
-      const playersById = Object.fromEntries(
-        players.map((player) => [player.id, player]),
-      ) as Record<string, (typeof players)[number]>;
+      const playersById = players.reduce<Record<string, (typeof players)[number]>>((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
 
       function visibleSelection(playerId: string): string[] {
         return rackTileIdsFromStateMessage(playersById[playerId].latestState).slice(0, 3);
       }
 
       function expectNoLeak(
-        updates: Array<Record<string, unknown>>,
+        updates: StateUpdateMessage[],
         forbiddenTileIds: readonly string[],
       ): void {
         for (const update of updates) {
@@ -744,7 +829,7 @@ describe("Full Game Flow Integration", () => {
       async function submitActionAndCollect(
         senderPlayerId: string,
         action: Record<string, unknown>,
-      ): Promise<Array<Record<string, unknown>>> {
+      ): Promise<StateUpdateMessage[]> {
         playersById[senderPlayerId].ws.send(
           JSON.stringify({
             version: 1,
@@ -753,7 +838,7 @@ describe("Full Game Flow Integration", () => {
           }),
         );
 
-        const updates = await Promise.all(players.map((player) => player.reader.next()));
+        const updates = await Promise.all(players.map((player) => player.reader.nextStateUpdate()));
         players.forEach((player, index) => {
           player.latestState = updates[index];
         });
@@ -788,17 +873,10 @@ describe("Full Game Flow Integration", () => {
         const resolvedJson = JSON.stringify(update.resolvedAction);
         expect(resolvedJson).not.toContain("accept");
         expect(resolvedJson).not.toContain(alicePlayerId);
-        expect(
-          (update.state as { charleston: { submittedPlayerIds: string[] } }).charleston
-            .submittedPlayerIds,
-        ).toEqual([]);
+        expect(requirePlayerGameView(update.state).charleston?.submittedPlayerIds).toEqual([]);
       }
-      const aliceFirst = firstVoteUpdates.find(
-        (u) => (u.state as { myPlayerId: string }).myPlayerId === alicePlayerId,
-      );
-      expect(
-        (aliceFirst!.state as { charleston: { myVote: boolean | null } }).charleston.myVote,
-      ).toBe(true);
+      const aliceFirst = firstVoteUpdates.find((u) => u.state.myPlayerId === alicePlayerId);
+      expect(requirePlayerGameView(aliceFirst!.state).charleston?.myVote).toBe(true);
 
       await submitActionAndCollect(bobPlayerId, {
         type: "CHARLESTON_VOTE",
@@ -824,7 +902,7 @@ describe("Full Game Flow Integration", () => {
           stage: "second",
           status: "passing",
         });
-        expect((update.state as { charleston: Record<string, unknown> }).charleston).toMatchObject({
+        expect(requirePlayerGameView(update.state).charleston).toMatchObject({
           stage: "second",
           status: "passing",
           currentDirection: "left",
@@ -892,10 +970,9 @@ describe("Full Game Flow Integration", () => {
       });
 
       const hiddenAcrossTileIds = acrossSelections[carolPlayerId];
-      const eastStateAfterAcross = playersById[alicePlayerId].latestState.state as {
-        myRack: Array<{ id: string }>;
-        charleston: Record<string, unknown> | null;
-      };
+      const eastStateAfterAcross = requirePlayerGameView(
+        playersById[alicePlayerId].latestState.state,
+      );
       expect(eastStateAfterAcross.charleston).toMatchObject({
         currentDirection: "right",
         myHiddenTileCount: 3,
@@ -912,9 +989,9 @@ describe("Full Game Flow Integration", () => {
         playerId: alicePlayerId,
         tileIds: eastRightSelection,
       });
-      const eastStateAfterRightLock = playersById[alicePlayerId].latestState.state as {
-        myRack: Array<{ id: string }>;
-      };
+      const eastStateAfterRightLock = requirePlayerGameView(
+        playersById[alicePlayerId].latestState.state,
+      );
       for (const hiddenTileId of hiddenAcrossTileIds) {
         expect(eastStateAfterRightLock.myRack.map((tile) => tile.id)).toContain(hiddenTileId);
       }
@@ -951,13 +1028,8 @@ describe("Full Game Flow Integration", () => {
           stage: "courtesy",
           status: "courtesy-ready",
         });
-        expect(
-          (update.state as { gamePhase: string; charleston: Record<string, unknown> | null })
-            .gamePhase,
-        ).toBe("charleston");
-        expect(
-          (update.state as { charleston: Record<string, unknown> | null }).charleston,
-        ).toMatchObject({
+        expect(requirePlayerGameView(update.state).gamePhase).toBe("charleston");
+        expect(requirePlayerGameView(update.state).charleston).toMatchObject({
           stage: "courtesy",
           status: "courtesy-ready",
           currentDirection: null,
@@ -990,16 +1062,18 @@ describe("Full Game Flow Integration", () => {
       const aliceWs = createWs();
       await waitForOpen(aliceWs);
       const aliceReader = createMessageReader(aliceWs);
-      aliceWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }));
-      const aliceJoinMsg = await aliceReader.next();
-      const alicePlayerId = aliceJoinMsg.state.myPlayerId as string;
+      aliceWs.send(
+        JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }),
+      );
+      const aliceJoinMsg = await aliceReader.nextStateUpdate();
+      const alicePlayerId = aliceJoinMsg.state.myPlayerId;
 
       const bobWs = createWs();
       await waitForOpen(bobWs);
       const bobReader = createMessageReader(bobWs);
       bobWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Bob" }));
-      const bobJoinMsg = await bobReader.next();
-      const bobPlayerId = bobJoinMsg.state.myPlayerId as string;
+      const bobJoinMsg = await bobReader.nextStateUpdate();
+      const bobPlayerId = bobJoinMsg.state.myPlayerId;
 
       const carolWs = createWs();
       await waitForOpen(carolWs);
@@ -1007,32 +1081,32 @@ describe("Full Game Flow Integration", () => {
       carolWs.send(
         JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Carol" }),
       );
-      const carolJoinMsg = await carolReader.next();
-      const carolPlayerId = carolJoinMsg.state.myPlayerId as string;
+      const carolJoinMsg = await carolReader.nextStateUpdate();
+      const carolPlayerId = carolJoinMsg.state.myPlayerId;
 
       const daveWs = createWs();
       await waitForOpen(daveWs);
       const daveReader = createMessageReader(daveWs);
       daveWs.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Dave" }));
-      const daveJoinMsg = await daveReader.next();
-      const davePlayerId = daveJoinMsg.state.myPlayerId as string;
+      const daveJoinMsg = await daveReader.nextStateUpdate();
+      const davePlayerId = daveJoinMsg.state.myPlayerId;
 
       await Promise.all([
-        aliceReader.next(),
-        aliceReader.next(),
-        aliceReader.next(),
-        bobReader.next(),
-        bobReader.next(),
-        carolReader.next(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
       ]);
 
       aliceWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
 
       const initialStates = await Promise.all([
-        aliceReader.next(),
-        bobReader.next(),
-        carolReader.next(),
-        daveReader.next(),
+        aliceReader.nextStateUpdate(),
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
       ]);
 
       const players = [
@@ -1042,9 +1116,10 @@ describe("Full Game Flow Integration", () => {
         { id: davePlayerId, ws: daveWs, reader: daveReader, latestState: initialStates[3] },
       ];
 
-      const playersById = Object.fromEntries(
-        players.map((player) => [player.id, player]),
-      ) as Record<string, (typeof players)[number]>;
+      const playersById = players.reduce<Record<string, (typeof players)[number]>>((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
 
       function visibleSelection(playerId: string, count = 3): string[] {
         return rackTileIdsFromStateMessage(playersById[playerId].latestState).slice(0, count);
@@ -1053,7 +1128,7 @@ describe("Full Game Flow Integration", () => {
       async function submitActionAndCollect(
         senderPlayerId: string,
         action: Record<string, unknown>,
-      ): Promise<Array<Record<string, unknown>>> {
+      ): Promise<StateUpdateMessage[]> {
         playersById[senderPlayerId].ws.send(
           JSON.stringify({
             version: 1,
@@ -1062,7 +1137,7 @@ describe("Full Game Flow Integration", () => {
           }),
         );
 
-        const updates = await Promise.all(players.map((player) => player.reader.next()));
+        const updates = await Promise.all(players.map((player) => player.reader.nextStateUpdate()));
         players.forEach((player, index) => {
           player.latestState = updates[index];
         });
@@ -1105,7 +1180,7 @@ describe("Full Game Flow Integration", () => {
       }
 
       const aliceLockState = aliceLockUpdates.find(
-        (update) => (update.state as { myPlayerId: string }).myPlayerId === alicePlayerId,
+        (update) => update.state.myPlayerId === alicePlayerId,
       )!;
       expect(charlestonViewFromMessage(aliceLockState)).toMatchObject({
         courtesyResolvedPairCount: 0,
@@ -1116,10 +1191,11 @@ describe("Full Game Flow Integration", () => {
       });
 
       const bobLockState = aliceLockUpdates.find(
-        (update) => (update.state as { myPlayerId: string }).myPlayerId === bobPlayerId,
+        (update) => update.state.myPlayerId === bobPlayerId,
       )!;
       const bobCourtesyView = charlestonViewFromMessage(bobLockState);
-      expect(bobCourtesyView.myCourtesySubmission).toBeNull();
+      expect(bobCourtesyView).not.toBeNull();
+      expect(bobCourtesyView!.myCourtesySubmission).toBeNull();
       expect(JSON.stringify(bobLockState)).not.toContain(aliceCourtesySelection[0]);
       expect(JSON.stringify(bobLockState)).not.toContain('"count":3');
 
@@ -1151,13 +1227,13 @@ describe("Full Game Flow Integration", () => {
       }
 
       const aliceStateAfterResolution = firstPairResolvedUpdates.find(
-        (update) => (update.state as { myPlayerId: string }).myPlayerId === alicePlayerId,
+        (update) => update.state.myPlayerId === alicePlayerId,
       )!;
       expect(rackTileIdsFromStateMessage(aliceStateAfterResolution)).toEqual(
         expect.arrayContaining(carolCourtesySelection),
       );
       const carolStateAfterResolution = firstPairResolvedUpdates.find(
-        (update) => (update.state as { myPlayerId: string }).myPlayerId === carolPlayerId,
+        (update) => update.state.myPlayerId === carolPlayerId,
       )!;
       expect(rackTileIdsFromStateMessage(carolStateAfterResolution)).toEqual(
         expect.arrayContaining(aliceCourtesySelection.slice(0, 2)),
@@ -1192,12 +1268,7 @@ describe("Full Game Flow Integration", () => {
           appliedCount: 0,
           entersPlay: true,
         });
-        const state = update.state as {
-          gamePhase: string;
-          currentTurn: string;
-          turnPhase: string;
-          charleston: Record<string, unknown> | null;
-        };
+        const state = requirePlayerGameView(update.state);
         expect(state.gamePhase).toBe("play");
         expect(state.currentTurn).toBe(alicePlayerId);
         expect(state.turnPhase).toBe("discard");

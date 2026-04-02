@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   createSessionToken,
   resolveToken,
@@ -6,7 +6,7 @@ import {
   DEFAULT_GRACE_PERIOD_MS,
 } from "./session-manager";
 import type { Room } from "./room";
-import type { FastifyBaseLogger } from "fastify";
+import { createSilentTestLogger } from "../testing/silent-logger";
 
 function createMockRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -21,12 +21,7 @@ function createMockRoom(overrides: Partial<Room> = {}): Room {
     lifecycleTimers: new Map(),
     gameState: null,
     createdAt: Date.now(),
-    logger: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn(),
-    } as unknown as FastifyBaseLogger,
+    logger: createSilentTestLogger(),
     ...overrides,
   };
 }

@@ -1,14 +1,26 @@
 import { describe, it, expect } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import DiscardPool from "./DiscardPool.vue";
-import type { SuitedTile, WindTile, DragonTile, Tile } from "@mahjong-game/shared";
+import type { SuitedTile, Tile, TileValue } from "@mahjong-game/shared";
+
+function isTileValue(n: number): n is TileValue {
+  return Number.isInteger(n) && n >= 1 && n <= 9;
+}
+
+function tileValueFromIndex(i: number): TileValue {
+  const n = (i % 9) + 1;
+  if (!isTileValue(n)) {
+    throw new Error(`invalid tile value index: ${i}`);
+  }
+  return n;
+}
 
 function makeTiles(count: number): Tile[] {
   const suits = ["bam", "crak", "dot"] as const;
   const tiles: Tile[] = [];
   for (let i = 0; i < count; i++) {
     const suit = suits[i % 3];
-    const value = ((i % 9) + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+    const value = tileValueFromIndex(i);
     const copy = Math.floor(i / 9) + 1;
     tiles.push({
       id: `${suit}-${value}-${copy}`,

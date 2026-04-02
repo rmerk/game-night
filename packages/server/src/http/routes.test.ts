@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createApp } from "../index";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -32,6 +32,7 @@ describe("POST /api/rooms", () => {
     expect(body.roomId).toMatch(UUID_REGEX);
     expect(body.roomCode).toMatch(ROOM_CODE_REGEX);
     expect(body.hostToken).toMatch(UUID_REGEX);
+    expect(body.hostName).toBe("TestHost");
     expect(body.roomUrl).toContain(`/room/${body.roomCode}`);
   });
 
@@ -81,6 +82,7 @@ describe("POST /api/rooms", () => {
     });
 
     expect(response.statusCode).toBe(201);
+    expect(response.json().hostName).toBe("A".repeat(30));
   });
 
   it("strips control characters from hostName", async () => {
@@ -92,6 +94,7 @@ describe("POST /api/rooms", () => {
     });
 
     expect(response.statusCode).toBe(201);
+    expect(response.json().hostName).toBe("TestHost");
   });
 
   it("returns 400 when hostName is only whitespace", async () => {
@@ -167,16 +170,20 @@ describe("rate limiting", () => {
     const app = buildApp();
     await app.ready();
 
-    // Send 11 requests (limit is 10 per minute)
-    const responses = [];
-    for (let i = 0; i < 11; i++) {
-      const res = await app.inject({
-        method: "POST",
-        url: "/api/rooms",
-        payload: { hostName: `Host${i}` },
-      });
-      responses.push(res);
-    }
+    // Send 11 requests sequentially (limit is 10 per minute). Parallel injects would not hit the limiter correctly.
+    const responses = await Array.from({ length: 11 }, (_, i) => i).reduce(
+      async (accPromise, i) => {
+        const acc = await accPromise;
+        const res = await app.inject({
+          method: "POST",
+          url: "/api/rooms",
+          payload: { hostName: `Host${i}` },
+        });
+        acc.push(res);
+        return acc;
+      },
+      Promise.resolve([] as Awaited<ReturnType<typeof app.inject>>[]),
+    );
 
     // First 10 should succeed
     for (let i = 0; i < 10; i++) {
@@ -193,11 +200,10 @@ describe("rate limiting", () => {
     const app = buildApp();
     await app.ready();
 
-    for (let i = 0; i < 20; i++) {
-      const res = await app.inject({
-        method: "GET",
-        url: "/health",
-      });
+    const healthResponses = await Promise.all(
+      Array.from({ length: 20 }, () => app.inject({ method: "GET", url: "/health" })),
+    );
+    for (const res of healthResponses) {
       expect(res.statusCode).toBe(200);
     }
 

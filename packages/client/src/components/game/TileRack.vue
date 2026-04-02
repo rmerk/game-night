@@ -6,7 +6,11 @@ import {
   watch,
   defineComponent,
   useTemplateRef,
+  isRef,
+  ref,
   type PropType,
+  type Ref,
+  type ShallowRef,
 } from "vue";
 import { DnDProvider, makeDroppable, useDnDProvider } from "@vue-dnd-kit/core";
 import type { IDragEvent } from "@vue-dnd-kit/core";
@@ -14,6 +18,7 @@ import type { Tile } from "@mahjong-game/shared";
 import type { TileState } from "../tiles/Tile.vue";
 import TileRackItem from "./TileRackItem.vue";
 import { useRackStore } from "../../stores/rack";
+import { asTileArrayFromDnD } from "../../composables/useRackDragDrop";
 
 const props = withDefaults(
   defineProps<{
@@ -174,8 +179,12 @@ function handleRackKeydown(event: KeyboardEvent) {
 const RackDnDSetup = defineComponent({
   name: "RackDnDSetup",
   props: {
-    // Untyped: vue-tsc unwraps template refs, but Vue passes the Ref object at runtime
-    rackRef: { required: true },
+    rackRef: {
+      type: Object as PropType<
+        Ref<HTMLElement | null> | ShallowRef<HTMLElement | null> | HTMLElement | null
+      >,
+      required: true,
+    },
     tiles: { type: Array as PropType<Tile[]>, required: true },
   },
   setup(setupProps) {
@@ -186,20 +195,24 @@ const RackDnDSetup = defineComponent({
     provider.keyboard.keys.forMove = ["ArrowLeft", "ArrowRight"];
     provider.keyboard.keys.forCancel = ["Escape"];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vue-dnd-kit expects Ref but vue template passes unwrapped ref object
+    const rackTarget = isRef(setupProps.rackRef) ? setupProps.rackRef : ref(setupProps.rackRef);
+
     makeDroppable(
-      setupProps.rackRef as any,
+      rackTarget,
       {
         events: {
           onDrop: (e: IDragEvent) => {
             const result = e.helpers.suggestSort("horizontal");
             if (result) {
-              store.tileOrder = (result.sourceItems as Tile[]).map((t: Tile) => t.id);
+              const dndTiles = asTileArrayFromDnD(result.sourceItems, setupProps.tiles ?? []);
+              if (dndTiles) {
+                store.tileOrder = dndTiles.map((t) => t.id);
+              }
             }
           },
         },
       },
-      () => setupProps.tiles!,
+      () => setupProps.tiles ?? [],
     );
 
     return () => null;

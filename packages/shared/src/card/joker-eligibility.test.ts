@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vite-plus/test";
 import type { GroupType, NMJLCard } from "../types/card";
-import type { TileValue } from "../types/tiles";
+import type { TileValue, WindValue, DragonValue } from "../types/tiles";
 import type { ExposedGroup } from "../types/game-state";
 import { GROUP_SIZES } from "../constants";
 import { loadCard } from "./card-loader";
@@ -26,12 +26,12 @@ function makeSuitedTile(suit: "bam" | "crak" | "dot", value: TileValue, copy: nu
   return suitedTile(suit, value, copy);
 }
 
-function makeWindTile(value: string, copy: number) {
-  return windTile(value as Parameters<typeof windTile>[0], copy);
+function makeWindTile(value: WindValue, copy: number) {
+  return windTile(value, copy);
 }
 
-function makeDragonTile(value: string, copy: number) {
-  return dragonTile(value as Parameters<typeof dragonTile>[0], copy);
+function makeDragonTile(value: DragonValue, copy: number) {
+  return dragonTile(value, copy);
 }
 
 function makeJoker(copy: number) {

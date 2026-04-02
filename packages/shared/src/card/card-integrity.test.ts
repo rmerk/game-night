@@ -284,7 +284,13 @@ describe("Card Data Integrity - 2026 NMJL Card", () => {
         // Collect all fixed numeric values in the hand
         const fixedValues = hand.groups
           .filter((g) => typeof g.tile?.value === "number")
-          .map((g) => g.tile!.value as number);
+          .map((g) => {
+            const v = g.tile!.value;
+            if (typeof v !== "number") {
+              throw new Error("expected numeric tile value");
+            }
+            return v;
+          });
 
         // At least one N in [1,7] must produce valid tile values (1-9)
         // and not conflict with fixed values that share a wildcard relationship

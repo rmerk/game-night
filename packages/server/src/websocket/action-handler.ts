@@ -4,8 +4,190 @@ import type { GameAction } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION, handleAction, createLobbyState } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
-import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
+import { startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState } from "./state-broadcaster";
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function validateCallTileIdsField(
+  action: Record<string, unknown>,
+  actionType: string,
+): string | null {
+  const tileIds = action.tileIds;
+  if (!isStringArray(tileIds)) {
+    return `${actionType} requires tileIds: string[]`;
+  }
+  if (tileIds.length === 0) {
+    return `${actionType} requires at least one tileId`;
+  }
+  if (new Set(tileIds).size !== tileIds.length) {
+    return `${actionType} tileIds must be unique`;
+  }
+  return null;
+}
+
+function validateStartGamePayload(action: Record<string, unknown>): string | null {
+  const rawIds = action.playerIds;
+  if (rawIds !== undefined && !isStringArray(rawIds)) {
+    return "START_GAME playerIds must be string[] if provided";
+  }
+  const seed = action.seed;
+  if (seed !== undefined && (typeof seed !== "number" || !Number.isFinite(seed))) {
+    return "START_GAME seed must be a finite number if provided";
+  }
+  return null;
+}
+
+function validateActionPayload(action: Record<string, unknown>): string | null {
+  const type = action.type;
+  if (typeof type !== "string") {
+    return "Action type is required";
+  }
+
+  // Runtime payload checks prevent malformed ACTION payloads from reaching shared handlers.
+  switch (type) {
+    case "START_GAME":
+      return validateStartGamePayload(action);
+    case "DRAW_TILE":
+    case "PASS_CALL":
+    case "RETRACT_CALL":
+    case "DECLARE_MAHJONG":
+    case "CANCEL_MAHJONG":
+    case "CONFIRM_INVALID_MAHJONG":
+    case "CHALLENGE_MAHJONG":
+    case "SHOW_HAND":
+      return null;
+    case "DISCARD_TILE":
+      return typeof action.tileId === "string" ? null : "DISCARD_TILE requires string tileId";
+    case "CHARLESTON_PASS":
+      return isStringArray(action.tileIds) && action.tileIds.length === 3
+        ? null
+        : "CHARLESTON_PASS requires exactly 3 tileIds";
+    case "CALL_PUNG":
+    case "CALL_KONG":
+    case "CALL_QUINT":
+    case "CALL_NEWS":
+    case "CALL_DRAGON_SET":
+    case "CALL_MAHJONG":
+    case "CONFIRM_CALL":
+      return validateCallTileIdsField(action, type);
+    case "CHARLESTON_VOTE":
+      return typeof action.accept === "boolean" ? null : "CHARLESTON_VOTE requires boolean accept";
+    case "CHALLENGE_VOTE":
+      return action.vote === "valid" || action.vote === "invalid"
+        ? null
+        : "CHALLENGE_VOTE requires vote: 'valid' | 'invalid'";
+    case "COURTESY_PASS": {
+      const count = action.count;
+      if (typeof count !== "number" || !Number.isInteger(count)) {
+        return "COURTESY_PASS requires integer count";
+      }
+      if (count < 0 || count > 3) {
+        return "COURTESY_PASS count must be between 0 and 3";
+      }
+      if (!isStringArray(action.tileIds)) {
+        return "COURTESY_PASS requires tileIds: string[]";
+      }
+      return action.tileIds.length === count
+        ? null
+        : "COURTESY_PASS tileIds length must equal count";
+    }
+    default:
+      return "Unsupported action type";
+  }
+}
+
+/**
+ * Build a typed GameAction after validateActionPayload succeeds.
+ * Keeps construction aligned with the same field checks as validation.
+ */
+function parseGameAction(action: Record<string, unknown>, playerId: string): GameAction | null {
+  const type = action.type;
+  if (typeof type !== "string") {
+    return null;
+  }
+
+  const tileIds = action.tileIds;
+  const tileIdsArr = isStringArray(tileIds) ? [...tileIds] : null;
+
+  switch (type) {
+    case "START_GAME": {
+      const rawIds = action.playerIds;
+      const playerIds = isStringArray(rawIds) ? [...rawIds] : [];
+      const seed = action.seed;
+      if (seed !== undefined && (typeof seed !== "number" || !Number.isFinite(seed))) {
+        return null;
+      }
+      return seed === undefined
+        ? { type: "START_GAME", playerIds }
+        : { type: "START_GAME", playerIds, seed };
+    }
+    case "DRAW_TILE":
+      return { type: "DRAW_TILE", playerId };
+    case "CHARLESTON_PASS":
+      return tileIdsArr && tileIdsArr.length === 3
+        ? { type: "CHARLESTON_PASS", playerId, tileIds: tileIdsArr }
+        : null;
+    case "CHARLESTON_VOTE":
+      return typeof action.accept === "boolean"
+        ? { type: "CHARLESTON_VOTE", playerId, accept: action.accept }
+        : null;
+    case "COURTESY_PASS": {
+      const count = action.count;
+      if (typeof count !== "number" || !Number.isInteger(count) || count < 0 || count > 3) {
+        return null;
+      }
+      if (!tileIdsArr || tileIdsArr.length !== count) {
+        return null;
+      }
+      return { type: "COURTESY_PASS", playerId, count, tileIds: tileIdsArr };
+    }
+    case "DISCARD_TILE":
+      return typeof action.tileId === "string"
+        ? { type: "DISCARD_TILE", playerId, tileId: action.tileId }
+        : null;
+    case "PASS_CALL":
+      return { type: "PASS_CALL", playerId };
+    case "CALL_PUNG":
+      return tileIdsArr ? { type: "CALL_PUNG", playerId, tileIds: tileIdsArr } : null;
+    case "CALL_KONG":
+      return tileIdsArr ? { type: "CALL_KONG", playerId, tileIds: tileIdsArr } : null;
+    case "CALL_QUINT":
+      return tileIdsArr ? { type: "CALL_QUINT", playerId, tileIds: tileIdsArr } : null;
+    case "CALL_NEWS":
+      return tileIdsArr ? { type: "CALL_NEWS", playerId, tileIds: tileIdsArr } : null;
+    case "CALL_DRAGON_SET":
+      return tileIdsArr ? { type: "CALL_DRAGON_SET", playerId, tileIds: tileIdsArr } : null;
+    case "CALL_MAHJONG":
+      return tileIdsArr ? { type: "CALL_MAHJONG", playerId, tileIds: tileIdsArr } : null;
+    case "CONFIRM_CALL":
+      return tileIdsArr ? { type: "CONFIRM_CALL", playerId, tileIds: tileIdsArr } : null;
+    case "RETRACT_CALL":
+      return { type: "RETRACT_CALL", playerId };
+    case "DECLARE_MAHJONG":
+      return { type: "DECLARE_MAHJONG", playerId };
+    case "CANCEL_MAHJONG":
+      return { type: "CANCEL_MAHJONG", playerId };
+    case "CONFIRM_INVALID_MAHJONG":
+      return { type: "CONFIRM_INVALID_MAHJONG", playerId };
+    case "CHALLENGE_MAHJONG":
+      return { type: "CHALLENGE_MAHJONG", playerId };
+    case "CHALLENGE_VOTE":
+      return action.vote === "valid" || action.vote === "invalid"
+        ? { type: "CHALLENGE_VOTE", playerId, vote: action.vote }
+        : null;
+    case "SHOW_HAND":
+      return { type: "SHOW_HAND", playerId };
+    default:
+      return null;
+  }
+}
 
 /**
  * Handle an ACTION message from a client.
@@ -21,14 +203,20 @@ export function handleActionMessage(
   roomManager?: RoomManager,
 ): void {
   const rawAction: unknown = message.action;
-  if (!rawAction || typeof rawAction !== "object") {
+  if (!isPlainObject(rawAction)) {
     sendActionError(ws, "INVALID_ACTION", "Action payload is required");
     return;
   }
 
-  const actionObj = rawAction as Record<string, unknown>;
+  const actionObj = rawAction;
   if (!actionObj.type || typeof actionObj.type !== "string") {
     sendActionError(ws, "INVALID_ACTION", "Action type is required");
+    return;
+  }
+
+  const validationError = validateActionPayload(actionObj);
+  if (validationError) {
+    sendActionError(ws, "INVALID_ACTION", validationError);
     return;
   }
 
@@ -42,9 +230,11 @@ export function handleActionMessage(
     return;
   }
 
-  // SECURITY: Overwrite playerId with authenticated identity — never trust client
-  // The action is validated by the game engine's exhaustive switch — unknown types are rejected
-  const authenticatedAction = { ...actionObj, playerId } as GameAction;
+  const authenticatedAction = parseGameAction(actionObj, playerId);
+  if (!authenticatedAction) {
+    sendActionError(ws, "INVALID_ACTION", "Action payload could not be parsed");
+    return;
+  }
 
   logger.info(
     { roomCode: room.roomCode, playerId, actionType: authenticatedAction.type },
@@ -66,11 +256,7 @@ export function handleActionMessage(
         roomManager.cleanupRoom(room.roomCode, "idle_timeout");
       });
     }
-
-    // Cancel idle timer if REMATCH action dispatched (future action type)
-    if ((authenticatedAction.type as string) === "REMATCH") {
-      cancelLifecycleTimer(room, "idle-timeout");
-    }
+    // Future: cancel idle-timeout when a REMATCH (or similar) GameAction is added to the shared type.
   } else {
     logger.info(
       {

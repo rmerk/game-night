@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-01
+# last_updated: 2026-04-02 # 3b-3 marked done after code review doc + PROTOCOL_VERSION fix
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-01 # 3b-3 story context created; validation-checklist retro follow-through completed
+last_updated: 2026-04-02
 project: mahjong-game
 
 project_key: NOKEY
@@ -106,7 +106,7 @@ development_status:
   epic-3b: in-progress # gated by epic-5a retro follow-through items below
   3b-1-first-charleston-with-blind-pass-enforcement: done
   3b-2-second-charleston-vote-reversed-passes: done
-  3b-3-courtesy-pass-negotiation: review
+  3b-3-courtesy-pass-negotiation: done
   3b-4-charleston-ui-direction-indicator-tileselectionaction-pass-interaction: backlog
   3b-5-charleston-disconnect-handling: backlog
   epic-3b-retrospective: optional

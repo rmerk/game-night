@@ -2,11 +2,9 @@ import { describe, test, expect } from "vite-plus/test";
 import { loadCard } from "../card/card-loader";
 import { GROUP_SIZES } from "../constants";
 import type { NMJLCard } from "../types/card";
-import type { Tile, TileSuit, TileValue } from "../types/tiles";
-import { buildTilesForHand } from "../testing/tile-builders";
+import type { Tile, TileSuit, TileValue, SuitedTile } from "../types/tiles";
+import { buildTilesForHand, jokerTile, type SuitMapping } from "../testing/tile-builders";
 import { validateHand } from "./pattern-matcher";
-
-type SuitMapping = Record<string, "bam" | "crak" | "dot">;
 
 const card: NMJLCard = loadCard("2026");
 const allHands = card.categories.flatMap((c) => c.hands);
@@ -18,7 +16,7 @@ const handMap = new Map(allHands.map((h) => [h.id, h]));
 
 function buildRandomNonMatchingTiles(): Tile[] {
   // 7 pairs across 3 different suits — no NMJL hand uses cross-suit pairs
-  const specs: Array<{ suit: TileSuit; value: number }> = [
+  const specs: { suit: TileSuit; value: TileValue }[] = [
     { suit: "bam", value: 1 },
     { suit: "crak", value: 3 },
     { suit: "dot", value: 5 },
@@ -30,13 +28,14 @@ function buildRandomNonMatchingTiles(): Tile[] {
   const tiles: Tile[] = [];
   for (const s of specs) {
     for (let c = 1; c <= 2; c++) {
-      tiles.push({
+      const st: SuitedTile = {
         id: `${s.suit}-${s.value}-${c}`,
-        category: "suited" as const,
+        category: "suited",
         suit: s.suit,
-        value: s.value as TileValue,
+        value: s.value,
         copy: c,
-      });
+      };
+      tiles.push(st);
     }
   }
   return tiles;
@@ -651,7 +650,7 @@ describe("Pattern Matcher - Joker Eligibility Enforcement (Red Tests)", () => {
     const tiles = buildTilesForHand(card, "ev-2");
     const suitedIdx = tiles.findIndex((t) => t.category === "suited");
     if (suitedIdx >= 0) {
-      tiles[suitedIdx] = { id: "joker-8", category: "joker", copy: 8 } as Tile;
+      tiles[suitedIdx] = jokerTile(8);
     }
 
     const result = validateHand(tiles, card);
@@ -668,7 +667,7 @@ describe("Pattern Matcher - Joker Eligibility Enforcement (Red Tests)", () => {
       if (group.type === "pair") break;
       pairStart += GROUP_SIZES[group.type];
     }
-    tiles[pairStart] = { id: "joker-8", category: "joker", copy: 8 } as Tile;
+    tiles[pairStart] = jokerTile(8);
 
     const result = validateHand(tiles, card);
     expect(result?.patternId).not.toBe("ev-2");
@@ -676,7 +675,7 @@ describe("Pattern Matcher - Joker Eligibility Enforcement (Red Tests)", () => {
 
   test("Joker rejected in a single position (ineligible)", () => {
     const tiles = buildTilesForHand(card, "sp-2");
-    tiles[0] = { id: "joker-8", category: "joker", copy: 8 } as Tile;
+    tiles[0] = jokerTile(8);
 
     const result = validateHand(tiles, card);
     expect(result?.patternId).not.toBe("sp-2");
@@ -754,5 +753,59 @@ describe("buildTilesForHand helper", () => {
 
   test("throws for unknown hand ID", () => {
     expect(() => buildTilesForHand(card, "nonexistent-hand")).toThrow("not found");
+  });
+
+  test("throws when suited tile omits value", () => {
+    const badCard: NMJLCard = {
+      year: 2026,
+      categories: [
+        {
+          name: "fixture",
+          hands: [
+            {
+              id: "no-value-hand",
+              points: 1,
+              exposure: "X",
+              groups: [
+                {
+                  type: "pair",
+                  tile: { color: "A" },
+                  jokerEligible: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(() => buildTilesForHand(badCard, "no-value-hand")).toThrow("Suited tile requires value");
+  });
+
+  test("throws on unexpected suited value string", () => {
+    const badCard: NMJLCard = {
+      year: 2026,
+      categories: [
+        {
+          name: "fixture",
+          hands: [
+            {
+              id: "bad-value-hand",
+              points: 1,
+              exposure: "X",
+              groups: [
+                {
+                  type: "pair",
+                  tile: { color: "A", value: "bogus" },
+                  jokerEligible: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(() => buildTilesForHand(badCard, "bad-value-hand")).toThrow(
+      "Unexpected suited tile value",
+    );
   });
 });

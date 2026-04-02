@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vite-plus/test";
 import { handleDiscardTile } from "./discard";
 import { handleDrawTile } from "./draw";
-import { handlePassCall, closeCallWindow } from "./call-window";
+import { handlePassCall } from "./call-window";
 import { handleAction } from "../game-engine";
 import { createPlayState, TEST_PLAYER_IDS } from "../../testing/fixtures";
 import { TILE_COUNT } from "../../constants";

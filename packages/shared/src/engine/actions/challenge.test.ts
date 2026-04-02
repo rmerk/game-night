@@ -6,10 +6,28 @@ import { createPlayState } from "../../testing/fixtures";
 import { getPlayerBySeat, injectTilesIntoRack } from "../../testing/helpers";
 import { buildTilesForHand } from "../../testing/tile-builders";
 import { loadCard } from "../../card/card-loader";
-import type { GameState, MahjongGameResult } from "../../types/game-state";
+import type {
+  GameState,
+  MahjongGameResult,
+  GameResult,
+  ResolvedAction,
+} from "../../types/game-state";
 import type { Tile } from "../../types/tiles";
 
 const card = loadCard("2026");
+
+function isMahjongGameResult(gr: GameResult | null): gr is MahjongGameResult {
+  return gr !== null && gr.winnerId !== null;
+}
+
+function requireChallengeResolved(
+  resolved: ResolvedAction | undefined,
+): Extract<ResolvedAction, { type: "CHALLENGE_RESOLVED" }> {
+  if (!resolved || resolved.type !== "CHALLENGE_RESOLVED") {
+    throw new Error(`expected CHALLENGE_RESOLVED, got ${JSON.stringify(resolved)}`);
+  }
+  return resolved;
+}
 
 /** Set up a scoreboard state with a valid Mahjong winner */
 function setupScoreboardWithWinner(): {
@@ -245,8 +263,11 @@ describe("Challenge Mechanism", () => {
     const { state, losers } = setupScoreboardWithWinner();
 
     // Record original payments
-    const originalResult = state.gameResult as unknown as MahjongGameResult;
-    const originalPayments = { ...originalResult.payments };
+    const gr = state.gameResult;
+    if (!isMahjongGameResult(gr)) {
+      throw new Error("expected Mahjong game result");
+    }
+    const originalPayments = { ...gr.payments };
 
     handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
     handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
@@ -366,7 +387,7 @@ function setupDiscardMahjongScoreboard(): {
 
 describe("Challenge overturn restores called discard tile", () => {
   test("overturned discard Mahjong restores called tile to discarder's pool", () => {
-    const { state, winnerId, discarderId, calledTile, losers } = setupDiscardMahjongScoreboard();
+    const { state, discarderId, calledTile, losers } = setupDiscardMahjongScoreboard();
 
     // Verify the tile is NOT in discarder's pool after mahjong confirmation
     expect(
@@ -424,7 +445,7 @@ describe("Challenge overturn restores called discard tile", () => {
 
   test("self-drawn Mahjong overturn does not attempt tile restoration", () => {
     // Self-drawn mahjong has no calledTile — should not error
-    const { state, winnerId, losers } = setupScoreboardWithWinner();
+    const { state, losers } = setupScoreboardWithWinner();
 
     handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
     handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
@@ -457,11 +478,11 @@ describe("Challenge timeout handler", () => {
   });
 
   test("timeout with 2 invalid votes + 2 non-voters → upheld", () => {
-    const { state, winnerId, losers } = setupScoreboardWithWinner();
+    const { state, losers } = setupScoreboardWithWinner();
     handleChallengeMahjong(state, { type: "CHALLENGE_MAHJONG", playerId: losers[0] });
     // losers[0] has "invalid" pre-set
     handleChallengeVote(state, { type: "CHALLENGE_VOTE", playerId: losers[1], vote: "invalid" });
-    // Now 2 invalid votes, 2 non-voters (winnerId and losers[2])
+    // Now 2 invalid votes, 2 non-voters (the winner and losers[2])
 
     const result = handleChallengeTimeout(state);
 
@@ -492,7 +513,7 @@ describe("Challenge timeout handler", () => {
     const result = handleChallengeTimeout(state);
 
     expect(result.accepted).toBe(true);
-    const votes = (result.resolved as { votes: Record<string, string> }).votes;
+    const votes = requireChallengeResolved(result.resolved).votes;
     expect(votes[losers[0]]).toBe("invalid");
     expect(votes[winnerId]).toBe("valid");
     expect(votes[losers[1]]).toBe("valid");

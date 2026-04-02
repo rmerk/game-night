@@ -1,6 +1,6 @@
 # Story 3B.3: Courtesy Pass Negotiation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -67,6 +67,12 @@ so that **the final fine-tuning pass happens fairly with transparent negotiation
   - [x] 6.6 Run `pnpm run typecheck`.
   - [x] 6.7 Run `vp lint`.
   - [x] 6.8 Verify each acceptance criterion is covered by at least one automated test, especially lower-count trimming, zero-count skip, no-leak courtesy privacy, and the final `charleston -> play` handoff.
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][High] Add runtime schema validation for `ACTION` payloads (especially `COURTESY_PASS`) before engine dispatch to prevent malformed payloads reaching shared handlers. [`packages/server/src/websocket/action-handler.ts`]
+- [x] [AI-Review][High] Add a defensive `try/catch` around action dispatch in WebSocket message handling so unexpected runtime exceptions return safe `ERROR` responses instead of risking process termination. [`packages/server/src/websocket/ws-server.ts`]
+- [x] [AI-Review][Medium] Add regression test coverage for malformed courtesy payloads (for example `tileIds: null`) to ensure deterministic rejection and no crash. [`packages/server/src/websocket/action-handler.test.ts`]
 
 ## Dev Notes
 
@@ -198,12 +204,12 @@ Actionable takeaways:
 
 ## Validation Checklist
 
-- [ ] **Pattern reuse:** Courtesy logic extends the existing Charleston engine / filtering helpers instead of introducing a duplicate courtesy subsystem.
-- [ ] **No-leak privacy:** Partner requested counts and selected tile IDs stay private until the pair resolves, including through serialized `STATE_UPDATE` payloads.
-- [ ] **Transition cleanup:** Courtesy bookkeeping is cleared when entering `play`; no stale vote, hidden-across, or courtesy submission state survives the phase change.
-- [ ] **Accessibility / UX handoff:** Resolved actions contain enough narration data for future UI work to explain lower-count negotiation outcomes without reverse-engineering state diffs.
-- [ ] **Integration risk containment:** No scope creeps into `3B.4` UI work, `3B.5` timer/disconnect work, or the unresolved Epic `5A` client-integration prerequisite.
-- [ ] **Opening-turn correctness:** After courtesy completes, East is still the first discarder and no opening draw occurs.
+- [x] **Pattern reuse:** Courtesy logic extends the existing Charleston engine / filtering helpers instead of introducing a duplicate courtesy subsystem.
+- [x] **No-leak privacy:** Partner requested counts and selected tile IDs stay private until the pair resolves, including through serialized `STATE_UPDATE` payloads.
+- [x] **Transition cleanup:** Courtesy bookkeeping is cleared when entering `play`; no stale vote, hidden-across, or courtesy submission state survives the phase change.
+- [x] **Accessibility / UX handoff:** Resolved actions contain enough narration data for future UI work to explain lower-count negotiation outcomes without reverse-engineering state diffs.
+- [x] **Integration risk containment:** No `3B.4` Charleston UI, `3B.5` timers, or Epic `5A` live client-integration work in this story; incidental client edits are rack DnD / test harness alignment only (see File List).
+- [x] **Opening-turn correctness:** After courtesy completes, East is still the first discarder and no opening draw occurs.
 
 ### References
 
@@ -238,6 +244,7 @@ GPT-5.4
   - Loaded `_bmad/gds/config.yaml`, `_bmad-output/project-context.md`, and `_bmad-output/implementation-artifacts/sprint-status.yaml`
   - Read the complete `3b-3-courtesy-pass-negotiation.md` story file and current shared/server Charleston implementation files
 - Validation:
+  - `pnpm exec vp test run packages/server/src/websocket/action-handler.test.ts packages/server/src/websocket/ws-server.test.ts`
   - `pnpm exec vp test run packages/shared/src/engine/actions/charleston.test.ts`
   - `pnpm exec vp test run packages/server/src/websocket/state-broadcaster.test.ts packages/server/src/websocket/join-handler.test.ts packages/server/src/integration/full-game-flow.test.ts`
   - `pnpm exec vp test run packages/shared/src/types/game-state.test.ts packages/shared/src/engine/game-engine.test.ts packages/shared/src/engine/state/create-game.test.ts packages/server/src/websocket/action-handler.test.ts`
@@ -260,8 +267,14 @@ GPT-5.4
 - Added courtesy validation and pair-local resolution to the shared Charleston engine, including deterministic lower-count trimming, explicit zero-count skips, and the final `charleston -> play` handoff with stale Charleston bookkeeping cleared.
 - Extended filtered server Charleston views and reconnect restore so players only see their own courtesy submission details before resolution; partner counts and tile IDs remain private until the pair resolves.
 - Added focused shared, broadcaster, reconnect, and end-to-end WebSocket coverage for courtesy negotiation, no-leak guarantees, and play-start correctness; full test, typecheck, and lint validation passed.
+- ✅ Resolved review finding [High]: Added runtime action payload schema checks in server action handling, including strict `COURTESY_PASS` count/tile validation before engine dispatch.
+- ✅ Resolved review finding [High]: Added defensive `try/catch` around WebSocket message dispatch and return safe `INTERNAL_ERROR` responses on unexpected runtime exceptions.
+- ✅ Resolved review finding [Medium]: Added malformed courtesy payload regression coverage (`tileIds: null`) to confirm deterministic `INVALID_ACTION` rejection and no crash.
+- ✅ Post-review (2026-04-02): WebSocket `NOT_IN_ROOM` / `INTERNAL_ERROR` responses use `PROTOCOL_VERSION` in `ws-server.ts`; story File List and validation checklist synced to match shipped changes.
 
 ### File List
+
+**Courtesy / server core**
 
 - `_bmad-output/implementation-artifacts/3b-3-courtesy-pass-negotiation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
@@ -276,13 +289,52 @@ GPT-5.4
 - `packages/server/src/websocket/state-broadcaster.ts`
 - `packages/server/src/websocket/state-broadcaster.test.ts`
 - `packages/server/src/websocket/join-handler.test.ts`
+- `packages/server/src/websocket/action-handler.ts`
+- `packages/server/src/websocket/action-handler.test.ts`
+- `packages/server/src/websocket/ws-server.ts`
 - `packages/server/src/integration/full-game-flow.test.ts`
+
+**HTTP / room tests / test infra**
+
+- `packages/server/src/http/routes.ts`
+- `packages/server/src/http/routes.test.ts`
+- `packages/server/src/rooms/room-lifecycle.test.ts`
+- `packages/server/src/rooms/room-manager.test.ts`
+- `packages/server/src/rooms/seat-assignment.test.ts`
+- `packages/server/src/rooms/session-manager.test.ts`
+- `packages/server/src/testing/silent-logger.ts`
+
+**Shared test helpers and co-located test updates**
+
+- `packages/shared/src/testing/tile-builders.ts`
+- `packages/shared/src/card/card-integrity.test.ts`
+- `packages/shared/src/card/exposure-validation.test.ts`
+- `packages/shared/src/card/joker-eligibility.test.ts`
+- `packages/shared/src/card/pattern-matcher.test.ts`
+- `packages/shared/src/engine/actions/call-window.test.ts`
+- `packages/shared/src/engine/actions/challenge.ts`
+- `packages/shared/src/engine/actions/challenge.test.ts`
+- `packages/shared/src/engine/actions/mahjong.test.ts`
+- `packages/shared/src/engine/actions/wall-depletion.test.ts`
+
+**Client — test harness / rack DnD only (not `3B.4` Charleston UI)**
+
+- `packages/client/src/components/game/TileRack.vue`
+- `packages/client/src/components/game/TileRack.test.ts`
+- `packages/client/src/components/game/GameTable.test.ts`
+- `packages/client/src/components/game/DiscardPool.test.ts`
+- `packages/client/src/composables/useRackDragDrop.ts`
+- `packages/client/src/composables/useRackDragDrop.test.ts`
+- `packages/client/src/test-utils/expect-html-element.ts`
 
 ### Change Log
 
 - 2026-04-01: Created Story `3B.3` context with courtesy-ready guardrails, lower-count negotiation rules, no-leak privacy requirements, final play handoff guidance, and a dedicated validation checklist.
 - 2026-04-01: Implemented courtesy-pass negotiation across shared engine and server filtering, added pair-local narration payloads, preserved courtesy privacy through reconnect/broadcast flows, and validated with targeted plus full repo test/typecheck/lint runs.
+- 2026-04-02: Code review identified malformed action payload hardening gaps; added AI review follow-up tasks and moved story back to in-progress.
+- 2026-04-02: Addressed code review findings with runtime action payload validation, defensive WebSocket dispatch error handling, malformed courtesy regression tests, and full validation gate (`pnpm test`, `pnpm run typecheck`, `vp lint`) passing.
+- 2026-04-02: Second-pass code review fixes — `PROTOCOL_VERSION` on WebSocket error payloads; expanded File List; validation checklist marked complete; story marked **done**.
 
 ### Status
 
-review
+done

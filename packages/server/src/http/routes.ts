@@ -26,7 +26,7 @@ export async function roomRoutes(app: FastifyInstance, { roomManager }: RoomRout
     }
 
     const result = roomManager.createRoom(sanitized, req.log);
-    return reply.status(201).send(result);
+    return reply.status(201).send({ ...result, hostName: sanitized });
   });
 
   app.get<{ Params: { code: string } }>("/api/rooms/:code/status", async (req, reply) => {

@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
+import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import type { SuitedTile, Tile, CallWindowState, GameResult } from "@mahjong-game/shared";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 
@@ -233,10 +234,10 @@ describe("GameTable — accessibility", () => {
         },
       },
     });
-    const actionEntry = wrapper.get("[data-testid='action-zone-entry']").element as HTMLElement;
+    const actionEntry = expectHtmlElement(wrapper.get("[data-testid='action-zone-entry']").element);
     const chatZone = wrapper.get("[data-testid='chat-placeholder-zone']");
 
-    (chatZone.element as HTMLElement).focus();
+    expectHtmlElement(chatZone.element).focus();
     await chatZone.trigger("keydown", { key: "Escape" });
 
     expect(document.activeElement).toBe(actionEntry);
@@ -584,7 +585,7 @@ describe("GameTable — action zone keyboard navigation", () => {
     const mahjongButton = wrapper.get("[data-testid='mahjong-button']");
     const discardButton = wrapper.get("[data-testid='discard-confirm']");
 
-    (mahjongButton.element as HTMLElement).focus();
+    expectHtmlElement(mahjongButton.element).focus();
     await mahjongButton.trigger("keydown", { key: "ArrowRight" });
     expect(document.activeElement).toBe(discardButton.element);
 
@@ -615,7 +616,7 @@ describe("GameTable — action zone keyboard navigation", () => {
     });
 
     const kongButton = wrapper.get("[data-testid='call-kong']");
-    (kongButton.element as HTMLElement).focus();
+    expectHtmlElement(kongButton.element).focus();
 
     await wrapper.setProps({
       callWindow: null,
@@ -623,14 +624,15 @@ describe("GameTable — action zone keyboard navigation", () => {
     });
     await flushPromises();
 
-    const activeElement = document.activeElement as HTMLElement | null;
+    const rawActive = document.activeElement;
+    expect(rawActive).not.toBeNull();
+    const activeElement = expectHtmlElement(rawActive);
     const toolbar = wrapper.get("[role='toolbar']").element;
     const validControls = [
       wrapper.get("[data-testid='mahjong-button']").element,
       wrapper.get("[data-testid='discard-confirm']").element,
     ];
 
-    expect(activeElement).not.toBeNull();
     expect(toolbar.contains(activeElement)).toBe(true);
     expect(validControls).toContain(activeElement);
 

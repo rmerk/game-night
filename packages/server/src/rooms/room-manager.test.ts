@@ -12,26 +12,13 @@ import {
   DEFAULT_IDLE_TIMEOUT_MS,
   DEFAULT_ABANDONED_TIMEOUT_MS,
 } from "./room-lifecycle";
-import type { FastifyBaseLogger } from "fastify";
+import { createSilentTestLogger } from "../testing/silent-logger";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROOM_CODE_REGEX = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 
-function createMockLogger(): FastifyBaseLogger {
-  const mock = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-    fatal: vi.fn(),
-    trace: vi.fn(),
-    silent: vi.fn(),
-    level: "info",
-    child: vi.fn(),
-  };
-  mock.child.mockReturnValue(mock);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
-  return mock as unknown as FastifyBaseLogger;
+function createMockLogger() {
+  return createSilentTestLogger();
 }
 
 describe("RoomManager", () => {
@@ -147,11 +134,9 @@ describe("RoomManager", () => {
 
   describe("cleanupRoom", () => {
     function createMockWs(readyState: number = WebSocket.OPEN): WebSocket {
-      return {
-        readyState,
-        send: vi.fn(),
-        close: vi.fn(),
-      } as unknown as WebSocket;
+      const stub = { readyState, send: vi.fn(), close: vi.fn() };
+      // oxlint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- minimal ws stub for cleanup broadcast tests
+      return stub as unknown as WebSocket;
     }
 
     it("removes room from active rooms map", () => {
@@ -188,7 +173,11 @@ describe("RoomManager", () => {
       expect(ws.send).toHaveBeenCalledOnce();
       // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
       const sendMock = vi.mocked(ws.send);
-      const sent = JSON.parse(sendMock.mock.calls[0][0] as string);
+      const raw = sendMock.mock.calls[0][0];
+      if (typeof raw !== "string") {
+        throw new Error("expected ws.send string payload");
+      }
+      const sent = JSON.parse(raw);
       expect(sent.type).toBe("SYSTEM_EVENT");
       expect(sent.event).toBe("ROOM_CLOSING");
       expect(sent.reason).toBe("idle_timeout");
@@ -281,11 +270,9 @@ describe("RoomManager", () => {
       const room = manager.getRoom(roomCode)!;
 
       const graceCallback = vi.fn();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- test: vitest setTimeout returns number
-      room.graceTimers.set(
-        "player-0",
-        setTimeout(graceCallback, 30_000) as unknown as ReturnType<typeof setTimeout>,
-      );
+      const graceTimer = setTimeout(graceCallback, 30_000);
+      // oxlint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- setTimeout return type is number vs NodeJS.Timeout under TS DOM merge; cleanup uses clearTimeout which accepts both
+      room.graceTimers.set("player-0", graceTimer as unknown as ReturnType<typeof setTimeout>);
 
       manager.cleanupRoom(roomCode, "all_disconnected");
 
