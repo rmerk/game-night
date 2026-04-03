@@ -454,8 +454,6 @@ describe("buildPlayerView", () => {
     const playerOneView = buildPlayerView(room, gameState, "player-1");
     const spectatorView = buildSpectatorView(room, gameState);
     const playerZeroJson = JSON.stringify(playerZeroView);
-    const playerOneJson = JSON.stringify(playerOneView);
-    const spectatorJson = JSON.stringify(spectatorView);
 
     expect(playerZeroView.charleston).toMatchObject({
       stage: "courtesy",
@@ -484,15 +482,30 @@ describe("buildPlayerView", () => {
       courtesyResolvedPairCount: 1,
     });
 
-    for (const serialized of [playerOneJson, spectatorJson]) {
-      expect(serialized).not.toContain('"count":3');
-      expect(serialized).not.toContain('"count":2');
-      expect(serialized).not.toContain("bam-1-1");
-      expect(serialized).not.toContain("bam-2-1");
-      expect(serialized).not.toContain("bam-3-1");
-      expect(serialized).not.toContain("dot-1-1");
-      expect(serialized).not.toContain("dot-2-1");
+    expect(playerOneView.charleston?.myCourtesySubmission).toBeNull();
+    expect(spectatorView.charleston).not.toHaveProperty("myCourtesySubmission");
+    expect(spectatorView.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");
+    expect(playerOneView.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");
+
+    const parseCharleston = (
+      view: typeof playerOneView | typeof spectatorView,
+    ): Record<string, unknown> | null => {
+      const ch = view.charleston;
+      return ch && typeof ch === "object" ? (ch as unknown as Record<string, unknown>) : null;
+    };
+    const forbiddenInPartnerViews = ["bam-1-1", "bam-2-1", "bam-3-1", "dot-1-1", "dot-2-1"] as const;
+    for (const view of [playerOneView, spectatorView]) {
+      const ch = parseCharleston(view);
+      expect(ch).not.toBeNull();
+      for (const secret of forbiddenInPartnerViews) {
+        expect(JSON.stringify(ch)).not.toContain(secret);
+      }
     }
+
+    expect(playerZeroView.charleston?.myCourtesySubmission).toEqual({
+      count: 3,
+      tileIds: ["bam-1-1", "bam-2-1", "bam-3-1"],
+    });
     expect(playerZeroJson).toContain("bam-1-1");
     expect(playerZeroJson).not.toContain("dot-1-1");
     expect(playerZeroView.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");

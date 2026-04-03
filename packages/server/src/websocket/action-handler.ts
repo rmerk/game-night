@@ -204,19 +204,19 @@ export function handleActionMessage(
 ): void {
   const rawAction: unknown = message.action;
   if (!isPlainObject(rawAction)) {
-    sendActionError(ws, "INVALID_ACTION", "Action payload is required");
+    sendActionError(ws, logger, "INVALID_ACTION", "Action payload is required");
     return;
   }
 
   const actionObj = rawAction;
   if (!actionObj.type || typeof actionObj.type !== "string") {
-    sendActionError(ws, "INVALID_ACTION", "Action type is required");
+    sendActionError(ws, logger, "INVALID_ACTION", "Action type is required");
     return;
   }
 
   const validationError = validateActionPayload(actionObj);
   if (validationError) {
-    sendActionError(ws, "INVALID_ACTION", validationError);
+    sendActionError(ws, logger, "INVALID_ACTION", validationError);
     return;
   }
 
@@ -226,13 +226,13 @@ export function handleActionMessage(
       handleStartGameAction(ws, room, playerId, logger);
       return;
     }
-    sendActionError(ws, "GAME_NOT_STARTED", "No active game in this room");
+    sendActionError(ws, logger, "GAME_NOT_STARTED", "No active game in this room");
     return;
   }
 
   const authenticatedAction = parseGameAction(actionObj, playerId);
   if (!authenticatedAction) {
-    sendActionError(ws, "INVALID_ACTION", "Action payload could not be parsed");
+    sendActionError(ws, logger, "INVALID_ACTION", "Action payload could not be parsed");
     return;
   }
 
@@ -267,7 +267,7 @@ export function handleActionMessage(
       },
       "Action rejected",
     );
-    sendActionError(ws, "ACTION_REJECTED", result.reason ?? "Action was rejected");
+    sendActionError(ws, logger, "ACTION_REJECTED", result.reason ?? "Action was rejected");
   }
 }
 
@@ -286,7 +286,7 @@ function handleStartGameAction(
   const player = room.players.get(playerId);
   if (!player?.isHost) {
     logger.info({ roomCode: room.roomCode, playerId }, "START_GAME rejected: not host");
-    sendActionError(ws, "NOT_HOST", "Only the host can start the game");
+    sendActionError(ws, logger, "NOT_HOST", "Only the host can start the game");
     return;
   }
 
@@ -297,7 +297,12 @@ function handleStartGameAction(
       { roomCode: room.roomCode, playerId, connectedCount },
       "START_GAME rejected: not enough players",
     );
-    sendActionError(ws, "NOT_ENOUGH_PLAYERS", `Need 4 players, only ${connectedCount} connected`);
+    sendActionError(
+      ws,
+      logger,
+      "NOT_ENOUGH_PLAYERS",
+      `Need 4 players, only ${connectedCount} connected`,
+    );
     return;
   }
 
@@ -321,17 +326,25 @@ function handleStartGameAction(
       { roomCode: room.roomCode, playerId, reason: result.reason },
       "START_GAME rejected by engine",
     );
-    sendActionError(ws, "ACTION_REJECTED", result.reason ?? "Failed to start game");
+    sendActionError(ws, logger, "ACTION_REJECTED", result.reason ?? "Failed to start game");
   }
 }
 
-function sendActionError(ws: WebSocket, code: string, message: string): void {
-  ws.send(
-    JSON.stringify({
-      version: PROTOCOL_VERSION,
-      type: "ERROR",
-      code,
-      message,
-    }),
-  );
+function sendActionError(
+  ws: WebSocket,
+  logger: FastifyBaseLogger,
+  code: string,
+  message: string,
+): void {
+  const payload = {
+    version: PROTOCOL_VERSION,
+    type: "ERROR" as const,
+    code,
+    message,
+  };
+  try {
+    ws.send(JSON.stringify(payload));
+  } catch (error) {
+    logger.warn({ error, code }, "Failed to send action ERROR to client");
+  }
 }

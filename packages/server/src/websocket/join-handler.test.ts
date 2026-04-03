@@ -613,6 +613,119 @@ describe("token-based reconnection", () => {
     aliceReconnectWs.close();
   });
 
+  it("restores courtesy-ready state on token reconnection without leaking partner courtesy picks", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+    const tokens: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      const msg = await msgPromise;
+
+      clients.push(ws);
+      tokens.push(msg.token as string);
+      await Promise.all(broadcastPromises);
+    }
+
+    const gameStartMessages = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    const [aliceStartState] = await Promise.all(gameStartMessages);
+    const alicePlayerId = (aliceStartState.state as Record<string, unknown>).myPlayerId as string;
+
+    const secretTileA = "join-hdl-courtesy-secret-a";
+    const secretTileB = "join-hdl-courtesy-secret-b";
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.gamePhase = "charleston";
+    room.gameState!.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      courtesySubmissionsByPlayerId: {
+        [alicePlayerId]: {
+          count: 2,
+          tileIds: [secretTileA, secretTileB],
+        },
+      },
+      courtesyResolvedPairings: [],
+    };
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+    await delay(50);
+
+    const reconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    const aliceReconnectWs = await connectWs(wsUrl);
+    const reconnectMessagePromise = waitForMessage(aliceReconnectWs);
+    sendJoinWithToken(aliceReconnectWs, roomCode, tokens[0]);
+
+    const reconnectMsg = await reconnectMessagePromise;
+    expect(reconnectMsg.type).toBe("STATE_UPDATE");
+    expect(reconnectMsg.token).toBe(tokens[0]);
+    const reconnectState = reconnectMsg.state as Record<string, unknown>;
+    expect(reconnectState.myPlayerId).toBe(alicePlayerId);
+    expect(reconnectState.gamePhase).toBe("charleston");
+    expect(reconnectState.charleston).toMatchObject({
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      courtesyResolvedPairCount: 0,
+      mySubmissionLocked: true,
+      myCourtesySubmission: {
+        count: 2,
+        tileIds: [secretTileA, secretTileB],
+      },
+    });
+    expect(reconnectState.charleston).not.toHaveProperty("courtesySubmissionsByPlayerId");
+
+    const reconnectBroadcastMessages = await Promise.all(reconnectBroadcasts);
+    for (let index = 0; index < reconnectBroadcastMessages.length; index++) {
+      const broadcast = reconnectBroadcastMessages[index];
+      const expectedPlayerId = `player-${index + 1}`;
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      expect(broadcast.resolvedAction).toMatchObject({
+        type: "PLAYER_RECONNECTED",
+        playerId: alicePlayerId,
+        playerName: "Player0",
+      });
+
+      const state = broadcast.state as Record<string, unknown>;
+      expect(state.myPlayerId).toBe(expectedPlayerId);
+      expect(state.gamePhase).toBe("charleston");
+      const ch = state.charleston as Record<string, unknown>;
+      expect(ch).toMatchObject({
+        stage: "courtesy",
+        status: "courtesy-ready",
+        courtesyResolvedPairCount: 0,
+        myCourtesySubmission: null,
+        mySubmissionLocked: false,
+      });
+      expect(ch).not.toHaveProperty("courtesySubmissionsByPlayerId");
+      const chJson = JSON.stringify(ch);
+      expect(chJson).not.toContain(secretTileA);
+      expect(chJson).not.toContain(secretTileB);
+    }
+
+    for (const ws of clients.slice(1)) {
+      ws.close();
+    }
+    aliceReconnectWs.close();
+  });
+
   it("broadcasts filtered Charleston game state to remaining players when someone disconnects", async () => {
     const { roomCode } = await createRoom();
     const clients: WebSocket[] = [];
