@@ -17,6 +17,7 @@ import type { IDragEvent } from "@vue-dnd-kit/core";
 import type { Tile } from "@mahjong-game/shared";
 import type { TileState } from "../tiles/Tile.vue";
 import TileRackItem from "./TileRackItem.vue";
+import TileBack from "../tiles/TileBack.vue";
 import { useRackStore } from "../../stores/rack";
 import { asTileArrayFromDnD } from "../../composables/useRackDragDrop";
 
@@ -24,9 +25,18 @@ const props = withDefaults(
   defineProps<{
     tiles: Tile[];
     isPlayerTurn?: boolean;
+    /** Multi-select Charleston / courtesy — uses charlestonToggleTile instead of rackStore.selectTile */
+    charlestonSelectionMode?: boolean;
+    charlestonSelectedIds?: Set<string>;
+    charlestonToggleTile?: (tileId: string) => void;
+    /** Face-down placeholders during blind pass (not in myRack) */
+    hiddenPlaceholderCount?: number;
   }>(),
   {
     isPlayerTurn: true,
+    charlestonSelectionMode: false,
+    charlestonSelectedIds: () => new Set(),
+    hiddenPlaceholderCount: 0,
   },
 );
 
@@ -76,7 +86,12 @@ watch(
 
 function getTileState(tile: Tile): TileState {
   if (!props.isPlayerTurn) return "default";
-  if (rackStore.selectedTileId === tile.id) return "selected";
+  if (props.charlestonSelectionMode && props.charlestonSelectedIds.has(tile.id)) {
+    return "charleston-selected";
+  }
+  if (!props.charlestonSelectionMode && rackStore.selectedTileId === tile.id) {
+    return "selected";
+  }
   return "default";
 }
 
@@ -112,6 +127,10 @@ function focusSortButton() {
 function handleTileSelect(tile: Tile) {
   if (!props.isPlayerTurn) return;
   activeFocusTarget.value = tile.id;
+  if (props.charlestonSelectionMode && props.charlestonToggleTile) {
+    props.charlestonToggleTile(tile.id);
+    return;
+  }
   rackStore.selectTile(tile.id);
 }
 
@@ -248,6 +267,14 @@ const rackRef = useTemplateRef<HTMLElement>("rackRef");
             @focus="handleTileFocus(tile.id)"
           />
         </TransitionGroup>
+        <div
+          v-for="i in hiddenPlaceholderCount"
+          :key="`hidden-${i}`"
+          class="tile-rack__hidden flex flex-shrink-0 items-end"
+          :data-testid="'tile-rack-hidden-' + i"
+        >
+          <TileBack size="standard" />
+        </div>
       </div>
       <button
         type="button"

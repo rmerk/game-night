@@ -43,7 +43,14 @@ const joker: JokerTile = { id: "joker-1", category: "joker", copy: 1 };
 const sampleTiles: Tile[] = [bam1, bam3, crak5, dot7, windNorth, dragonRed, flowerA, joker];
 
 function mountRack(
-  props: { tiles: Tile[]; isPlayerTurn?: boolean } = { tiles: sampleTiles },
+  props: {
+    tiles: Tile[];
+    isPlayerTurn?: boolean;
+    charlestonSelectionMode?: boolean;
+    charlestonSelectedIds?: Set<string>;
+    charlestonToggleTile?: (id: string) => void;
+    hiddenPlaceholderCount?: number;
+  } = { tiles: sampleTiles },
   options: { attachTo?: HTMLElement } = {},
 ) {
   return mount(TileRack, {
@@ -316,6 +323,45 @@ describe("TileRack — keyboard navigation", () => {
       expect(button.attributes("tabindex")).toBe("-1");
     }
     expect(sortButton.attributes("tabindex")).toBe("-1");
+  });
+});
+
+describe("TileRack — charleston selection", () => {
+  it("calls charlestonToggleTile instead of rack store when in selection mode", async () => {
+    const toggle = vi.fn();
+    const wrapper = mountRack({
+      tiles: [bam1, bam3],
+      isPlayerTurn: true,
+      charlestonSelectionMode: true,
+      charlestonSelectedIds: new Set(),
+      charlestonToggleTile: toggle,
+    });
+    const store = useRackStore();
+    const btn = wrapper.findAll('[role="button"]')[0];
+    await btn.trigger("click");
+    expect(toggle).toHaveBeenCalledWith("bam-1-1");
+    expect(store.selectedTileId).toBeNull();
+  });
+
+  it("applies charleston-selected visual state", () => {
+    const wrapper = mountRack({
+      tiles: [bam1],
+      isPlayerTurn: true,
+      charlestonSelectionMode: true,
+      charlestonSelectedIds: new Set(["bam-1-1"]),
+      charlestonToggleTile: vi.fn(),
+    });
+    expect(wrapper.find(".tile--charleston-selected").exists()).toBe(true);
+  });
+
+  it("renders hidden tile-back placeholders", () => {
+    const wrapper = mountRack({
+      tiles: [bam1],
+      isPlayerTurn: true,
+      hiddenPlaceholderCount: 2,
+    });
+    expect(wrapper.find("[data-testid='tile-rack-hidden-1']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='tile-rack-hidden-2']").exists()).toBe(true);
   });
 });
 

@@ -4,7 +4,13 @@ import type { Tile } from "@mahjong-game/shared";
 import { getTileSizeStyle, type TileDisplaySize } from "./tile-sizing";
 
 export type TileSize = TileDisplaySize;
-export type TileState = "default" | "hover" | "selected" | "disabled" | "face-down";
+export type TileState =
+  | "default"
+  | "hover"
+  | "selected"
+  | "charleston-selected"
+  | "disabled"
+  | "face-down";
 
 const props = withDefaults(
   defineProps<{
@@ -162,6 +168,15 @@ const tileSizeStyle = computed(() => getTileSizeStyle(props.size));
     0 6px 12px rgba(107, 97, 88, 0.2),
     0 3px 6px rgba(107, 97, 88, 0.12),
     0 0 0 2px var(--tile-accent-gold);
+}
+
+/* --- Charleston multi-select (distinct from discard selection) --- */
+.tile--charleston-selected {
+  transform: translateY(-6px);
+  border-color: var(--focus-ring-on-felt);
+  box-shadow:
+    0 5px 10px rgba(107, 97, 88, 0.18),
+    0 0 0 2px var(--focus-ring-on-felt);
 }
 
 /* --- Disabled state --- */

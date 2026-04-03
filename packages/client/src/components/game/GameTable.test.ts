@@ -4,7 +4,14 @@ import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
-import type { SuitedTile, Tile, CallWindowState, GameResult } from "@mahjong-game/shared";
+import type {
+  SuitedTile,
+  Tile,
+  CallWindowState,
+  GameResult,
+  PlayerCharlestonView,
+  ResolvedAction,
+} from "@mahjong-game/shared";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 
 // Mock Vue DnD Kit (needed by TileRack)
@@ -665,5 +672,160 @@ describe("GameTable — action zone keyboard navigation", () => {
     expect(passButton.attributes("tabindex")).toBe("-1");
 
     wrapper.unmount();
+  });
+});
+
+describe("GameTable — charleston", () => {
+  const rackTilesCharleston: Tile[] = [
+    { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+    { id: "bam-3-2", category: "suited", suit: "bam", value: 3, copy: 2 } as SuitedTile,
+    { id: "crak-2-1", category: "suited", suit: "crak", value: 2, copy: 1 } as SuitedTile,
+  ];
+
+  const charlestonPassing: PlayerCharlestonView = {
+    stage: "first",
+    status: "passing",
+    currentDirection: "right",
+    activePlayerIds: [],
+    submittedPlayerIds: [],
+    votesReceivedCount: 0,
+    courtesyPairings: [],
+    courtesyResolvedPairCount: 0,
+    myHiddenTileCount: 0,
+    mySubmissionLocked: false,
+    myVote: null,
+    myCourtesySubmission: null,
+  };
+
+  it("renders CharlestonZone and hides discard pools during passing", () => {
+    const wrapper = mountTable({
+      gamePhase: "charleston",
+      tiles: rackTilesCharleston,
+      localPlayer,
+      charleston: charlestonPassing,
+    });
+    expect(wrapper.find("[data-testid='charleston-zone']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='discard-pools']").exists()).toBe(false);
+  });
+
+  it("renders CourtesyPassUI when courtesy-ready", () => {
+    const wrapper = mountTable({
+      gamePhase: "charleston",
+      tiles: rackTilesCharleston,
+      localPlayer,
+      charleston: {
+        ...charlestonPassing,
+        stage: "courtesy",
+        status: "courtesy-ready",
+        currentDirection: null,
+      },
+    });
+    expect(wrapper.find("[data-testid='courtesy-pass-ui']").exists()).toBe(true);
+  });
+
+  it("renders CharlestonVote in action zone when vote-ready", () => {
+    const wrapper = mountTable({
+      gamePhase: "charleston",
+      tiles: rackTilesCharleston,
+      localPlayer,
+      charleston: {
+        ...charlestonPassing,
+        status: "vote-ready",
+        currentDirection: null,
+      },
+    });
+    expect(wrapper.find("[data-testid='charleston-vote']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='mahjong-button']").exists()).toBe(false);
+  });
+
+  it("emits charlestonPass after selecting three tiles and clicking Pass", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        tiles: rackTilesCharleston,
+        localPlayer,
+        gamePhase: "charleston",
+        charleston: charlestonPassing,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+
+    const tileButtons = wrapper.findAll('[data-rack-tile-id] [role="button"]');
+    expect(tileButtons.length).toBe(3);
+    await tileButtons[0].trigger("click");
+    await tileButtons[1].trigger("click");
+    await tileButtons[2].trigger("click");
+
+    await wrapper.get("[data-testid='charleston-pass-btn']").trigger("click");
+    const ev = wrapper.emitted("charlestonPass");
+    expect(ev).toBeTruthy();
+    expect(ev?.[0]?.[0]).toEqual(["dot-7-1", "bam-3-2", "crak-2-1"]);
+  });
+
+  it("places Charleston vote controls inside ActionZone toolbar for roving tabindex", () => {
+    const wrapper = mountTable({
+      gamePhase: "charleston",
+      tiles: rackTilesCharleston,
+      localPlayer,
+      charleston: {
+        ...charlestonPassing,
+        status: "vote-ready",
+        currentDirection: null,
+      },
+    });
+    const toolbar = wrapper.get("[data-toolbar-controls]");
+    expect(toolbar.find("[data-testid='charleston-vote']").exists()).toBe(true);
+  });
+
+  it("applies pass-out then receive-in rack classes on CHARLESTON_PHASE_COMPLETE", async () => {
+    vi.useFakeTimers();
+    try {
+      const pinia = createPinia();
+      setActivePinia(pinia);
+      const resolved: ResolvedAction = {
+        type: "CHARLESTON_PHASE_COMPLETE",
+        direction: "right",
+        nextDirection: "left",
+        stage: "first",
+        status: "passing",
+      };
+      const wrapper = mount(GameTable, {
+        props: {
+          opponents: mockPlayers,
+          tiles: rackTilesCharleston,
+          localPlayer,
+          gamePhase: "charleston",
+          charleston: charlestonPassing,
+          resolvedAction: null,
+        },
+        global: {
+          plugins: [pinia],
+          stubs: { TileSprite: { template: "<svg />" } },
+        },
+      });
+      const rack = () => wrapper.get("[data-testid='rack-area']");
+
+      await wrapper.setProps({ resolvedAction: resolved });
+      await flushPromises();
+      expect(rack().classes()).toContain("game-table__rack-pass--right");
+
+      vi.advanceTimersByTime(400);
+      await flushPromises();
+      expect(rack().classes()).toContain("game-table__rack-receive--from-left");
+
+      vi.advanceTimersByTime(400);
+      await flushPromises();
+      expect(rack().classes()).not.toContain("game-table__rack-receive--from-left");
+      expect(rack().classes()).not.toContain("game-table__rack-pass--right");
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
