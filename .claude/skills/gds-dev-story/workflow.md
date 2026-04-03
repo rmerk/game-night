@@ -1,8 +1,8 @@
 # Dev Story Workflow
 
-**Goal:** Execute story implementation following a context filled story spec file.
+**Goal:** Execute story implementation by orchestrating subagents — fresh context per task, two-stage review, independent DoD validation.
 
-**Your Role:** Developer implementing the story.
+**Your Role:** Controller/orchestrator. You dispatch subagents, curate context, update the story file, and track progress. You NEVER write implementation code directly.
 - Communicate all responses in {communication_language} and language MUST be tailored to {game_dev_experience}
 - Generate all documents in {document_output_language}
 - When understanding existing code, use smart_outline → smart_unfold as primary navigation. Full file reads only when actively editing a file or when smart tools are insufficient (Vue SFC templates/styles, CSS, config files)
@@ -11,7 +11,7 @@
 - Only modify the story file in these areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List, Change Log, and Status
 - Execute ALL steps in exact order; do NOT skip steps
 - Absolutely DO NOT stop because of "milestones", "significant progress", or "session boundaries". Continue in a single execution until the story is COMPLETE (all ACs satisfied and all tasks/subtasks checked) UNLESS a HALT condition is triggered or the USER gives other instruction.
-- Do NOT schedule a "next session" or request review pauses unless a HALT condition applies. Only Step 6 decides completion.
+- Do NOT schedule a "next session" or request review pauses unless a HALT condition applies. Only Step 8 decides completion.
 - User skill level ({game_dev_experience}) affects conversation style ONLY, not code updates.
 
 ---
@@ -33,6 +33,11 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 - `validation` = `./checklist.md`
 - `story_file` = `` (explicit story path; auto-discovered if empty)
 - `sprint_status` = `{implementation_artifacts}/sprint-status.yaml`
+- `context_curation` = `./context-curation.md`
+- `implementer_template` = `./implementer-prompt.md`
+- `spec_reviewer_template` = `./spec-reviewer-prompt.md`
+- `quality_reviewer_template` = `./code-quality-reviewer-prompt.md`
+- `dod_reviewer_template` = `./dod-reviewer-prompt.md`
 
 ### Context
 
@@ -43,16 +48,19 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 ## EXECUTION
 
 <workflow>
+  <critical>You are a CONTROLLER. You dispatch subagents — you do NOT write implementation code.</critical>
   <critical>Communicate all responses in {communication_language} and language MUST be tailored to {game_dev_experience}</critical>
   <critical>Generate all documents in {document_output_language}</critical>
-  <critical>Only modify the story file in these areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List,
-    Change Log, and Status</critical>
+  <critical>Only modify the story file in these areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List, Change Log, and Status</critical>
   <critical>Execute ALL steps in exact order; do NOT skip steps</critical>
-  <critical>Absolutely DO NOT stop because of "milestones", "significant progress", or "session boundaries". Continue in a single execution
-    until the story is COMPLETE (all ACs satisfied and all tasks/subtasks checked) UNLESS a HALT condition is triggered or the USER gives
-    other instruction.</critical>
-  <critical>Do NOT schedule a "next session" or request review pauses unless a HALT condition applies. Only Step 6 decides completion.</critical>
+  <critical>Absolutely DO NOT stop because of "milestones", "significant progress", or "session boundaries". Continue in a single execution until the story is COMPLETE UNLESS a HALT condition is triggered or the USER gives other instruction.</critical>
+  <critical>Do NOT schedule a "next session" or request review pauses unless a HALT condition applies. Only Step 8 decides completion.</critical>
   <critical>User skill level ({game_dev_experience}) affects conversation style ONLY, not code updates.</critical>
+
+  <!-- ============================================================ -->
+  <!-- STEP 1: STORY DISCOVERY                                       -->
+  <!-- Preserved from original — finds and loads the story file      -->
+  <!-- ============================================================ -->
 
   <step n="1" goal="Find next ready story and load it" tag="sprint-status">
     <check if="{{story_path}} is provided">
@@ -76,7 +84,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       </action>
 
       <check if="no ready-for-dev or in-progress story found">
-        <output>📋 No ready-for-dev stories found in sprint-status.yaml
+        <output>No ready-for-dev stories found in sprint-status.yaml
 
           **Current Sprint Status:** {{sprint_status_summary}}
 
@@ -85,9 +93,6 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
           2. Run `*validate-create-story` to improve existing stories before development (recommended quality check)
           3. Specify a particular story file to develop (provide full path)
           4. Check {{sprint_status}} file to see current sprint status
-
-          💡 **Tip:** Stories in `ready-for-dev` may not have been validated. Consider running `validate-create-story` first for a quality
-          check.
         </output>
         <ask>Choose option [1], [2], [3], or [4], or specify story file path:</ask>
 
@@ -126,7 +131,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       <action>Read each candidate story file to check Status section</action>
 
       <check if="no ready-for-dev stories found in story files">
-        <output>📋 No ready-for-dev stories found
+        <output>No ready-for-dev stories found
 
           **Available Options:**
           1. Run `create-story` to create next story from epics with comprehensive context
@@ -165,25 +170,26 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
     <action>Load comprehensive context from story file's Dev Notes section</action>
     <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
-    <action>Use enhanced story context to inform implementation decisions and approaches</action>
 
     <action>Identify first incomplete task (unchecked [ ]) in Tasks/Subtasks</action>
 
     <action if="no incomplete tasks">
-      <goto step="6">Completion sequence</goto>
+      <goto step="7">DoD validation</goto>
     </action>
     <action if="story file inaccessible">HALT: "Cannot develop story without access to story file"</action>
     <action if="incomplete task or subtask requirements ambiguous">ASK user to clarify or HALT</action>
   </step>
 
-  <step n="2" goal="Load project context and story information">
-    <critical>Load all available context to inform implementation</critical>
+  <!-- ============================================================ -->
+  <!-- STEP 2: CONTEXT LOADING & STRUCTURAL MAPPING                  -->
+  <!-- Controller builds understanding for context curation          -->
+  <!-- ============================================================ -->
+
+  <step n="2" goal="Load project context and build structural understanding">
+    <critical>Load all available context to inform context curation for subagents</critical>
 
     <action>Load {project_context} for coding standards and project-wide patterns (if exists)</action>
-    <action>Parse sections: Story, Acceptance Criteria, Tasks/Subtasks, Dev Notes, Dev Agent Record, File List, Change Log, Status</action>
-    <action>Load comprehensive context from story file's Dev Notes section</action>
-    <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
-    <action>Use enhanced story context to inform implementation decisions and approaches</action>
+    <action>Load {{context_curation}} guide — this governs how you prepare context for each subagent</action>
 
     <!-- Cross-session memory integration -->
     <action>Query claude-mem for implementation-relevant context:
@@ -191,23 +197,30 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       - Use search with project scope to find past debugging experiences, implementation decisions, and gotchas in related areas
       - Look for past review feedback on similar components to avoid repeating mistakes
     </action>
-    <action>Incorporate claude-mem findings into implementation approach — treat as supplementary context alongside Dev Notes</action>
+    <action>Incorporate claude-mem findings into your understanding — use these when curating context for implementer subagents</action>
 
     <!-- Build structural understanding of files this story will touch -->
-    <action>From story Tasks/Subtasks and File List, identify source files this story will create or modify</action>
+    <action>From story Tasks/Subtasks and File List, identify ALL source files this story will create or modify</action>
     <action>For each existing file that will be modified, run smart_outline to get structural overview:
       - Function/method signatures, type definitions, exports
-      - This builds context for implementation without reading full files
+      - This builds YOUR context for curating subagent prompts — subagents will read files themselves
     </action>
     <action>Use smart_search to map dependencies of files being modified:
       - Find callers and consumers of APIs that will change
       - Identify test files covering the code being modified
     </action>
 
-    <output>✅ **Context Loaded**
-      Story and project context available for implementation
-    </output>
+    <!-- Extract all tasks for TodoWrite tracking -->
+    <action>Parse ALL tasks and subtasks from the story file</action>
+    <action>Create TodoWrite entries for each top-level task (not subtasks — those are tracked in story file)</action>
+
+    <output>Context loaded. {{task_count}} tasks identified for dispatch.</output>
   </step>
+
+  <!-- ============================================================ -->
+  <!-- STEP 3: REVIEW CONTINUATION DETECTION                         -->
+  <!-- Detects prior code review findings and queues them as tasks   -->
+  <!-- ============================================================ -->
 
   <step n="3" goal="Detect review continuation and extract review context">
     <critical>Determine if this is a fresh start or continuation after code review</critical>
@@ -225,14 +238,15 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       </action>
       <action>Count unchecked [ ] review follow-up tasks in "Review Follow-ups (AI)" subsection</action>
       <action>Store list of unchecked review items as {{pending_review_items}}</action>
+      <action>Add review follow-up items to the task queue BEFORE regular tasks — they take priority</action>
 
-      <output>⏯️ **Resuming Story After Code Review** ({{review_date}})
+      <output>Resuming Story After Code Review ({{review_date}})
 
         **Review Outcome:** {{review_outcome}}
         **Action Items:** {{unchecked_review_count}} remaining to address
         **Priorities:** {{high_count}} High, {{med_count}} Medium, {{low_count}} Low
 
-        **Strategy:** Will prioritize review follow-up tasks (marked [AI-Review]) before continuing with regular tasks.
+        **Strategy:** Review follow-up tasks dispatched first, then remaining regular tasks.
       </output>
     </check>
 
@@ -240,14 +254,19 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       <action>Set review_continuation = false</action>
       <action>Set {{pending_review_items}} = empty</action>
 
-      <output>🚀 **Starting Fresh Implementation**
+      <output>Starting Fresh Implementation
 
         Story: {{story_key}}
         Story Status: {{current_status}}
-        First incomplete task: {{first_task_description}}
+        First task: {{first_task_description}}
       </output>
     </check>
   </step>
+
+  <!-- ============================================================ -->
+  <!-- STEP 4: MARK STORY IN-PROGRESS                                -->
+  <!-- Updates sprint-status.yaml                                    -->
+  <!-- ============================================================ -->
 
   <step n="4" goal="Mark story in-progress" tag="sprint-status">
     <check if="{{sprint_status}} file exists">
@@ -258,19 +277,19 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       <check if="current status == 'ready-for-dev' OR review_continuation == true">
         <action>Update the story in the sprint status report to = "in-progress"</action>
         <action>Update last_updated field to current date</action>
-        <output>🚀 Starting work on story {{story_key}}
-          Status updated: ready-for-dev → in-progress
+        <output>Starting work on story {{story_key}}
+          Status updated: {{previous_status}} → in-progress
         </output>
       </check>
 
       <check if="current status == 'in-progress'">
-        <output>⏯️ Resuming work on story {{story_key}}
+        <output>Resuming work on story {{story_key}}
           Story is already marked in-progress
         </output>
       </check>
 
       <check if="current status is neither ready-for-dev nor in-progress">
-        <output>⚠️ Unexpected story status: {{current_status}}
+        <output>Unexpected story status: {{current_status}}
           Expected ready-for-dev or in-progress. Continuing anyway...
         </output>
       </check>
@@ -279,140 +298,194 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     </check>
 
     <check if="{{sprint_status}} file does NOT exist">
-      <output>ℹ️ No sprint status file exists - story progress will be tracked in story file only</output>
+      <output>No sprint status file exists - story progress will be tracked in story file only</output>
       <action>Set {{current_sprint_status}} = "no-sprint-tracking"</action>
     </check>
   </step>
 
-  <step n="5" goal="Implement task following red-green-refactor cycle">
-    <critical>FOLLOW THE STORY FILE TASKS/SUBTASKS SEQUENCE EXACTLY AS WRITTEN - NO DEVIATION</critical>
+  <!-- ============================================================ -->
+  <!-- STEP 5: PER-TASK DISPATCH LOOP                                -->
+  <!-- Core subagent orchestration — one task at a time              -->
+  <!-- ============================================================ -->
 
-    <action>Review the current task/subtask from the story file - this is your authoritative implementation guide</action>
-    <action>Before coding, use smart tools to understand the code you will touch:
-      - smart_outline on each file you will modify — understand its structure before changing it
-      - smart_search to find similar patterns and existing tests in the codebase
-      - Reference Step 2 outlines already in context — don't re-read files you already outlined
+  <step n="5" goal="Dispatch subagents for each task with two-stage review">
+    <critical>FOLLOW THE STORY FILE TASKS/SUBTASKS SEQUENCE EXACTLY AS WRITTEN — NO DEVIATION</critical>
+    <critical>You are the CONTROLLER. You NEVER write implementation code. You dispatch subagents.</critical>
+    <critical>Follow {{context_curation}} guide for every subagent dispatch</critical>
+
+    <action>Get the current incomplete task from the story file task queue</action>
+
+    <!-- PRE-DISPATCH: Record baseline and curate context -->
+    <action>Record BASE_SHA = `git rev-parse HEAD` (before any implementation)</action>
+    <action>Curate context for this task following {{context_curation}} guide:
+      1. Extract task text + all subtasks VERBATIM from story file
+      2. Find AC numbers in parentheses (e.g., "AC: 2, 3") — copy ONLY those full AC texts
+      3. From Dev Notes, select ONLY sections relevant to THIS task (see curation guide matrix)
+      4. From Critical Gotchas, select ONLY gotchas that apply to THIS task's files/concerns
+      5. Include static project conventions block
     </action>
-    <action>Plan implementation following red-green-refactor cycle</action>
+    <action>Select model for implementer based on task complexity (see {{context_curation}} model guidance)</action>
 
-    <!-- RED PHASE -->
-    <action>Use smart_search to find existing test patterns for similar functionality. Use smart_outline on related test files to understand test structure before writing new tests</action>
-    <action>Write FAILING tests first for the task/subtask functionality</action>
-    <action>Confirm tests fail before implementation - this validates test correctness</action>
+    <!-- DISPATCH: Implementer subagent -->
+    <action>Dispatch implementer subagent following {{implementer_template}}:
+      - Use Agent tool (general-purpose) with curated context
+      - Pass task text, mapped ACs, curated Dev Notes, filtered gotchas, project conventions
+      - All context is INLINE — do NOT make subagent read the story file
+      - Set model parameter based on task complexity
+    </action>
 
-    <!-- GREEN PHASE -->
-    <action>Use smart_outline to understand modules being modified. Use smart_unfold on specific functions you need to integrate with. Full file reads only for files being actively edited</action>
-    <action>Implement MINIMAL code to make tests pass</action>
-    <action>Run tests to confirm they now pass</action>
-    <action>Handle error conditions and edge cases as specified in task/subtask</action>
+    <!-- HANDLE: Implementer status -->
+    <action>Read implementer subagent's report and status</action>
 
-    <!-- REFACTOR PHASE -->
-    <action>Improve code structure while keeping tests green</action>
-    <action>Ensure code follows architecture patterns and coding standards from Dev Notes</action>
-    <action>Use smart_outline to verify structural result of changes. Use smart_search to confirm no callers or consumers were missed</action>
-
-    <action>Document technical approach and decisions in Dev Agent Record → Implementation Plan</action>
-
-    <action if="new dependencies required beyond story specifications">HALT: "Additional dependencies need user approval"</action>
-    <action if="3 consecutive implementation failures occur">HALT and request guidance</action>
-    <action if="required configuration is missing">HALT: "Cannot proceed without necessary configuration files"</action>
-
-    <critical>NEVER implement anything not mapped to a specific task/subtask in the story file</critical>
-    <critical>NEVER proceed to next task until current task/subtask is complete AND tests pass</critical>
-    <critical>Execute continuously without pausing until all tasks/subtasks are complete or explicit HALT condition</critical>
-    <critical>Do NOT propose to pause for review until Step 9 completion gates are satisfied</critical>
-  </step>
-
-  <step n="6" goal="Author comprehensive tests">
-    <action>Use smart_search to find existing test coverage for related code. Use smart_outline on existing test files to understand test structure and patterns before adding new tests</action>
-    <action>Create unit tests for business logic and core functionality introduced/changed by the task</action>
-    <action>Add integration tests for component interactions specified in story requirements</action>
-    <action>Include end-to-end tests for critical user flows when story requirements demand them</action>
-    <action>Cover edge cases and error handling scenarios identified in story Dev Notes</action>
-  </step>
-
-  <step n="7" goal="Run validations and tests">
-    <action>Determine how to run tests for this repo (infer test framework from project structure)</action>
-    <action>Run all existing tests to ensure no regressions</action>
-    <action>Run the new tests to verify implementation correctness</action>
-    <action>Run linting and code quality checks if configured in project</action>
-    <action>Validate implementation meets ALL story acceptance criteria; enforce quantitative thresholds explicitly</action>
-    <action if="regression tests fail">STOP and fix before continuing - identify breaking changes immediately</action>
-    <action if="new tests fail">STOP and fix before continuing - ensure implementation correctness</action>
-  </step>
-
-  <step n="8" goal="Validate and mark task complete ONLY when fully done">
-    <critical>NEVER mark a task complete unless ALL conditions are met - NO LYING OR CHEATING</critical>
-
-    <!-- VALIDATION GATES -->
-    <action>Verify ALL tests for this task/subtask ACTUALLY EXIST and PASS 100%</action>
-    <action>Confirm implementation matches EXACTLY what the task/subtask specifies - no extra features</action>
-    <action>Validate that ALL acceptance criteria related to this task are satisfied</action>
-    <action>Run full test suite to ensure NO regressions introduced</action>
-
-    <!-- REVIEW FOLLOW-UP HANDLING -->
-    <check if="task is review follow-up (has [AI-Review] prefix)">
-      <action>Extract review item details (severity, description, related AC/file)</action>
-      <action>Add to resolution tracking list: {{resolved_review_items}}</action>
-
-      <!-- Mark task in Review Follow-ups section -->
-      <action>Mark task checkbox [x] in "Tasks/Subtasks → Review Follow-ups (AI)" section</action>
-
-      <!-- CRITICAL: Also mark corresponding action item in review section -->
-      <action>Find matching action item in "Senior Developer Review (AI) → Action Items" section by matching description</action>
-      <action>Mark that action item checkbox [x] as resolved</action>
-
-      <action>Add to Dev Agent Record → Completion Notes: "✅ Resolved review finding [{{severity}}]: {{description}}"</action>
+    <check if="status == NEEDS_CONTEXT">
+      <action>Answer the implementer's questions using your loaded context</action>
+      <action>Provide missing information via SendMessage to the same subagent</action>
+      <action>Wait for updated report</action>
     </check>
 
-    <!-- ONLY MARK COMPLETE IF ALL VALIDATION PASS -->
-    <check if="ALL validation gates pass AND tests ACTUALLY exist and pass">
-      <action>ONLY THEN mark the task (and subtasks) checkbox with [x]</action>
-      <action>Update File List section with ALL new, modified, or deleted files (paths relative to repo root)</action>
-      <action>Add completion notes to Dev Agent Record summarizing what was ACTUALLY implemented and tested</action>
+    <check if="status == BLOCKED">
+      <action>Assess the blocker:
+        1. If context problem → provide more context and re-dispatch with same model
+        2. If task too complex → re-dispatch with more capable model
+        3. If task too large → break into smaller pieces and dispatch sequentially
+        4. If plan itself is wrong → HALT and ask user for guidance
+      </action>
     </check>
 
-    <check if="ANY validation fails">
-      <action>DO NOT mark task complete - fix issues first</action>
-      <action>HALT if unable to fix validation failures</action>
+    <check if="status == DONE_WITH_CONCERNS">
+      <action>Read the concerns before proceeding</action>
+      <action>If concerns are about correctness or scope → address before review</action>
+      <action>If concerns are observations (e.g., "file is getting large") → note and proceed</action>
     </check>
 
-    <check if="review_continuation == true and {{resolved_review_items}} is not empty">
-      <action>Count total resolved review items in this session</action>
-      <action>Add Change Log entry: "Addressed code review findings - {{resolved_count}} items resolved (Date: {{date}})"</action>
+    <check if="status == DONE or DONE_WITH_CONCERNS (concerns noted)">
+      <!-- DISPATCH: Spec compliance reviewer -->
+      <action>Dispatch spec reviewer subagent following {{spec_reviewer_template}}:
+        - Use Agent tool (general-purpose) with model: sonnet
+        - Pass the EXACT SAME task text and ACs given to implementer
+        - Pass the implementer's FULL report (not summarized)
+        - If DONE_WITH_CONCERNS, include concerns text
+      </action>
+
+      <check if="spec reviewer returns issues">
+        <action>Send spec reviewer findings back to implementer subagent via SendMessage</action>
+        <action>Wait for implementer to fix issues</action>
+        <action>Re-dispatch spec reviewer to verify fixes</action>
+        <action>Repeat until spec reviewer returns compliant</action>
+      </check>
+
+      <check if="spec reviewer returns compliant">
+        <!-- DISPATCH: Code quality reviewer -->
+        <action>Record HEAD_SHA = `git rev-parse HEAD` (after implementer's commits)</action>
+        <action>Dispatch code quality reviewer following {{quality_reviewer_template}}:
+          - Use Agent tool (superpowers:code-reviewer) with model: sonnet
+          - Pass BASE_SHA, HEAD_SHA, task summary, requirements
+          - Include GDS-specific quality criteria
+        </action>
+
+        <check if="quality reviewer returns issues">
+          <action>Send quality findings back to implementer subagent via SendMessage</action>
+          <action>Wait for implementer to fix issues</action>
+          <action>Re-dispatch quality reviewer to verify fixes</action>
+          <action>Repeat until quality reviewer approves</action>
+        </check>
+
+        <check if="quality reviewer approves">
+          <!-- TASK COMPLETE: Controller updates story file -->
+          <action>Mark the task (and all subtasks) checkbox with [x] in story file</action>
+          <action>Update File List section with files from implementer's report (paths relative to repo root)</action>
+          <action>Add completion notes to Dev Agent Record</action>
+
+          <!-- Handle review follow-up tasks -->
+          <check if="task is review follow-up (has [AI-Review] prefix)">
+            <action>Mark task checkbox [x] in "Tasks/Subtasks → Review Follow-ups (AI)" section</action>
+            <action>Find matching action item in "Senior Developer Review (AI) → Action Items" section</action>
+            <action>Mark that action item checkbox [x] as resolved</action>
+            <action>Add to Dev Agent Record: "Resolved review finding [{{severity}}]: {{description}}"</action>
+          </check>
+
+          <action>Update Change Log with summary of task completion</action>
+          <action>Save the story file</action>
+          <action>Mark task complete in TodoWrite</action>
+        </check>
+      </check>
     </check>
 
-    <action>Save the story file</action>
+    <action if="3 consecutive implementation failures on same task">HALT and request user guidance</action>
+
+    <!-- LOOP: Next task -->
     <action>Determine if more incomplete tasks remain</action>
     <action if="more tasks remain">
       <goto step="5">Next task</goto>
     </action>
     <action if="no tasks remain">
-      <goto step="9">Completion</goto>
+      <goto step="6">Run full test suite</goto>
     </action>
   </step>
 
-  <step n="9" goal="Story completion and mark for review" tag="sprint-status">
-    <action>Verify ALL tasks and subtasks are marked [x] (re-scan the story document now)</action>
-    <action>Run the full regression suite (do not skip)</action>
-    <action>Confirm File List includes every changed file</action>
-    <action>Execute enhanced definition-of-done validation</action>
+  <!-- ============================================================ -->
+  <!-- STEP 6: FULL REGRESSION SUITE                                 -->
+  <!-- Run before DoD validation to catch cross-task issues          -->
+  <!-- ============================================================ -->
+
+  <step n="6" goal="Run full test suite and quality gates">
+    <action>Run `pnpm test` — full test suite across all packages</action>
+    <action>Run `pnpm run typecheck` — TypeScript type checking</action>
+    <action>Run `vp lint` — linting and code quality</action>
+
+    <check if="any failures">
+      <action>Dispatch a fix subagent with the specific failure details</action>
+      <action>After fix, re-run all checks</action>
+      <action>Repeat until all pass</action>
+    </check>
+
+    <action if="all pass">Proceed to DoD validation</action>
+  </step>
+
+  <!-- ============================================================ -->
+  <!-- STEP 7: DOD VALIDATION (INDEPENDENT REVIEWER)                 -->
+  <!-- Subagent validates — controller does NOT self-validate        -->
+  <!-- ============================================================ -->
+
+  <step n="7" goal="Independent Definition-of-Done validation">
+    <critical>You do NOT validate your own work. A DoD reviewer subagent does.</critical>
+
+    <action>Read the updated story file in full (it now has all tasks marked [x])</action>
+    <action>Read {{validation}} checklist in full</action>
+
+    <action>Dispatch DoD reviewer subagent following {{dod_reviewer_template}}:
+      - Use Agent tool (general-purpose) with model: opus
+      - Pass the COMPLETE story file content (all sections)
+      - Pass the COMPLETE checklist.md content
+      - The reviewer will independently run tests, read code, and verify every DoD item
+    </action>
+
+    <check if="DoD reviewer returns FAIL">
+      <action>For each blocking issue identified by the reviewer:</action>
+      <action>Dispatch a fix subagent with specific instructions for what to fix</action>
+      <action>After all fixes, re-dispatch DoD reviewer</action>
+      <action>Repeat until DoD reviewer returns PASS</action>
+    </check>
+
+    <check if="DoD reviewer returns PASS">
+      <action>Proceed to story completion</action>
+    </check>
+
+    <action if="DoD reviewer fails 3 consecutive times">HALT - Escalate to user</action>
+  </step>
+
+  <!-- ============================================================ -->
+  <!-- STEP 8: STORY COMPLETION & SPRINT STATUS UPDATE               -->
+  <!-- ============================================================ -->
+
+  <step n="8" goal="Story completion and mark for review" tag="sprint-status">
     <action>Update the story Status to: "review"</action>
 
-    <!-- Enhanced Definition of Done Validation -->
-    <action>Validate definition-of-done checklist with essential requirements:
-      - All tasks/subtasks marked complete with [x]
-      - Implementation satisfies every Acceptance Criterion
-      - Unit tests for core functionality added/updated
-      - Integration tests for component interactions added when required
-      - End-to-end tests for critical flows added when story demands them
-      - All tests pass (no regressions, new tests successful)
-      - Code quality checks pass (linting, static analysis if configured)
-      - File List includes every new/modified/deleted file (relative paths)
-      - Dev Agent Record contains implementation notes
-      - Change Log includes summary of changes
-      - Only permitted story sections were modified
-    </action>
+    <!-- Review follow-up summary -->
+    <check if="review_continuation == true and review follow-up items were resolved">
+      <action>Count total resolved review items in this session</action>
+      <action>Add Change Log entry: "Addressed code review findings - {{resolved_count}} items resolved (Date: {{date}})"</action>
+    </check>
 
     <!-- Mark story ready for review - sprint status conditional -->
     <check if="{sprint_status} file exists AND {{current_sprint_status}} != 'no-sprint-tracking'">
@@ -422,33 +495,30 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       <action>Update development_status[{{story_key}}] = "review"</action>
       <action>Update last_updated field to current date</action>
       <action>Save file, preserving ALL comments and structure including STATUS DEFINITIONS</action>
-      <output>✅ Story status updated to "review" in sprint-status.yaml</output>
+      <output>Story status updated to "review" in sprint-status.yaml</output>
     </check>
 
     <check if="{sprint_status} file does NOT exist OR {{current_sprint_status}} == 'no-sprint-tracking'">
-      <output>ℹ️ Story status updated to "review" in story file (no sprint tracking configured)</output>
+      <output>Story status updated to "review" in story file (no sprint tracking configured)</output>
     </check>
 
     <check if="story key not found in sprint status">
-      <output>⚠️ Story file updated, but sprint-status update failed: {{story_key}} not found
+      <output>Story file updated, but sprint-status update failed: {{story_key}} not found
 
         Story status is set to "review" in file, but sprint-status.yaml may be out of sync.
       </output>
     </check>
-
-    <!-- Final validation gates -->
-    <action if="any task is incomplete">HALT - Complete remaining tasks before marking ready for review</action>
-    <action if="regression failures exist">HALT - Fix regression issues before completing</action>
-    <action if="File List is incomplete">HALT - Update File List with all changed files</action>
-    <action if="definition-of-done validation fails">HALT - Address DoD failures before completing</action>
   </step>
 
-  <step n="10" goal="Completion communication and user support">
-    <action>Execute the enhanced definition-of-done checklist using the validation framework</action>
+  <!-- ============================================================ -->
+  <!-- STEP 9: COMPLETION COMMUNICATION                              -->
+  <!-- ============================================================ -->
+
+  <step n="9" goal="Completion communication and user support">
     <action>Prepare a concise summary in Dev Agent Record → Completion Notes</action>
 
     <action>Communicate to {user_name} that story implementation is complete and ready for review</action>
-    <action>Summarize key accomplishments: story ID, story key, title, key changes made, tests added, files modified</action>
+    <action>Summarize: story ID, story key, title, key changes, tests added, files modified</action>
     <action>Provide the story file path and current status (now "review")</action>
 
     <action>Based on {game_dev_experience}, ask if user needs any explanations about:
@@ -456,7 +526,6 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       - Why certain technical decisions were made
       - How to test or verify the changes
       - Any patterns, libraries, or approaches used
-      - Anything else they'd like clarified
     </action>
 
     <check if="user asks for explanations">
@@ -465,15 +534,12 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     </check>
 
     <action>Once explanations are complete (or user indicates no questions), suggest logical next steps</action>
-    <action>Recommended next steps (flexible based on project setup):
+    <action>Recommended next steps:
       - Review the implemented story and test the changes
-      - Verify all acceptance criteria are met
-      - Ensure deployment readiness if applicable
       - Run `code-review` workflow for peer review
-      - Optional: If Test Architect module installed, run `/bmad:gds:workflows:automate` to expand guardrail tests
     </action>
 
-    <output>💡 **Tip:** For best results, run `code-review` using a **different** LLM than the one that implemented this story.</output>
+    <output>For best results, run `code-review` using a **different** LLM than the one that implemented this story.</output>
     <check if="{sprint_status} file exists">
       <action>Suggest checking {sprint_status} to see project progress</action>
     </check>
