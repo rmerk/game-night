@@ -144,3 +144,9 @@ Task tool (general-purpose):
 - Include ACs from other tasks
 - Include previous task implementation details
 - Summarize or paraphrase — paste verbatim from story file
+
+## Platform Note
+
+In the **Cursor strategy**, the controller uses this template as its own TDD implementation
+checklist rather than passing it to a subagent. The template content, TDD discipline, and
+self-review section apply identically — the only difference is who executes them.
