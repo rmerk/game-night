@@ -275,6 +275,96 @@ describe("handleActionMessage", () => {
     for (const p of players) p.ws.close();
   });
 
+  it("overwrites playerId for COURTESY_PASS (authenticated seat binding)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gameState = room.gameState!;
+
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      votesByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      courtesyPairings: [
+        ["player-0", "player-2"],
+        ["player-1", "player-3"],
+      ],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
+    };
+
+    const alice = players.find((p) => p.playerId === "player-0")!;
+    const firstRackTile = gameState.players["player-0"].rack[0];
+    expect(firstRackTile).toBeDefined();
+    const tileId = firstRackTile.id;
+
+    const messagePromises = players.map((p) => waitForMessage(p.ws));
+    sendAction(alice.ws, {
+      type: "COURTESY_PASS",
+      playerId: "FAKE_HACKER_ID",
+      count: 1,
+      tileIds: [tileId],
+    });
+
+    const messages = await Promise.all(messagePromises);
+    for (const msg of messages) {
+      expect(msg.type).toBe("STATE_UPDATE");
+    }
+
+    const resolvedAction = resolvedActionRecord(messages[0]);
+    expect(resolvedAction).toMatchObject({
+      type: "COURTESY_PASS_LOCKED",
+      playerId: "player-0",
+      pairing: ["player-0", "player-2"],
+    });
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("overwrites playerId for CHARLESTON_PASS (authenticated seat binding)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gameState = room.gameState!;
+
+    gameState.gamePhase = "charleston";
+    gameState.charleston = {
+      stage: "first",
+      status: "passing",
+      currentDirection: "right",
+      activePlayerIds: ["player-0", "player-1", "player-2", "player-3"],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
+    };
+
+    const alice = players.find((p) => p.playerId === "player-0")!;
+    const rack = gameState.players["player-0"].rack;
+    const tileIds = rack.slice(0, 3).map((t) => t.id);
+
+    const messagePromises = players.map((p) => waitForMessage(p.ws));
+    sendAction(alice.ws, {
+      type: "CHARLESTON_PASS",
+      playerId: "FAKE_HACKER_ID",
+      tileIds,
+    });
+
+    await Promise.all(messagePromises);
+
+    expect(gameState.charleston.lockedTileIdsByPlayerId["player-0"]).toEqual(tileIds);
+    expect(gameState.charleston.lockedTileIdsByPlayerId.FAKE_HACKER_ID).toBeUndefined();
+
+    for (const p of players) p.ws.close();
+  });
+
   it("sends ERROR only to offending client on invalid action", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;
