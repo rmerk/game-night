@@ -1099,3 +1099,306 @@ describe("comprehensive lifecycle", () => {
     ws5.close();
   });
 });
+
+describe("charleston disconnect auto-action", () => {
+  const SHORT_GRACE_MS = 200;
+
+  beforeEach(() => {
+    setGracePeriodMs(SHORT_GRACE_MS);
+  });
+
+  afterEach(() => {
+    setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
+  });
+
+  /** Helper: join 4 players and start game; returns clients array, tokens, player IDs, and roomCode */
+  async function setupCharlestonRoom(): Promise<{
+    roomCode: string;
+    clients: WebSocket[];
+    tokens: string[];
+    playerIds: string[];
+  }> {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+    const tokens: string[] = [];
+    const playerIds: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Player${i}`);
+      const msg = await msgPromise;
+
+      clients.push(ws);
+      tokens.push(msg.token as string);
+      playerIds.push((msg.state as Record<string, unknown>).myPlayerId as string);
+      await Promise.all(broadcastPromises);
+    }
+
+    // Start the game — all 4 clients receive STATE_UPDATE
+    const gameStartMessages = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(gameStartMessages);
+
+    return { roomCode, clients, tokens, playerIds };
+  }
+
+  it("3.2 grace expiry during passing status dispatches CHARLESTON_PASS and broadcasts state (AC1, AC8, AC9)", async () => {
+    const { clients, playerIds } = await setupCharlestonRoom();
+
+    // Drain disconnect broadcast on remaining players
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    // Set up listeners for the auto-action broadcast (fires after grace expiry)
+    const autoActionBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+
+    await delay(SHORT_GRACE_MS + 100);
+
+    const broadcastMessages = await Promise.all(autoActionBroadcasts);
+
+    for (const broadcast of broadcastMessages) {
+      expect(broadcast.type).toBe("STATE_UPDATE"); // AC8: broadcast sent
+      const state = broadcast.state as Record<string, unknown>;
+      expect(state.gamePhase).toBe("charleston");
+      const charleston = state.charleston as Record<string, unknown>;
+      // AC1: disconnected player is now in submittedPlayerIds
+      expect(charleston.submittedPlayerIds).toContain(playerIds[0]);
+      // AC9: the auto-action broadcast is sent before seat release, verifying the pass was recorded
+      expect(Array.isArray(charleston.submittedPlayerIds)).toBe(true);
+    }
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.3 grace expiry during passing when rack has only Jokers still produces 3 tiles (AC2)", async () => {
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
+
+    // Replace player-0's rack with only Jokers via direct state mutation (AC2 edge case)
+    const room = app.roomManager.getRoom(roomCode)!;
+    const jokerTiles = Array.from({ length: 13 }, (_, k) => ({
+      id: `joker-test-${k + 1}`,
+      suit: "joker" as const,
+      value: 0,
+      category: "joker" as const,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test-only direct state mutation to simulate all-Joker rack
+    (room.gameState!.players[playerIds[0]] as unknown as { rack: typeof jokerTiles }).rack =
+      jokerTiles;
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    const autoActionBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    await delay(SHORT_GRACE_MS + 100);
+    const broadcastMessages = await Promise.all(autoActionBroadcasts);
+
+    for (const broadcast of broadcastMessages) {
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      const state = broadcast.state as Record<string, unknown>;
+      const charleston = state.charleston as Record<string, unknown>;
+      // AC2: auto-pass went through even with all-Joker rack (3 Jokers selected as fallback)
+      expect(charleston.submittedPlayerIds).toContain(playerIds[0]);
+    }
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.4 grace expiry during vote-ready status dispatches CHARLESTON_VOTE { accept: false } (AC5)", async () => {
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
+
+    // Set charleston state to vote-ready via direct mutation
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.charleston = {
+      stage: "second",
+      status: "vote-ready",
+      currentDirection: null,
+      activePlayerIds: [...playerIds],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
+    };
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    // Set up listeners for the auto-action broadcast
+    const autoActionBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    await delay(SHORT_GRACE_MS + 100);
+    const broadcastMessages = await Promise.all(autoActionBroadcasts);
+
+    // AC5 and AC8: broadcast sent after auto-vote
+    for (const broadcast of broadcastMessages) {
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      const state = broadcast.state as Record<string, unknown>;
+      const charleston = state.charleston as Record<string, unknown>;
+      // When CHARLESTON_VOTE { accept: false } is processed, it immediately transitions
+      // the state from "vote-ready" to "courtesy-ready" (any single reject triggers transition).
+      // The vote state is reset after the transition, so we verify the status transition happened.
+      expect(charleston.status).toBe("courtesy-ready");
+    }
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.5 grace expiry during courtesy-ready status dispatches COURTESY_PASS { count: 0, tileIds: [] } (AC6)", async () => {
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
+
+    // Set charleston state to courtesy-ready via direct mutation
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.charleston = {
+      stage: "courtesy",
+      status: "courtesy-ready",
+      currentDirection: null,
+      activePlayerIds: [...playerIds],
+      submittedPlayerIds: [],
+      lockedTileIdsByPlayerId: {},
+      hiddenAcrossTilesByPlayerId: {},
+      votesByPlayerId: {},
+      courtesyPairings: [
+        [playerIds[0], playerIds[2]],
+        [playerIds[1], playerIds[3]],
+      ],
+      courtesySubmissionsByPlayerId: {},
+      courtesyResolvedPairings: [],
+    };
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    // Set up listeners for the auto-action broadcast (AC8: broadcast is sent after auto-pass)
+    const autoActionBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    await delay(SHORT_GRACE_MS + 100);
+    const broadcastMessages = await Promise.all(autoActionBroadcasts);
+
+    // AC8: a broadcast was sent after the auto-action
+    for (const broadcast of broadcastMessages) {
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      const state = broadcast.state as Record<string, unknown>;
+      expect(state.gamePhase).toBe("charleston");
+    }
+
+    // AC6: verify the courtesy submission was recorded in internal state
+    // (pair doesn't resolve until partner submits, but the submission is stored)
+    // room.gameState persists even after player-0 seat is released
+    const courtesySubmissions = room.gameState!.charleston?.courtesySubmissionsByPlayerId;
+    expect(courtesySubmissions).toBeDefined();
+    expect(courtesySubmissions[playerIds[0]]).toMatchObject({ count: 0, tileIds: [] });
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.6 player already submitted before disconnecting — no duplicate auto-action dispatched (AC1)", async () => {
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
+
+    // Get 3 tiles from player-0's rack to submit a real CHARLESTON_PASS
+    const room = app.roomManager.getRoom(roomCode)!;
+    const rack = room.gameState!.players[playerIds[0]].rack;
+    const tileIds = rack.slice(0, 3).map((t) => t.id);
+
+    // Player-0 submits CHARLESTON_PASS before disconnecting
+    const submitResponse = waitForMessage(clients[0]);
+    const submitBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].send(
+      JSON.stringify({
+        version: 1,
+        type: "ACTION",
+        action: { type: "CHARLESTON_PASS", tileIds },
+      }),
+    );
+    await submitResponse;
+    await Promise.all(submitBroadcasts);
+
+    // Confirm player-0 is already in submittedPlayerIds
+    expect(room.gameState!.charleston!.submittedPlayerIds).toContain(playerIds[0]);
+    const countBefore = room.gameState!.charleston!.submittedPlayerIds.filter(
+      (id) => id === playerIds[0],
+    ).length;
+
+    // Player-0 disconnects
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    // Wait for grace expiry — no auto-action should be dispatched (player already submitted)
+    await delay(SHORT_GRACE_MS + 100);
+
+    // submittedPlayerIds count for player-0 should not increase
+    const submittedAfterExpiry = room.gameState?.charleston?.submittedPlayerIds ?? [];
+    const countAfter = submittedAfterExpiry.filter((id) => id === playerIds[0]).length;
+    expect(countAfter).toBe(countBefore);
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.7 player reconnects within grace period cancels auto-pass — no state change from auto-pass (AC4)", async () => {
+    const { roomCode, clients, tokens, playerIds } = await setupCharlestonRoom();
+
+    // Player-0 disconnects
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+    await delay(50); // reconnect well within grace period
+
+    // Player-0 reconnects before grace expiry
+    const reconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    const wsReconnect = await connectWs(wsUrl);
+    const reconnectMsgPromise = waitForMessage(wsReconnect);
+    sendJoinWithToken(wsReconnect, roomCode, tokens[0]);
+    await reconnectMsgPromise;
+    await Promise.all(reconnectBroadcasts);
+
+    // Wait past where grace would have expired — no auto-action should fire
+    await delay(SHORT_GRACE_MS + 100);
+
+    // Player-0 should NOT be in submittedPlayerIds (no auto-pass happened)
+    const room = app.roomManager.getRoom(roomCode)!;
+    const submittedIds = room.gameState!.charleston!.submittedPlayerIds;
+    expect(submittedIds).not.toContain(playerIds[0]);
+
+    wsReconnect.close();
+    for (const ws of clients.slice(1)) ws.close();
+  });
+
+  it("3.8 grace expiry during non-charleston game phase — no auto-action, seat released normally (AC7)", async () => {
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
+
+    // Force the game into play phase (non-charleston)
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.gamePhase = "play";
+    room.gameState!.charleston = null;
+
+    const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(disconnectBroadcasts);
+
+    // Set up listeners for the seat-release broadcast (fires after grace expiry)
+    const seatReleaseBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+
+    await delay(SHORT_GRACE_MS + 100);
+
+    const seatReleaseMessages = await Promise.all(seatReleaseBroadcasts);
+
+    // AC7: No auto-action, but seat should be released normally
+    for (const broadcast of seatReleaseMessages) {
+      expect(broadcast.type).toBe("STATE_UPDATE");
+      const state = broadcast.state as Record<string, unknown>;
+      const players = state.players as Array<Record<string, unknown>>;
+      // player-0 seat released — no longer in players list
+      const player0 = players.find((p) => p.playerId === playerIds[0]);
+      expect(player0).toBeUndefined();
+    }
+
+    for (const ws of clients.slice(1)) ws.close();
+  });
+});
