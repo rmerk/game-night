@@ -210,6 +210,7 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 ### Change Log
 
 - 2026-04-04 — Story 6A.1 implemented: chat/reaction protocol, server sanitization, rate limits, per-room chat ring buffer, tests, project-context alignment.
+- 2026-04-04 — Code review pass 2: clear chat/reaction rate-limit maps on seat release (grace expiry) to match per-player semantics when seat ids are recycled.
 
 ---
 
@@ -218,5 +219,6 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 ### Code review (GDS)
 
 - **AC validation:** AC1–AC8 satisfied in implementation and tests; AC7 reinforced with NFR48 JSDoc on `ChatBroadcast` / `ReactionBroadcast` in `protocol.ts`.
+- **Second pass (2026-04-04):** Cleared `chatRateTimestamps` / `reactionRateTimestamps` when a seat is released after grace expiry so recycled `player-0..3` ids do not inherit the previous occupant’s rate-limit state (join-handler). Regression test documents expected behavior in `chat-handler.test.ts`.
 - **Regression:** `pnpm test`, `pnpm run typecheck`, `pnpm exec vp lint` passed in review environment.
 - **Note:** Branch may contain additional commits outside this story’s file list; 6A.1 scope verified against listed implementation files only.
