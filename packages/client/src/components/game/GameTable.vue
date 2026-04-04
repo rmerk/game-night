@@ -11,6 +11,7 @@ import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
 import MahjongButton from "./MahjongButton.vue";
 import InvalidMahjongNotification from "./InvalidMahjongNotification.vue";
+import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
@@ -28,6 +29,7 @@ import {
   type PlayerCharlestonView,
   type ResolvedAction,
   type SeatWind,
+  type SocialOverrideState,
 } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
 import { useTileSelection } from "../../composables/useTileSelection";
@@ -61,6 +63,9 @@ const props = withDefaults(
     resolvedAction?: ResolvedAction | null;
     /** Private: this viewer's hand is dead (from PlayerGameView.myDeadHand) */
     myDeadHand?: boolean;
+    /** True when discarder may open a social-override vote (call window open, no calls) */
+    canRequestSocialOverride?: boolean;
+    socialOverrideState?: SocialOverrideState | null;
   }>(),
   {
     opponents: () => ({}),
@@ -78,6 +83,8 @@ const props = withDefaults(
     charleston: null,
     resolvedAction: null,
     myDeadHand: false,
+    canRequestSocialOverride: false,
+    socialOverrideState: null,
   },
 );
 
@@ -90,6 +97,8 @@ const emit = defineEmits<{
   charlestonPass: [tileIds: string[]];
   charlestonVote: [accept: boolean];
   courtesyPass: [payload: { count: number; tileIds: string[] }];
+  socialOverrideRequest: [description: string];
+  socialOverrideVote: [approve: boolean];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -436,6 +445,15 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
               :player-names-by-seat="playerNamesBySeat"
             />
 
+            <SocialOverridePanel
+              v-if="gamePhase === 'play'"
+              :can-request-social-override="canRequestSocialOverride"
+              :social-override-state="socialOverrideState ?? null"
+              :my-player-id="localPlayer?.id ?? null"
+              @social-override-request="(d: string) => emit('socialOverrideRequest', d)"
+              @social-override-vote="(a: boolean) => emit('socialOverrideVote', a)"
+            />
+
             <!-- Phone: inline opponent row for left/right -->
             <div class="flex md:hidden gap-4 justify-center w-full">
               <OpponentArea
@@ -455,7 +473,8 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
             <!-- Discard Pools -->
             <div
               data-testid="discard-pools"
-              class="discard-pools grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1 w-full max-w-lg"
+              class="discard-pools grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1 w-full max-w-lg transition-shadow"
+              :class="{ 'ring-2 ring-state-warning/60 rounded-lg p-1': socialOverrideState }"
             >
               <div class="col-start-2 flex justify-center">
                 <DiscardPool :tiles="discardPools?.top ?? []" position="top" />

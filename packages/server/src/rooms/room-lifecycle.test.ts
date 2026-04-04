@@ -15,7 +15,7 @@ import type { Room } from "./room";
 import { createSilentTestLogger } from "../testing/silent-logger";
 
 function createMockRoom(overrides?: Partial<Room>): Room {
-  return {
+  const base: Room = {
     roomId: "test-room-id",
     roomCode: "TEST01",
     hostToken: "host-token",
@@ -25,12 +25,13 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     playerTokens: new Map(),
     graceTimers: new Map(),
     lifecycleTimers: new Map(),
+    socialOverrideTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
-    ...overrides,
   };
+  return { ...base, ...overrides, socialOverrideTimer: overrides?.socialOverrideTimer ?? null };
 }
 
 describe("room-lifecycle", () => {

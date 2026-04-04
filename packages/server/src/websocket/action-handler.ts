@@ -1,11 +1,24 @@
 import type { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import type { GameAction } from "@mahjong-game/shared";
-import { PROTOCOL_VERSION, handleAction, createLobbyState } from "@mahjong-game/shared";
+import {
+  PROTOCOL_VERSION,
+  handleAction,
+  createLobbyState,
+  handleSocialOverrideTimeout,
+  SOCIAL_OVERRIDE_TIMEOUT_SECONDS,
+} from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
 import { startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState } from "./state-broadcaster";
+
+function clearSocialOverrideTimer(room: Room): void {
+  if (room.socialOverrideTimer) {
+    clearTimeout(room.socialOverrideTimer);
+    room.socialOverrideTimer = null;
+  }
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -87,6 +100,14 @@ function validateActionPayload(action: Record<string, unknown>): string | null {
       return action.vote === "valid" || action.vote === "invalid"
         ? null
         : "CHALLENGE_VOTE requires vote: 'valid' | 'invalid'";
+    case "SOCIAL_OVERRIDE_REQUEST":
+      return typeof action.description === "string"
+        ? null
+        : "SOCIAL_OVERRIDE_REQUEST requires string description";
+    case "SOCIAL_OVERRIDE_VOTE":
+      return typeof action.approve === "boolean"
+        ? null
+        : "SOCIAL_OVERRIDE_VOTE requires boolean approve";
     case "COURTESY_PASS": {
       const count = action.count;
       if (typeof count !== "number" || !Number.isInteger(count)) {
@@ -195,6 +216,14 @@ function parseGameAction(action: Record<string, unknown>, playerId: string): Gam
       return action.vote === "valid" || action.vote === "invalid"
         ? { type: "CHALLENGE_VOTE", playerId, vote: action.vote }
         : null;
+    case "SOCIAL_OVERRIDE_REQUEST":
+      return typeof action.description === "string"
+        ? { type: "SOCIAL_OVERRIDE_REQUEST", playerId, description: action.description }
+        : null;
+    case "SOCIAL_OVERRIDE_VOTE":
+      return typeof action.approve === "boolean"
+        ? { type: "SOCIAL_OVERRIDE_VOTE", playerId, approve: action.approve }
+        : null;
     case "SHOW_HAND":
       return { type: "SHOW_HAND", playerId };
     default:
@@ -262,6 +291,21 @@ export function handleActionMessage(
       "Action accepted",
     );
     broadcastGameState(room, room.gameState, result.resolved);
+
+    if (!room.gameState.socialOverrideState) {
+      clearSocialOverrideTimer(room);
+    } else if (authenticatedAction.type === "SOCIAL_OVERRIDE_REQUEST") {
+      clearSocialOverrideTimer(room);
+      room.socialOverrideTimer = setTimeout(() => {
+        room.socialOverrideTimer = null;
+        const gs = room.gameState;
+        if (!gs?.socialOverrideState) return;
+        const timeoutResult = handleSocialOverrideTimeout(gs);
+        if (timeoutResult.accepted) {
+          broadcastGameState(room, gs, timeoutResult.resolved);
+        }
+      }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
+    }
 
     // Idle timeout: start timer when game reaches scoreboard phase
     if (roomManager && room.gameState.gamePhase === "scoreboard") {

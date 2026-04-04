@@ -35,6 +35,9 @@ export function handlePassCall(state: GameState, action: PassCallAction): Action
   if (state.gamePhase !== "play") {
     return { accepted: false, reason: "WRONG_PHASE" };
   }
+  if (state.socialOverrideState) {
+    return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
+  }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
@@ -157,6 +160,9 @@ export function handleCallMahjong(state: GameState, action: CallMahjongAction): 
   if (state.gamePhase !== "play") {
     return { accepted: false, reason: "WRONG_PHASE" };
   }
+  if (state.socialOverrideState) {
+    return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
+  }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
@@ -229,6 +235,9 @@ export function handleCallAction(
   // 1. Validate call window state
   if (state.gamePhase !== "play") {
     return { accepted: false, reason: "WRONG_PHASE" };
+  }
+  if (state.socialOverrideState) {
+    return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
   }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };

@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-03 # 3c-3 → done
+# last_updated: 2026-04-04 # 3c-4 in-progress
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-03 # 3c-3 done
+last_updated: 2026-04-04 # 3c-4 in-progress
 project: mahjong-game
 
 project_key: NOKEY
@@ -116,7 +116,7 @@ development_status:
   3c-1-joker-exchange-mechanic: done
   3c-2-simplified-joker-rules-host-option: done
   3c-3-dead-hand-detection-enforcement: done
-  3c-4-social-override-system-unanimous-vote-undo: backlog
+  3c-4-social-override-system-unanimous-vote-undo: review
   3c-5-table-talk-report-majority-vote-dead-hand: backlog
   3c-6-wall-end-last-tile-rules: backlog
   3c-7-concealed-hand-validation-at-mahjong: backlog

@@ -27,6 +27,8 @@ export interface Room {
   playerTokens: Map<string, string>; // playerId → token
   graceTimers: Map<string, ReturnType<typeof setTimeout>>; // playerId → grace period timer
   lifecycleTimers: Map<string, ReturnType<typeof setTimeout>>; // lifecycle timer type → timer
+  /** Single scheduled social-override vote expiry (Story 3C.4) */
+  socialOverrideTimer: ReturnType<typeof setTimeout> | null;
   gameState: GameState | null;
   /** Host-selected Joker rules for the next game (authoritative for START_GAME) */
   jokerRulesMode: JokerRulesMode;
