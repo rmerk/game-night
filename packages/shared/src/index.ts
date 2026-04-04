@@ -156,6 +156,13 @@ export { handleDrawTile, advanceTurn } from "./engine/actions/draw";
 export { handleDiscardTile } from "./engine/actions/discard";
 export { handleJokerExchange } from "./engine/actions/joker-exchange";
 export {
+  totalHandTiles,
+  shouldRunTileCountInvariant,
+  expectedHandTileCount,
+  enforceDeadHandIfTileCountMismatch,
+  enforceDeadHandIfInvalidExposedGroups,
+} from "./engine/dead-hand";
+export {
   handlePassCall,
   closeCallWindow,
   handleCallAction,

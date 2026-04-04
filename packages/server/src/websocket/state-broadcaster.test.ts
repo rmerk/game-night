@@ -557,6 +557,24 @@ describe("buildPlayerView", () => {
     expect(view.gameResult).toBeNull();
     expect(view.pendingMahjong).toBeNull();
     expect(view.challengeState).toBeNull();
+    expect(view.myDeadHand).toBe(false);
+  });
+
+  it("sets myDeadHand from player deadHand flag", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+    gameState.players["player-0"].deadHand = true;
+
+    const view0 = buildPlayerView(room, gameState, "player-0");
+    const view1 = buildPlayerView(room, gameState, "player-1");
+
+    expect(view0.myDeadHand).toBe(true);
+    expect(view1.myDeadHand).toBe(false);
   });
 
   it("includes all players' exposed groups and discard pools", () => {
@@ -687,6 +705,56 @@ describe("broadcastGameState", () => {
       playerId: "player-0",
       tileId: "dot-5-1",
     });
+  });
+
+  it("omits DEAD_HAND_ENFORCED resolvedAction for viewers who are not the affected player", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    broadcastGameState(room, gameState, {
+      type: "DEAD_HAND_ENFORCED",
+      playerId: "player-1",
+      reason: "INVALID_EXPOSED_GROUPS",
+    });
+
+    const msg0 = parseSentMessage(wsList[0]);
+    const msg1 = parseSentMessage(wsList[1]);
+    expect(msg0.resolvedAction).toBeUndefined();
+    expect(msg1.resolvedAction).toEqual({
+      type: "DEAD_HAND_ENFORCED",
+      playerId: "player-1",
+      reason: "INVALID_EXPOSED_GROUPS",
+    });
+  });
+
+  it("omits INVALID_MAHJONG_WARNING resolvedAction for non-affected viewers", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+
+    broadcastGameState(room, gameState, {
+      type: "INVALID_MAHJONG_WARNING",
+      playerId: "player-0",
+      reason: "INVALID_HAND",
+    });
+
+    const msg0 = parseSentMessage(wsList[0]);
+    const msg1 = parseSentMessage(wsList[1]);
+    expect(msg0.resolvedAction).toEqual({
+      type: "INVALID_MAHJONG_WARNING",
+      playerId: "player-0",
+      reason: "INVALID_HAND",
+    });
+    expect(msg1.resolvedAction).toBeUndefined();
   });
 
   it("broadcasts CHARLESTON_VOTE_CAST without peer vote fields on every socket", () => {

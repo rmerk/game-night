@@ -1,6 +1,7 @@
 import type { GameState, ActionResult } from "../../types/game-state";
 import type { DrawTileAction } from "../../types/actions";
 import { SEATS } from "../../constants";
+import { enforceDeadHandIfTileCountMismatch } from "../dead-hand";
 
 /**
  * Handle DRAW_TILE action: validate turn and phase, then draw top tile from wall.
@@ -29,6 +30,12 @@ export function handleDrawTile(state: GameState, action: DrawTileAction): Action
   player.rack.push(tile);
   state.wallRemaining = state.wall.length;
   state.turnPhase = "discard";
+
+  // Safety net: impossible rack+exposed totals after a legal draw (AC3)
+  const tileCountDead = enforceDeadHandIfTileCountMismatch(state, action.playerId);
+  if (tileCountDead) {
+    return tileCountDead;
+  }
 
   // 3. Return result
   return { accepted: true, resolved: { type: "DRAW_TILE", playerId: action.playerId } };

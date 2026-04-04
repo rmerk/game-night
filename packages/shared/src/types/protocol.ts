@@ -122,6 +122,8 @@ export interface PlayerGameView {
   charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;
+  /** True when this viewer's hand is dead — private; opponents have no per-seat dead flag */
+  myDeadHand: boolean;
 }
 
 /** Spectator view — public information only, no player racks (post-MVP) */

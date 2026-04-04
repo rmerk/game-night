@@ -6,12 +6,14 @@ function mountMahjongButton(
   props: {
     isCallWindowOpen?: boolean;
     hideForCallDuplication?: boolean;
+    myDeadHand?: boolean;
   } = {},
 ) {
   return mount(MahjongButton, {
     props: {
       isCallWindowOpen: props.isCallWindowOpen ?? false,
       hideForCallDuplication: props.hideForCallDuplication ?? false,
+      myDeadHand: props.myDeadHand ?? false,
     },
   });
 }
@@ -79,5 +81,15 @@ describe("MahjongButton", () => {
     const button = wrapper.get("[data-testid='mahjong-button']");
 
     expect(button.attributes("style")).toContain("display: none");
+  });
+
+  it("when myDeadHand, click shows dead hand message and does not emit", async () => {
+    const wrapper = mountMahjongButton({ myDeadHand: true });
+
+    await wrapper.get("[data-testid='mahjong-button']").trigger("click");
+
+    expect(wrapper.emitted("declareMahjong")).toBeUndefined();
+    expect(wrapper.emitted("callMahjong")).toBeUndefined();
+    expect(wrapper.find("[data-testid='dead-hand-mahjong-message']").isVisible()).toBe(true);
   });
 });

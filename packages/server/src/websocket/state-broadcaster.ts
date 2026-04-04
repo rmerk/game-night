@@ -11,6 +11,26 @@ import type {
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { PlayerInfo, Room } from "../rooms/room";
 
+/**
+ * Per UX-DR35, dead-hand sanctions must not identify the affected player to other clients.
+ * Omit resolvedAction for viewers who are not the subject of these payloads.
+ */
+function resolvedActionForViewer(
+  resolvedAction: ResolvedAction | undefined,
+  viewerId: string,
+): ResolvedAction | undefined {
+  if (!resolvedAction) return undefined;
+  if (
+    resolvedAction.type === "DEAD_HAND_ENFORCED" ||
+    resolvedAction.type === "INVALID_MAHJONG_WARNING"
+  ) {
+    if (resolvedAction.playerId !== viewerId) {
+      return undefined;
+    }
+  }
+  return resolvedAction;
+}
+
 type RoomPlayerPublic = Pick<
   PlayerInfo,
   "playerId" | "displayName" | "wind" | "isHost" | "connected"
@@ -119,6 +139,7 @@ export function buildPlayerView(
     charleston,
     shownHands: gameState.shownHands,
     jokerRulesMode: gameState.jokerRulesMode,
+    myDeadHand: playerState?.deadHand ?? false,
   };
 }
 
@@ -169,12 +190,13 @@ export function broadcastGameState(
   for (const session of room.sessions.values()) {
     if (session.ws.readyState !== WebSocket.OPEN) continue;
 
-    const view = buildPlayerView(room, gameState, session.player.playerId);
+    const viewerId = session.player.playerId;
+    const view = buildPlayerView(room, gameState, viewerId);
     const message: StateUpdateMessage = {
       version: PROTOCOL_VERSION,
       type: "STATE_UPDATE",
       state: view,
-      resolvedAction,
+      resolvedAction: resolvedActionForViewer(resolvedAction, viewerId),
     };
     session.ws.send(JSON.stringify(message));
   }

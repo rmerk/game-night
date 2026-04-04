@@ -59,6 +59,8 @@ const props = withDefaults(
     invalidMahjongMessage?: string | null;
     charleston?: PlayerCharlestonView | null;
     resolvedAction?: ResolvedAction | null;
+    /** Private: this viewer's hand is dead (from PlayerGameView.myDeadHand) */
+    myDeadHand?: boolean;
   }>(),
   {
     opponents: () => ({}),
@@ -75,6 +77,7 @@ const props = withDefaults(
     invalidMahjongMessage: null,
     charleston: null,
     resolvedAction: null,
+    myDeadHand: false,
   },
 );
 
@@ -516,6 +519,13 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
               Score: {{ localPlayer.score }}
             </span>
           </BasePanel>
+          <div
+            v-if="myDeadHand"
+            data-testid="dead-hand-badge"
+            class="mt-2 inline-flex rounded-md border border-state-error px-2 py-1 text-3 text-text-secondary"
+          >
+            Dead Hand
+          </div>
         </div>
         <TileRack
           :tiles="tiles"
@@ -544,6 +554,7 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
                 v-if="gamePhase === 'play'"
                 :is-call-window-open="isCallWindowOpen"
                 :hide-for-call-duplication="callWindowHasMahjong"
+                :my-dead-hand="myDeadHand"
                 @declare-mahjong="emit('declareMahjong')"
                 @call-mahjong="emit('call', 'mahjong')"
               />
@@ -552,6 +563,7 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
                   v-if="gamePhase === 'play' && openCallWindow"
                   :valid-calls="validCallOptions"
                   :call-window-status="openCallWindow.status"
+                  :hide-calls-for-dead-hand="myDeadHand"
                   @call="(callType: CallType) => emit('call', callType)"
                   @pass="emit('pass')"
                 />

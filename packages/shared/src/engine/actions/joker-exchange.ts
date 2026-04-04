@@ -1,6 +1,7 @@
 import type { GameState, ActionResult } from "../../types/game-state";
 import type { JokerExchangeAction } from "../../types/actions";
 import { validateJokerExchange } from "../../card/joker-eligibility";
+import { enforceDeadHandIfInvalidExposedGroups } from "../dead-hand";
 
 const GROUP_ID_PATTERN = /^(.+)-group-(\d+)$/;
 
@@ -77,6 +78,12 @@ export function handleJokerExchange(state: GameState, action: JokerExchangeActio
 
   player.rack.splice(naturalTileIndex, 1);
   player.rack.push(jokerTile);
+
+  const ownerPlayerId = resolved.ownerPlayerId;
+  const deadFromExposure = enforceDeadHandIfInvalidExposedGroups(state, ownerPlayerId);
+  if (deadFromExposure) {
+    return deadFromExposure;
+  }
 
   return {
     accepted: true,

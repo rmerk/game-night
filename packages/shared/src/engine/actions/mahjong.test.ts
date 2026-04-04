@@ -4,6 +4,7 @@ import {
   handleCallMahjong,
   handleCallAction,
   handleConfirmCall,
+  handlePassCall,
   resolveCallPriority,
 } from "./call-window";
 import { handleDiscardTile } from "./discard";
@@ -1287,16 +1288,91 @@ describe("Dead hand enforcement", () => {
     try {
       const state = createPlayState();
       const eastId = getPlayerBySeat(state, "east");
-      getPlayerBySeat(state, "south");
+      const southId = getPlayerBySeat(state, "south");
 
-      // East is dead hand but discards
       state.players[eastId].deadHand = true;
+
+      const tileToDiscard = state.players[eastId].rack.find((t) => t.category === "suited");
+      if (!tileToDiscard || tileToDiscard.category !== "suited") {
+        throw new Error("expected a suited tile on East rack for this scenario");
+      }
+      const matchingElsewhere: Tile[] = [];
+      for (const t of state.wall) {
+        if (
+          t.category === "suited" &&
+          t.suit === tileToDiscard.suit &&
+          t.value === tileToDiscard.value &&
+          t.id !== tileToDiscard.id
+        ) {
+          matchingElsewhere.push(t);
+        }
+      }
+      for (const p of Object.values(state.players)) {
+        for (const t of p.rack) {
+          if (
+            t.category === "suited" &&
+            t.suit === tileToDiscard.suit &&
+            t.value === tileToDiscard.value &&
+            t.id !== tileToDiscard.id
+          ) {
+            matchingElsewhere.push(t);
+          }
+        }
+      }
+      const southRackIds = new Set(state.players[southId].rack.map((t) => t.id));
+      const onSouthPair = state.players[southId].rack.filter(
+        (t) =>
+          t.category === "suited" &&
+          t.suit === tileToDiscard.suit &&
+          t.value === tileToDiscard.value &&
+          t.id !== tileToDiscard.id,
+      );
+      let t1: Tile;
+      let t2: Tile;
+      if (onSouthPair.length >= 2) {
+        t1 = onSouthPair[0]!;
+        t2 = onSouthPair[1]!;
+      } else {
+        const notOnSouth = matchingElsewhere.filter((t) => !southRackIds.has(t.id));
+        expect(notOnSouth.length).toBeGreaterThanOrEqual(2);
+        t1 = notOnSouth[0]!;
+        t2 = notOnSouth[1]!;
+        injectTilesIntoRack(state, southId, [t1, t2]);
+      }
+
+      handleDiscardTile(state, {
+        type: "DISCARD_TILE",
+        playerId: eastId,
+        tileId: tileToDiscard.id,
+      });
+
+      expect(state.callWindow).not.toBeNull();
+      expect(state.callWindow!.status).toBe("open");
+      const pung = handleCallAction(
+        state,
+        { type: "CALL_PUNG", playerId: southId, tileIds: [t1.id, t2.id] },
+        "pung",
+      );
+      expect(pung.accepted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("dead hand player can pass during call window", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+
+      state.players[southId].deadHand = true;
       discardTile(state, eastId);
 
-      // South (not dead hand) can call
-      expect(state.callWindow).not.toBeNull();
-      // Call window is open — south can interact with it
-      expect(state.callWindow!.status).toBe("open");
+      const pass = handlePassCall(state, { type: "PASS_CALL", playerId: southId });
+      expect(pass.accepted).toBe(true);
+      expect(pass.resolved).toEqual({ type: "PASS_CALL", playerId: southId });
     } finally {
       vi.useRealTimers();
     }

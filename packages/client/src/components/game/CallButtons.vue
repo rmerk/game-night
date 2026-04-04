@@ -6,6 +6,8 @@ import BaseButton from "../ui/BaseButton.vue";
 const props = defineProps<{
   validCalls: CallType[];
   callWindowStatus: "open" | "frozen" | "confirming";
+  /** Hide Pung/Kong/etc. but keep Pass (UX-DR35 dead hand) */
+  hideCallsForDeadHand?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -25,6 +27,9 @@ const CALL_LABELS: Record<CallType, string> = {
 const CALL_ORDER: CallType[] = ["mahjong", "pung", "kong", "quint", "news", "dragon_set"];
 
 const orderedCalls = computed(() => {
+  if (props.hideCallsForDeadHand) {
+    return [];
+  }
   return CALL_ORDER.filter((ct) => props.validCalls.includes(ct));
 });
 
