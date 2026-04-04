@@ -10,6 +10,11 @@ const REQUIRED_FROM_RACK: Record<CallType, number> = {
   mahjong: 0,
 };
 
+/** Rack tiles required for exposure by call type — single source of truth for open-window picks and confirmation `targetCount`. */
+export function getRequiredRackCountForCallType(callType: CallType): number {
+  return REQUIRED_FROM_RACK[callType];
+}
+
 function combinations<T>(arr: T[], k: number): T[][] {
   if (k === 0) return [[]];
   if (arr.length < k) return [];
@@ -44,7 +49,7 @@ function pickPatternCallTiles(
   discardedTile: Tile,
   callType: "news" | "dragon_set",
 ): string[] {
-  const k = REQUIRED_FROM_RACK[callType];
+  const k = getRequiredRackCountForCallType(callType);
   const combos = combinations(rack, k);
   for (const combo of combos) {
     const ok =
@@ -78,8 +83,13 @@ export function tileIdsForCall(view: PlayerGameView, callType: CallType): string
     return pickPatternCallTiles(rack, discardedTile, callType);
   }
 
-  const n = REQUIRED_FROM_RACK[callType];
+  const n = getRequiredRackCountForCallType(callType);
   return pickSameTileCallTiles(rack, discardedTile, n);
+}
+
+function rackHasTileIds(rack: Tile[], tileIds: string[]): boolean {
+  const ids = new Set(rack.map((t) => t.id));
+  return tileIds.every((id) => ids.has(id));
 }
 
 export function buildGameActionFromTableEvent(
@@ -96,7 +106,9 @@ export function buildGameActionFromTableEvent(
     | { type: "socialOverrideRequest"; description: string }
     | { type: "socialOverrideVote"; approve: boolean }
     | { type: "tableTalkReport"; reportedPlayerId: string; description: string }
-    | { type: "tableTalkVote"; approve: boolean },
+    | { type: "tableTalkVote"; approve: boolean }
+    | { type: "confirmCall"; tileIds: string[] }
+    | { type: "retractCall" },
 ): GameAction | null {
   const playerId = view.myPlayerId;
 
@@ -161,6 +173,43 @@ export function buildGameActionFromTableEvent(
       };
     case "tableTalkVote":
       return { type: "TABLE_TALK_VOTE", playerId, approve: event.approve };
+    case "confirmCall": {
+      const cw = view.callWindow;
+      if (
+        !cw ||
+        cw.status !== "confirming" ||
+        cw.confirmingPlayerId !== playerId ||
+        !cw.winningCall
+      ) {
+        return null;
+      }
+      const wc = cw.winningCall;
+      const tileIds = event.tileIds;
+      if (new Set(tileIds).size !== tileIds.length) {
+        return null;
+      }
+      if (!rackHasTileIds(view.myRack, tileIds)) {
+        return null;
+      }
+      if (wc.callType === "mahjong") {
+        if (tileIds.length !== 1) {
+          return null;
+        }
+        return { type: "CONFIRM_CALL", playerId, tileIds };
+      }
+      const expected = getRequiredRackCountForCallType(wc.callType);
+      if (tileIds.length !== expected) {
+        return null;
+      }
+      return { type: "CONFIRM_CALL", playerId, tileIds };
+    }
+    case "retractCall": {
+      const cw = view.callWindow;
+      if (!cw || cw.status !== "confirming" || cw.confirmingPlayerId !== playerId) {
+        return null;
+      }
+      return { type: "RETRACT_CALL", playerId };
+    }
     default:
       return null;
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
+import { useNow } from "@vueuse/core";
 import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
@@ -34,6 +35,7 @@ import {
 } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
 import { useTileSelection } from "../../composables/useTileSelection";
+import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 
 const rackStore = useRackStore();
 
@@ -109,19 +111,31 @@ const emit = defineEmits<{
   socialOverrideVote: [approve: boolean];
   tableTalkReport: [reportedPlayerId: string, description: string];
   tableTalkVote: [approve: boolean];
+  /** Non-Mahjong: selected rack tile ids; Mahjong: single placeholder id (server requires non-empty tileIds). */
+  confirmCall: [payload: { tileIds: string[] }];
+  retractCall: [];
 }>();
 
 const courtesyTileTarget = ref(0);
 
 const tileTargetCount = computed(() => {
-  if (props.gamePhase !== "charleston" || !props.charleston) {
+  if (props.gamePhase === "charleston" && props.charleston) {
+    if (props.charleston.status === "passing") {
+      return 3;
+    }
+    if (props.charleston.status === "courtesy-ready") {
+      return courtesyTileTarget.value;
+    }
     return 0;
   }
-  if (props.charleston.status === "passing") {
-    return 3;
-  }
-  if (props.charleston.status === "courtesy-ready") {
-    return courtesyTileTarget.value;
+  const cw = props.callWindow;
+  if (
+    props.gamePhase === "play" &&
+    cw?.status === "confirming" &&
+    cw.confirmingPlayerId === props.localPlayer?.id &&
+    cw.winningCall
+  ) {
+    return getRequiredRackCountForCallType(cw.winningCall.callType);
   }
   return 0;
 });
@@ -158,6 +172,51 @@ watch(
   },
 );
 
+const isLocalConfirmingCall = computed(() => {
+  const cw = props.callWindow;
+  return (
+    props.gamePhase === "play" &&
+    cw?.status === "confirming" &&
+    cw.confirmingPlayerId !== null &&
+    cw.confirmingPlayerId === props.localPlayer?.id
+  );
+});
+
+/** Identity of the winning call being confirmed — resets selection when it changes (not on timer-only ticks). */
+const callConfirmationIdentityKey = computed(() => {
+  const cw = props.callWindow;
+  if (
+    props.gamePhase !== "play" ||
+    cw?.status !== "confirming" ||
+    cw.confirmingPlayerId !== props.localPlayer?.id ||
+    !cw.winningCall
+  ) {
+    return null;
+  }
+  const wc = cw.winningCall;
+  return `${wc.callType}-${wc.playerId}-${wc.tileIds.join(",")}`;
+});
+
+watch(callConfirmationIdentityKey, (key, prev) => {
+  if (key === null) {
+    return;
+  }
+  if (prev === undefined || key !== prev) {
+    resetTileSelection();
+    rackStore.deselectTile();
+  }
+});
+
+const now = useNow({ interval: 1000 });
+
+const confirmationSecondsRemaining = computed(() => {
+  const exp = props.callWindow?.confirmationExpiresAt;
+  if (!isLocalConfirmingCall.value || exp == null) {
+    return null;
+  }
+  return Math.max(0, Math.ceil((exp - now.value.getTime()) / 1000));
+});
+
 const isCharlestonPhase = computed(
   () => props.gamePhase === "charleston" && props.charleston !== null,
 );
@@ -173,6 +232,9 @@ const rackInteractive = computed(() => {
     if (props.charleston.status === "vote-ready") {
       return false;
     }
+    return true;
+  }
+  if (isLocalConfirmingCall.value) {
     return true;
   }
   return props.isPlayerTurn;
@@ -193,6 +255,22 @@ const charlestonSelectionMode = computed(() => {
   }
   return false;
 });
+
+/** Multi-select from rack via useTileSelection (non-Mahjong call confirmation). */
+const callConfirmationSelectionMode = computed(() => {
+  const cw = props.callWindow;
+  return (
+    isLocalConfirmingCall.value &&
+    cw !== null &&
+    cw.winningCall !== null &&
+    cw.winningCall.callType !== "mahjong" &&
+    getRequiredRackCountForCallType(cw.winningCall.callType) > 0
+  );
+});
+
+const rackMultiSelectMode = computed(
+  () => charlestonSelectionMode.value || callConfirmationSelectionMode.value,
+);
 
 const hiddenTilePlaceholderCount = computed(() => {
   if (!isCharlestonPhase.value || !props.charleston) {
@@ -272,6 +350,43 @@ function handleDiscard(tileId: string) {
   rackStore.deselectTile();
   emit("discard", tileId);
 }
+
+/** Order selected ids by current rack order so payloads match visual left-to-right order. */
+function orderConfirmTileIdsByRack(tileIds: string[]): string[] {
+  const want = new Set(tileIds);
+  const ordered = rackStore.tileOrder.filter((id) => want.has(id));
+  if (ordered.length === tileIds.length) {
+    return ordered;
+  }
+  return [...tileIds];
+}
+
+function onConfirmCallClick() {
+  const cw = props.callWindow;
+  if (!cw || cw.status !== "confirming" || cw.winningCall === null) {
+    return;
+  }
+  if (cw.winningCall.callType === "mahjong") {
+    const first = props.tiles[0];
+    if (!first) {
+      return;
+    }
+    emit("confirmCall", { tileIds: [first.id] });
+    return;
+  }
+  if (!isComplete.value) {
+    return;
+  }
+  emit("confirmCall", { tileIds: orderConfirmTileIdsByRack([...confirmedIds.value]) });
+}
+
+function onRetractCallClick() {
+  emit("retractCall");
+}
+
+const isConfirmingMahjongCall = computed(
+  () => isLocalConfirmingCall.value && props.callWindow?.winningCall?.callType === "mahjong",
+);
 
 const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
@@ -583,9 +698,9 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
         <TileRack
           :tiles="tiles"
           :is-player-turn="rackInteractive"
-          :charleston-selection-mode="charlestonSelectionMode"
+          :charleston-selection-mode="rackMultiSelectMode"
           :charleston-selected-ids="selectedIds"
-          :charleston-toggle-tile="charlestonSelectionMode ? toggleTile : undefined"
+          :charleston-toggle-tile="rackMultiSelectMode ? toggleTile : undefined"
           :hidden-placeholder-count="hiddenTilePlaceholderCount"
         />
       </div>
@@ -604,7 +719,7 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
                 @vote="(accept: boolean) => emit('charlestonVote', accept)"
               />
               <MahjongButton
-                v-if="gamePhase === 'play'"
+                v-if="gamePhase === 'play' && !isLocalConfirmingCall"
                 :is-call-window-open="isCallWindowOpen"
                 :hide-for-call-duplication="callWindowHasMahjong"
                 :my-dead-hand="myDeadHand"
@@ -621,8 +736,52 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
                   @pass="emit('pass')"
                 />
               </Transition>
+              <div
+                v-if="gamePhase === 'play' && isLocalConfirmingCall"
+                data-testid="call-confirmation-toolbar"
+                class="flex flex-col items-center gap-2 rounded-lg border border-chrome-border bg-chrome-surface/90 px-4 py-3"
+                role="region"
+                aria-label="Call confirmation"
+              >
+                <p
+                  v-if="!isConfirmingMahjongCall"
+                  class="text-3.5 text-text-primary"
+                  aria-live="polite"
+                >
+                  {{ progressText
+                  }}<span v-if="confirmationSecondsRemaining !== null">
+                    · {{ confirmationSecondsRemaining }}s left</span
+                  >
+                </p>
+                <p v-else class="text-3.5 text-text-primary" aria-live="polite">
+                  Confirm your Mahjong or retract.<span
+                    v-if="confirmationSecondsRemaining !== null"
+                  >
+                    ({{ confirmationSecondsRemaining }}s)</span
+                  >
+                </p>
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="call-confirmation-confirm"
+                    class="min-h-11 min-w-[7rem] rounded-md bg-state-turn-active px-4 py-2 text-3.5 font-medium text-text-on-felt disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="isConfirmingMahjongCall ? tiles.length === 0 : !isComplete"
+                    @click="onConfirmCallClick"
+                  >
+                    {{ isConfirmingMahjongCall ? "Confirm Mahjong" : "Confirm" }}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="call-confirmation-retract"
+                    class="min-h-11 min-w-[7rem] rounded-md border border-chrome-border bg-chrome-elevated px-4 py-2 text-3.5 font-medium text-text-primary"
+                    @click="onRetractCallClick"
+                  >
+                    Retract
+                  </button>
+                </div>
+              </div>
               <DiscardConfirm
-                v-if="gamePhase === 'play' && !isCallWindowOpen"
+                v-if="gamePhase === 'play' && !isCallWindowOpen && !isLocalConfirmingCall"
                 :selected-tile-id="rackStore.selectedTileId"
                 :is-player-turn="isPlayerTurn"
                 @discard="handleDiscard"

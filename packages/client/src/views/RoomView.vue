@@ -151,6 +151,14 @@ function onTableTalkVote(approve: boolean) {
   sendFromView({ type: "tableTalkVote", approve });
 }
 
+function onConfirmCall(payload: { tileIds: string[] }) {
+  sendFromView({ type: "confirmCall", tileIds: payload.tileIds });
+}
+
+function onRetractCall() {
+  sendFromView({ type: "retractCall" });
+}
+
 function onJokerRulesChange(ev: Event) {
   const el = ev.target as HTMLSelectElement;
   conn.sendSetJokerRules(el.value as JokerRulesMode);
@@ -304,6 +312,8 @@ function onJokerRulesChange(ev: Event) {
       @social-override-vote="onSocialOverrideVote"
       @table-talk-report="onTableTalkReport"
       @table-talk-vote="onTableTalkVote"
+      @confirm-call="onConfirmCall"
+      @retract-call="onRetractCall"
     />
   </div>
 </template>

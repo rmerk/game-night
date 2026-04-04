@@ -25,7 +25,7 @@ const props = withDefaults(
   defineProps<{
     tiles: Tile[];
     isPlayerTurn?: boolean;
-    /** Multi-select Charleston / courtesy — uses charlestonToggleTile instead of rackStore.selectTile */
+    /** Multi-select Charleston, courtesy, or call confirmation — uses charlestonToggleTile instead of rackStore.selectTile */
     charlestonSelectionMode?: boolean;
     charlestonSelectedIds?: Set<string>;
     charlestonToggleTile?: (tileId: string) => void;

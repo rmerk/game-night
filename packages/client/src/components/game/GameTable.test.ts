@@ -497,6 +497,135 @@ describe("GameTable — call buttons integration", () => {
   });
 });
 
+describe("GameTable — call confirmation (3C.9)", () => {
+  const confirmingPungWindow: CallWindowState = {
+    ...mockCallWindow,
+    status: "confirming",
+    confirmingPlayerId: localPlayer.id,
+    confirmationExpiresAt: Date.now() + 5000,
+    winningCall: {
+      callType: "pung",
+      playerId: localPlayer.id,
+      tileIds: ["bam-1-1", "bam-1-2"],
+    },
+  };
+
+  const rackTwoBam: Tile[] = [
+    { id: "bam-1-1", category: "suited", suit: "bam", value: 1, copy: 1 } as SuitedTile,
+    { id: "bam-1-2", category: "suited", suit: "bam", value: 1, copy: 2 } as SuitedTile,
+    { id: "dot-7-1", category: "suited", suit: "dot", value: 7, copy: 1 } as SuitedTile,
+  ];
+
+  it("shows confirmation toolbar and hides CallButtons when status is confirming", () => {
+    const wrapper = mountTable({
+      callWindow: confirmingPungWindow,
+      validCallOptions: [],
+      localPlayer,
+      tiles: rackTwoBam,
+      isPlayerTurn: false,
+    });
+    expect(wrapper.find("[data-testid='call-confirmation-toolbar']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='call-pung']").exists()).toBe(false);
+  });
+
+  it("keeps rack interactive for confirming player when not player turn", () => {
+    const wrapper = mountTable({
+      callWindow: confirmingPungWindow,
+      localPlayer,
+      tiles: rackTwoBam,
+      isPlayerTurn: false,
+    });
+    const rack = wrapper.find("[data-testid='rack-area'] [role='list']");
+    expect(rack.exists()).toBe(true);
+    expect(rack.attributes("aria-disabled")).toBeUndefined();
+  });
+
+  it("does not show DiscardConfirm during confirming", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useRackStore().selectTile("bam-1-1");
+
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: rackTwoBam,
+        isPlayerTurn: true,
+        callWindow: confirmingPungWindow,
+        validCallOptions: [],
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    expect(wrapper.find("[data-testid='discard-confirm']").exists()).toBe(false);
+  });
+
+  it("emits retractCall when Retract is clicked", async () => {
+    const wrapper = mountTable({
+      callWindow: confirmingPungWindow,
+      localPlayer,
+      tiles: rackTwoBam,
+      isPlayerTurn: false,
+    });
+    await wrapper.find("[data-testid='call-confirmation-retract']").trigger("click");
+    expect(wrapper.emitted("retractCall")).toEqual([[]]);
+  });
+
+  it("disables Confirm until enough tiles are selected for pung", async () => {
+    const wrapper = mountTable({
+      callWindow: confirmingPungWindow,
+      localPlayer,
+      tiles: rackTwoBam,
+      isPlayerTurn: false,
+    });
+    const confirmBtn = wrapper.get("[data-testid='call-confirmation-confirm']");
+    expect(confirmBtn.attributes("disabled")).toBeDefined();
+
+    const buttons = wrapper.findAll("[data-rack-tile-id] [role='button']");
+    await buttons[0]?.trigger("click");
+    await buttons[1]?.trigger("click");
+    await flushPromises();
+    expect(confirmBtn.attributes("disabled")).toBeUndefined();
+
+    await confirmBtn.trigger("click");
+    expect(wrapper.emitted("confirmCall")).toEqual([[{ tileIds: ["bam-1-1", "bam-1-2"] }]]);
+  });
+
+  it("hides MahjongButton while confirming", () => {
+    const wrapper = mountTable({
+      callWindow: confirmingPungWindow,
+      localPlayer,
+      tiles: rackTwoBam,
+    });
+    expect(wrapper.find("[data-testid='mahjong-button']").exists()).toBe(false);
+  });
+
+  it("Mahjong confirmation shows Confirm Mahjong and emits single tile id", async () => {
+    const confirmingMj: CallWindowState = {
+      ...mockCallWindow,
+      status: "confirming",
+      confirmingPlayerId: localPlayer.id,
+      confirmationExpiresAt: Date.now() + 5000,
+      winningCall: {
+        callType: "mahjong",
+        playerId: localPlayer.id,
+        tileIds: ["dot-7-1"],
+      },
+    };
+    const wrapper = mountTable({
+      callWindow: confirmingMj,
+      localPlayer,
+      tiles: rackTwoBam,
+      isPlayerTurn: false,
+    });
+    expect(wrapper.text()).toContain("Confirm your Mahjong");
+    await wrapper.find("[data-testid='call-confirmation-confirm']").trigger("click");
+    expect(wrapper.emitted("confirmCall")).toEqual([[{ tileIds: ["bam-1-1"] }]]);
+  });
+});
+
 describe("GameTable — Mahjong button integration", () => {
   it("always renders the Mahjong button when no call window is open", () => {
     const wrapper = mountTable();
