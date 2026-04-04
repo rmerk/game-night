@@ -1,6 +1,6 @@
 # Story 6A.3: Quick Reactions System
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine — 2026-04-04. Pass 2: tightened AC10, RoomView/sendReaction wiring, seat mapping, parser hardening, anti-patterns. Depends on 6A.1 server + 6A.2 SlideInPanel / parse stub. -->
 
@@ -165,6 +165,8 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `packages/client/src/composables/parseServerMessage.test.ts`
 - `packages/client/src/composables/useRoomConnection.ts`
 - `packages/client/src/composables/useRoomConnection.sendReaction.test.ts`
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.ts` (AC4 / AC12: `reactionBubbleAnchorForPlayer`, `reactionBubbleAnchorForLobby`)
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts`
 - `packages/client/src/stores/reactions.ts`
 - `packages/client/src/stores/reactions.test.ts`
 - `packages/client/src/components/reactions/ReactionBar.vue`
@@ -172,8 +174,6 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `packages/client/src/components/reactions/ReactionBubbleStack.vue`
 - `packages/client/src/components/game/GameTable.vue`
 - `packages/client/src/views/RoomView.vue`
-- `packages/client/src/composables/mapPlayerGameViewToGameTable.ts`
-- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Change Log
@@ -181,6 +181,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - 2026-04-04: Story 6A.3 implemented — reaction protocol parse/send, ephemeral store, GameTable + lobby UI, tests; status → review.
 - 2026-04-04: Pass 2 — AC4 anchor helper from `PlayerGameView.players` + wind geometry; broadcast dedupe; reduced-motion opacity-only leave; store prune/dedupe tests.
 - 2026-04-04: Pass 3 — Lobby reaction bubbles (AC12) + clear on transition to game; `reactionBubbleAnchorForLobby`; GameTable reaction bubble integration test.
+- 2026-04-04: GDS code review — AC validation passed; regression gate passed; story File List aligned with git; status → done.
 
 ---
 
