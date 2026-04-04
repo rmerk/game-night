@@ -83,6 +83,8 @@ const props = withDefaults(
     canRequestTableTalkReport?: boolean;
     tableTalkReportState?: TableTalkReportState | null;
     tableTalkReportCountsByPlayerId?: Record<string, number>;
+    /** When set (in-play from PlayerGameView), resolves reaction bubble anchor via shared seat geometry (6A.3 AC4). */
+    reactionAnchorForPlayer?: (playerId: string) => "top" | "left" | "right" | "local" | null;
   }>(),
   {
     opponents: () => ({}),
@@ -105,6 +107,7 @@ const props = withDefaults(
     canRequestTableTalkReport: false,
     tableTalkReportState: null,
     tableTalkReportCountsByPlayerId: undefined,
+    reactionAnchorForPlayer: undefined,
   },
 );
 
@@ -421,7 +424,8 @@ const showReactionChrome = computed(() => reactionUiAllowed.value);
 
 type ReactionAnchor = "top" | "left" | "right" | "local";
 
-const playerIdToReactionAnchor = computed((): Map<string, ReactionAnchor> => {
+/** Fallback when `reactionAnchorForPlayer` is not passed (tests / dev harness). */
+const playerIdToReactionAnchorFallback = computed((): Map<string, ReactionAnchor> => {
   const m = new Map<string, ReactionAnchor>();
   if (props.localPlayer?.id) {
     m.set(props.localPlayer.id, "local");
@@ -439,9 +443,12 @@ const reactionBubblesByAnchor = computed(() => {
     right: [],
     local: [],
   };
-  const map = playerIdToReactionAnchor.value;
+  const fallback = playerIdToReactionAnchorFallback.value;
+  const resolve = props.reactionAnchorForPlayer;
   for (const item of reactionItems.value) {
-    const anchor = map.get(item.playerId);
+    const anchor = resolve
+      ? resolve(item.playerId)
+      : (fallback.get(item.playerId) ?? null);
     if (!anchor) continue;
     buckets[anchor].push(item);
   }

@@ -10,7 +10,10 @@ import {
   SLIDE_IN_NMJL_PANEL_ROOT_ID,
 } from "../components/chat/slideInPanelIds";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
-import { mapPlayerGameViewToGameTableProps } from "../composables/mapPlayerGameViewToGameTable";
+import {
+  mapPlayerGameViewToGameTableProps,
+  reactionBubbleAnchorForPlayer as reactionBubbleAnchorForPlayerFromView,
+} from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
 import { useRackStore } from "../stores/rack";
@@ -66,6 +69,14 @@ const tableProps = computed(() => {
     return null;
   }
   return mapPlayerGameViewToGameTableProps(v, { resolvedAction: resolvedAction.value });
+});
+
+const reactionAnchorForPlayer = computed(() => {
+  const v = playerGameView.value;
+  if (!v) {
+    return undefined;
+  }
+  return (playerId: string) => reactionBubbleAnchorForPlayerFromView(v, playerId);
 });
 
 const isLobby = computed(() => lobbyState.value !== null && playerGameView.value === null);
@@ -350,6 +361,7 @@ function onJokerRulesChange(ev: Event) {
     <GameTable
       v-else-if="tableProps"
       v-bind="tableProps"
+      :reaction-anchor-for-player="reactionAnchorForPlayer"
       :resolved-action="resolvedAction ?? null"
       @send-chat="(t: string) => conn.sendChat(t)"
       @send-reaction="(e: string) => conn.sendReaction(e)"

@@ -156,6 +156,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `useReactionsStore` enqueues bubbles with `REACTION_BUBBLE_MS` (2500), per-player cap of 3, interval prune, cleared on session reset and when entering scoreboard phase.
 - `ReactionBar` uses `role="group"` so the action zone keeps the sole `role="toolbar"` (GameTable a11y tests). Desktop: fixed vertical stack; mobile + lobby: horizontal row above rack / in lobby block.
 - Bubbles anchored via `playerId` → opponent slots from `GameTable` props (top/left/right) and local rack area; mobile duplicates anchors above inline opponent row. No `v-html` on emoji.
+- **Pass 2:** `reactionBubbleAnchorForPlayer(view, playerId)` in `mapPlayerGameViewToGameTable.ts` uses the same wind geometry as table mapping (AC4); `RoomView` passes it into `GameTable` as `reactionAnchorForPlayer`. Store skips duplicate `REACTION_BROADCAST` (same `playerId` + `emoji` + server `timestamp`) to harden against double-echo. `ReactionBubbleStack` keeps opacity-only transition under `prefers-reduced-motion`. Tests: anchor mapping, prune expiry, dedupe.
 
 ### File List
 
@@ -170,11 +171,14 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `packages/client/src/components/reactions/ReactionBubbleStack.vue`
 - `packages/client/src/components/game/GameTable.vue`
 - `packages/client/src/views/RoomView.vue`
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.ts`
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Change Log
 
 - 2026-04-04: Story 6A.3 implemented — reaction protocol parse/send, ephemeral store, GameTable + lobby UI, tests; status → review.
+- 2026-04-04: Pass 2 — AC4 anchor helper from `PlayerGameView.players` + wind geometry; broadcast dedupe; reduced-motion opacity-only leave; store prune/dedupe tests.
 
 ---
 

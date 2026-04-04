@@ -6,7 +6,10 @@ import {
   type Tile,
   type TileValue,
 } from "@mahjong-game/shared";
-import { mapPlayerGameViewToGameTableProps } from "./mapPlayerGameViewToGameTable";
+import {
+  mapPlayerGameViewToGameTableProps,
+  reactionBubbleAnchorForPlayer,
+} from "./mapPlayerGameViewToGameTable";
 import { parseServerMessage } from "./parseServerMessage";
 
 function t(id: string, suit: "dot" | "bam" | "crak", value: TileValue, copy: number): SuitedTile {
@@ -91,6 +94,19 @@ test("maps south-local opponents to top=north, left=east, right=west", () => {
   expect(m.opponents.top?.seatWind).toBe("north");
   expect(m.opponents.left?.seatWind).toBe("east");
   expect(m.opponents.right?.seatWind).toBe("west");
+});
+
+test("reactionBubbleAnchorForPlayer matches opponent slots for south-local view", () => {
+  const v = minimalPlayerView();
+  expect(reactionBubbleAnchorForPlayer(v, "pS")).toBe("local");
+  expect(reactionBubbleAnchorForPlayer(v, "pN")).toBe("top");
+  expect(reactionBubbleAnchorForPlayer(v, "pE")).toBe("left");
+  expect(reactionBubbleAnchorForPlayer(v, "pW")).toBe("right");
+});
+
+test("reactionBubbleAnchorForPlayer returns null for unknown playerId", () => {
+  const v = minimalPlayerView();
+  expect(reactionBubbleAnchorForPlayer(v, "ghost")).toBeNull();
 });
 
 test("maps discard pools by seat relative to local player", () => {

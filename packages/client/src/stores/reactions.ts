@@ -50,6 +50,15 @@ export const useReactionsStore = defineStore("reactions", () => {
     const now = Date.now();
     const alive = pruneAndCopy(items.value, now);
     const forPlayer = alive.filter((i) => i.playerId === b.playerId);
+    const last = forPlayer[forPlayer.length - 1];
+    if (
+      last &&
+      last.playerId === b.playerId &&
+      last.emoji === b.emoji &&
+      Number(last.id.split("-")[0]) === b.timestamp
+    ) {
+      return;
+    }
     const rest = alive.filter((i) => i.playerId !== b.playerId);
     const capped = forPlayer.slice(-(MAX_BUBBLES_PER_PLAYER - 1));
 

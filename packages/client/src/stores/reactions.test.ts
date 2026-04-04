@@ -48,6 +48,23 @@ describe("useReactionsStore", () => {
     expect(forP1.length).toBeLessThanOrEqual(3);
   });
 
+  it("ignores duplicate broadcast echo for same player, emoji, and server timestamp", () => {
+    const store = useReactionsStore();
+    const b = broadcast("p1", "👍", 99);
+    store.pushBroadcast(b);
+    store.pushBroadcast(b);
+    expect(store.items).toHaveLength(1);
+  });
+
+  it("prune interval removes expired bubbles", async () => {
+    const store = useReactionsStore();
+    store.pushBroadcast(broadcast("p1", "👍", 1));
+    expect(store.items).toHaveLength(1);
+    vi.advanceTimersByTime(REACTION_BUBBLE_MS + 500);
+    await vi.runOnlyPendingTimersAsync();
+    expect(store.items).toHaveLength(0);
+  });
+
   it("clear removes all", () => {
     const store = useReactionsStore();
     store.pushBroadcast(broadcast("p1", "👍", 1));

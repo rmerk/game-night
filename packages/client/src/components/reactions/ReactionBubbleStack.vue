@@ -34,7 +34,8 @@ defineProps<{
 @media (prefers-reduced-motion: reduce) {
   .reaction-fade-enter-active,
   .reaction-fade-leave-active {
-    transition: none;
+    transition:
+      opacity var(--timing-tactile, 120ms) var(--ease-tactile, ease-out);
   }
 
   .reaction-fade-enter-from,
