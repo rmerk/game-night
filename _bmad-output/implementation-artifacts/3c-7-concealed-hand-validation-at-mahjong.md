@@ -1,6 +1,6 @@
 # Story 3C.7: Concealed Hand Validation at Mahjong
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -26,26 +26,26 @@ so that **concealed hand wins are legitimate and the card's C/X markings are enf
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Gap analysis & design (AC: 1–4)
-  - [ ] 1.1 Trace `validateHandWithExposure` → `validateExposure` → `matchesGroupIdentity` / `matchesAnyExposedGroup` in [`exposure-validation.ts`](../../packages/shared/src/card/exposure-validation.ts). Document interaction with [`filterCardByExposure`](../../packages/shared/src/card/exposure-validation.ts) (concealed patterns removed when `exposedGroups.length > 0`).
-  - [ ] 1.2 Read **KNOWN LIMITATION** comment (abstract color A/B/C) in `matchesGroupIdentity` — if 3C.7 touches matching logic, add tests or a short follow-up note; do not expand scope to full Epic 5B hand guidance.
-  - [ ] 1.3 Grep `exposedGroups.push` / all `ExposedGroup` construction in `packages/shared/src` (excluding tests); confirm only [`call-window.ts`](../../packages/shared/src/engine/actions/call-window.ts) creates production exposures today.
-  - [ ] 1.4 Specify `ExposedGroup` extension in [`game-state.ts`](../../packages/shared/src/types/game-state.ts): e.g. `exposureSource: 'call' | 'wall'` (or equivalent naming consistent with codebase). Update [`protocol.ts`](../../packages/shared/src/types/protocol.ts) / `PlayerGameView` if `ExposedGroup` is mirrored on the wire — run broadcaster tests if touched.
-- [ ] Task 2: Validation logic (AC: 1–3)
-  - [ ] 2.1 Update `validateExposure` / helpers so group-level concealed checks consult **`exposureSource`** (or equivalent): discard-call exposures invalidate concealed-required groups; wall-sourced exposures follow NMJL rules for whether they still violate `group.concealed` — **default:** wall-sourced exposures in `exposedGroups` still count as “exposed melds” for patterns that require the group to remain fully concealed on the rack unless product rules say otherwise (document decision in code comment).
-  - [ ] 2.2 Ensure `handleDeclareMahjong` and `confirmMahjongCall` unchanged in **control flow** except where they must pass new fields; both already use `validateHandWithExposure` ([`mahjong.ts`](../../packages/shared/src/engine/actions/mahjong.ts)).
-- [ ] Task 3: Wire creation path (AC: 4)
-  - [ ] 3.1 In `handleConfirmCall`, set `exposureSource: 'call'` when building `ExposedGroup` (lines ~759–763 area).
-  - [ ] 3.2 Update any other production constructors (if found in Task 1.3); joker exchange and similar paths may **mutate** tiles but not create new groups — verify.
-- [ ] Task 4: Tests (AC: 1–4, 6)
-  - [ ] 4.1 **Unit:** Extend [`exposure-validation.test.ts`](../../packages/shared/src/card/exposure-validation.test.ts) — cases for `exposureSource` + mixed group-level patterns; preserve existing 2026 card integration tests.
-  - [ ] 4.2 **Engine:** Add or extend [`mahjong.test.ts`](../../packages/shared/src/engine/actions/mahjong.test.ts) — `DECLARE_MAHJONG` with concealed-only tile match but exposed group with `exposureSource: 'call'` → `INVALID_MAHJONG_WARNING` + `pendingMahjong`; optionally mirror for `confirmMahjongCall` / `CALL_MAHJONG` confirmation path.
-  - [ ] 4.3 Co-locate `*.test.ts`; import from `vite-plus/test`.
-- [ ] Task 5: Protocol / server / client (AC: 4–6)
-  - [ ] 5.1 If `ExposedGroup` gains a field, ensure server action validation and [`state-broadcaster`](../../packages/server/) / types stay aligned — run `state-broadcaster.test.ts` if under test.
-  - [ ] 5.2 **Client:** Only if wire shape changes require UI updates; otherwise document “no mandatory client change for 3C.7.”
-- [ ] Task 6: Validation gate (AC: 6)
-  - [ ] 6.1 `pnpm test && pnpm run typecheck && vp lint`
+- [x] Task 1: Gap analysis & design (AC: 1–4)
+  - [x] 1.1 Trace `validateHandWithExposure` → `validateExposure` → `matchesCallSourcedExposedGroup` / `matchesGroupIdentity` in [`exposure-validation.ts`](../../packages/shared/src/card/exposure-validation.ts). Document interaction with [`filterCardByExposure`](../../packages/shared/src/card/exposure-validation.ts) (concealed patterns removed when `exposedGroups.length > 0`).
+  - [x] 1.2 Read **KNOWN LIMITATION** comment (abstract color A/B/C) in `matchesGroupIdentity` — if 3C.7 touches matching logic, add tests or a short follow-up note; do not expand scope to full Epic 5B hand guidance.
+  - [x] 1.3 Grep `exposedGroups.push` / all `ExposedGroup` construction in `packages/shared/src` (excluding tests); confirm only [`call-window.ts`](../../packages/shared/src/engine/actions/call-window.ts) creates production exposures today.
+  - [x] 1.4 Specify `ExposedGroup` extension in [`game-state.ts`](../../packages/shared/src/types/game-state.ts): e.g. `exposureSource: 'call' | 'wall'` (or equivalent naming consistent with codebase). Update [`protocol.ts`](../../packages/shared/src/types/protocol.ts) / `PlayerGameView` if `ExposedGroup` is mirrored on the wire — run broadcaster tests if touched.
+- [x] Task 2: Validation logic (AC: 1–3)
+  - [x] 2.1 Update `validateExposure` / helpers so group-level concealed checks consult **`exposureSource`** (or equivalent): discard-call exposures invalidate concealed-required groups; wall-sourced exposures follow NMJL rules for whether they still violate `group.concealed` — **default:** wall-sourced exposures in `exposedGroups` still count as “exposed melds” for patterns that require the group to remain fully concealed on the rack unless product rules say otherwise (document decision in code comment).
+  - [x] 2.2 Ensure `handleDeclareMahjong` and `confirmMahjongCall` unchanged in **control flow** except where they must pass new fields; both already use `validateHandWithExposure` ([`mahjong.ts`](../../packages/shared/src/engine/actions/mahjong.ts)).
+- [x] Task 3: Wire creation path (AC: 4)
+  - [x] 3.1 In `handleConfirmCall`, set `exposureSource: 'call'` when building `ExposedGroup` (lines ~759–763 area).
+  - [x] 3.2 Update any other production constructors (if found in Task 1.3); joker exchange and similar paths may **mutate** tiles but not create new groups — verify.
+- [x] Task 4: Tests (AC: 1–4, 6)
+  - [x] 4.1 **Unit:** Extend [`exposure-validation.test.ts`](../../packages/shared/src/card/exposure-validation.test.ts) — cases for `exposureSource` + mixed group-level patterns; preserve existing 2026 card integration tests.
+  - [x] 4.2 **Engine:** Add or extend [`mahjong.test.ts`](../../packages/shared/src/engine/actions/mahjong.test.ts) — `DECLARE_MAHJONG` with concealed-only tile match but exposed group with `exposureSource: 'call'` → `INVALID_MAHJONG_WARNING` + `pendingMahjong`; optionally mirror for `confirmMahjongCall` / `CALL_MAHJONG` confirmation path.
+  - [x] 4.3 Co-locate `*.test.ts`; import from `vite-plus/test`.
+- [x] Task 5: Protocol / server / client (AC: 4–6)
+  - [x] 5.1 If `ExposedGroup` gains a field, ensure server action validation and [`state-broadcaster`](../../packages/server/) / types stay aligned — run `state-broadcaster.test.ts` if under test.
+  - [x] 5.2 **Client:** Only if wire shape changes require UI updates; otherwise document “no mandatory client change for 3C.7.”
+- [x] Task 6: Validation gate (AC: 6)
+  - [x] 6.1 `pnpm test && pnpm run typecheck && vp lint`
 
 ## Dev Notes
 
@@ -100,13 +100,35 @@ Paste from [`story-validation-checklist.md`](story-validation-checklist.md):
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer (Cursor agent)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented `ExposureSource` + optional `exposureSource` on `ExposedGroup` with `getExposureSource()` defaulting omitted fields to `"call"`.
+- `validateExposure`: full `pattern.exposure === "C"` unchanged (any table meld fails); group-level `concealed` uses discard-call-only matching via `matchesCallSourcedExposedGroup`.
+- `filterAchievableByExposure` updated to use the same call-sourced rule for group-level concealed flags.
+- `handleConfirmCall` sets `exposureSource: "call"`; protocol `PlayerGameView` uses shared `ExposedGroup` type — no duplicate edits; server broadcaster passes through; full test suite green.
+- **Client:** No mandatory UI change — new field is optional on the wire with backward-compatible default.
+- Code review (2026-04-04): Task 1.1 subtask updated to name `matchesCallSourcedExposedGroup` (replacing obsolete `matchesAnyExposedGroup`); added engine test `3C.7: discard confirmation — concealed-only…` in `mahjong.test.ts`; removed unsafe `as SuitedTile` in `mapPlayerGameViewToGameTable.test.ts` helper (lint).
+
 ### File List
+
+- `packages/shared/src/types/game-state.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/card/exposure-validation.ts`
+- `packages/shared/src/engine/actions/call-window.ts`
+- `packages/shared/src/card/exposure-validation.test.ts`
+- `packages/shared/src/engine/actions/mahjong.test.ts`
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts` (code review: lint-only helper typing for `SuitedTile` test tiles)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/3c-7-concealed-hand-validation-at-mahjong.md`
+
+### Change Log
+
+- 2026-04-04 — Story 3C.7 implemented: exposure provenance, concealed validation at Mahjong, tests, gates passed; status → review.
+- 2026-04-04 — Code review follow-up: Task 1.1 text fix, 3C.7 discard confirmation engine test, client composable test lint fix; File List updated.
 
 ---
 

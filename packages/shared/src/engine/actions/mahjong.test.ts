@@ -15,7 +15,12 @@ import { getPlayerBySeat, injectTilesIntoRack } from "../../testing/helpers";
 import { buildTilesForHand } from "../../testing/tile-builders";
 import { loadCard } from "../../card/card-loader";
 import { validateHandWithExposure } from "../../card/exposure-validation";
-import type { GameState, GameResult, MahjongGameResult } from "../../types/game-state";
+import type {
+  GameState,
+  GameResult,
+  MahjongGameResult,
+  ExposedGroup,
+} from "../../types/game-state";
 import type { Tile, TileSuit, TileValue, SuitedTile } from "../../types/tiles";
 
 const card = loadCard("2026");
@@ -178,6 +183,46 @@ describe("Self-drawn Mahjong (DECLARE_MAHJONG)", () => {
     for (const loserId of loserIds) {
       expect(state.scores[loserId]).toBe(-50);
     }
+  });
+
+  test("3C.7: concealed-only tile match with call-sourced exposure → INVALID_MAHJONG_WARNING", () => {
+    const state = createPlayState();
+    const eastId = getPlayerBySeat(state, "east");
+    const concealedPatternId = "ev-1";
+    const tiles = buildTilesForHand(card, concealedPatternId, { A: "bam", B: "crak", C: "dot" });
+    expect(tiles).toHaveLength(14);
+    const kongTiles = tiles.slice(0, 4);
+    const rackTiles = tiles.slice(4);
+    state.players[eastId].rack.length = 0;
+    injectTilesIntoRack(state, eastId, rackTiles);
+    const exposedGroup: ExposedGroup = {
+      type: "kong",
+      tiles: kongTiles,
+      identity: { type: "kong", suit: "bam", value: 2 },
+      exposureSource: "call",
+    };
+    state.players[eastId].exposedGroups.push(exposedGroup);
+
+    state.currentTurn = eastId;
+    state.turnPhase = "discard";
+
+    expect(validateHandWithExposure([...rackTiles, ...kongTiles], [exposedGroup], card)).toBeNull();
+
+    const result = handleDeclareMahjong(state, {
+      type: "DECLARE_MAHJONG",
+      playerId: eastId,
+    });
+
+    expect(result.accepted).toBe(true);
+    expect(result.resolved).toMatchObject({
+      type: "INVALID_MAHJONG_WARNING",
+      playerId: eastId,
+      reason: "INVALID_HAND",
+    });
+    expect(state.pendingMahjong).toMatchObject({
+      playerId: eastId,
+      path: "self-drawn",
+    });
   });
 
   test("invalid hand → INVALID_MAHJONG_WARNING with pending state, play continues", () => {
@@ -725,6 +770,83 @@ describe("Discard Mahjong confirmation (handleConfirmCall with mahjong)", () => 
       expect(
         state.players[discarderId].discardPool.find((t) => t.id === discardedTile.id),
       ).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("3C.7: discard confirmation — concealed-only tile match with call-sourced exposure → INVALID_MAHJONG_WARNING", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-28T12:00:00Z"));
+    try {
+      const state = createPlayState();
+      const eastId = getPlayerBySeat(state, "east");
+      const southId = getPlayerBySeat(state, "south");
+
+      const tiles = buildTilesForHand(card, "ev-1", { A: "bam", B: "crak", C: "dot" });
+      expect(tiles).toHaveLength(14);
+      const kongTiles = tiles.slice(0, 4);
+      const rackTiles = tiles.slice(4, 13);
+      const missingTile = tiles[13];
+
+      state.players[southId].rack.length = 0;
+      for (const tile of rackTiles) {
+        for (const p of Object.values(state.players)) {
+          if (p.id === southId) continue;
+          const idx = p.rack.findIndex((t) => t.id === tile.id);
+          if (idx >= 0) p.rack.splice(idx, 1);
+        }
+        const wallIdx = state.wall.findIndex((t) => t.id === tile.id);
+        if (wallIdx >= 0) state.wall.splice(wallIdx, 1);
+        state.players[southId].rack.push(tile);
+      }
+
+      state.players[southId].exposedGroups.push({
+        type: "kong",
+        tiles: kongTiles,
+        identity: { type: "kong", suit: "bam", value: 2 },
+        exposureSource: "call",
+      });
+
+      state.callWindow = {
+        status: "confirming" as const,
+        discardedTile: missingTile,
+        discarderId: eastId,
+        passes: [eastId],
+        calls: [],
+        openedAt: Date.now(),
+        confirmingPlayerId: southId,
+        confirmationExpiresAt: Date.now() + 5000,
+        remainingCallers: [],
+        winningCall: { callType: "mahjong", playerId: southId, tileIds: [] },
+      };
+      state.players[eastId].discardPool.push(missingTile);
+
+      expect(
+        validateHandWithExposure(
+          [...rackTiles, ...kongTiles, missingTile],
+          state.players[southId].exposedGroups,
+          card,
+        ),
+      ).toBeNull();
+
+      const result = handleConfirmCall(state, {
+        type: "CONFIRM_CALL",
+        playerId: southId,
+        tileIds: [],
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.resolved).toMatchObject({
+        type: "INVALID_MAHJONG_WARNING",
+        playerId: southId,
+        reason: "INVALID_HAND",
+      });
+      expect(state.pendingMahjong).toMatchObject({
+        playerId: southId,
+        path: "discard",
+      });
+      expect(state.gamePhase).toBe("play");
     } finally {
       vi.useRealTimers();
     }

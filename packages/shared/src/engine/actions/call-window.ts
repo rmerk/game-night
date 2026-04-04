@@ -760,6 +760,7 @@ export function handleConfirmCall(state: GameState, action: ConfirmCallAction): 
     type: winningCall.callType as ExposedGroup["type"],
     tiles: [discardedTile, ...rackTiles],
     identity: groupIdentity,
+    exposureSource: "call",
   };
   player.exposedGroups.push(exposedGroup);
 

@@ -114,6 +114,34 @@ describe("validateExposure", () => {
     }
   });
 
+  test("group-level concealed: matching exposure with exposureSource wall → valid (3C.7)", () => {
+    const pattern: HandPattern = {
+      id: "test-mixed",
+      points: 25,
+      exposure: "X",
+      groups: [
+        { type: "kong", jokerEligible: true, concealed: true, tile: { color: "A", value: 1 } },
+        { type: "kong", jokerEligible: true, concealed: false, tile: { color: "A", value: 2 } },
+        { type: "pung", jokerEligible: true, concealed: false, tile: { color: "A", value: 3 } },
+        { type: "pair", jokerEligible: false, tile: { color: "A", value: 4 } },
+      ],
+    };
+    const exposedGroups: ExposedGroup[] = [
+      {
+        type: "kong",
+        tiles: [
+          makeSuitedTile("bam", 1, 1),
+          makeSuitedTile("bam", 1, 2),
+          makeSuitedTile("bam", 1, 3),
+          makeSuitedTile("bam", 1, 4),
+        ],
+        identity: { type: "kong", suit: "bam", value: 1 },
+        exposureSource: "wall",
+      },
+    ];
+    expect(validateExposure(exposedGroups, pattern).valid).toBe(true);
+  });
+
   test("group-level concealed: concealed groups NOT exposed → valid (4.6)", () => {
     // Same pattern but the exposed group doesn't match the concealed group
     const pattern: HandPattern = {

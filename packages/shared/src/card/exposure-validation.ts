@@ -1,6 +1,7 @@
 import type { Tile } from "../types/tiles";
 import type { NMJLCard, HandPattern, GroupPattern } from "../types/card";
 import type { ExposedGroup } from "../types/game-state";
+import { getExposureSource } from "../types/game-state";
 import { validateHand } from "./pattern-matcher";
 import type { MatchResult } from "./pattern-matcher";
 
@@ -18,7 +19,8 @@ export function validateExposure(
   exposedGroups: ExposedGroup[],
   pattern: HandPattern,
 ): ExposureResult {
-  // Concealed hand: zero exposed groups allowed
+  // Full concealed (C) hand on the card: any meld on the table breaks the pattern.
+  // (Includes discard-call and future wall-sourced exposures — both are "exposed".)
   if (pattern.exposure === "C") {
     if (exposedGroups.length > 0) {
       return { valid: false, reason: "Concealed hand cannot have any exposed groups" };
@@ -26,14 +28,14 @@ export function validateExposure(
     return { valid: true };
   }
 
-  // Exposed hand: check group-level concealed constraints
+  // Exposed (X) hand with group-level C flags: only a discard-call exposure that
+  // matches the group violates FR62 — wall-sourced melds do not (future NMJL cases).
   for (const group of pattern.groups) {
     if (!group.concealed) continue;
-    // This group must NOT appear in exposedGroups
-    if (matchesAnyExposedGroup(group, exposedGroups)) {
+    if (matchesCallSourcedExposedGroup(group, exposedGroups)) {
       return {
         valid: false,
-        reason: `Group marked as concealed was exposed: ${group.type}`,
+        reason: `Group marked as concealed was exposed via a discard call: ${group.type}`,
       };
     }
   }
@@ -41,8 +43,13 @@ export function validateExposure(
   return { valid: true };
 }
 
-function matchesAnyExposedGroup(group: GroupPattern, exposedGroups: ExposedGroup[]): boolean {
+/** True if a discard-call exposure matches this group (identity + type). */
+function matchesCallSourcedExposedGroup(
+  group: GroupPattern,
+  exposedGroups: ExposedGroup[],
+): boolean {
   for (const eg of exposedGroups) {
+    if (getExposureSource(eg) !== "call") continue;
     if (eg.type !== group.type) continue;
     if (matchesGroupIdentity(group, eg)) return true;
   }
@@ -201,10 +208,10 @@ export function filterAchievableByExposure(
     // Filter out all concealed hands
     if (hand.exposure === "C") return false;
 
-    // Check group-level concealed constraints
+    // Group-level concealed: discard-call exposures that match invalidate
     for (const group of hand.groups) {
       if (!group.concealed) continue;
-      if (matchesAnyExposedGroup(group, exposedGroups)) return false;
+      if (matchesCallSourcedExposedGroup(group, exposedGroups)) return false;
     }
 
     return true;

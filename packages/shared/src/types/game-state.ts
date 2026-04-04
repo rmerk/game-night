@@ -22,11 +22,27 @@ export interface GroupIdentity {
   readonly dragon?: string;
 }
 
-/** Exposed group on a player's table — populated in Epic 3A when groups are called */
+/** How an exposed meld was formed (Story 3C.7). */
+export type ExposureSource = "call" | "wall";
+
+/**
+ * Exposed group on a player's table — populated in Epic 3A when groups are called.
+ *
+ * `exposureSource`: when omitted, {@link getExposureSource} treats the group as
+ * `"call"` (discard-call confirmation) for backward compatibility with pre-3C.7
+ * state and tests that omit the field.
+ */
 export interface ExposedGroup {
   readonly type: GroupType;
   readonly tiles: Tile[];
   readonly identity: GroupIdentity;
+  /** Discard-call vs wall/other non-call exposure; defaults to `"call"` when omitted. */
+  readonly exposureSource?: ExposureSource;
+}
+
+/** Resolved exposure provenance — missing field defaults to `"call"`. */
+export function getExposureSource(eg: ExposedGroup): ExposureSource {
+  return eg.exposureSource ?? "call";
 }
 
 /** Per-player state within a game */

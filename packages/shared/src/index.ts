@@ -23,6 +23,7 @@ export type {
   SeatWind,
   PlayerState,
   ExposedGroup,
+  ExposureSource,
   GroupIdentity,
   CallWindowState,
   CallType,
@@ -44,7 +45,11 @@ export type {
   TableTalkReportState,
 } from "./types/game-state";
 
-export { CHALLENGE_TIMEOUT_SECONDS, SOCIAL_OVERRIDE_TIMEOUT_SECONDS } from "./types/game-state";
+export {
+  CHALLENGE_TIMEOUT_SECONDS,
+  SOCIAL_OVERRIDE_TIMEOUT_SECONDS,
+  getExposureSource,
+} from "./types/game-state";
 
 export type {
   GameAction,

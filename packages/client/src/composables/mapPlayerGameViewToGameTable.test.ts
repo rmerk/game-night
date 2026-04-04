@@ -1,9 +1,10 @@
 import { expect, test } from "vite-plus/test";
-import type { PlayerGameView, SuitedTile, Tile } from "@mahjong-game/shared";
+import type { PlayerGameView, SuitedTile, Tile, TileValue } from "@mahjong-game/shared";
 import { mapPlayerGameViewToGameTableProps } from "./mapPlayerGameViewToGameTable";
 
-const t = (id: string, suit: "dot" | "bam" | "crak", value: number, copy: number): SuitedTile =>
-  ({ id, category: "suited", suit, value, copy }) as SuitedTile;
+function t(id: string, suit: "dot" | "bam" | "crak", value: TileValue, copy: number): SuitedTile {
+  return { id, category: "suited", suit, value, copy };
+}
 
 function minimalPlayerView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
   const rack: Tile[] = [t("dot-1-1", "dot", 1, 1), t("dot-2-1", "dot", 2, 1)];
