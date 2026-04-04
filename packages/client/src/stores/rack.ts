@@ -62,6 +62,12 @@ export const useRackStore = defineStore("rack", () => {
     selectedTileId.value = null;
   }
 
+  /** Clear client-only rack state when leaving a live room (avoids leaking order/selection across rooms). */
+  function resetForRoomLeave() {
+    tileOrder.value = [];
+    selectedTileId.value = null;
+  }
+
   /** Merge server rack tiles with existing drag order (Story 3C.8). */
   function reconcileWithServerRack(tiles: Tile[]) {
     const ids = new Set(tiles.map((t) => t.id));
@@ -96,5 +102,6 @@ export const useRackStore = defineStore("rack", () => {
     selectTile,
     deselectTile,
     reconcileWithServerRack,
+    resetForRoomLeave,
   };
 });

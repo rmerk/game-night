@@ -27,3 +27,12 @@ test("reconcileWithServerRack clears selection when selected tile removed", () =
   rack.reconcileWithServerRack([tile("b")]);
   expect(rack.selectedTileId).toBeNull();
 });
+
+test("resetForRoomLeave clears order and selection", () => {
+  const rack = useRackStore();
+  rack.setTileOrder([tile("a"), tile("b")]);
+  rack.selectTile("a");
+  rack.resetForRoomLeave();
+  expect(rack.tileOrder).toEqual([]);
+  expect(rack.selectedTileId).toBeNull();
+});

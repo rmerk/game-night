@@ -88,6 +88,7 @@ function joinRoom() {
 function leaveRoom() {
   conn.clearTokenForRoom(roomCode.value);
   conn.disconnect();
+  rackStore.resetForRoomLeave();
   void router.push({ name: "home" });
 }
 
