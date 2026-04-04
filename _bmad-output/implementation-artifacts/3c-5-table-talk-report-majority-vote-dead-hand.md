@@ -2,8 +2,6 @@
 
 Status: done
 
-
-
 ## Story
 
 As a **player**,
@@ -22,30 +20,30 @@ so that **verbal rules are enforceable through the game system, distinct from th
 
 ## Tasks / Subtasks
 
-- Task 1: Shared types and GameState (AC: 1–2, 5, 7)
-  - 1.1 Add `TableTalkReportState` (or equivalent) with `reporterId`, `reportedPlayerId`, `description`, `expiresAt`, `votes` map for the three voters; add `tableTalkReportCountsByPlayerId: Record<string, number>` (or similar) reset at game start — tracks submissions **initiated** this game per reporter for FR83
-  - 1.2 Add `TableTalkReportAction`, `TableTalkVoteAction` to `GameAction`; extend `ResolvedAction` with request / vote cast / resolved variants
-  - 1.3 Ensure `GameAction` / `ResolvedAction` discriminated unions stay exhaustive (`game-engine.ts` default branch)
-- Task 2: Engine handlers (AC: 1–5)
-  - 2.1 Implement `handleTableTalkReport`, `handleTableTalkVote`, `handleTableTalkTimeout` (if using timeout) in `packages/shared/src/engine/actions/table-talk-report.ts` (new file)
-  - 2.2 Validation: `gamePhase === "play"`; reporter ≠ reported; `reportedPlayerId` must be another seated player; reporter under limit; **no concurrent** `socialOverrideState` (and optionally `challengeState`) — return clear reasons (e.g. `SOCIAL_OVERRIDE_PENDING`, `TABLE_TALK_ALREADY_ACTIVE`)
-  - 2.3 On uphold: set `state.players[reportedPlayerId].deadHand = true` (reuse existing dead-hand behavior; do not duplicate 3C.3 logic beyond this flag)
-  - 2.4 On resolution (uphold or deny): increment reporter’s count for this game **once per submitted report**; deny path still counts (FR83)
-  - 2.5 Register cases in `packages/shared/src/engine/game-engine.ts`; export from `packages/shared/src/index.ts`
-- Task 3: Protocol and broadcaster (AC: 1, 6)
-  - 3.1 Extend `PlayerGameView` / protocol with `tableTalkReportState` (or equivalent) so clients can render prompts and progress
-  - 3.2 Update `buildPlayerView` in `packages/server/src/websocket/state-broadcaster.ts` — voters see approve/deny; reporter and reported see appropriate copy (reported may vote deny — see FR81 voter set)
-- Task 4: Server (AC: 3, 7)
-  - 4.1 Parse and validate `TABLE_TALK_REPORT` / `TABLE_TALK_VOTE` in `packages/server/src/websocket/action-handler.ts` (mirror `SOCIAL_OVERRIDE_*` patterns)
-  - 4.2 Schedule/clear timeout on `Room` when a vote starts/ends — **recommend** reuse `SOCIAL_OVERRIDE_TIMEOUT_SECONDS` (10s) and silence = deny for parity with 3C.4 unless UX specifies otherwise; document in completion notes if different
-- Task 5: Client (AC: 1, 6, 7)
-  - 5.1 Add **Table Talk Report** entry point (distinct control from Social Override — FR80) and description input (align with `BaseInput` in UX spec — [Source: `_bmad-output/planning-artifacts/ux-design-specification.md`])
-  - 5.2 Reuse or extend `SocialOverridePanel.vue` / `GameTable.vue` patterns for vote UI — **majority** threshold copy (2/3 uphold) vs unanimous (3/3)
-- Task 6: Tests (AC: all)
-  - 6.1 `table-talk-report.test.ts` — uphold, deny, limit, denied-counts-toward-limit, dead hand on reported, reject invalid targets, mutual exclusion with social override if implemented
-  - 6.2 Broadcaster / server tests as needed for `PlayerGameView` fields
-- Task 7: Validation gate (AC: 7)
-  - 7.1 `pnpm test && pnpm run typecheck && vp lint`
+- [x] Task 1: Shared types and GameState (AC: 1–2, 5, 7)
+  - [x] 1.1 Add `TableTalkReportState` (or equivalent) with `reporterId`, `reportedPlayerId`, `description`, `expiresAt`, `votes` map for the three voters; add `tableTalkReportCountsByPlayerId: Record<string, number>` (or similar) reset at game start — tracks submissions **initiated** this game per reporter for FR83
+  - [x] 1.2 Add `TableTalkReportAction`, `TableTalkVoteAction` to `GameAction`; extend `ResolvedAction` with request / vote cast / resolved variants
+  - [x] 1.3 Ensure `GameAction` / `ResolvedAction` discriminated unions stay exhaustive (`game-engine.ts` default branch)
+- [x] Task 2: Engine handlers (AC: 1–5)
+  - [x] 2.1 Implement `handleTableTalkReport`, `handleTableTalkVote`, `handleTableTalkTimeout` (if using timeout) in `packages/shared/src/engine/actions/table-talk-report.ts` (new file)
+  - [x] 2.2 Validation: `gamePhase === "play"`; reporter ≠ reported; `reportedPlayerId` must be another seated player; reporter under limit; **no concurrent** `socialOverrideState` (and optionally `challengeState`) — return clear reasons (e.g. `SOCIAL_OVERRIDE_PENDING`, `TABLE_TALK_ALREADY_ACTIVE`)
+  - [x] 2.3 On uphold: set `state.players[reportedPlayerId].deadHand = true` (reuse existing dead-hand behavior; do not duplicate 3C.3 logic beyond this flag)
+  - [x] 2.4 On resolution (uphold or deny): increment reporter’s count for this game **once per submitted report**; deny path still counts (FR83)
+  - [x] 2.5 Register cases in `packages/shared/src/engine/game-engine.ts`; export from `packages/shared/src/index.ts`
+- [x] Task 3: Protocol and broadcaster (AC: 1, 6)
+  - [x] 3.1 Extend `PlayerGameView` / protocol with `tableTalkReportState` (or equivalent) so clients can render prompts and progress
+  - [x] 3.2 Update `buildPlayerView` in `packages/server/src/websocket/state-broadcaster.ts` — voters see approve/deny; reporter and reported see appropriate copy (reported may vote deny — see FR81 voter set)
+- [x] Task 4: Server (AC: 3, 7)
+  - [x] 4.1 Parse and validate `TABLE_TALK_REPORT` / `TABLE_TALK_VOTE` in `packages/server/src/websocket/action-handler.ts` (mirror `SOCIAL_OVERRIDE_*` patterns)
+  - [x] 4.2 Schedule/clear timeout on `Room` when a vote starts/ends — **recommend** reuse `SOCIAL_OVERRIDE_TIMEOUT_SECONDS` (10s) and silence = deny for parity with 3C.4 unless UX specifies otherwise; document in completion notes if different
+- [x] Task 5: Client (AC: 1, 6, 7)
+  - [x] 5.1 Add **Table Talk Report** entry point (distinct control from Social Override — FR80) and description input (align with `BaseInput` in UX spec — [`ux-design-specification.md`](../planning-artifacts/ux-design-specification.md))
+  - [x] 5.2 Reuse or extend `SocialOverridePanel.vue` (composition: `SocialOverrideSection.vue` + `TableTalkReportSection.vue`) / `GameTable.vue` — **majority** threshold copy (2/3 uphold) vs unanimous (3/3); `reportTargets` sync + accused `<label for>` / `<select id>` for accessibility
+- [x] Task 6: Tests (AC: all)
+  - [x] 6.1 `table-talk-report.test.ts` — uphold, deny, limit, denied-counts-toward-limit, dead hand on reported, reject invalid targets, mutual exclusion with social override if implemented
+  - [x] 6.2 Broadcaster / server tests as needed for `PlayerGameView` fields; client tests for panel + `TableTalkReportSection` (`reportTargets` churn)
+- [x] Task 7: Validation gate (AC: 7)
+  - [x] 7.1 `pnpm test && pnpm run typecheck && vp lint`
 
 ## Dev Notes
 
@@ -62,7 +60,7 @@ so that **verbal rules are enforceable through the game system, distinct from th
 
 ### Action payload (implementation detail)
 
-- Epic text names `TABLE_TALK_REPORT` with description only; the engine **must** know which player is accused. Add `**reportedPlayerId`** (or equivalent) to the action payload and document in protocol types.
+- Epic text names `TABLE_TALK_REPORT` with description only; the engine **must** know which player is accused. Add **`reportedPlayerId`** (or equivalent) to the action payload and document in protocol types.
 
 ### Reuse and differences vs Story 3C.4
 
@@ -87,7 +85,7 @@ so that **verbal rules are enforceable through the game system, distinct from th
 | Game init         | `packages/shared/src/engine/state/create-game.ts` — initialize new counters / null pending state                           |
 | Server            | `packages/server/src/websocket/action-handler.ts`, `packages/server/src/rooms/room.ts`                                     |
 | Broadcast         | `packages/server/src/websocket/state-broadcaster.ts`                                                                       |
-| Client            | `packages/client/src/components/game/SocialOverridePanel.vue`, `GameTable.vue`                                             |
+| Client            | `SocialOverridePanel.vue`, `SocialOverrideSection.vue`, `TableTalkReportSection.vue`, `GameTable.vue` (`packages/client/src/components/game/`) |
 
 
 ### Host log (optional)
@@ -96,7 +94,7 @@ so that **verbal rules are enforceable through the game system, distinct from th
 
 ### Project context
 
-- Validate-then-mutate; no server authority bypass; extend unions in `shared` for any new wire actions; co-located `*.test.ts`; use `vite-plus/test` (see `[_bmad-output/project-context.md](_bmad-output/project-context.md)`).
+- Validate-then-mutate; no server authority bypass; extend unions in `shared` for any new wire actions; co-located `*.test.ts`; use `vite-plus/test` (see [`project-context.md`](../project-context.md)).
 - **Strings:** Cap description length server-side (align with `MAX_DESCRIPTION_LEN` in `social-override.ts`, 280) and render with `{{ }}` only — never `v-html` on user text.
 - **Regressions:** Extending `GameAction` requires updating `handleAction` exhaustiveness; new pending state must not break `buildPlayerView` or existing Social Override flows.
 
@@ -107,22 +105,22 @@ so that **verbal rules are enforceable through the game system, distinct from th
 
 ### Previous story intelligence (3C.4)
 
-- Source: `[_bmad-output/implementation-artifacts/3c-4-social-override-system-unanimous-vote-undo.md](_bmad-output/implementation-artifacts/3c-4-social-override-system-unanimous-vote-undo.md)`
+- Source: [`3c-4-social-override-system-unanimous-vote-undo.md`](3c-4-social-override-system-unanimous-vote-undo.md)
 - `socialOverrideState` + server timer; `PASS_CALL` / `CALL_*` blocked while pending; `hostAuditLog` host-only.
 - **Do not** copy discard-undo logic — Table Talk applies dead hand only.
 
 ### References
 
-- `[_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md)` — Epic 3C intro, Story 3C.5, FR76–FR83, TypeScript union note
-- `[_bmad-output/planning-artifacts/gdd.md](_bmad-output/planning-artifacts/gdd.md)` — Dead hand + Table Talk Report (~420–448)
-- `[_bmad-output/planning-artifacts/ux-design-specification.md](_bmad-output/planning-artifacts/ux-design-specification.md)` — `BaseInput` for description (~653)
-- `[_bmad-output/planning-artifacts/game-architecture.md](_bmad-output/planning-artifacts/game-architecture.md)` — full architecture (supplement as needed)
+- [`epics.md`](../planning-artifacts/epics.md) — Epic 3C intro, Story 3C.5, FR76–FR83, TypeScript union note
+- [`gdd.md`](../planning-artifacts/gdd.md) — Dead hand + Table Talk Report (~420–448)
+- [`ux-design-specification.md`](../planning-artifacts/ux-design-specification.md) — `BaseInput` for description (~653)
+- [`game-architecture.md`](../planning-artifacts/game-architecture.md) — full architecture (supplement as needed)
 
 ### Follow-up: production room wiring (out of scope for 3C.5)
 
 Story 3C.5 delivers engine, protocol, server timer, and `GameTable` / `SocialOverridePanel` props + emits. **Hooking the live room / WebSocket client** so `STATE_UPDATE` drives `tableTalkReportState`, `tableTalkReportCountsByPlayerId`, `canRequestTableTalkReport`, and user actions send `ACTION` messages — including the parallel **social override** path from Story 3C.4 (`canRequestSocialOverride`, `SOCIAL_OVERRIDE_*`) — is **not** part of this story.
 
-**Where to track it:** umbrella item `**5a-retro-4-client-integration-layer-before-epic-3b`** in `[sprint-status.yaml](_bmad-output/implementation-artifacts/sprint-status.yaml)` (`retro_follow_through`, backlog). Spin a dedicated dev story from that retro item when implementation starts, or fold requirements into the integration story’s acceptance criteria.
+**Where to track it:** umbrella item **`5a-retro-4-client-integration-layer-before-epic-3b`** in [`sprint-status.yaml`](sprint-status.yaml) (`retro_follow_through`, backlog). Spin a dedicated dev story from that retro item when implementation starts, or fold requirements into the integration story’s acceptance criteria.
 
 ## Dev Agent Record
 
@@ -136,7 +134,7 @@ Composer (Cursor agent)
 
 - Implemented `TABLE_TALK_REPORT` / `TABLE_TALK_VOTE` with `TableTalkReportState` (includes `voterIds` for the three non-reporters). Majority: 2 approve to uphold; 2 deny or all votes cast without 2 approves → denied; `handleTableTalkTimeout` denies if fewer than 2 approves (same 10s as `SOCIAL_OVERRIDE_TIMEOUT_SECONDS`).
 - Mutual exclusion: `social-override.ts` rejects when `tableTalkReportState` active (`TABLE_TALK_PENDING`); table-talk rejects when social override or challenge pending. `PASS_CALL` / calls blocked while table talk pending (`TABLE_TALK_PENDING`).
-- Client: extended `SocialOverridePanel.vue` + `GameTable.vue` with table-talk section (distinct labels), `reportTargets` from opponents, and emits `tableTalkReport` / `tableTalkVote`. Live room wiring deferred — see **Dev Notes → Follow-up: production room wiring** and sprint `**5a-retro-4-client-integration-layer-before-epic-3b`**.
+- Client: `SocialOverridePanel.vue` composes `SocialOverrideSection.vue` + `TableTalkReportSection.vue`; `GameTable.vue` wires props/emits; table-talk accused select uses `for`/`id` pairing; `reportTargets` watcher resets invalid `reportedPlayerId` when the opponent list changes. Live room wiring deferred — see **Dev Notes → Follow-up: production room wiring** and sprint **`5a-retro-4-client-integration-layer-before-epic-3b`**.
 
 ### File List
 
@@ -159,7 +157,10 @@ Composer (Cursor agent)
 - `packages/server/src/rooms/seat-assignment.test.ts`
 - `packages/server/src/rooms/room-lifecycle.test.ts`
 - `packages/client/src/components/game/SocialOverridePanel.vue`
+- `packages/client/src/components/game/SocialOverrideSection.vue`
+- `packages/client/src/components/game/TableTalkReportSection.vue`
 - `packages/client/src/components/game/SocialOverridePanel.test.ts`
+- `packages/client/src/components/game/TableTalkReportSection.test.ts`
 - `packages/client/src/components/game/GameTable.vue`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/3c-5-table-talk-report-majority-vote-dead-hand.md`
@@ -168,7 +169,8 @@ Composer (Cursor agent)
 
 - **2026-04-04:** Story file created via GDS create-story workflow; sprint status set to **ready-for-dev**.
 - **2026-04-04:** Story 3C.5 implemented — table talk report engine, server timer, protocol/broadcaster, client UI, tests; sprint status **review**.
-- **2026-04-04:** Ticket note: production WebSocket ↔ `GameTable` integration (table talk + social override) deferred; tracked under `**5a-retro-4-client-integration-layer-before-epic-3b`** (see Dev Notes follow-up section).
+- **2026-04-04:** Ticket note: production WebSocket ↔ `GameTable` integration (table talk + social override) deferred; tracked under **`5a-retro-4-client-integration-layer-before-epic-3b`** (see Dev Notes follow-up section).
+- **2026-04-04:** Client refactor: split table talk / social override into `SocialOverrideSection` + `TableTalkReportSection`; `reportTargets` robustness tests; accused control label/`id` for accessibility.
 - **2026-04-04:** GDS adversarial code review complete — ACs and tasks verified; supplemental tests added for table-talk UI and `PlayerGameView` fields; sprint status **done**.
 
 ## Senior Developer Review (AI)
@@ -178,7 +180,7 @@ Composer (Cursor agent)
 
 **Outcome:** Approve (story marked **done**)
 
-**Git vs story File List:** No discrepancies for application source; untracked/new engine files match the File List.
+**Git vs story File List:** Aligned after follow-up commit — includes `SocialOverrideSection.vue`, `TableTalkReportSection.vue`, `TableTalkReportSection.test.ts`.
 
 **Acceptance criteria:** AC1–AC6 implemented in shared engine, server action handler + 10s timer (parity with social override), protocol/broadcaster, and `GameTable` / `SocialOverridePanel`. AC3 timeout path covered by `handleTableTalkTimeout`. AC4–AC5 reporter count increments on resolution (including deny). Production room wiring so live `STATE_UPDATE` drives table-talk props remains explicitly **out of scope** per Dev Notes (retro item `5a-retro-4-client-integration-layer-before-epic-3b`).
 
