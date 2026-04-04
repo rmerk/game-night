@@ -483,6 +483,7 @@ const sessionScores = computed<Record<string, number>>(() => {
 });
 
 const actionZoneEntryRef = useTemplateRef<HTMLDivElement>("actionZoneEntry");
+const scoreboardChatFocusReturnRef = useTemplateRef<HTMLDivElement>("scoreboardChatFocusReturn");
 
 function isSeatActive(seatWind: SeatWind | undefined): boolean {
   return seatWind !== undefined && props.currentTurnSeat === seatWind;
@@ -494,7 +495,12 @@ function focusActionZone() {
   actionZoneEntryRef.value?.focus();
 }
 
+/** AC6: in-play → action zone; scoreboard has no action zone — use dedicated focus sink. */
 function onChatEscape() {
+  if (isScoreboardPhase.value) {
+    scoreboardChatFocusReturnRef.value?.focus();
+    return;
+  }
   focusActionZone();
 }
 
@@ -544,13 +550,21 @@ function onChatEscape() {
         data-testid="table-center"
         class="game-table__center min-h-[40dvh] flex flex-col items-center justify-center gap-4"
       >
-        <Scoreboard
-          v-if="isScoreboardPhase"
-          :game-result="gameResult"
-          :player-names-by-id="playerNamesById"
-          :player-order="playerOrder"
-          :session-scores="sessionScores"
-        />
+        <template v-if="isScoreboardPhase">
+          <Scoreboard
+            :game-result="gameResult"
+            :player-names-by-id="playerNamesById"
+            :player-order="playerOrder"
+            :session-scores="sessionScores"
+          />
+          <div
+            ref="scoreboardChatFocusReturn"
+            data-testid="scoreboard-chat-focus-return"
+            tabindex="-1"
+            class="sr-only"
+            aria-hidden="true"
+          />
+        </template>
 
         <template v-else>
           <div class="flex w-full justify-center">
@@ -822,24 +836,14 @@ function onChatEscape() {
     </div>
 
     <SlideInReferencePanels
-      v-if="!isScoreboardPhase"
       :send-chat="(t: string) => emit('sendChat', t)"
       :on-escape-focus-target="onChatEscape"
     />
 
     <!-- DOM anchor between actions and mobile controls (a11y / test document order); panel content mounts when open. -->
-    <div
-      v-if="!isScoreboardPhase"
-      data-testid="chat-shell-anchor"
-      class="order-5 sr-only"
-      aria-hidden="true"
-    />
+    <div data-testid="chat-shell-anchor" class="order-5 sr-only" aria-hidden="true" />
 
-    <div
-      v-if="!isScoreboardPhase"
-      data-testid="controls-zone-shell"
-      class="order-6 flex justify-center"
-    >
+    <div data-testid="controls-zone-shell" class="order-6 flex justify-center">
       <div data-testid="controls-zone-entry" class="w-full max-w-sm">
         <MobileBottomBar />
       </div>
