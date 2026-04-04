@@ -1,6 +1,6 @@
 # Story 3C.1: Joker Exchange Mechanic
 
-Status: review
+Status: done
 
 ## Story
 
@@ -307,7 +307,20 @@ describe("handleJokerExchange", () => {
 
 ## Change Log
 
+- 2026-04-03: GDS adversarial code review passed (AC1–AC12, tasks, tests, git vs File List). Status: review → done; sprint status synced.
 - 2026-04-03: Implemented `JOKER_EXCHANGE` (shared types, `handleJokerExchange`, engine registration, server parse/validate), added `joker-exchange.test.ts` (14 cases). Sprint status: in-progress → review.
+
+## Senior Developer Review (AI)
+
+**Reviewer:** AI (GDS code-review workflow)  
+**Date:** 2026-04-03  
+**Outcome:** Approve (no changes requested)
+
+- **Git vs story:** Clean working tree; story Dev Agent File List matches the committed implementation surface area (shared engine, types, server `action-handler`, sprint/story tracking).
+- **Acceptance criteria:** AC1–AC12 traced to `handleJokerExchange`, `ResolvedAction` / `JokerExchangeAction`, server payload validation and `parseGameAction`, and dedicated tests (including multi-Joker, wind, dragon).
+- **Tasks:** All marked-complete tasks verified; Task 6 validation gate re-run as part of this review (see commands below).
+- **Quality:** Validate-then-mutate order matches story; `validateJokerExchange` reason strings map to `NO_JOKER_IN_GROUP` / `TILE_DOES_NOT_MATCH_GROUP`; missing-player `throw` is consistent with `handleDiscardTile`.
+- **Checklist:** Story file loaded; status reviewable → closed **done**; architecture/story context from story Dev Notes; tests mapped to ACs; security limited to server string payload checks + engine validation (expected for this story).
 
 ## Dev Agent Record
 
