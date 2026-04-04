@@ -1,13 +1,13 @@
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import type { RoomManager } from "../rooms/room-manager";
-import type { PlayerPublicInfo, LobbyState, StateUpdateMessage } from "@mahjong-game/shared";
-import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import type { PlayerPublicInfo, LobbyState, StateUpdateMessage, Tile } from "@mahjong-game/shared";
+import { PROTOCOL_VERSION, handleAction } from "@mahjong-game/shared";
 import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
-import { buildPlayerView } from "./state-broadcaster";
+import { buildPlayerView, broadcastGameState } from "./state-broadcaster";
 
 // eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
 const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
@@ -149,6 +149,68 @@ function allPlayersDisconnected(room: Room): boolean {
   return room.players.size > 0;
 }
 
+function selectRandomNonJokerTiles(rack: Tile[], count: number): Tile[] {
+  const nonJokers = rack.filter((t) => t.category !== "joker");
+  const jokers = rack.filter((t) => t.category === "joker");
+  const shuffled = [...nonJokers].sort(() => Math.random() - 0.5);
+  const selected: Tile[] = shuffled.slice(0, count);
+  // Backfill with Jokers if not enough non-Jokers (rare edge case)
+  if (selected.length < count) {
+    selected.push(...jokers.slice(0, count - selected.length));
+  }
+  return selected;
+}
+
+function applyCharlestonAutoAction(room: Room, playerId: string, logger: FastifyBaseLogger): void {
+  if (!room.gameState || room.gameState.gamePhase !== "charleston" || !room.gameState.charleston) {
+    return;
+  }
+
+  const charleston = room.gameState.charleston;
+  const playerState = room.gameState.players[playerId];
+
+  if (!playerState || !charleston.activePlayerIds.includes(playerId)) {
+    return;
+  }
+
+  let autoAction:
+    | { type: "CHARLESTON_PASS"; playerId: string; tileIds: string[] }
+    | { type: "CHARLESTON_VOTE"; playerId: string; accept: boolean }
+    | { type: "COURTESY_PASS"; playerId: string; count: number; tileIds: string[] }
+    | null = null;
+
+  if (charleston.status === "passing") {
+    if (!charleston.submittedPlayerIds.includes(playerId)) {
+      const tiles = selectRandomNonJokerTiles(playerState.rack, 3);
+      autoAction = { type: "CHARLESTON_PASS", playerId, tileIds: tiles.map((t) => t.id) };
+    }
+  } else if (charleston.status === "vote-ready") {
+    if (charleston.votesByPlayerId[playerId] === undefined) {
+      autoAction = { type: "CHARLESTON_VOTE", playerId, accept: false };
+    }
+  } else if (charleston.status === "courtesy-ready") {
+    if (charleston.courtesySubmissionsByPlayerId[playerId] === undefined) {
+      autoAction = { type: "COURTESY_PASS", playerId, count: 0, tileIds: [] };
+    }
+  }
+
+  if (!autoAction) return;
+
+  const result = handleAction(room.gameState, autoAction);
+  if (result.accepted) {
+    broadcastGameState(room, room.gameState, result.resolved);
+    logger.info(
+      { roomCode: room.roomCode, playerId, actionType: autoAction.type },
+      "Charleston auto-action applied for disconnected player",
+    );
+  } else {
+    logger.warn(
+      { roomCode: room.roomCode, playerId, actionType: autoAction.type, reason: result.reason },
+      "Charleston auto-action rejected unexpectedly",
+    );
+  }
+}
+
 function registerDisconnectHandler(
   ws: WebSocket,
   room: Room,
@@ -171,6 +233,10 @@ function registerDisconnectHandler(
     // Start grace period
     const timer = setTimeout(() => {
       room.graceTimers.delete(playerId);
+
+      // Auto-submit Charleston action before releasing the seat so the engine
+      // still finds the player in gameState.players (AC9)
+      applyCharlestonAutoAction(room, playerId, logger);
 
       // Release the seat
       const token = room.playerTokens.get(playerId);
