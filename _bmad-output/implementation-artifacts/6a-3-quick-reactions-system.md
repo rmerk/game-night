@@ -2,7 +2,7 @@
 
 Status: ready-for-dev
 
-<!-- Ultimate context engine — 2026-04-04. Depends on 6A.1 server + 6A.2 SlideInPanel / parse wiring stub. -->
+<!-- Ultimate context engine — 2026-04-04. Pass 2: tightened AC10, RoomView/sendReaction wiring, seat mapping, parser hardening, anti-patterns. Depends on 6A.1 server + 6A.2 SlideInPanel / parse stub. -->
 
 ## Story
 
@@ -14,11 +14,11 @@ so that **I can react to game moments without interrupting voice chat or typing 
 
 1. **AC1 — Reaction bar visibility (in-play):** Given the player is viewing the **game table** with an active `PlayerGameView` (not lobby-only), when the UI renders, then a **persistent** reaction control shows **exactly the six emoji** from [`REACTION_EMOJI_ALLOWLIST`](../../packages/shared/src/chat-constants.ts) (`👍`, `😂`, `😩`, `😮`, `🎉`, `😢`) as **one-tap** buttons (no submenu, no confirm). Order **must** match the allowlist array order so server validation and UI stay aligned.
 
-2. **AC2 — Send path:** Given a reaction button tap, when the WebSocket is **open** and the user is in a room session, then the client sends `{ version, type: "REACTION", emoji }` with `emoji` **verbatim** from the allowlist entry (same pattern as `sendChat` in [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts)). If the socket is not open, **no-op** silently. **Do not** rely on the server echo for local bubble UX if you want instant feedback — optional micro-feedback is allowed, but **all peers** see only **`REACTION_BROADCAST`** (server is authoritative; silent drop on rate limit / invalid — NFR47).
+2. **AC2 — Send path:** Given a reaction button tap, when the WebSocket is **open** and the user is in a room session, then the client sends `{ version, type: "REACTION", emoji }` with `emoji` **verbatim** from the allowlist entry (same pattern as `sendChat` in [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts) — use `sendRaw` / `PROTOCOL_VERSION`). If the socket is not open, **no-op** silently. **Client pre-check:** call shared [`isAllowedReactionEmoji`](../../packages/shared/src/chat-constants.ts) (exported from `@mahjong-game/shared`) before send; if false, **no-op** (avoids useless RTT). **Do not** rely on the server echo for local bubble UX if you want instant feedback — optional micro-feedback is allowed, but **all peers** see only **`REACTION_BROADCAST`** (server is authoritative; silent drop on rate limit / invalid — NFR47). **Sender inclusion:** server echoes `REACTION_BROADCAST` to **all** sessions including the sender (6A.1); implement **one** code path (queue from broadcast only) **or** explicit dedupe if you also show optimistic UI — avoid **duplicate bubbles** for the local player.
 
-3. **AC3 — Parse + dispatch:** Given a valid **`REACTION_BROADCAST`** payload (`playerId`, `playerName`, `emoji`, `timestamp`), when `parseServerMessage` runs, then return a **typed** result (e.g. `kind: "reaction_broadcast"`, `message: ReactionBroadcast`) — **replace** the current stub that validates then returns `{ kind: "ignored" }` in [`parseServerMessage.ts`](../../packages/client/src/composables/parseServerMessage.ts) (~L97–108). Extend [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts) `handleMessage` to route this kind into a **dedicated** reactions UI module (Pinia store or composable), **not** `useChatStore`.
+3. **AC3 — Parse + dispatch:** Given a valid **`REACTION_BROADCAST`** payload (`playerId`, `playerName`, `emoji`, `timestamp`), when `parseServerMessage` runs, then return a **typed** result (`kind: "reaction_broadcast"`, `message: ReactionBroadcast`) — **replace** the current stub that validates then returns `{ kind: "ignored" }` in [`parseServerMessage.ts`](../../packages/client/src/composables/parseServerMessage.ts) (lines 97–108). Import `type ReactionBroadcast` from `@mahjong-game/shared`. **Optional hardening:** if `emoji` fails `isAllowedReactionEmoji`, return **`null`** (malformed / spoofed payload) — server should only emit allowlisted emoji, but the client parser stays defensive. Extend [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts) `handleMessage` to route this kind into a **dedicated** reactions UI module (Pinia store recommended), **not** `useChatStore`.
 
-4. **AC4 — Bubble near seat:** Given a **`ReactionBroadcast`** for player **P**, when the client renders the bubble, then it appears **visually associated with P’s seat** on the table (top / left / right / bottom / local rack area per existing [`OpponentArea`](../../packages/client/src/components/game/OpponentArea.vue) layout). Use **`playerId`** from the broadcast and resolve **seat wind** from current `PlayerGameView` (`players` / `localPlayer` mapping — mirror how [`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) builds `playersBySeat` / opponent props). If **P** is not in the current view (edge: mid-join), **drop** the bubble or show a **minimal** fallback — **no** crash.
+4. **AC4 — Bubble near seat:** Given a **`ReactionBroadcast`** for player **P**, when the client renders the bubble, then it appears **visually associated with P’s seat** on the table (top / left / right / bottom / local rack area per existing [`OpponentArea`](../../packages/client/src/components/game/OpponentArea.vue) layout). **Resolve `playerId` → anchor:** build a **`Map<string, SeatWind>`** (or equivalent) from `playerGameView.players` (`PlayerPublicInfo`: `playerId` + `wind`) — same source as [`mapPlayerGameViewToGameTable.ts`](../../packages/client/src/composables/mapPlayerGameViewToGameTable.ts) uses for [`OpponentPlayer`](../../packages/client/src/components/game/seat-types.ts) / [`LocalPlayerSummary`](../../packages/client/src/components/game/seat-types.ts). Map that wind to the existing **top/left/right/bottom** slots (reuse the mapper’s seat geometry: `acrossSeat` / `leftSeat` / `rightSeat` vs local wind — **do not** re-derive opponent grid math ad hoc in the bubble layer). **Local player** bubbles anchor near the **rack / bottom** status area (not opponent `OpponentArea`). If **P** is absent from `players` (stale broadcast, mid-join race), **drop** the bubble — **no** crash.
 
 5. **AC5 — Bubble lifetime & motion:** Given a new bubble, when it appears, then it **auto-dismisses after 2–3 seconds** (pick a constant, e.g. `REACTION_BUBBLE_MS = 2500`, document in one place). Entry/exit motion should respect **`prefers-reduced-motion`** (instant or opacity-only). Use **`--timing-tactile` / `--ease-tactile`** where CSS transitions apply (UX-DR28 alignment with chat panel).
 
@@ -28,13 +28,13 @@ so that **I can react to game moments without interrupting voice chat or typing 
 
 8. **AC8 — Mobile layout:** Given **viewport below `md`**, when visible, then the reaction bar is a **horizontal row above the rack** (UX spec: horizontal row above rack). Must remain usable with **safe-area** and **MobileBottomBar** — do not force the rack off-screen.
 
-9. **AC9 — SlideInPanel mutual exclusivity:** Given **any** slide-in reference panel is open (`useSlideInPanelStore().isAnySlideInPanelOpen`), when checking visibility, then the **reaction bar and floating bubbles hide** (play mode vs. reference mode — UX-DR12). **Reuse** the existing computed from [`slideInPanel.ts`](../../packages/client/src/stores/slideInPanel.ts); `GameTable.vue` already notes this at ~L507.
+9. **AC9 — SlideInPanel mutual exclusivity:** Given **any** slide-in reference panel is open (`useSlideInPanelStore().isAnySlideInPanelOpen`), when checking visibility, then the **reaction bar and floating bubbles hide** (play mode vs. reference mode — UX-DR12). **Reuse** the existing computed from [`slideInPanel.ts`](../../packages/client/src/stores/slideInPanel.ts); `GameTable.vue` already notes this at ~L507. **Lobby:** [`RoomView.vue`](../../packages/client/src/views/RoomView.vue) uses the same `useSlideInPanelStore` for chat/NMJL — when implementing lobby send (AC12), **hide** the lobby reaction strip under the same `isAnySlideInPanelOpen` rule.
 
-10. **AC10 — Scoreboard / phases:** Given **scoreboard phase** (same condition as chat shell — panels still mount), when deciding visibility, then **either** show reactions **or** hide them — **pick one** and document: recommended **hide** during scoreboard (social wind-down is scoreboard-focused) **unless** product wants parity with chat; if hiding, mirror the rationale in a one-line comment next to `isScoreboardPhase`.
+10. **AC10 — Scoreboard phase:** Given **`isScoreboardPhase`** (same boolean used for scoreboard UI in `GameTable`), when rendering reactions, then **hide** the reaction bar and **clear or suppress** floating bubbles (scoreboard is results-focused; chat toggles remain available per 6A.2). Add a **one-line comment** next to the visibility guard explaining this choice. **Charleston / courtesy / non-scoreboard phases:** reactions remain **visible** when AC9 allows (epic: social layer active during play — aligns with UX “never block social” for non-reference modes).
 
 11. **AC11 — Reconnect semantics:** Given a reconnect, when the client rehydrates, then **no** reaction history is replayed (server does not store reactions — 6A.1). Only **new** `REACTION_BROADCAST` messages after connect produce bubbles.
 
-12. **AC12 — Lobby (optional parity):** Given **6A.2** shipped lobby chat, when scoping, then **default** implementation targets **`GameTable`** + `RoomView` in-play path. If time permits, a **compact** reaction strip in **lobby** (`RoomView` with `lobbyState`) may use the same `sendReaction` API — **only** if seat mapping is defined (e.g. hide bubbles in lobby but allow send, or map lobby players to a simple list). **Minimum bar:** in-play table fully satisfies epic AC.
+12. **AC12 — Lobby (optional parity):** Given **6A.2** shipped lobby chat, the **minimum** deliverable is **in-play** `GameTable` (epic AC). **Optional:** add a compact **ReactionBar** in the lobby block of [`RoomView.vue`](../../packages/client/src/views/RoomView.vue) (same `conn.sendReaction` as chat uses `conn.sendChat`). **Lobby bubbles:** `LobbyState.players` includes `playerId` + `wind` ([`PlayerPublicInfo`](../../packages/shared/src/types/protocol.ts)) — you **can** anchor bubbles by wind in a simplified layout, or **omit** lobby bubbles and only show in-table after deal (document the choice). **Wiring:** mirror chat — add **`sendReaction`** to `GameTable` **`defineEmits`** (alongside `sendChat` ~L121); bubble clicks **`emit("sendReaction", emoji)`** to [`RoomView.vue`](../../packages/client/src/views/RoomView.vue) where `@send-reaction` calls `conn.sendReaction` (parallel to `@send-chat` → `conn.sendChat`). Inner components receive a **`(emoji: string) => void`** callback from `GameTable` if needed — **no** `WebSocket` in leaf components.
 
 13. **AC13 — Rendering safety (NFR48):** Given emoji strings from the network, when rendering, then use **text / `{{ }}`** only — **never `v-html`** for `emoji` or `playerName` (already plain strings from server).
 
@@ -52,9 +52,10 @@ so that **I can react to game moments without interrupting voice chat or typing 
 
 - [ ] **Task 1: Protocol + connection** (AC: 2, 3, 11, 14)
   - [ ] 1.1 Extend `ParsedServerMessage` with `reaction_broadcast`; build `ReactionBroadcast` object in `parseServerMessage` (mirror `CHAT_BROADCAST` pattern).
-  - [ ] 1.2 Update [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid broadcast → `reaction_broadcast`; invalid fields → `null`; remove/replace the test that expects `ignored` for valid shape.
-  - [ ] 1.3 Add `sendReaction(emoji: string): void` on `useRoomConnection` — if `!REACTION_EMOJI_ALLOWLIST.includes(emoji)` (use `isAllowedReactionEmoji` from shared if exported, or iterate allowlist), **no-op** client-side to avoid useless round-trips.
+  - [ ] 1.2 Update [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid broadcast → `reaction_broadcast`; invalid fields → `null`; remove/replace the test that expects `ignored` for valid shape. If you add allowlist validation in the parser, add one test where emoji is valid shape but **not** on allowlist → `null`.
+  - [ ] 1.3 Add `sendReaction(emoji: string): void` on `useRoomConnection` — **no-op** if `!isAllowedReactionEmoji(emoji)` (import from `@mahjong-game/shared`).
   - [ ] 1.4 `handleMessage`: on `reaction_broadcast`, push event into the reactions store (Task 2).
+  - [ ] 1.5 Extend [`resetSocialUiForSession`](../../packages/client/src/composables/useRoomConnection.ts) to **clear** the reactions store (same call sites as chat + slide-in: `disconnect`, socket `close`, and start of `connect` after `disconnect()`).
 
 - [ ] **Task 2: Ephemeral reactions store** (AC: 4, 5, 6, 11)
   - [ ] 2.1 New Pinia store e.g. `useReactionsStore`: enqueue `{ id, playerId, emoji, expiresAt }` or use monotonic `timestamp` from server + local counter for keys.
@@ -62,10 +63,11 @@ so that **I can react to game moments without interrupting voice chat or typing 
   - [ ] 2.3 `resetForRoomLeave` / clear on `resetSocialUiForSession` in `useRoomConnection` (same places as chat + slide-in reset).
 
 - [ ] **Task 3: UI components** (AC: 1, 4, 5, 6, 7, 8, 9, 10, 13)
-  - [ ] 3.1 `ReactionBar.vue`: map allowlist to `BaseButton` or `button` with `aria-label` (e.g. “Thumbs up reaction”) for a11y.
+  - [ ] 3.0 **Emit + parent wiring (mirror chat):** Add `sendReaction: [emoji: string]` to `defineEmits` in [`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) (alongside `sendChat`). Pass a callback into `ReactionBar` / children so **no** component imports `WebSocket`. In [`RoomView.vue`](../../packages/client/src/views/RoomView.vue), add `@send-reaction="(e: string) => conn.sendReaction(e)"` on `<GameTable>` (mirror `@send-chat`). Lobby optional strip: call `conn.sendReaction` directly or via a thin wrapper.
+  - [ ] 3.1 `ReactionBar.vue`: map allowlist to `BaseButton` or `button` with **`aria-label`** per emoji (e.g. “React with thumbs up”) and **`focus-visible:focus-ring-on-felt`** (or chrome variant) — match tertiary chat toggle affordance.
   - [ ] 3.2 `ReactionBubble.vue` (presentational): props `emoji`, optional `playerName` (omit if clutter).
-  - [ ] 3.3 Integrate in `GameTable.vue`: position desktop stack + mobile row; `v-show` or `v-if` on `!slideInPanelStore.isAnySlideInPanelOpen` and scoreboard decision (AC10).
-  - [ ] 3.4 Seat anchoring: small wrapper or absolutely positioned layers per opponent slot + local — **reuse** `data-testid` patterns from opponent areas for tests.
+  - [ ] 3.3 Integrate in `GameTable.vue`: position desktop stack + mobile row; `v-show` or `v-if` on `!slideInPanelStore.isAnySlideInPanelOpen`, **`!isScoreboardPhase`** (AC10), and AC9.
+  - [ ] 3.4 Seat anchoring: small wrapper or absolutely positioned layers per opponent slot + local — **reuse** `data-testid="opponent-top|left|right"` and rack area anchors for tests (`GameTable` template ~L524–745).
 
 - [ ] **Task 4: Tests** (AC: 14)
   - [ ] 4.1 Store unit tests: enqueue, expiry removal, per-seat cap, clear on reset.
@@ -104,6 +106,14 @@ Source: [`6a-1-chat-message-protocol-server-handling.md`](./6a-1-chat-message-pr
 | **Pinia** | OK for ephemeral UI queues; **not** for authoritative game state. |
 | **NFR48** | No `v-html` on user-derived strings. |
 | **Imports** | Tests and app code: `vite-plus/test`, `vite-plus` per [`AGENTS.md`](../../AGENTS.md). |
+
+### Anti-patterns (do not ship)
+
+- **Duplicate bubbles** — Showing a local optimistic bubble **and** processing the echoed `REACTION_BROADCAST` without dedupe for `playerId + timestamp` (or “broadcast-only” rule).
+- **Re-implementing seat math** — Copy-pasting wind rotation logic instead of reusing [`mapPlayerGameViewToGameTable.ts`](../../packages/client/src/composables/mapPlayerGameViewToGameTable.ts) geometry / `SEATS` helpers from shared.
+- **`useChatStore` for reactions** — Mixes social channels; breaks 6A.2 separation and future `CHAT_HISTORY` (6A.4).
+- **WebSocket in `ReactionBar`** — Violates project-context three-tier rule; use `emit` → `RoomView` → `conn.sendReaction` (same as chat).
+- **Leaving reactions up during reference mode** — Must respect `isAnySlideInPanelOpen` (UX-DR12).
 
 ### File structure (expected touches)
 
@@ -146,4 +156,4 @@ _(filled by dev agent)_
 
 ---
 
-**Completion note:** Ultimate context engine analysis completed — comprehensive developer guide created.
+**Completion note:** Ultimate context engine analysis completed — pass 2 tightened wiring, AC10 decision, parser hardening, seat-resolution source, anti-patterns, and task granularity.
