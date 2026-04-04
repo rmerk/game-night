@@ -240,19 +240,18 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   all learnings that could impact current story implementation</action>
   </check>
 
-  <!-- Cross-session memory integration -->
-  <action>Query claude-mem for cross-session context relevant to this story:
-    - Use smart_search to find past implementation patterns for components/systems this story touches
-    - Use search with project scope to find past decisions, debugging experiences, and lessons learned related to this story's technical domain
-    - Use timeline to identify recent work context that may inform story creation
+  <!-- Cross-session memory integration (memory-first) -->
+  <action>Establish {{cross_session_intelligence}} from claude-mem:
+    - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Extract story-relevant decisions, pitfalls, and prior work from it.
+    - **Only if needed:** Query claude-mem MCP tools (smart_search, project-scoped search, timeline, get_observations) when injected context is missing this story's domain, you need deeper detail than the summary, or the user requests a deeper dive. Do not run broad searches when injected context already suffices—avoid redundant token use.
   </action>
-  <action>Extract actionable intelligence from claude-mem results:
+  <action>From the source above (injected and/or MCP), extract actionable intelligence:
     - Past design decisions and their rationale that affect this story
     - Known pitfalls or gotchas discovered in previous sessions
     - Patterns established in earlier stories that this story should follow
     - Debugging solutions that may be relevant
   </action>
-  <action>Store claude-mem findings as {{cross_session_intelligence}} for inclusion in story file</action>
+  <action>Store merged findings as {{cross_session_intelligence}} for inclusion in story file</action>
 
   <!-- Git intelligence for previous work patterns -->
   <check
