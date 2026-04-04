@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import { createPlayState } from "../../testing/fixtures";
 import { handleDiscardTile } from "./discard";
-import { handlePassCall } from "./call-window";
+import { handlePassCall, handleCallMahjong } from "./call-window";
 import {
   handleSocialOverrideRequest,
   handleSocialOverrideVote,
@@ -75,6 +75,18 @@ describe("social override (discard undo)", () => {
     expect(state.callWindow).not.toBeNull();
   });
 
+  test("request without call window rejects with CALL_WINDOW_NOT_ELIGIBLE", () => {
+    const state = createPlayState();
+    const east = eastId(state);
+    const r = handleSocialOverrideRequest(state, {
+      type: "SOCIAL_OVERRIDE_REQUEST",
+      playerId: east,
+      description: "oops",
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("CALL_WINDOW_NOT_ELIGIBLE");
+  });
+
   test("PASS_CALL blocked while override pending", () => {
     const state = createPlayState();
     const east = eastId(state);
@@ -89,6 +101,26 @@ describe("social override (discard undo)", () => {
     const pr = handlePassCall(state, { type: "PASS_CALL", playerId: south });
     expect(pr.accepted).toBe(false);
     expect(pr.reason).toBe("SOCIAL_OVERRIDE_PENDING");
+  });
+
+  test("CALL_MAHJONG blocked while override pending", () => {
+    const state = createPlayState();
+    const east = eastId(state);
+    const tile = state.players[east].rack.find((t) => t.category !== "joker")!;
+    handleDiscardTile(state, { type: "DISCARD_TILE", playerId: east, tileId: tile.id });
+    handleSocialOverrideRequest(state, {
+      type: "SOCIAL_OVERRIDE_REQUEST",
+      playerId: east,
+      description: "oops",
+    });
+    const south = getPlayerBySeat(state, "south");
+    const mr = handleCallMahjong(state, {
+      type: "CALL_MAHJONG",
+      playerId: south,
+      tileIds: [],
+    });
+    expect(mr.accepted).toBe(false);
+    expect(mr.reason).toBe("SOCIAL_OVERRIDE_PENDING");
   });
 
   test("dead hand cannot request", () => {

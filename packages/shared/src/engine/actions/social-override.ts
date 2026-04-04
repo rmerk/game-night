@@ -27,7 +27,7 @@ export function handleSocialOverrideRequest(
     return { accepted: false, reason: "SOCIAL_OVERRIDE_ALREADY_ACTIVE" };
   }
   if (!state.callWindow) {
-    return { accepted: false, reason: "NO_CALL_WINDOW" };
+    return { accepted: false, reason: "CALL_WINDOW_NOT_ELIGIBLE" };
   }
   if (state.callWindow.status !== "open") {
     return { accepted: false, reason: "CALL_WINDOW_NOT_ELIGIBLE" };
