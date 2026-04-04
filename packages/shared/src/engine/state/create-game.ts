@@ -85,6 +85,8 @@ export function createGame(
     card: loadCard("2026"),
     pendingMahjong: null,
     challengeState: null,
+    socialOverrideState: null,
+    hostAuditLog: [],
     charleston: createInitialCharlestonState(playerIds),
     shownHands: {},
     jokerRulesMode,

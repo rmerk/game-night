@@ -32,6 +32,7 @@ export class RoomManager {
       playerTokens: new Map(),
       graceTimers: new Map(),
       lifecycleTimers: new Map(),
+      socialOverrideTimer: null,
       gameState: null,
       jokerRulesMode: "standard",
       createdAt: Date.now(),
@@ -101,6 +102,10 @@ export class RoomManager {
     }
     room.graceTimers.clear();
     cancelAllLifecycleTimers(room);
+    if (room.socialOverrideTimer) {
+      clearTimeout(room.socialOverrideTimer);
+      room.socialOverrideTimer = null;
+    }
 
     // 2. Snapshot sessions and clear map — prevents stale close handlers
     //    from creating orphaned timers on the dead room

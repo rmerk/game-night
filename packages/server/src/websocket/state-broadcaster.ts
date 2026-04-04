@@ -136,10 +136,12 @@ export function buildPlayerView(
     gameResult: gameState.gameResult,
     pendingMahjong: gameState.pendingMahjong,
     challengeState: gameState.challengeState,
+    socialOverrideState: gameState.socialOverrideState,
     charleston,
     shownHands: gameState.shownHands,
     jokerRulesMode: gameState.jokerRulesMode,
     myDeadHand: playerState?.deadHand ?? false,
+    ...(room.players.get(playerId)?.isHost ? { hostAuditLog: [...gameState.hostAuditLog] } : {}),
   };
 }
 
@@ -172,6 +174,7 @@ export function buildSpectatorView(room: Room, gameState: GameState): SpectatorG
     scores: gameState.scores,
     lastDiscard: gameState.lastDiscard,
     gameResult: gameState.gameResult,
+    socialOverrideState: gameState.socialOverrideState,
     charleston,
     shownHands: gameState.shownHands,
     jokerRulesMode: gameState.jokerRulesMode,

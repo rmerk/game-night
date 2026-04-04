@@ -13,6 +13,7 @@ import type {
   GameResult,
   PendingMahjongState,
   ChallengeState,
+  SocialOverrideState,
 } from "./game-state";
 import type { Tile } from "./tiles";
 import type { GameAction } from "./actions";
@@ -119,11 +120,14 @@ export interface PlayerGameView {
   gameResult: GameResult | null;
   pendingMahjong: PendingMahjongState | null;
   challengeState: ChallengeState | null;
+  socialOverrideState: SocialOverrideState | null;
   charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;
   /** True when this viewer's hand is dead — private; opponents have no per-seat dead flag */
   myDeadHand: boolean;
+  /** Host-only audit log (FR88) — omitted for non-host clients */
+  hostAuditLog?: string[];
 }
 
 /** Spectator view — public information only, no player racks (post-MVP) */
@@ -141,6 +145,7 @@ export interface SpectatorGameView {
   scores: Record<string, number>;
   lastDiscard: { tile: Tile; discarderId: string } | null;
   gameResult: GameResult | null;
+  socialOverrideState: SocialOverrideState | null;
   charleston: SpectatorCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;

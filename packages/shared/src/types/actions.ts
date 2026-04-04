@@ -23,6 +23,8 @@ export type GameAction =
   | ConfirmInvalidMahjongAction
   | ChallengeMahjongAction
   | ChallengeVoteAction
+  | SocialOverrideRequestAction
+  | SocialOverrideVoteAction
   | ShowHandAction;
 
 /** Action to start a game with 4 players */
@@ -173,4 +175,18 @@ export interface ChallengeVoteAction {
 export interface ShowHandAction {
   readonly type: "SHOW_HAND";
   readonly playerId: string;
+}
+
+/** Discarder requests unanimous undo during open call window (no calls yet) */
+export interface SocialOverrideRequestAction {
+  readonly type: "SOCIAL_OVERRIDE_REQUEST";
+  readonly playerId: string;
+  readonly description: string;
+}
+
+/** Non-requesting player votes on a social override */
+export interface SocialOverrideVoteAction {
+  readonly type: "SOCIAL_OVERRIDE_VOTE";
+  readonly playerId: string;
+  readonly approve: boolean;
 }

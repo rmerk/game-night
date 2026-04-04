@@ -109,6 +109,20 @@ export interface ChallengeState {
   readonly calledTile: Tile | null;
 }
 
+/** Unanimous vote to undo an accidental discard (Story 3C.4) */
+export interface SocialOverrideState {
+  readonly requesterId: string;
+  readonly description: string;
+  readonly expiresAt: number;
+  /** Tile to return to the requester's rack (matches last discard) */
+  readonly discardedTileId: string;
+  /** Only non-requesting players may vote */
+  votes: Record<string, "approve" | "deny">;
+}
+
+/** Server schedules this duration; shared defines the constant */
+export const SOCIAL_OVERRIDE_TIMEOUT_SECONDS = 10;
+
 /** Timeout constant for challenge vote (server schedules the timer) */
 export const CHALLENGE_TIMEOUT_SECONDS = 30;
 
@@ -163,6 +177,10 @@ export interface GameState {
   pendingMahjong: PendingMahjongState | null;
   /** Tracks an active challenge vote on a validated Mahjong */
   challengeState: ChallengeState | null;
+  /** Pending social override vote (discard undo) — blocks call-window actions until resolved */
+  socialOverrideState: SocialOverrideState | null;
+  /** Host-visible audit lines (append-only) */
+  hostAuditLog: string[];
   /** Tracks Charleston pass sequencing and blind-pass visibility */
   charleston: CharlestonState | null;
   /** Hands voluntarily shown during scoreboard phase — playerId → rack tiles */
@@ -293,5 +311,20 @@ export type ResolvedAction =
       readonly type: "CHALLENGE_RESOLVED";
       readonly outcome: "upheld" | "overturned";
       readonly votes: Record<string, "valid" | "invalid">;
+    }
+  | {
+      readonly type: "SOCIAL_OVERRIDE_REQUESTED";
+      readonly requesterId: string;
+      readonly description: string;
+    }
+  | {
+      readonly type: "SOCIAL_OVERRIDE_VOTE_CAST";
+      readonly playerId: string;
+      readonly vote: "approve" | "deny";
+    }
+  | {
+      readonly type: "SOCIAL_OVERRIDE_RESOLVED";
+      readonly outcome: "applied" | "rejected";
+      readonly requesterId: string;
     }
   | { readonly type: "HAND_SHOWN"; readonly playerId: string };

@@ -40,9 +40,10 @@ export type {
   GameResult,
   PendingMahjongState,
   ChallengeState,
+  SocialOverrideState,
 } from "./types/game-state";
 
-export { CHALLENGE_TIMEOUT_SECONDS } from "./types/game-state";
+export { CHALLENGE_TIMEOUT_SECONDS, SOCIAL_OVERRIDE_TIMEOUT_SECONDS } from "./types/game-state";
 
 export type {
   GameAction,
@@ -67,6 +68,8 @@ export type {
   ConfirmInvalidMahjongAction,
   ChallengeMahjongAction,
   ChallengeVoteAction,
+  SocialOverrideRequestAction,
+  SocialOverrideVoteAction,
   ShowHandAction,
 } from "./types/actions";
 
@@ -191,5 +194,11 @@ export {
 } from "./engine/actions/mahjong";
 
 export { handleChallengeMahjong, handleChallengeVote } from "./engine/actions/challenge";
+
+export {
+  handleSocialOverrideRequest,
+  handleSocialOverrideVote,
+  handleSocialOverrideTimeout,
+} from "./engine/actions/social-override";
 
 export { handleShowHand } from "./engine/actions/show-hand";

@@ -22,6 +22,7 @@ import {
   handleConfirmInvalidMahjong,
 } from "./actions/mahjong";
 import { handleChallengeMahjong, handleChallengeVote } from "./actions/challenge";
+import { handleSocialOverrideRequest, handleSocialOverrideVote } from "./actions/social-override";
 import { handleShowHand } from "./actions/show-hand";
 
 /**
@@ -42,6 +43,8 @@ export function createLobbyState(): GameState {
     card: null,
     pendingMahjong: null,
     challengeState: null,
+    socialOverrideState: null,
+    hostAuditLog: [],
     charleston: null,
     shownHands: {},
     jokerRulesMode: "standard",
@@ -97,6 +100,10 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleChallengeMahjong(state, action);
     case "CHALLENGE_VOTE":
       return handleChallengeVote(state, action);
+    case "SOCIAL_OVERRIDE_REQUEST":
+      return handleSocialOverrideRequest(state, action);
+    case "SOCIAL_OVERRIDE_VOTE":
+      return handleSocialOverrideVote(state, action);
     case "SHOW_HAND":
       return handleShowHand(state, action);
     default: {
