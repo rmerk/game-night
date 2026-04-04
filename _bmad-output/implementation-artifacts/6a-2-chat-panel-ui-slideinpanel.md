@@ -2,7 +2,7 @@
 
 Status: ready-for-dev
 
-<!-- Ultimate context engine — 2026-04-04. Depends on 6A.1 protocol + server (review/done). -->
+<!-- Ultimate context engine — 2026-04-04. Second pass: placeholder replacement, Pinia wiring, shared constants, lobby shell, a11y/z-index. Depends on 6A.1 protocol + server. -->
 
 ## Story
 
@@ -18,17 +18,17 @@ so that **I can text chat with friends during all game phases without leaving th
 
 3. **AC3 — Reactions hidden when panel open (contract):** Given UX-DR12, when **any** SlideInPanel is open, floating reactions must hide. **6A.3** will ship `ReactionBar`; this story **must** expose a single source of truth (e.g. `isAnySlideInPanelOpen` or `activePanel !== null`) that **6A.3** can consume without duplicating logic. If ReactionBar does not exist yet, add a **documented export** from the panel store and a **short comment** in `GameTable.vue` (or adjacent) pointing to **6A.3**.
 
-4. **AC4 — Message list:** Given `ChatBroadcast` messages (shared type [`ChatBroadcast`](../../packages/shared/src/types/protocol.ts)), when the client receives them, then the chat UI shows **playerName**, **text**, and **timestamp** in a **scrollable** list, chronological order, **newest at bottom**. **Auto-scroll** to bottom on new messages **unless** the user has scrolled up (classic “stick to bottom” behavior). Render text **only** with Vue **`{{ }}`** — **never `v-html`** (NFR48 / [`project-context.md`](../project-context.md)).
+4. **AC4 — Message list:** Given `ChatBroadcast` messages (shared type [`ChatBroadcast`](../../packages/shared/src/types/protocol.ts)), when the client receives them, then the chat UI shows **playerName**, **text**, and **timestamp** in a **scrollable** list, chronological order, **newest at bottom**. **Auto-scroll** to bottom on new messages **unless** the user has scrolled up (classic “stick to bottom” behavior). Render text **only** with Vue **`{{ }}`** — **never `v-html`** (NFR48 / [`project-context.md`](../project-context.md)). **Timestamp display:** format Unix **ms** for readability (e.g. `Intl.DateTimeFormat` with short time, locale default, or a small helper — avoid raw numbers).
 
-5. **AC5 — Send path:** Given the chat input, when the user presses **Enter** or taps **Send**, then the client sends `{ version, type: "CHAT", text }` over the existing WebSocket (same `PROTOCOL_VERSION` as other messages). Clear the input after send. **Do not** optimistically append the user’s own message; the server echoes via **`CHAT_BROADCAST`** to **all** sessions including sender (6A.1).
+5. **AC5 — Send path:** Given the chat input, when the user presses **Enter** (or **Ctrl/Cmd+Enter** if using a multi-line `<textarea>`) or taps **Send**, then the client sends `{ version, type: "CHAT", text }` over the existing WebSocket (same `PROTOCOL_VERSION` as other messages). Clear the input after send. **Do not** optimistically append the user’s own message; the server echoes via **`CHAT_BROADCAST`** to **all** sessions including sender (6A.1). **Client-side length guard:** truncate or block send using **`MAX_CHAT_LENGTH`** from [`packages/shared/src/chat-constants.ts`](../../packages/shared/src/chat-constants.ts) (**500**) so the payload matches server rules; server remains authoritative for sanitization.
 
-6. **AC6 — Keyboard / Escape:** Given focus in the chat input, when the user presses **Escape**, then **blur** the input and return focus to the game surface (no modal trap). Align with FR119 / UX-DR43; integrate with existing focus patterns (e.g. `MobileBottomBar` roving tabindex for bottom bar — chat toggle should participate when added).
+6. **AC6 — Keyboard / Escape:** Given focus in the chat input, when the user presses **Escape**, then **blur** the input and return focus to the **action zone** using the same pattern as the current chat placeholder: `actionZoneEntryRef` / **`focusActionZone()`** in [`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) (~L480–499). **Do not** implement a focus trap (FR119 / UX-DR43 — Escape exits chat, not a modal). Integrate the real chat input with this behavior when the panel is open.
 
 7. **AC7 — Toggle placement:** Given **desktop/iPad**, when rendering `GameTable`, then a **tertiary**-styled chat toggle sits at the **right edge** of the table chrome (UX spec: NMJL/chat tertiary toggles). Given **mobile**, when rendering the bottom bar, then the chat toggle lives in [`MobileBottomBar.vue`](../../packages/client/src/components/game/MobileBottomBar.vue) **alongside** placeholder NMJL and A/V entries (wire chat only; others stay disabled until their epics).
 
 8. **AC8 — Wire + parse:** Extend [`parseServerMessage.ts`](../../packages/client/src/composables/parseServerMessage.ts) to recognize **`CHAT_BROADCAST`** with required fields `playerId`, `playerName`, `text`, `timestamp` (`number`). Extend [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts) to dispatch parsed chat messages into the chat store and expose **`sendChat(text: string)`** (internally `sendRaw` / same pattern as `sendGameAction`). **Optional in 6A.2:** parse **`REACTION_BROADCAST`** into a stub store or ignore with explicit `ignored` — prefer parsing if trivial so **6A.3** only adds UI.
 
-9. **AC9 — Lobby / lifecycle:** Chat is meaningful once joined. **Minimum:** enable chat UI when `playerGameView` **or** `lobbyState` is active (players often socialize in lobby). On **`disconnect` / leave room**, **clear** chat messages and panel state so a new room does not leak prior conversation.
+9. **AC9 — Lobby / lifecycle:** Chat is meaningful once the WebSocket session is in a room. **Minimum:** chat **send/receive** works in **both** lobby (`lobbyState` set, `GameTable` not mounted) **and** in-play (`playerGameView` / `GameTable`). **Lobby UI:** `RoomView.vue` currently renders only the lobby list when `isLobby` — add a **compact chat entry point** there (e.g. same `SlideInPanel` + `ChatPanel` composition, or a slim bar + panel) wired to the **same** `useRoomConnection` / stores as the table, so players are not forced to wait for deal to chat. On **`disconnect`**, **`leaveRoom`**, or **`connect()`** reset (new session), **clear** `useChatStore` messages and `useSlideInPanelStore` so another room never shows stale transcripts.
 
 10. **AC10 — Regression gate:** `pnpm test`, `pnpm run typecheck`, and `vp lint` pass ([`AGENTS.md`](../../AGENTS.md)).
 
@@ -39,6 +39,10 @@ so that **I can text chat with friends during all game phases without leaving th
 | `SlideInPanel`, `ChatPanel`, chat Pinia store, parse/send wiring | **6A.3** ReactionBar, bubbles, `REACTION` send |
 | Shared `activePanel` state for chat vs NMJL stub | **5B** real NMJL content |
 | `CHAT_BROADCAST` client handling | **`CHAT_HISTORY`** on connect/reconnect (**6A.4**) — store design should allow bulk `setMessages` later |
+
+### Replace existing chat placeholder (do not duplicate)
+
+[`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) already contains a **chat placeholder** block (`data-testid="chat-placeholder-shell"` / `chat-placeholder-zone`, ~L800–814) with **`handleChatPlaceholderKeydown`** → **`focusActionZone()`**. **Remove or replace** this placeholder with the real chat UI; preserve **Escape → action zone** behavior and reuse **`actionZoneEntry`** as the focus return target (AC6).
 
 ## Tasks / Subtasks
 
@@ -59,13 +63,18 @@ so that **I can text chat with friends during all game phases without leaving th
   - [ ] 3.3 Scroll container ref + stick-to-bottom logic; **reduced motion:** respect `prefers-reduced-motion` if animations are CSS-based (theme already zeroes `--timing-tactile`).
 
 - [ ] **Task 4: GameTable + MobileBottomBar integration** (AC: 7)
-  - [ ] 4.1 Desktop/iPad: tertiary chat toggle fixed or anchored to right edge of table grid.
-  - [ ] 4.2 Mobile: add chat button to `MobileBottomBar`; opens same `ChatPanel` inside `SlideInPanel` (mobile variant = bottom sheet height ~40–50% viewport — tune so rack visible per UX).
-  - [ ] 4.3 Optional: `NMJL` stub button sets `activePanel` to `nmjl` and shows empty placeholder panel to prove mutual exclusivity.
+  - [ ] 4.1 **Remove/replace** the dashed `chat-placeholder-shell` in `GameTable.vue`; wire real toggle + `SlideInPanel` + `ChatPanel` without leaving duplicate focus targets.
+  - [ ] 4.2 Desktop/iPad: tertiary chat toggle at **right edge** of the table layout — practical options: **`fixed`/`absolute` within `#gameplay-region`** (stay inside gameplay skip-link target) or a dedicated column in the `md:grid-cols-[auto_1fr_auto]` row; ensure **`z-index`** stacks above felt/discards but **does not** eclipse scoreboard/modals.
+  - [ ] 4.3 Mobile: add chat button to `MobileBottomBar`; opens the same panel stack (mobile = bottom sheet ~**40–50%** `dvh`, rack still visible — tune against real devices).
+  - [ ] 4.4 **Required:** wire **NMJL** stub button in `MobileBottomBar` (and desktop if present) to `openNmjl()` and render a **minimal** placeholder panel so **AC2** mutual exclusivity is **proven in code**, not only documented.
+
+- [ ] **Task 4b: Lobby chat shell** (AC: 9)
+  - [ ] 4b.1 In `RoomView.vue`, when `isLobby && lobbyState`, render chat toggle + panel (shared components/stores) so lobby players can use the same `CHAT` / `CHAT_BROADCAST` path as in `GameTable`.
 
 - [ ] **Task 5: Tests** (AC: 8, 10)
-  - [ ] 5.1 Extend [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts) for valid/invalid `CHAT_BROADCAST`.
-  - [ ] 5.2 Store tests or component test: mutual exclusivity, append + clear, auto-scroll behavior if testable without flaky layout.
+  - [ ] 5.1 Extend [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts) for valid/invalid `CHAT_BROADCAST` (wrong `timestamp` type, missing `playerName`, empty `text`, etc. → `null` or `ignored` per your parser contract — **document** the contract in a one-line comment).
+  - [ ] 5.2 Store tests with **`createPinia()`** (see client component tests): slide-in mutual exclusivity, chat `append` + `clear`, and **`sendChat`** no-op when socket closed if tested via a thin wrapper.
+  - [ ] 5.3 Component / composable tests for auto-scroll only if stable under **happy-dom**; otherwise cover scroll logic in a pure function test.
 
 ## Dev Notes
 
@@ -93,6 +102,21 @@ Source: [`6a-1-chat-message-protocol-server-handling.md`](./6a-1-chat-message-pr
 | **No Pinia for game state** | Chat is **client + server social** state; Pinia for messages list + UI panel is correct. |
 | **WebSocket** | Components **must not** import `WebSocket`; only `useRoomConnection` sends. |
 | **Sanitization** | Server already strips controls; client still must not use `v-html`. |
+
+### Pinia + `useRoomConnection` (critical)
+
+`useRoomConnection()` runs with Pinia already installed in [`main.ts`](../../packages/client/src/main.ts). To append broadcasts from `handleMessage`, **either**:
+
+- Call **`useChatStore()`** inside `handleMessage` / `parse` path (valid because the composable is only used from Vue setup / components after Pinia init), **or**
+- Pass an **`onChatBroadcast`** callback from `RoomView` into a thin wrapper — avoid if it spreads wiring everywhere.
+
+Keep **`sendChat`** on the connection object so **`RoomView` / `GameTable` / lobby** share one send API. Reset stores in **`leaveRoom`**, **`disconnect()`**, and at the start of **`connect()`** (same session reconnect) so ordering matches rack reset.
+
+### Overlay / input behavior
+
+- **Backdrop (optional):** A semi-transparent overlay **behind** the panel may help “reference mode” (UX); if added, **click-outside** should call `close()` **only** if it does not steal tile clicks from the rack when the panel is narrow — test mobile partial-height carefully.
+- **ARIA:** Prefer **`role="dialog"`** with **`aria-modal="false"`** (no trap) **or** `role="region"` + `aria-label="Chat"` — match project a11y patterns; ensure toggle has **`aria-expanded`** tied to panel open state.
+- **Z-index:** Panel + toggle must sit **above** the felt grid; document stacking context if you use `transform` on ancestors (avoids “panel under tiles” bugs).
 
 ### File structure (expected touches)
 
@@ -136,4 +160,4 @@ _(filled by dev-story)_
 
 ---
 
-**Completion status:** Story context complete — **ready-for-dev**.
+**Completion status:** Story context complete — **ready-for-dev** (second editorial pass: placeholder replacement, `MAX_CHAT_LENGTH`, lobby shell, Pinia wiring, NMJL stub required, overlay/a11y/z-index notes).
