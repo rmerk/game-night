@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, shallowRef, useTemplateRef } from "vue";
 import BasePanel from "../ui/BasePanel.vue";
+import { useSlideInPanelStore } from "../../stores/slideInPanel";
+
+const slideInPanelStore = useSlideInPanelStore();
 
 const controlsRef = useTemplateRef<HTMLElement>("controls");
 const activeButtonIndex = shallowRef(0);
@@ -92,12 +95,25 @@ onMounted(() => {
   >
     <button
       type="button"
-      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/65 focus-visible:focus-ring-on-chrome"
+      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/85 focus-visible:focus-ring-on-chrome"
       aria-label="Show NMJL card"
-      aria-disabled="true"
+      :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
+      @click="slideInPanelStore.openNmjl()"
     >
       <span class="text-5">🀄</span>
       <span>Card</span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="chat-toggle-mobile"
+      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/85 focus-visible:focus-ring-on-chrome"
+      aria-label="Open chat"
+      :aria-expanded="slideInPanelStore.activePanel === 'chat'"
+      @click="slideInPanelStore.toggleChat()"
+    >
+      <span class="text-5">💬</span>
+      <span>Chat</span>
     </button>
 
     <button

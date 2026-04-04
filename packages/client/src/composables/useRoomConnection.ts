@@ -6,10 +6,12 @@ import type {
   PlayerGameView,
   ResolvedAction,
 } from "@mahjong-game/shared";
-import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import { MAX_CHAT_LENGTH, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { parseServerMessage, isLobbyState } from "./parseServerMessage";
 import { getWebSocketUrl } from "./wsUrl";
 import { clearSessionToken, readSessionToken, writeSessionToken } from "./sessionTokenStorage";
+import { useChatStore } from "../stores/chat";
+import { useSlideInPanelStore } from "../stores/slideInPanel";
 
 export type RoomConnectionStatus = "idle" | "connecting" | "open" | "closed";
 
@@ -22,6 +24,11 @@ export function useRoomConnection() {
   const systemNotice = ref<"session_superseded" | "room_closing" | null>(null);
 
   let ws: WebSocket | null = null;
+
+  function resetSocialUiForSession(): void {
+    useChatStore().clear();
+    useSlideInPanelStore().resetForRoomLeave();
+  }
 
   function applyStateUpdate(
     state: LobbyState | PlayerGameView,
@@ -66,6 +73,10 @@ export function useRoomConnection() {
       lastErrorMessage.value = null;
       const msg = parsed.message;
       applyStateUpdate(msg.state, msg.resolvedAction, msg.token, roomCode);
+      return;
+    }
+    if (parsed.kind === "chat_broadcast") {
+      useChatStore().appendBroadcast(parsed.message);
     }
   }
 
@@ -75,6 +86,7 @@ export function useRoomConnection() {
       ws = null;
     }
     status.value = "closed";
+    resetSocialUiForSession();
   }
 
   function connect(roomCode: string, displayName: string): void {
@@ -116,6 +128,7 @@ export function useRoomConnection() {
       if (ws === socket) {
         ws = null;
         status.value = "closed";
+        resetSocialUiForSession();
       }
     });
 
@@ -147,6 +160,16 @@ export function useRoomConnection() {
     sendRaw({ type: "REQUEST_STATE" });
   }
 
+  function sendChat(text: string): void {
+    const trimmed = text.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    const payload =
+      trimmed.length > MAX_CHAT_LENGTH ? trimmed.slice(0, MAX_CHAT_LENGTH) : trimmed;
+    sendRaw({ type: "CHAT", text: payload });
+  }
+
   function clearLastError(): void {
     lastErrorMessage.value = null;
   }
@@ -168,6 +191,7 @@ export function useRoomConnection() {
     sendStartGame,
     sendSetJokerRules,
     requestState,
+    sendChat,
     clearLastError,
     /** Clear persisted token for this room (e.g. user leaves intentionally). */
     clearTokenForRoom: (roomCode: string) => {
