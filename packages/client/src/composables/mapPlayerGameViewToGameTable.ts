@@ -6,11 +6,13 @@
  * layout (opponents top/left/right, local bottom) without duplicating seat math.
  */
 import {
+  MAX_PLAYERS,
   SEATS,
   getValidCallOptions,
   type CallType,
   type PlayerGameView,
   type PlayerPublicInfo,
+  type ResolvedAction,
   type SeatWind,
   type Tile,
 } from "@mahjong-game/shared";
@@ -88,11 +90,46 @@ function seatToDiscardKey(
   return "right";
 }
 
+function canRequestTableTalkReportFromView(view: PlayerGameView): boolean {
+  const myId = view.myPlayerId;
+  if (view.gamePhase !== "play") return false;
+  if (view.socialOverrideState) return false;
+  if (view.challengeState) return false;
+  if (view.tableTalkReportState) return false;
+  if (view.myDeadHand) return false;
+  if (view.players.length !== MAX_PLAYERS) return false;
+  const used = view.tableTalkReportCountsByPlayerId[myId] ?? 0;
+  if (used >= 2) return false;
+  return true;
+}
+
+function invalidMahjongMessageFor(
+  view: PlayerGameView,
+  resolvedAction?: ResolvedAction | null,
+): string | null {
+  const myId = view.myPlayerId;
+  if (resolvedAction?.type === "INVALID_MAHJONG_WARNING" && resolvedAction.playerId === myId) {
+    return resolvedAction.reason;
+  }
+  if (view.pendingMahjong?.playerId === myId) {
+    return "This Mahjong declaration is not valid. Cancel to continue without penalty, or confirm to accept a dead hand.";
+  }
+  return null;
+}
+
+export interface MapPlayerGameViewOptions {
+  /** From the same `STATE_UPDATE` message; used for `invalidMahjongMessage` when applicable. */
+  resolvedAction?: ResolvedAction | null;
+}
+
 /**
  * Maps a filtered `PlayerGameView` to props accepted by `GameTable`.
  * Pure function — safe for unit tests and for wiring `STATE_UPDATE` handlers.
  */
-export function mapPlayerGameViewToGameTableProps(view: PlayerGameView): GameTablePropsFromView {
+export function mapPlayerGameViewToGameTableProps(
+  view: PlayerGameView,
+  options?: MapPlayerGameViewOptions,
+): GameTablePropsFromView {
   const myId = view.myPlayerId;
   const local = view.players.find((p) => p.playerId === myId) ?? null;
   const localWind = local?.wind ?? "east";
@@ -159,9 +196,9 @@ export function mapPlayerGameViewToGameTableProps(view: PlayerGameView): GameTab
       view.callWindow.passes.length === 0 &&
       view.currentTurn === myId,
     socialOverrideState: view.socialOverrideState,
-    canRequestTableTalkReport: false,
+    canRequestTableTalkReport: canRequestTableTalkReportFromView(view),
     tableTalkReportState: view.tableTalkReportState,
     tableTalkReportCountsByPlayerId: view.tableTalkReportCountsByPlayerId,
-    invalidMahjongMessage: null,
+    invalidMahjongMessage: invalidMahjongMessageFor(view, options?.resolvedAction),
   };
 }

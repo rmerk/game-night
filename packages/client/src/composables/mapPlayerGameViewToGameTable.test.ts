@@ -1,6 +1,13 @@
 import { expect, test } from "vite-plus/test";
-import type { PlayerGameView, SuitedTile, Tile, TileValue } from "@mahjong-game/shared";
+import {
+  PROTOCOL_VERSION,
+  type PlayerGameView,
+  type SuitedTile,
+  type Tile,
+  type TileValue,
+} from "@mahjong-game/shared";
 import { mapPlayerGameViewToGameTableProps } from "./mapPlayerGameViewToGameTable";
+import { parseServerMessage } from "./parseServerMessage";
 
 function t(id: string, suit: "dot" | "bam" | "crak", value: TileValue, copy: number): SuitedTile {
   return { id, category: "suited", suit, value, copy };
@@ -94,6 +101,27 @@ test("maps discard pools by seat relative to local player", () => {
   expect(m.discardPools.right?.map((x) => x.id)).toEqual(["dot-5-1"]);
 });
 
+test("sets invalidMahjongMessage from INVALID_MAHJONG_WARNING resolvedAction for viewer", () => {
+  const view = minimalPlayerView();
+  const m = mapPlayerGameViewToGameTableProps(view, {
+    resolvedAction: {
+      type: "INVALID_MAHJONG_WARNING",
+      playerId: "pS",
+      reason: "No matching pattern",
+    },
+  });
+  expect(m.invalidMahjongMessage).toBe("No matching pattern");
+});
+
+test("sets canRequestTableTalkReport when server rules would allow a new report", () => {
+  const view = minimalPlayerView({
+    gamePhase: "play",
+    tableTalkReportCountsByPlayerId: { pS: 1 },
+  });
+  const m = mapPlayerGameViewToGameTableProps(view);
+  expect(m.canRequestTableTalkReport).toBe(true);
+});
+
 test("computes validCallOptions when call window is open", () => {
   const discardTile = t("dot-9-1", "dot", 9, 1);
   const view = minimalPlayerView({
@@ -113,4 +141,23 @@ test("computes validCallOptions when call window is open", () => {
   });
   const m = mapPlayerGameViewToGameTableProps(view);
   expect(m.validCallOptions.length).toBeGreaterThanOrEqual(0);
+});
+
+test("play-phase STATE_UPDATE JSON parses and maps to GameTable-bound props", () => {
+  const view = minimalPlayerView();
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "STATE_UPDATE",
+    state: view,
+  });
+  const p = parseServerMessage(raw);
+  expect(p?.kind).toBe("state_update");
+  if (p?.kind !== "state_update") {
+    return;
+  }
+  const m = mapPlayerGameViewToGameTableProps(p.message.state as PlayerGameView);
+  expect(m.gamePhase).toBe("play");
+  expect(m.tiles.length).toBeGreaterThan(0);
+  expect(m.localPlayer?.id).toBe("pS");
+  expect(m.opponents.top?.seatWind).toBe("north");
 });

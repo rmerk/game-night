@@ -62,6 +62,31 @@ export const useRackStore = defineStore("rack", () => {
     selectedTileId.value = null;
   }
 
+  /** Merge server rack tiles with existing drag order (Story 3C.8). */
+  function reconcileWithServerRack(tiles: Tile[]) {
+    const ids = new Set(tiles.map((t) => t.id));
+    const prev = tileOrder.value;
+    const next: string[] = [];
+    const seen = new Set<string>();
+    for (const id of prev) {
+      if (ids.has(id)) {
+        next.push(id);
+        seen.add(id);
+      }
+    }
+    for (const t of tiles) {
+      if (!seen.has(t.id)) {
+        next.push(t.id);
+        seen.add(t.id);
+      }
+    }
+    tileOrder.value = next;
+    const sid = selectedTileId.value;
+    if (sid !== null && !ids.has(sid)) {
+      selectedTileId.value = null;
+    }
+  }
+
   return {
     tileOrder,
     selectedTileId,
@@ -70,5 +95,6 @@ export const useRackStore = defineStore("rack", () => {
     sortTiles,
     selectTile,
     deselectTile,
+    reconcileWithServerRack,
   };
 });
