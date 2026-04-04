@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-04 # epic-2/3a/3b marked done (all stories complete)
+# last_updated: 2026-04-04 # 3c-6 done
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-04 # 3c-8/3c-9 added (3B retro); 3c-5 done
+last_updated: 2026-04-04 # 3c-6 done; 3c-7 ready-for-dev; 3c-8/3c-9 backlog
 project: mahjong-game
 
 project_key: NOKEY
@@ -118,8 +118,8 @@ development_status:
   3c-3-dead-hand-detection-enforcement: done
   3c-4-social-override-system-unanimous-vote-undo: done
   3c-5-table-talk-report-majority-vote-dead-hand: done
-  3c-6-wall-end-last-tile-rules: backlog
-  3c-7-concealed-hand-validation-at-mahjong: backlog
+  3c-6-wall-end-last-tile-rules: done
+  3c-7-concealed-hand-validation-at-mahjong: ready-for-dev
   # Epic 3B retro follow-up (see epics.md Epic 3C Stories 3C.8–3C.9)
   3c-8-websocket-client-state-update-to-gametable: backlog
   3c-9-call-confirmation-use-tile-selection: backlog
