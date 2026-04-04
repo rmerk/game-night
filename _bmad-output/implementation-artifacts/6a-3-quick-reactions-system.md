@@ -1,6 +1,6 @@
 # Story 6A.3: Quick Reactions System
 
-Status: ready-for-dev
+Status: review
 
 <!-- Ultimate context engine — 2026-04-04. Pass 2: tightened AC10, RoomView/sendReaction wiring, seat mapping, parser hardening, anti-patterns. Depends on 6A.1 server + 6A.2 SlideInPanel / parse stub. -->
 
@@ -50,28 +50,28 @@ so that **I can react to game moments without interrupting voice chat or typing 
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Protocol + connection** (AC: 2, 3, 11, 14)
-  - [ ] 1.1 Extend `ParsedServerMessage` with `reaction_broadcast`; build `ReactionBroadcast` object in `parseServerMessage` (mirror `CHAT_BROADCAST` pattern).
-  - [ ] 1.2 Update [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid broadcast → `reaction_broadcast`; invalid fields → `null`; remove/replace the test that expects `ignored` for valid shape. If you add allowlist validation in the parser, add one test where emoji is valid shape but **not** on allowlist → `null`.
-  - [ ] 1.3 Add `sendReaction(emoji: string): void` on `useRoomConnection` — **no-op** if `!isAllowedReactionEmoji(emoji)` (import from `@mahjong-game/shared`).
-  - [ ] 1.4 `handleMessage`: on `reaction_broadcast`, push event into the reactions store (Task 2).
-  - [ ] 1.5 Extend [`resetSocialUiForSession`](../../packages/client/src/composables/useRoomConnection.ts) to **clear** the reactions store (same call sites as chat + slide-in: `disconnect`, socket `close`, and start of `connect` after `disconnect()`).
+- [x] **Task 1: Protocol + connection** (AC: 2, 3, 11, 14)
+  - [x] 1.1 Extend `ParsedServerMessage` with `reaction_broadcast`; build `ReactionBroadcast` object in `parseServerMessage` (mirror `CHAT_BROADCAST` pattern).
+  - [x] 1.2 Update [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid broadcast → `reaction_broadcast`; invalid fields → `null`; remove/replace the test that expects `ignored` for valid shape. If you add allowlist validation in the parser, add one test where emoji is valid shape but **not** on allowlist → `null`.
+  - [x] 1.3 Add `sendReaction(emoji: string): void` on `useRoomConnection` — **no-op** if `!isAllowedReactionEmoji(emoji)` (import from `@mahjong-game/shared`).
+  - [x] 1.4 `handleMessage`: on `reaction_broadcast`, push event into the reactions store (Task 2).
+  - [x] 1.5 Extend [`resetSocialUiForSession`](../../packages/client/src/composables/useRoomConnection.ts) to **clear** the reactions store (same call sites as chat + slide-in: `disconnect`, socket `close`, and start of `connect` after `disconnect()`).
 
-- [ ] **Task 2: Ephemeral reactions store** (AC: 4, 5, 6, 11)
-  - [ ] 2.1 New Pinia store e.g. `useReactionsStore`: enqueue `{ id, playerId, emoji, expiresAt }` or use monotonic `timestamp` from server + local counter for keys.
-  - [ ] 2.2 Per-seat **ring or max-visible cap** (e.g. keep at most 2–3 active bubbles per `SeatWind` + local player).
-  - [ ] 2.3 `resetForRoomLeave` / clear on `resetSocialUiForSession` in `useRoomConnection` (same places as chat + slide-in reset).
+- [x] **Task 2: Ephemeral reactions store** (AC: 4, 5, 6, 11)
+  - [x] 2.1 New Pinia store e.g. `useReactionsStore`: enqueue `{ id, playerId, emoji, expiresAt }` or use monotonic `timestamp` from server + local counter for keys.
+  - [x] 2.2 Per-seat **ring or max-visible cap** (e.g. keep at most 2–3 active bubbles per `SeatWind` + local player).
+  - [x] 2.3 `resetForRoomLeave` / clear on `resetSocialUiForSession` in `useRoomConnection` (same places as chat + slide-in reset).
 
-- [ ] **Task 3: UI components** (AC: 1, 4, 5, 6, 7, 8, 9, 10, 13)
-  - [ ] 3.0 **Emit + parent wiring (mirror chat):** Add `sendReaction: [emoji: string]` to `defineEmits` in [`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) (alongside `sendChat`). Pass a callback into `ReactionBar` / children so **no** component imports `WebSocket`. In [`RoomView.vue`](../../packages/client/src/views/RoomView.vue), add `@send-reaction="(e: string) => conn.sendReaction(e)"` on `<GameTable>` (mirror `@send-chat`). Lobby optional strip: call `conn.sendReaction` directly or via a thin wrapper.
-  - [ ] 3.1 `ReactionBar.vue`: map allowlist to `BaseButton` or `button` with **`aria-label`** per emoji (e.g. “React with thumbs up”) and **`focus-visible:focus-ring-on-felt`** (or chrome variant) — match tertiary chat toggle affordance.
-  - [ ] 3.2 `ReactionBubble.vue` (presentational): props `emoji`, optional `playerName` (omit if clutter).
-  - [ ] 3.3 Integrate in `GameTable.vue`: position desktop stack + mobile row; `v-show` or `v-if` on `!slideInPanelStore.isAnySlideInPanelOpen`, **`!isScoreboardPhase`** (AC10), and AC9.
-  - [ ] 3.4 Seat anchoring: small wrapper or absolutely positioned layers per opponent slot + local — **reuse** `data-testid="opponent-top|left|right"` and rack area anchors for tests (`GameTable` template ~L524–745).
+- [x] **Task 3: UI components** (AC: 1, 4, 5, 6, 7, 8, 9, 10, 13)
+  - [x] 3.0 **Emit + parent wiring (mirror chat):** Add `sendReaction: [emoji: string]` to `defineEmits` in [`GameTable.vue`](../../packages/client/src/components/game/GameTable.vue) (alongside `sendChat`). Pass a callback into `ReactionBar` / children so **no** component imports `WebSocket`. In [`RoomView.vue`](../../packages/client/src/views/RoomView.vue), add `@send-reaction="(e: string) => conn.sendReaction(e)"` on `<GameTable>` (mirror `@send-chat`). Lobby optional strip: call `conn.sendReaction` directly or via a thin wrapper.
+  - [x] 3.1 `ReactionBar.vue`: map allowlist to `BaseButton` or `button` with **`aria-label`** per emoji (e.g. “React with thumbs up”) and **`focus-visible:focus-ring-on-felt`** (or chrome variant) — match tertiary chat toggle affordance.
+  - [x] 3.2 `ReactionBubble.vue` (presentational): props `emoji`, optional `playerName` (omit if clutter).
+  - [x] 3.3 Integrate in `GameTable.vue`: position desktop stack + mobile row; `v-show` or `v-if` on `!slideInPanelStore.isAnySlideInPanelOpen`, **`!isScoreboardPhase`** (AC10), and AC9.
+  - [x] 3.4 Seat anchoring: small wrapper or absolutely positioned layers per opponent slot + local — **reuse** `data-testid="opponent-top|left|right"` and rack area anchors for tests (`GameTable` template ~L524–745).
 
-- [ ] **Task 4: Tests** (AC: 14)
-  - [ ] 4.1 Store unit tests: enqueue, expiry removal, per-seat cap, clear on reset.
-  - [ ] 4.2 Optional: `useRoomConnection` test for `sendReaction` no-op when closed / invalid emoji (mirror `sendChat` tests).
+- [x] **Task 4: Tests** (AC: 14)
+  - [x] 4.1 Store unit tests: enqueue, expiry removal, per-seat cap, clear on reset.
+  - [x] 4.2 Optional: `useRoomConnection` test for `sendReaction` no-op when closed / invalid emoji (mirror `sendChat` tests).
 
 ## Dev Notes
 
@@ -146,13 +146,35 @@ Source: [`6a-1-chat-message-protocol-server-handling.md`](./6a-1-chat-message-pr
 
 ### Agent Model Used
 
-_(filled by dev agent)_
+Cursor agent (gds-dev-story / strategy-cursor)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented `reaction_broadcast` parsing with `isAllowedReactionEmoji` guard; `sendReaction` mirrors `sendChat` (protocol version + no-op when closed or invalid).
+- `useReactionsStore` enqueues bubbles with `REACTION_BUBBLE_MS` (2500), per-player cap of 3, interval prune, cleared on session reset and when entering scoreboard phase.
+- `ReactionBar` uses `role="group"` so the action zone keeps the sole `role="toolbar"` (GameTable a11y tests). Desktop: fixed vertical stack; mobile + lobby: horizontal row above rack / in lobby block.
+- Bubbles anchored via `playerId` → opponent slots from `GameTable` props (top/left/right) and local rack area; mobile duplicates anchors above inline opponent row. No `v-html` on emoji.
+
 ### File List
+
+- `packages/client/src/composables/parseServerMessage.ts`
+- `packages/client/src/composables/parseServerMessage.test.ts`
+- `packages/client/src/composables/useRoomConnection.ts`
+- `packages/client/src/composables/useRoomConnection.sendReaction.test.ts`
+- `packages/client/src/stores/reactions.ts`
+- `packages/client/src/stores/reactions.test.ts`
+- `packages/client/src/components/reactions/ReactionBar.vue`
+- `packages/client/src/components/reactions/ReactionBubble.vue`
+- `packages/client/src/components/reactions/ReactionBubbleStack.vue`
+- `packages/client/src/components/game/GameTable.vue`
+- `packages/client/src/views/RoomView.vue`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+## Change Log
+
+- 2026-04-04: Story 6A.3 implemented — reaction protocol parse/send, ephemeral store, GameTable + lobby UI, tests; status → review.
 
 ---
 
