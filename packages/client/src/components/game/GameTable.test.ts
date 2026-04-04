@@ -258,6 +258,41 @@ describe("GameTable — accessibility", () => {
     wrapper.unmount();
   });
 
+  it("keeps chat panel mounted during scoreboard phase and returns Escape focus to scoreboard sink", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        gamePhase: "scoreboard",
+        localPlayer,
+        gameResult: mockGameResult,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+        },
+      },
+    });
+    useSlideInPanelStore().openChat();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find("[data-testid='chat-panel-input']").exists()).toBe(true);
+
+    const scoreboardSink = expectHtmlElement(
+      wrapper.get("[data-testid='scoreboard-chat-focus-return']").element,
+    );
+    const chatInput = wrapper.get("[data-testid='chat-panel-input']");
+    expectHtmlElement(chatInput.element).focus();
+    await chatInput.trigger("keydown", { key: "Escape" });
+
+    expect(document.activeElement).toBe(scoreboardSink);
+    wrapper.unmount();
+  });
+
   it("action zone has role='toolbar' with aria-label", () => {
     const wrapper = mountTable();
     const toolbar = wrapper.find("[role='toolbar']");

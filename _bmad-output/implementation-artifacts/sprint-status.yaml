@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-04 # 6a-2 code review complete
+# last_updated: 2026-04-04 # 6a-2 pass-2 scoreboard chat fix
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-04 # 6a-2 done
+last_updated: 2026-04-04 # 6a-2 done (pass-2 fix)
 project: mahjong-game
 
 project_key: NOKEY
