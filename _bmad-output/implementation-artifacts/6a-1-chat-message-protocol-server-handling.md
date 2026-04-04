@@ -1,6 +1,6 @@
 # Story 6A.1: Chat Message Protocol & Server Handling
 
-Status: review
+Status: done
 
 <!-- Second pass: 2026-04-04 — tightened paths, malformed-payload rules, constants, anti-patterns, JSON examples. -->
 
@@ -213,4 +213,10 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 
 ---
 
-**Completion status:** Implementation complete; status **review** (pending code-review workflow).
+**Completion status:** Code review complete (2026-04-04); status **done**.
+
+### Code review (GDS)
+
+- **AC validation:** AC1–AC8 satisfied in implementation and tests; AC7 reinforced with NFR48 JSDoc on `ChatBroadcast` / `ReactionBroadcast` in `protocol.ts`.
+- **Regression:** `pnpm test`, `pnpm run typecheck`, `pnpm exec vp lint` passed in review environment.
+- **Note:** Branch may contain additional commits outside this story’s file list; 6A.1 scope verified against listed implementation files only.
