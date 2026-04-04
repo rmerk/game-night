@@ -144,6 +144,8 @@ Cursor agent (implementation).
 - Mapper: optional `resolvedAction` for `invalidMahjongMessage`; `canRequestTableTalkReport` mirrors server preconditions (`MAX_PLAYERS`, phase, blockers, count &lt; 2).
 - Task 5.1: **No server or shared protocol changes** were required; `state-broadcaster` unchanged.
 - Code review (2026-04-04): In-session **ERROR** banner on `RoomView` when lobby or `GameTable` is visible (`clearLastError` on `useRoomConnection`); play-phase **STATE_UPDATE** JSON → `parseServerMessage` → `mapPlayerGameViewToGameTableProps` integration test; Task 4.2 left unchecked (deferred optional shell test).
+- Follow-up: **`resetForRoomLeave()`** on [`useRackStore`](../../packages/client/src/stores/rack.ts) — called from `RoomView` **Leave** so tile order and selection do not persist across rooms (Pinia is global).
+- **Reconnect:** [`requestState`](../../packages/client/src/composables/useRoomConnection.ts) is exported from `useRoomConnection` for future Epic 4B use; not wired in `RoomView` in this story.
 
 ### File List
 
@@ -170,6 +172,7 @@ Cursor agent (implementation).
 - 2026-04-04: Implemented WebSocket room session, `/room/:code`, `STATE_UPDATE` → `GameTable`, rack reconciliation, mapper gaps, tests; sprint status → review.
 - 2026-04-04: GDS code review follow-up — ERROR banner + dismiss, AC4 integration test, story/sprint → done.
 - 2026-04-04: Second pass — staged and committed full client diff (transport composables, `HomeView` room flow, rack reconciliation, mapper); File List includes story file.
+- 2026-04-04: Rack **`resetForRoomLeave`** + test; wired from `RoomView` leave handler.
 
 ---
 
