@@ -65,6 +65,10 @@ function validateActionPayload(action: Record<string, unknown>): string | null {
       return null;
     case "DISCARD_TILE":
       return typeof action.tileId === "string" ? null : "DISCARD_TILE requires string tileId";
+    case "JOKER_EXCHANGE":
+      return typeof action.jokerGroupId === "string" && typeof action.naturalTileId === "string"
+        ? null
+        : "JOKER_EXCHANGE requires string jokerGroupId and naturalTileId";
     case "CHARLESTON_PASS":
       return isStringArray(action.tileIds) && action.tileIds.length === 3
         ? null
@@ -151,6 +155,15 @@ function parseGameAction(action: Record<string, unknown>, playerId: string): Gam
     case "DISCARD_TILE":
       return typeof action.tileId === "string"
         ? { type: "DISCARD_TILE", playerId, tileId: action.tileId }
+        : null;
+    case "JOKER_EXCHANGE":
+      return typeof action.jokerGroupId === "string" && typeof action.naturalTileId === "string"
+        ? {
+            type: "JOKER_EXCHANGE",
+            playerId,
+            jokerGroupId: action.jokerGroupId,
+            naturalTileId: action.naturalTileId,
+          }
         : null;
     case "PASS_CALL":
       return { type: "PASS_CALL", playerId };

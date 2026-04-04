@@ -51,6 +51,7 @@ export type {
   CourtesyPassAction,
   DrawTileAction,
   DiscardTileAction,
+  JokerExchangeAction,
   PassCallAction,
   CallPungAction,
   CallKongAction,
@@ -151,6 +152,7 @@ export {
 } from "./engine/actions/charleston";
 export { handleDrawTile, advanceTurn } from "./engine/actions/draw";
 export { handleDiscardTile } from "./engine/actions/discard";
+export { handleJokerExchange } from "./engine/actions/joker-exchange";
 export {
   handlePassCall,
   closeCallWindow,

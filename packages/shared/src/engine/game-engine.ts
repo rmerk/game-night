@@ -8,6 +8,7 @@ import {
 } from "./actions/charleston";
 import { handleDrawTile } from "./actions/draw";
 import { handleDiscardTile } from "./actions/discard";
+import { handleJokerExchange } from "./actions/joker-exchange";
 import {
   handlePassCall,
   handleCallAction,
@@ -65,6 +66,8 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleDrawTile(state, action);
     case "DISCARD_TILE":
       return handleDiscardTile(state, action);
+    case "JOKER_EXCHANGE":
+      return handleJokerExchange(state, action);
     case "PASS_CALL":
       return handlePassCall(state, action);
     case "CALL_PUNG":

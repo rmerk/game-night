@@ -210,6 +210,13 @@ export type ResolvedAction =
     }
   | { readonly type: "DRAW_TILE"; readonly playerId: string }
   | { readonly type: "DISCARD_TILE"; readonly playerId: string; readonly tileId: string }
+  | {
+      readonly type: "JOKER_EXCHANGE";
+      readonly playerId: string;
+      readonly jokerGroupId: string;
+      readonly jokerTileId: string;
+      readonly naturalTileId: string;
+    }
   | { readonly type: "WALL_GAME" }
   | {
       readonly type: "CALL_WINDOW_OPENED";

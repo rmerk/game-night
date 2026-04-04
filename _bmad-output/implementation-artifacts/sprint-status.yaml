@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-03 # 3c-1 → ready-for-dev
+# last_updated: 2026-04-03 # 3c-1 → review
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-03 # 3c-1 → ready-for-dev
+last_updated: 2026-04-03 # 3c-1 → review
 project: mahjong-game
 
 project_key: NOKEY
@@ -113,7 +113,7 @@ development_status:
 
   # Epic 3C: Advanced Rules
   epic-3c: in-progress
-  3c-1-joker-exchange-mechanic: ready-for-dev
+  3c-1-joker-exchange-mechanic: review
   3c-2-simplified-joker-rules-host-option: backlog
   3c-3-dead-hand-detection-enforcement: backlog
   3c-4-social-override-system-unanimous-vote-undo: backlog

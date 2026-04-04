@@ -1,6 +1,6 @@
 # Story 3C.1: Joker Exchange Mechanic
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -36,59 +36,59 @@ so that **I can strategically acquire Jokers to complete my hand (FR53, FR54, FR
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `JokerExchangeAction` type to shared types (AC: 1, 9)
-  - [ ] 1.1 Add `JokerExchangeAction` interface to `packages/shared/src/types/actions.ts` with fields: `type: "JOKER_EXCHANGE"`, `playerId: string`, `jokerGroupId: string`, `naturalTileId: string`
-  - [ ] 1.2 Add `JokerExchangeAction` to the `GameAction` discriminated union in the same file
-  - [ ] 1.3 Add `JOKER_EXCHANGE` resolved action variant to `ResolvedAction` in `packages/shared/src/types/game-state.ts` with fields: `type: "JOKER_EXCHANGE"`, `playerId: string`, `jokerGroupId: string`, `jokerTileId: string`, `naturalTileId: string`
+- [x] Task 1: Add `JokerExchangeAction` type to shared types (AC: 1, 9)
+  - [x] 1.1 Add `JokerExchangeAction` interface to `packages/shared/src/types/actions.ts` with fields: `type: "JOKER_EXCHANGE"`, `playerId: string`, `jokerGroupId: string`, `naturalTileId: string`
+  - [x] 1.2 Add `JokerExchangeAction` to the `GameAction` discriminated union in the same file
+  - [x] 1.3 Add `JOKER_EXCHANGE` resolved action variant to `ResolvedAction` in `packages/shared/src/types/game-state.ts` with fields: `type: "JOKER_EXCHANGE"`, `playerId: string`, `jokerGroupId: string`, `jokerTileId: string`, `naturalTileId: string`
 
-- [ ] Task 2: Create `handleJokerExchange` action handler (AC: 1–12)
-  - [ ] 2.1 Create `packages/shared/src/engine/actions/joker-exchange.ts`
-  - [ ] 2.2 Implement `handleJokerExchange(state: GameState, action: JokerExchangeAction): ActionResult` following validate-then-mutate pattern
-  - [ ] 2.3 Validation checks (in order):
+- [x] Task 2: Create `handleJokerExchange` action handler (AC: 1–12)
+  - [x] 2.1 Create `packages/shared/src/engine/actions/joker-exchange.ts`
+  - [x] 2.2 Implement `handleJokerExchange(state: GameState, action: JokerExchangeAction): ActionResult` following validate-then-mutate pattern
+  - [x] 2.3 Validation checks (in order):
     - `state.gamePhase !== "play"` → `WRONG_PHASE`
     - `state.currentTurn !== action.playerId` → `NOT_YOUR_TURN`
     - `state.turnPhase !== "discard"` → `ALREADY_DISCARDED` (must have drawn but not yet discarded)
     - Parse `jokerGroupId` to find the target exposed group → `GROUP_NOT_FOUND` if invalid
     - Check natural tile exists in player's rack → `TILE_NOT_IN_RACK`
     - Call `validateJokerExchange(exposedGroup, naturalTile)` from `joker-eligibility.ts` → map `ExchangeResult.reason` to appropriate rejection reasons (`NO_JOKER_IN_GROUP`, `TILE_DOES_NOT_MATCH_GROUP`)
-  - [ ] 2.4 Mutation (after validation):
+  - [x] 2.4 Mutation (after validation):
     - Find Joker tile in exposed group (use the one returned by `validateJokerExchange`)
     - Remove Joker from exposed group's `tiles` array
     - Add natural tile to exposed group's `tiles` array (same position as removed Joker)
     - Remove natural tile from player's rack
     - Add Joker to player's rack
     - Do NOT change `turnPhase` — stays at `"discard"` to allow more exchanges
-  - [ ] 2.5 Return `{ accepted: true, resolved: { type: "JOKER_EXCHANGE", playerId, jokerGroupId, jokerTileId, naturalTileId } }`
+  - [x] 2.5 Return `{ accepted: true, resolved: { type: "JOKER_EXCHANGE", playerId, jokerGroupId, jokerTileId, naturalTileId } }`
 
-- [ ] Task 3: Register handler in game engine and exports (AC: all)
-  - [ ] 3.1 Add `case "JOKER_EXCHANGE": return handleJokerExchange(state, action)` to `handleAction()` switch in `packages/shared/src/engine/game-engine.ts`
-  - [ ] 3.2 Export `handleJokerExchange` from `packages/shared/src/index.ts`
-  - [ ] 3.3 Export `JokerExchangeAction` type from `packages/shared/src/index.ts`
+- [x] Task 3: Register handler in game engine and exports (AC: all)
+  - [x] 3.1 Add `case "JOKER_EXCHANGE": return handleJokerExchange(state, action)` to `handleAction()` switch in `packages/shared/src/engine/game-engine.ts`
+  - [x] 3.2 Export `handleJokerExchange` from `packages/shared/src/index.ts`
+  - [x] 3.3 Export `JokerExchangeAction` type from `packages/shared/src/index.ts`
 
-- [ ] Task 4: Add server-side action parsing (AC: 1, 9)
-  - [ ] 4.1 In `packages/server/src/websocket/action-handler.ts`, add `JOKER_EXCHANGE` case to `validateActionPayload()` — validate `jokerGroupId` is string, `naturalTileId` is string
-  - [ ] 4.2 Add `JOKER_EXCHANGE` case to `parseGameAction()` — construct `{ type: "JOKER_EXCHANGE", playerId, jokerGroupId, naturalTileId }`
+- [x] Task 4: Add server-side action parsing (AC: 1, 9)
+  - [x] 4.1 In `packages/server/src/websocket/action-handler.ts`, add `JOKER_EXCHANGE` case to `validateActionPayload()` — validate `jokerGroupId` is string, `naturalTileId` is string
+  - [x] 4.2 Add `JOKER_EXCHANGE` case to `parseGameAction()` — construct `{ type: "JOKER_EXCHANGE", playerId, jokerGroupId, naturalTileId }`
 
-- [ ] Task 5: Write comprehensive tests (AC: 1–12)
-  - [ ] 5.1 Create `packages/shared/src/engine/actions/joker-exchange.test.ts`
-  - [ ] 5.2 Test: successful exchange — Joker moves to rack, natural tile moves to group, resolved action correct (AC1, AC2, AC9)
-  - [ ] 5.3 Test: identity mismatch rejection (AC3)
-  - [ ] 5.4 Test: no Joker in group rejection (AC4)
-  - [ ] 5.5 Test: multiple exchanges in one turn — perform two exchanges sequentially, verify both succeed and turnPhase remains "discard" (AC5)
-  - [ ] 5.6 Test: not your turn rejection (AC6)
-  - [ ] 5.7 Test: already discarded / wrong turnPhase rejection (AC7)
-  - [ ] 5.8 Test: wrong game phase rejection (AC8)
-  - [ ] 5.9 Test: exchange into another player's exposed group (AC10)
-  - [ ] 5.10 Test: natural tile not in rack rejection (AC11)
-  - [ ] 5.11 Test: invalid group ID rejection (AC12)
-  - [ ] 5.12 Test: multi-Joker group — exchange removes only one Joker, group still has others (edge case)
-  - [ ] 5.13 Test: exchange with wind tile matching wind group identity
-  - [ ] 5.14 Test: exchange with dragon tile matching dragon group identity
+- [x] Task 5: Write comprehensive tests (AC: 1–12)
+  - [x] 5.1 Create `packages/shared/src/engine/actions/joker-exchange.test.ts`
+  - [x] 5.2 Test: successful exchange — Joker moves to rack, natural tile moves to group, resolved action correct (AC1, AC2, AC9)
+  - [x] 5.3 Test: identity mismatch rejection (AC3)
+  - [x] 5.4 Test: no Joker in group rejection (AC4)
+  - [x] 5.5 Test: multiple exchanges in one turn — perform two exchanges sequentially, verify both succeed and turnPhase remains "discard" (AC5)
+  - [x] 5.6 Test: not your turn rejection (AC6)
+  - [x] 5.7 Test: already discarded / wrong turnPhase rejection (AC7)
+  - [x] 5.8 Test: wrong game phase rejection (AC8)
+  - [x] 5.9 Test: exchange into another player's exposed group (AC10)
+  - [x] 5.10 Test: natural tile not in rack rejection (AC11)
+  - [x] 5.11 Test: invalid group ID rejection (AC12)
+  - [x] 5.12 Test: multi-Joker group — exchange removes only one Joker, group still has others (edge case)
+  - [x] 5.13 Test: exchange with wind tile matching wind group identity
+  - [x] 5.14 Test: exchange with dragon tile matching dragon group identity
 
-- [ ] Task 6: Validation gate (AC: all)
-  - [ ] 6.1 `pnpm test`
-  - [ ] 6.2 `pnpm run typecheck`
-  - [ ] 6.3 `vp lint`
+- [x] Task 6: Validation gate (AC: all)
+  - [x] 6.1 `pnpm test`
+  - [x] 6.2 `pnpm run typecheck`
+  - [x] 6.3 `vp lint`
 
 ## Dev Notes
 
@@ -305,14 +305,30 @@ describe("handleJokerExchange", () => {
 - Shared barrel exports: `packages/shared/src/index.ts`
 - Type definitions: `packages/shared/src/types/actions.ts`, `packages/shared/src/types/game-state.ts`
 
+## Change Log
+
+- 2026-04-03: Implemented `JOKER_EXCHANGE` (shared types, `handleJokerExchange`, engine registration, server parse/validate), added `joker-exchange.test.ts` (14 cases). Sprint status: in-progress → review.
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Cursor Agent (GPT-5.2)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Joker exchange uses `{ownerId}-group-{index}` parsing and delegates identity/Joker checks to `validateJokerExchange`. Natural tile is swapped into the group at the Joker’s index; `turnPhase` remains `discard` for multiple exchanges per turn. Tests use unique synthetic tile IDs when pushing to racks to avoid collisions with dealt hands (seed 42).
+
 ### File List
+
+- `packages/shared/src/types/actions.ts`
+- `packages/shared/src/types/game-state.ts`
+- `packages/shared/src/engine/actions/joker-exchange.ts`
+- `packages/shared/src/engine/actions/joker-exchange.test.ts`
+- `packages/shared/src/engine/game-engine.ts`
+- `packages/shared/src/index.ts`
+- `packages/server/src/websocket/action-handler.ts`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/3c-1-joker-exchange-mechanic.md`

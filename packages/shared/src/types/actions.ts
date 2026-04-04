@@ -6,6 +6,7 @@ export type GameAction =
   | CourtesyPassAction
   | DrawTileAction
   | DiscardTileAction
+  | JokerExchangeAction
   | PassCallAction
   | CallPungAction
   | CallKongAction
@@ -62,6 +63,14 @@ export interface DiscardTileAction {
   readonly type: "DISCARD_TILE";
   readonly playerId: string;
   readonly tileId: string;
+}
+
+/** Action for the current player to exchange a natural tile from their rack for a Joker in an exposed group */
+export interface JokerExchangeAction {
+  readonly type: "JOKER_EXCHANGE";
+  readonly playerId: string;
+  readonly jokerGroupId: string;
+  readonly naturalTileId: string;
 }
 
 /** Action for a player to pass during the call window */
