@@ -567,6 +567,23 @@ describe("buildPlayerView", () => {
     expect(view.myDeadHand).toBe(false);
   });
 
+  it("omits hostAuditLog for non-host players when log has entries", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+    gameState.hostAuditLog = ["[Social Override] host-only line"];
+
+    const hostView = buildPlayerView(room, gameState, "player-0");
+    const nonHostView = buildPlayerView(room, gameState, "player-1");
+
+    expect(hostView.hostAuditLog).toEqual(["[Social Override] host-only line"]);
+    expect(nonHostView).not.toHaveProperty("hostAuditLog");
+  });
+
   it("sets myDeadHand from player deadHand flag", () => {
     const players = [
       createTestPlayer("player-0", "east", true),

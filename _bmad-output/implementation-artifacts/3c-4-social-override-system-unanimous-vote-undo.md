@@ -1,6 +1,6 @@
 # Story 3C.4: Social Override System (Unanimous Vote Undo)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -91,6 +91,45 @@ Implemented social override for accidental **discard** undo: `SOCIAL_OVERRIDE_RE
 
 None.
 
+### Senior Developer Review (AI)
+
+**Reviewer:** Rchoi (adversarial GDS code review)  
+**Date:** 2026-04-04  
+**Outcome:** **Approve** — all acceptance criteria verified against implementation; tasks marked complete are substantiated; validation gate passed.
+
+**Git vs story:** Clean working tree on `main`. Merge `9ce7771` / `4159bf2` file set matches the Dev Agent File List (22 paths including story and sprint artifacts); no undocumented implementation files and no story-listed files missing from the merge.
+
+**AC coverage (spot-checked in code + tests):**
+
+| AC | Result |
+|----|--------|
+| AC1 | `handleSocialOverrideRequest` + `PASS_CALL` / call handlers reject with `SOCIAL_OVERRIDE_PENDING` while pending |
+| AC2 | `SocialOverrideState` + `buildPlayerView` / protocol; panel shows description and vote progress |
+| AC3 | `applyDiscardUndo` restores rack, clears `lastDiscard` / `callWindow`, `turnPhase` `"discard"` |
+| AC4 | Deny path clears `socialOverrideState`, leaves `callWindow` |
+| AC5 | Server `setTimeout` + `handleSocialOverrideTimeout`; timer cleared on cleanup and after resolution |
+| AC6 | `DEAD_HAND_CANNOT_REQUEST` |
+| AC7 | `WRONG_PHASE`, `NOT_DISCARDER`, `CALL_WINDOW_NOT_ELIGIBLE`, `NO_CALL_WINDOW` (see LOW note) |
+| AC8 | `hostAuditLog` append-only; spread to view only when `isHost` |
+| AC9 | `socialOverrideState` on view; `GameTable` ring class on discard area when pending |
+| AC10 | `pnpm test`, `pnpm run typecheck`, `vp lint` — all passed |
+
+**Severity summary:** 0 Critical, 0 High, 0 Medium (blocking). **Low:** (1) Rejection token `NO_CALL_WINDOW` when `callWindow` is null vs story wording favoring `CALL_WINDOW_NOT_ELIGIBLE` — behavior is correct. (2) Engine tests cover `PASS_CALL` blocking; `handleCallAction` / `handleCallMahjong` share the same guard — optional follow-up: one parameterized test for a single `CALL_*` type. (3) Broadcaster tests assert `hostAuditLog` for host viewer; explicit assertion that non-host JSON omits `hostAuditLog` is optional. (4) `GameTable` is consumed from dev showcases only until a production room route exists; completion note already calls out wiring `canRequestSocialOverride` when that route lands.
+
+### Senior Developer Review — Pass 2 (AI)
+
+**Date:** 2026-04-04  
+**Outcome:** **Approve** — follow-up pass addressing Pass 1 LOW items and re-running the validation gate.
+
+**Updates:**
+- **AC7 alignment:** `handleSocialOverrideRequest` now returns `CALL_WINDOW_NOT_ELIGIBLE` when `callWindow` is null (was `NO_CALL_WINDOW`). Added test: request without an open call window.
+- **AC1 / Task 2.2 test depth:** Added `CALL_MAHJONG` rejection with `SOCIAL_OVERRIDE_PENDING` while a vote is pending (exercises the same guard path as other `CALL_*` handlers).
+- **AC8 test depth:** Broadcaster test asserts non-host `PlayerGameView` omits `hostAuditLog` even when `gameState.hostAuditLog` is non-empty.
+
+**Validation:** `pnpm test`, `pnpm run typecheck`, `vp lint` — all passed after the above.
+
+**Deferred (unchanged):** Production route wiring for `canRequestSocialOverride` when a live room UI mounts `GameTable` (project still uses dev showcases for table UI).
+
 ## File List
 
 - `packages/shared/src/types/game-state.ts`
@@ -120,3 +159,5 @@ None.
 
 - **2026-04-04:** Story file created; sprint set ready-for-dev → in-progress for implementation.
 - **2026-04-04:** Implementation complete — story status **review**, sprint **review**; validation gate passed.
+- **2026-04-04:** GDS adversarial code review passed — story status **done**, sprint **done**; Senior Developer Review (AI) recorded.
+- **2026-04-04:** Code review **Pass 2** — AC7 reason alignment, extra engine + broadcaster tests; Senior Developer Review — Pass 2 (AI) recorded.
