@@ -263,6 +263,43 @@ describe("handleChatReactMessage", () => {
     expect(room.chatHistory).toHaveLength(0);
   });
 
+  it("allows chat again after rate-limit state is removed for playerId (seat released / recycled id)", () => {
+    const ws = createMockWs();
+    const room = createRoomWithSessions([createPlayer("a", "Alice")], [ws]);
+    const base = 5_500_000;
+
+    for (let i = 0; i < 10; i++) {
+      handleChatReactMessage(
+        room,
+        "a",
+        { version: PROTOCOL_VERSION, type: "CHAT", text: `m${i}` } as ParsedMessage,
+        createMockLogger(),
+        base + i,
+      );
+    }
+    expect(ws.sent).toHaveLength(10);
+
+    handleChatReactMessage(
+      room,
+      "a",
+      { version: PROTOCOL_VERSION, type: "CHAT", text: "blocked" } as ParsedMessage,
+      createMockLogger(),
+      base + 10,
+    );
+    expect(ws.sent).toHaveLength(10);
+
+    room.chatRateTimestamps.delete("a");
+    handleChatReactMessage(
+      room,
+      "a",
+      { version: PROTOCOL_VERSION, type: "CHAT", text: "fresh-seat" } as ParsedMessage,
+      createMockLogger(),
+      base + 11,
+    );
+    expect(ws.sent).toHaveLength(11);
+    expect(JSON.parse(ws.sent[10]).text).toBe("fresh-seat");
+  });
+
   it("allows the next chat after the sliding window has moved past old timestamps", () => {
     const ws = createMockWs();
     const room = createRoomWithSessions([createPlayer("a", "Alice")], [ws]);

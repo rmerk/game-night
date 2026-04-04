@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-04 # story 6a-2 second pass (story spec refinement)
+# last_updated: 2026-04-04 # 6a-1 done (main); 6a-2 ready-for-dev (story spec)
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-04 # story 6a-2 second pass (story spec refinement)
+last_updated: 2026-04-04 # 6a-1 done; 6a-2 ready-for-dev
 project: mahjong-game
 
 project_key: NOKEY
@@ -127,7 +127,7 @@ development_status:
 
   # Epic 6A: Text Chat & Reactions
   epic-6a: in-progress
-  6a-1-chat-message-protocol-server-handling: review
+  6a-1-chat-message-protocol-server-handling: done
   6a-2-chat-panel-ui-slideinpanel: ready-for-dev
   6a-3-quick-reactions-system: backlog
   6a-4-chat-history-on-connect-reconnect: backlog

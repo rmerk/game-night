@@ -290,6 +290,9 @@ function registerDisconnectHandler(
       }
       room.players.delete(playerId);
       room.sessions.delete(playerId);
+      // Recycled seat ids (player-0..3) must not inherit prior occupant's chat/reaction rate limits
+      room.chatRateTimestamps.delete(playerId);
+      room.reactionRateTimestamps.delete(playerId);
 
       logger.info({ roomCode: room.roomCode, playerId }, "Grace period expired, seat released");
 
