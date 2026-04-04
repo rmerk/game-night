@@ -114,7 +114,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Three client message types: `ACTION`, `CHAT`, `REACTION`
 - Chat is a SEPARATE channel from game state — never embedded in `STATE_UPDATE`
 - Reactions are fire-and-forget — no storage, no replay on reconnect
-- Chat history: server retains last 200 messages, sent once on connect/reconnect
+- Chat history: server retains last 100 messages per room (ring buffer; Story 6A.1), sent on connect/reconnect in **6A.4**
 - Errors sent ONLY to the offending client — never broadcast
 
 ### Input Sanitization

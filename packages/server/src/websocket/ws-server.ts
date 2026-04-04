@@ -8,6 +8,7 @@ import { handleMessage } from "./message-handler";
 import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
 import { sendCurrentState } from "./state-broadcaster";
+import { handleChatReactMessage } from "./chat-handler";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -145,6 +146,23 @@ export function setupWebSocketServer(
             return;
           }
           sendCurrentState(session.room, session.playerId, ws);
+        } else if (parsed.type === "CHAT" || parsed.type === "REACTION") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before sending chat or reactions",
+              },
+              logger,
+              "chat-react-not-in-room",
+            );
+            return;
+          }
+          handleChatReactMessage(session.room, session.playerId, parsed, logger);
         }
       } catch (error) {
         logger.error({ error }, "Unhandled WebSocket message processing error");

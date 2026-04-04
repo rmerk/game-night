@@ -19,6 +19,9 @@ function createTestRoom(playerIds: string[] = []): Room {
     tableTalkReportTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
+    chatHistory: [],
+    chatRateTimestamps: new Map(),
+    reactionRateTimestamps: new Map(),
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
   };

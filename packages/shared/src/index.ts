@@ -97,6 +97,10 @@ export type {
   ActionMessage,
   RequestStateMessage,
   SetJokerRulesMessage,
+  ChatMessage,
+  ReactionMessage,
+  ChatBroadcast,
+  ReactionBroadcast,
   PlayerPublicInfo,
   LobbyState,
   PublicCharlestonView,
@@ -109,6 +113,17 @@ export type {
   RoomClosingReason,
 } from "./types/protocol";
 export { PROTOCOL_VERSION } from "./types/protocol";
+
+export {
+  MAX_CHAT_LENGTH,
+  CHAT_RATE_LIMIT_COUNT,
+  CHAT_RATE_LIMIT_WINDOW_MS,
+  REACTION_RATE_LIMIT_COUNT,
+  REACTION_RATE_LIMIT_WINDOW_MS,
+  CHAT_HISTORY_CAPACITY,
+  REACTION_EMOJI_ALLOWLIST,
+  isAllowedReactionEmoji,
+} from "./chat-constants";
 
 // Constants
 export {

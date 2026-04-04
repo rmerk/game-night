@@ -16,9 +16,8 @@ import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 import { buildPlayerView, broadcastGameState } from "./state-broadcaster";
+import { stripControlChars } from "./text-sanitize";
 
-// eslint-disable-next-line no-control-regex -- intentional: strip control characters from user input
-const CONTROL_CHARS = /[\x00-\x1F\x7F]/g;
 const MAX_DISPLAY_NAME_LENGTH = 30;
 
 function sendError(ws: WebSocket, code: string, message: string): void {
@@ -120,7 +119,7 @@ export function handleSetJokerRules(
 function sanitizeDisplayName(displayName: unknown): string | null {
   if (!displayName || typeof displayName !== "string") return null;
 
-  const sanitized = displayName.replace(CONTROL_CHARS, "").trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
+  const sanitized = stripControlChars(displayName).trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
 
   return sanitized.length > 0 ? sanitized : null;
 }

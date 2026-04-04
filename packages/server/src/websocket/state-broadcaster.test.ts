@@ -61,6 +61,9 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     tableTalkReportTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
+    chatHistory: [],
+    chatRateTimestamps: new Map(),
+    reactionRateTimestamps: new Map(),
     createdAt: Date.now(),
     logger: createMockLogger(),
   };

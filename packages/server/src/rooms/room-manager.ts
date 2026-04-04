@@ -36,6 +36,9 @@ export class RoomManager {
       tableTalkReportTimer: null,
       gameState: null,
       jokerRulesMode: "standard",
+      chatHistory: [],
+      chatRateTimestamps: new Map(),
+      reactionRateTimestamps: new Map(),
       createdAt: Date.now(),
       logger: roomLogger,
     };
@@ -111,6 +114,10 @@ export class RoomManager {
       clearTimeout(room.tableTalkReportTimer);
       room.tableTalkReportTimer = null;
     }
+
+    room.chatHistory.length = 0;
+    room.chatRateTimestamps.clear();
+    room.reactionRateTimestamps.clear();
 
     // 2. Snapshot sessions and clear map — prevents stale close handlers
     //    from creating orphaned timers on the dead room

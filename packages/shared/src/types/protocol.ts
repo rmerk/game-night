@@ -57,6 +57,40 @@ export interface SetJokerRulesMessage {
   jokerRulesMode: JokerRulesMode;
 }
 
+/** Client → Server: table chat (orthogonal to game state — Story 6A.1) */
+export interface ChatMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "CHAT";
+  text: string;
+}
+
+/** Client → Server: quick emoji reaction */
+export interface ReactionMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "REACTION";
+  emoji: string;
+}
+
+/** Server → Client: sanitized chat line broadcast to the room */
+export interface ChatBroadcast {
+  version: typeof PROTOCOL_VERSION;
+  type: "CHAT_BROADCAST";
+  playerId: string;
+  playerName: string;
+  text: string;
+  timestamp: number;
+}
+
+/** Server → Client: reaction broadcast (live-only; not stored in history) */
+export interface ReactionBroadcast {
+  version: typeof PROTOCOL_VERSION;
+  type: "REACTION_BROADCAST";
+  playerId: string;
+  playerName: string;
+  emoji: string;
+  timestamp: number;
+}
+
 /** Public info about a player visible to all clients */
 export interface PlayerPublicInfo {
   playerId: string;

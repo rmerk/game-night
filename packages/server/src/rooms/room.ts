@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { SeatWind, GameState, JokerRulesMode } from "@mahjong-game/shared";
+import type { ChatBroadcast, SeatWind, GameState, JokerRulesMode } from "@mahjong-game/shared";
 import type { WebSocket } from "ws";
 
 export interface PlayerInfo {
@@ -34,6 +34,12 @@ export interface Room {
   gameState: GameState | null;
   /** Host-selected Joker rules for the next game (authoritative for START_GAME) */
   jokerRulesMode: JokerRulesMode;
+  /** Last chat lines for future CHAT_HISTORY / 6A.4 — reactions not stored */
+  chatHistory: ChatBroadcast[];
+  /** Per-player sliding-window timestamps for chat rate limit */
+  chatRateTimestamps: Map<string, number[]>;
+  /** Per-player sliding-window timestamps for reaction rate limit */
+  reactionRateTimestamps: Map<string, number[]>;
   createdAt: number;
   logger: FastifyBaseLogger;
 }
