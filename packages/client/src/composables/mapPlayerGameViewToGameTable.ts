@@ -10,6 +10,7 @@ import {
   SEATS,
   getValidCallOptions,
   type CallType,
+  type LobbyState,
   type PlayerGameView,
   type PlayerPublicInfo,
   type ResolvedAction,
@@ -108,6 +109,31 @@ export function reactionBubbleAnchorForPlayer(
   const local = view.players.find((p) => p.playerId === myId) ?? null;
   const localWind = local?.wind ?? "east";
   const p = view.players.find((x) => x.playerId === playerId);
+  if (!p) {
+    return null;
+  }
+  const w = p.wind;
+  if (w === acrossSeat(localWind)) return "top";
+  if (w === leftSeat(localWind)) return "left";
+  if (w === rightSeat(localWind)) return "right";
+  return null;
+}
+
+/**
+ * Same seat geometry as `reactionBubbleAnchorForPlayer` for in-play, using lobby `players` + `myPlayerId`.
+ * Used for optional lobby reaction bubbles (Story 6A.3 AC12).
+ */
+export function reactionBubbleAnchorForLobby(
+  lobby: Pick<LobbyState, "players" | "myPlayerId">,
+  playerId: string,
+): ReactionBubbleAnchor | null {
+  const myId = lobby.myPlayerId;
+  if (playerId === myId) {
+    return "local";
+  }
+  const local = lobby.players.find((p) => p.playerId === myId) ?? null;
+  const localWind = local?.wind ?? "east";
+  const p = lobby.players.find((x) => x.playerId === playerId);
   if (!p) {
     return null;
   }

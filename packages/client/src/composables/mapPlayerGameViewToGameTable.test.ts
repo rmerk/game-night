@@ -8,6 +8,7 @@ import {
 } from "@mahjong-game/shared";
 import {
   mapPlayerGameViewToGameTableProps,
+  reactionBubbleAnchorForLobby,
   reactionBubbleAnchorForPlayer,
 } from "./mapPlayerGameViewToGameTable";
 import { parseServerMessage } from "./parseServerMessage";
@@ -107,6 +108,17 @@ test("reactionBubbleAnchorForPlayer matches opponent slots for south-local view"
 test("reactionBubbleAnchorForPlayer returns null for unknown playerId", () => {
   const v = minimalPlayerView();
   expect(reactionBubbleAnchorForPlayer(v, "ghost")).toBeNull();
+});
+
+test("reactionBubbleAnchorForLobby matches in-play geometry for same winds", () => {
+  const lobby = {
+    myPlayerId: "pS",
+    players: minimalPlayerView().players,
+  };
+  expect(reactionBubbleAnchorForLobby(lobby, "pS")).toBe("local");
+  expect(reactionBubbleAnchorForLobby(lobby, "pN")).toBe("top");
+  expect(reactionBubbleAnchorForLobby(lobby, "pE")).toBe("left");
+  expect(reactionBubbleAnchorForLobby(lobby, "pW")).toBe("right");
 });
 
 test("maps discard pools by seat relative to local player", () => {

@@ -157,6 +157,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `ReactionBar` uses `role="group"` so the action zone keeps the sole `role="toolbar"` (GameTable a11y tests). Desktop: fixed vertical stack; mobile + lobby: horizontal row above rack / in lobby block.
 - Bubbles anchored via `playerId` → opponent slots from `GameTable` props (top/left/right) and local rack area; mobile duplicates anchors above inline opponent row. No `v-html` on emoji.
 - **Pass 2:** `reactionBubbleAnchorForPlayer(view, playerId)` in `mapPlayerGameViewToGameTable.ts` uses the same wind geometry as table mapping (AC4); `RoomView` passes it into `GameTable` as `reactionAnchorForPlayer`. Store skips duplicate `REACTION_BROADCAST` (same `playerId` + `emoji` + server `timestamp`) to harden against double-echo. `ReactionBubbleStack` keeps opacity-only transition under `prefers-reduced-motion`. Tests: anchor mapping, prune expiry, dedupe.
+- **Pass 3 (AC12):** `reactionBubbleAnchorForLobby` mirrors lobby `players` + `myPlayerId` wind geometry; `RoomView` shows `ReactionBubbleStack` at simplified anchors (top / left / right / above reaction bar for local) when slide-ins closed. **Lobby → game:** `watch` clears reactions when `playerGameView` appears after lobby-only so lobby bubbles do not carry into the table (aligns with AC11 fresh in-play UX). `GameTable` test: bubble renders under `opponent-top` when `reactionAnchorForPlayer` maps id to `top`.
 
 ### File List
 
@@ -179,6 +180,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 
 - 2026-04-04: Story 6A.3 implemented — reaction protocol parse/send, ephemeral store, GameTable + lobby UI, tests; status → review.
 - 2026-04-04: Pass 2 — AC4 anchor helper from `PlayerGameView.players` + wind geometry; broadcast dedupe; reduced-motion opacity-only leave; store prune/dedupe tests.
+- 2026-04-04: Pass 3 — Lobby reaction bubbles (AC12) + clear on transition to game; `reactionBubbleAnchorForLobby`; GameTable reaction bubble integration test.
 
 ---
 
