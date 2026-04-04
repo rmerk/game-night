@@ -44,6 +44,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Cross-session memory (claude-mem)
+
+**Memory-first:** The **claude-mem-context** rule injects recent cross-session summaries into your prompt. Treat that injected block as the **primary** source for past decisions, pitfalls, debugging notes, and related work before any extra memory queries.
+
+**Search only on gap:** Call claude-mem MCP tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) only when injected context is empty or missing what this story needs, when you need **deeper** detail than the summary, or when the user asks for a deeper memory dive. Do **not** run broad memory searches out of habit if the injected context already covers the topic.
+
+**Note:** Code navigation still uses `smart_outline`, `smart_search`, and `smart_unfold` as elsewhere in this workflow—that is separate from optional claude-mem **session** search.
+
 ### Vue / client frontend prerequisite
 
 When a story task touches **`packages/client`** — including new/changed `.vue` SFCs, composables used by the client, Pinia stores, Vue Router usage, or Vitest/Vue Test Utils tests under the client package — load the applicable skills **before** writing tests or production code for that task (Steps 5–7). Skills are installed in the environment; invoke them via your platform's Skill mechanism (or read the skill file).
@@ -206,13 +214,12 @@ If a task touches only `packages/shared` or `packages/server` with no `packages/
     <action>Load {project_context} for coding standards and project-wide patterns (if exists)</action>
     <action>Load {{context_curation}} guide — this governs how you prepare context for each subagent</action>
 
-    <!-- Cross-session memory integration -->
-    <action>Query claude-mem for implementation-relevant context:
-      - Use smart_search to find existing code patterns for components this story will create or modify
-      - Use search with project scope to find past debugging experiences, implementation decisions, and gotchas in related areas
-      - Look for past review feedback on similar components to avoid repeating mistakes
+    <!-- Cross-session memory integration (memory-first) -->
+    <action>Establish implementation-relevant memory from claude-mem:
+      - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Extract decisions, gotchas, and prior work relevant to this story and files under Tasks/File List.
+      - **Only if needed:** Query claude-mem MCP tools (smart_search with project scope, mem-search, timeline, get_observations) when injected context is missing this area, you need deeper detail, or the user requests a deeper dive. Do not duplicate broad searches when injected context already suffices.
     </action>
-    <action>Incorporate claude-mem findings into your understanding — use these when curating context for implementer subagents</action>
+    <action>Incorporate merged memory findings into your understanding — use these when curating context for implementer subagents</action>
 
     <!-- Build structural understanding of files this story will touch -->
     <action>From story Tasks/Subtasks and File List, identify ALL source files this story will create or modify</action>

@@ -7,6 +7,8 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
+**GDS workflows (`gds-create-story`, `gds-dev-story`, `code-review`, etc.):** Prefer this injected block as your first source of cross-session memory. Only use claude-mem MCP search tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) when you need detail not present here or the user asks for a deeper dive—avoid redundant searches that duplicate this context.
+
 # $CMEM mahjong-game 2026-04-03 8:48pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
