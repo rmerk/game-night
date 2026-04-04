@@ -1,6 +1,6 @@
 # Story 6A.2: Chat Panel UI (SlideInPanel)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Ultimate context engine — 2026-04-04. Second pass: placeholder replacement, Pinia wiring, shared constants, lobby shell, a11y/z-index. Depends on 6A.1 protocol + server. -->
 
@@ -46,35 +46,35 @@ so that **I can text chat with friends during all game phases without leaving th
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Protocol parsing + connection API** (AC: 8, 5, 9)
-  - [ ] 1.1 Add `CHAT_BROADCAST` branch in `parseServerMessage` with field validation; extend `ParsedServerMessage` union.
-  - [ ] 1.2 Handle new kind in `useRoomConnection.handleMessage`; push into chat store.
-  - [ ] 1.3 Expose `sendChat(text: string)`; trim input; no-op if socket not open or empty after trim.
-  - [ ] 1.4 On `disconnect` / room leave from `RoomView`, reset chat + slide-in panel store (mirror `rackStore.resetForRoomLeave`).
+- [x] **Task 1: Protocol parsing + connection API** (AC: 8, 5, 9)
+  - [x] 1.1 Add `CHAT_BROADCAST` branch in `parseServerMessage` with field validation; extend `ParsedServerMessage` union.
+  - [x] 1.2 Handle new kind in `useRoomConnection.handleMessage`; push into chat store.
+  - [x] 1.3 Expose `sendChat(text: string)`; trim input; no-op if socket not open or empty after trim.
+  - [x] 1.4 On `disconnect` / room leave from `RoomView`, reset chat + slide-in panel store (mirror `rackStore.resetForRoomLeave`).
 
-- [ ] **Task 2: Pinia stores** (AC: 2, 3, 4, 9)
-  - [ ] 2.1 `useSlideInPanelStore`: `activePanel`, `openChat()`, `openNmjl()` (stub), `close()`, `toggleChat()`.
-  - [ ] 2.2 `useChatStore`: `messages: ChatBroadcast[]` (or narrow client type), `appendBroadcast`, `clear`, optional `draft` if keeping draft local-only.
-  - [ ] 2.3 Export `isAnySlideInPanelOpen` (computed) for **6A.3**.
+- [x] **Task 2: Pinia stores** (AC: 2, 3, 4, 9)
+  - [x] 2.1 `useSlideInPanelStore`: `activePanel`, `openChat()`, `openNmjl()` (stub), `close()`, `toggleChat()`.
+  - [x] 2.2 `useChatStore`: `messages: ChatBroadcast[]` (or narrow client type), `appendBroadcast`, `clear`, optional `draft` if keeping draft local-only.
+  - [x] 2.3 Export `isAnySlideInPanelOpen` (computed) for **6A.3**.
 
-- [ ] **Task 3: SlideInPanel + ChatPanel components** (AC: 1, 4, 6)
-  - [ ] 3.1 `SlideInPanel.vue`: props `open`, `side` / responsive classes; slot for content; ARIA (`role="dialog"` or `region"`) + `aria-label` for chat.
-  - [ ] 3.2 `ChatPanel.vue` (or `chat/ChatPanel.vue`): message list + `BaseButton` Send + text input (native `<input>` or `<textarea>` with UnoCSS matching `text-interactive` / `text-body` per UX — [`ux-design-specification.md`](../planning-artifacts/ux-design-specification.md) typography table).
-  - [ ] 3.3 Scroll container ref + stick-to-bottom logic; **reduced motion:** respect `prefers-reduced-motion` if animations are CSS-based (theme already zeroes `--timing-tactile`).
+- [x] **Task 3: SlideInPanel + ChatPanel components** (AC: 1, 4, 6)
+  - [x] 3.1 `SlideInPanel.vue`: props `open`, `side` / responsive classes; slot for content; ARIA (`role="dialog"` or `region"`) + `aria-label` for chat.
+  - [x] 3.2 `ChatPanel.vue` (or `chat/ChatPanel.vue`): message list + `BaseButton` Send + text input (native `<input>` or `<textarea>` with UnoCSS matching `text-interactive` / `text-body` per UX — [`ux-design-specification.md`](../planning-artifacts/ux-design-specification.md) typography table).
+  - [x] 3.3 Scroll container ref + stick-to-bottom logic; **reduced motion:** respect `prefers-reduced-motion` if animations are CSS-based (theme already zeroes `--timing-tactile`).
 
-- [ ] **Task 4: GameTable + MobileBottomBar integration** (AC: 7)
-  - [ ] 4.1 **Remove/replace** the dashed `chat-placeholder-shell` in `GameTable.vue`; wire real toggle + `SlideInPanel` + `ChatPanel` without leaving duplicate focus targets.
-  - [ ] 4.2 Desktop/iPad: tertiary chat toggle at **right edge** of the table layout — practical options: **`fixed`/`absolute` within `#gameplay-region`** (stay inside gameplay skip-link target) or a dedicated column in the `md:grid-cols-[auto_1fr_auto]` row; ensure **`z-index`** stacks above felt/discards but **does not** eclipse scoreboard/modals.
-  - [ ] 4.3 Mobile: add chat button to `MobileBottomBar`; opens the same panel stack (mobile = bottom sheet ~**40–50%** `dvh`, rack still visible — tune against real devices).
-  - [ ] 4.4 **Required:** wire **NMJL** stub button in `MobileBottomBar` (and desktop if present) to `openNmjl()` and render a **minimal** placeholder panel so **AC2** mutual exclusivity is **proven in code**, not only documented.
+- [x] **Task 4: GameTable + MobileBottomBar integration** (AC: 7)
+  - [x] 4.1 **Remove/replace** the dashed `chat-placeholder-shell` in `GameTable.vue`; wire real toggle + `SlideInPanel` + `ChatPanel` without leaving duplicate focus targets.
+  - [x] 4.2 Desktop/iPad: tertiary chat toggle at **right edge** of the table layout — practical options: **`fixed`/`absolute` within `#gameplay-region`** (stay inside gameplay skip-link target) or a dedicated column in the `md:grid-cols-[auto_1fr_auto]` row; ensure **`z-index`** stacks above felt/discards but **does not** eclipse scoreboard/modals.
+  - [x] 4.3 Mobile: add chat button to `MobileBottomBar`; opens the same panel stack (mobile = bottom sheet ~**40–50%** `dvh`, rack still visible — tune against real devices).
+  - [x] 4.4 **Required:** wire **NMJL** stub button in `MobileBottomBar` (and desktop if present) to `openNmjl()` and render a **minimal** placeholder panel so **AC2** mutual exclusivity is **proven in code**, not only documented.
 
-- [ ] **Task 4b: Lobby chat shell** (AC: 9)
-  - [ ] 4b.1 In `RoomView.vue`, when `isLobby && lobbyState`, render chat toggle + panel (shared components/stores) so lobby players can use the same `CHAT` / `CHAT_BROADCAST` path as in `GameTable`.
+- [x] **Task 4b: Lobby chat shell** (AC: 9)
+  - [x] 4b.1 In `RoomView.vue`, when `isLobby && lobbyState`, render chat toggle + panel (shared components/stores) so lobby players can use the same `CHAT` / `CHAT_BROADCAST` path as in `GameTable`.
 
-- [ ] **Task 5: Tests** (AC: 8, 10)
-  - [ ] 5.1 Extend [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts) for valid/invalid `CHAT_BROADCAST` (wrong `timestamp` type, missing `playerName`, empty `text`, etc. → `null` or `ignored` per your parser contract — **document** the contract in a one-line comment).
-  - [ ] 5.2 Store tests with **`createPinia()`** (see client component tests): slide-in mutual exclusivity, chat `append` + `clear`, and **`sendChat`** no-op when socket closed if tested via a thin wrapper.
-  - [ ] 5.3 Component / composable tests for auto-scroll only if stable under **happy-dom**; otherwise cover scroll logic in a pure function test.
+- [x] **Task 5: Tests** (AC: 8, 10)
+  - [x] 5.1 Extend [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts) for valid/invalid `CHAT_BROADCAST` (wrong `timestamp` type, missing `playerName`, empty `text`, etc. → `null` or `ignored` per your parser contract — **document** the contract in a one-line comment).
+  - [x] 5.2 Store tests with **`createPinia()`** (see client component tests): slide-in mutual exclusivity, chat `append` + `clear`, and **`sendChat`** no-op when socket closed if tested via a thin wrapper.
+  - [x] 5.3 Component / composable tests for auto-scroll only if stable under **happy-dom**; otherwise cover scroll logic in a pure function test.
 
 ## Dev Notes
 
@@ -150,14 +150,42 @@ Keep **`sendChat`** on the connection object so **`RoomView` / `GameTable` / lob
 
 ### Agent Model Used
 
-_(filled by dev-story)_
+Composer (Cursor cloud agent)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented Story 6A.2: `CHAT_BROADCAST` / `REACTION_BROADCAST` parsing, `sendChat` on `useRoomConnection`, Pinia `useChatStore` + `useSlideInPanelStore` with `isAnySlideInPanelOpen` for 6A.3, responsive `SlideInPanel` + `ChatPanel`, shared `SlideInReferencePanels`, GameTable / MobileBottomBar / lobby toggles, NMJL stub panel for mutual exclusivity, store reset on WebSocket disconnect/close and new `connect()`. Escape from chat input returns focus to action zone (in-play) or lobby focus sink.
+- **Pass 2:** One panel DOM node per type (valid `id` for `aria-controls`); exported `SLIDE_IN_*_PANEL_ROOT_ID`; tertiary ghost toggles; `useRoomConnection.sendChat.test.ts`.
+
 ### File List
+
+- `packages/client/src/composables/parseServerMessage.ts`
+- `packages/client/src/composables/parseServerMessage.test.ts`
+- `packages/client/src/composables/useRoomConnection.ts`
+- `packages/client/src/stores/chat.ts`
+- `packages/client/src/stores/chat.test.ts`
+- `packages/client/src/stores/slideInPanel.ts`
+- `packages/client/src/stores/slideInPanel.test.ts`
+- `packages/client/src/utils/formatChatTimestamp.ts`
+- `packages/client/src/utils/formatChatTimestamp.test.ts`
+- `packages/client/src/components/ui/SlideInPanel.vue`
+- `packages/client/src/components/chat/ChatPanel.vue`
+- `packages/client/src/components/chat/SlideInReferencePanels.vue`
+- `packages/client/src/components/chat/slideInPanelIds.ts`
+- `packages/client/src/composables/useRoomConnection.sendChat.test.ts`
+- `packages/client/src/components/game/GameTable.vue`
+- `packages/client/src/components/game/GameTable.test.ts`
+- `packages/client/src/components/game/MobileBottomBar.vue`
+- `packages/client/src/components/game/MobileBottomBar.test.ts`
+- `packages/client/src/views/RoomView.vue`
+
+## Change Log
+
+- **2026-04-04:** Story 6A.2 implemented — chat panel UI, protocol wiring, stores, tests; status → review.
+- **2026-04-04 (pass 2):** Single responsive `SlideInPanel` root (fixes duplicate element IDs); stable `slideInPanelIds` + `aria-controls` on toggles; tertiary-style chrome toggles; `useRoomConnection.sendChat` unit tests; store doc points 6A.3 to shared IDs.
 
 ---
 
-**Completion status:** Story context complete — **ready-for-dev** (second editorial pass: placeholder replacement, `MAX_CHAT_LENGTH`, lobby shell, Pinia wiring, NMJL stub required, overlay/a11y/z-index notes).
+**Completion status:** Implementation complete — **review** (run `code-review` with a different model recommended).

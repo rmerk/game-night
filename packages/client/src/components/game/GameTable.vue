@@ -7,6 +7,8 @@ import OpponentArea from "./OpponentArea.vue";
 import TurnIndicator from "./TurnIndicator.vue";
 import WallCounter from "./WallCounter.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
+import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
+import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "../chat/slideInPanelIds";
 import DiscardPool from "./DiscardPool.vue";
 import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
@@ -34,10 +36,12 @@ import {
   type TableTalkReportState,
 } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
+import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 
 const rackStore = useRackStore();
+const slideInPanelStore = useSlideInPanelStore();
 
 const props = withDefaults(
   defineProps<{
@@ -114,6 +118,7 @@ const emit = defineEmits<{
   /** Non-Mahjong: selected rack tile ids; Mahjong: single placeholder id (server requires non-empty tileIds). */
   confirmCall: [payload: { tileIds: string[] }];
   retractCall: [];
+  sendChat: [text: string];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -489,14 +494,11 @@ function focusActionZone() {
   actionZoneEntryRef.value?.focus();
 }
 
-function handleChatPlaceholderKeydown(event: KeyboardEvent) {
-  if (event.key !== "Escape") {
-    return;
-  }
-
-  event.preventDefault();
+function onChatEscape() {
   focusActionZone();
 }
+
+// Story 6A.3: hide ReactionBar when any slide-in panel is open — use slideInPanelStore.isAnySlideInPanelOpen.
 </script>
 
 <template>
@@ -510,7 +512,7 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
   <div
     id="gameplay-region"
     data-testid="game-table"
-    class="game-table bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
+    class="game-table relative bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
   >
     <!-- Opponent Top -->
     <div data-testid="opponent-top" class="game-table__opponent-top flex justify-center">
@@ -646,8 +648,30 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
       <!-- Opponent Right (hidden on phone, shown via grid on tablet/desktop) -->
       <div
         data-testid="opponent-right"
-        class="game-table__opponent-right hidden md:flex items-center justify-center"
+        class="game-table__opponent-right hidden md:flex flex-col items-center justify-center gap-2"
       >
+        <div class="flex flex-col gap-2">
+          <button
+            type="button"
+            data-testid="nmjl-toggle-desktop"
+            class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-felt"
+            :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
+            :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
+            @click="slideInPanelStore.openNmjl()"
+          >
+            Card
+          </button>
+          <button
+            type="button"
+            data-testid="chat-toggle-desktop"
+            class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-felt"
+            :aria-expanded="slideInPanelStore.activePanel === 'chat'"
+            :aria-controls="SLIDE_IN_CHAT_PANEL_ROOT_ID"
+            @click="slideInPanelStore.toggleChat()"
+          >
+            Chat
+          </button>
+        </div>
         <OpponentArea
           position="right"
           :player="rightPlayer"
@@ -797,21 +821,19 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
       </div>
     </div>
 
+    <SlideInReferencePanels
+      v-if="!isScoreboardPhase"
+      :send-chat="(t: string) => emit('sendChat', t)"
+      :on-escape-focus-target="onChatEscape"
+    />
+
+    <!-- DOM anchor between actions and mobile controls (a11y / test document order); panel content mounts when open. -->
     <div
       v-if="!isScoreboardPhase"
-      data-testid="chat-placeholder-shell"
-      class="order-5 flex justify-center"
-    >
-      <div
-        data-testid="chat-placeholder-zone"
-        tabindex="0"
-        class="min-h-11 w-full max-w-sm rounded-md border border-dashed border-chrome-border bg-chrome-surface/85 px-4 py-3 text-center text-3.5 text-text-primary/80 focus-visible:focus-ring-on-felt"
-        aria-label="Chat placeholder"
-        @keydown="handleChatPlaceholderKeydown"
-      >
-        Chat placeholder. Press Escape to return to game actions.
-      </div>
-    </div>
+      data-testid="chat-shell-anchor"
+      class="order-5 sr-only"
+      aria-hidden="true"
+    />
 
     <div
       v-if="!isScoreboardPhase"

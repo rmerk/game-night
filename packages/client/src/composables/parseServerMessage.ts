@@ -1,5 +1,6 @@
 import {
   PROTOCOL_VERSION,
+  type ChatBroadcast,
   type LobbyState,
   type PlayerGameView,
   type ServerErrorMessage,
@@ -11,6 +12,7 @@ export type ParsedServerMessage =
   | { kind: "state_update"; message: StateUpdateMessage }
   | { kind: "error"; message: ServerErrorMessage }
   | { kind: "system_event"; message: SystemEventMessage }
+  | { kind: "chat_broadcast"; message: ChatBroadcast }
   | { kind: "ignored" };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -69,6 +71,41 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
         message: parsed.message,
       };
       return { kind: "error", message };
+    }
+    case "CHAT_BROADCAST": {
+      // Contract: require string playerId, playerName, non-empty text, finite numeric timestamp; else null.
+      if (
+        typeof parsed.playerId !== "string" ||
+        typeof parsed.playerName !== "string" ||
+        typeof parsed.text !== "string" ||
+        parsed.text.length === 0 ||
+        typeof parsed.timestamp !== "number" ||
+        !Number.isFinite(parsed.timestamp)
+      ) {
+        return null;
+      }
+      const message: ChatBroadcast = {
+        version: PROTOCOL_VERSION,
+        type: "CHAT_BROADCAST",
+        playerId: parsed.playerId,
+        playerName: parsed.playerName,
+        text: parsed.text,
+        timestamp: parsed.timestamp,
+      };
+      return { kind: "chat_broadcast", message };
+    }
+    case "REACTION_BROADCAST": {
+      if (
+        typeof parsed.playerId !== "string" ||
+        typeof parsed.playerName !== "string" ||
+        typeof parsed.emoji !== "string" ||
+        parsed.emoji.length === 0 ||
+        typeof parsed.timestamp !== "number" ||
+        !Number.isFinite(parsed.timestamp)
+      ) {
+        return null;
+      }
+      return { kind: "ignored" };
     }
     case "SYSTEM_EVENT": {
       if (parsed.event !== "SESSION_SUPERSEDED" && parsed.event !== "ROOM_CLOSING") {

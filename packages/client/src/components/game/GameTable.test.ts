@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
+import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import type {
   SuitedTile,
@@ -214,7 +215,7 @@ describe("GameTable — accessibility", () => {
 
     const rackEntry = wrapper.get("[data-testid='rack-zone-entry']").element;
     const actionEntry = wrapper.get("[data-testid='action-zone-entry']").element;
-    const chatZone = wrapper.get("[data-testid='chat-placeholder-zone']").element;
+    const chatZone = wrapper.get("[data-testid='chat-shell-anchor']").element;
     const controlsEntry = wrapper.get("[data-testid='controls-zone-entry']").element;
 
     expect(
@@ -228,24 +229,30 @@ describe("GameTable — accessibility", () => {
     ).toBeTruthy();
   });
 
-  it("returns focus to the action zone when Escape is pressed in the chat placeholder", async () => {
+  it("returns focus to the action zone when Escape is pressed in the chat input", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
     const wrapper = mount(GameTable, {
       attachTo: document.body,
       props: {
         opponents: mockPlayers,
       },
       global: {
-        plugins: [createPinia()],
+        plugins: [pinia],
         stubs: {
           TileSprite: { template: "<svg />" },
         },
       },
     });
-    const actionEntry = expectHtmlElement(wrapper.get("[data-testid='action-zone-entry']").element);
-    const chatZone = wrapper.get("[data-testid='chat-placeholder-zone']");
+    useSlideInPanelStore().openChat();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
 
-    expectHtmlElement(chatZone.element).focus();
-    await chatZone.trigger("keydown", { key: "Escape" });
+    const actionEntry = expectHtmlElement(wrapper.get("[data-testid='action-zone-entry']").element);
+    const chatInput = wrapper.get("[data-testid='chat-panel-input']");
+
+    expectHtmlElement(chatInput.element).focus();
+    await chatInput.trigger("keydown", { key: "Escape" });
 
     expect(document.activeElement).toBe(actionEntry);
     wrapper.unmount();

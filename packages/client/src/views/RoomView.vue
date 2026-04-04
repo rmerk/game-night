@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
+import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
+import {
+  SLIDE_IN_CHAT_PANEL_ROOT_ID,
+  SLIDE_IN_NMJL_PANEL_ROOT_ID,
+} from "../components/chat/slideInPanelIds";
+import { useSlideInPanelStore } from "../stores/slideInPanel";
 import { mapPlayerGameViewToGameTableProps } from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
@@ -45,6 +51,13 @@ const showSessionErrorBanner = computed(
     (lobbyState.value !== null || playerGameView.value !== null),
 );
 const rackStore = useRackStore();
+const slideInPanelStore = useSlideInPanelStore();
+
+const lobbyFocusReturnRef = useTemplateRef<HTMLDivElement>("lobbyFocusReturn");
+
+function focusLobbyAfterChatEscape() {
+  lobbyFocusReturnRef.value?.focus();
+}
 
 const tableProps = computed(() => {
   const v = playerGameView.value;
@@ -254,7 +267,38 @@ function onJokerRulesChange(ev: Event) {
       </button>
     </div>
 
-    <div v-else-if="isLobby && lobbyState" class="mx-auto max-w-lg px-4 py-8">
+    <div v-else-if="isLobby && lobbyState" class="relative mx-auto max-w-lg px-4 py-8">
+      <div
+        ref="lobbyFocusReturn"
+        tabindex="-1"
+        class="sr-only"
+        aria-hidden="true"
+      />
+      <div class="mb-4 flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-chrome"
+          :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
+          :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
+          @click="slideInPanelStore.openNmjl()"
+        >
+          Card
+        </button>
+        <button
+          type="button"
+          data-testid="lobby-chat-toggle"
+          class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-chrome"
+          :aria-expanded="slideInPanelStore.activePanel === 'chat'"
+          :aria-controls="SLIDE_IN_CHAT_PANEL_ROOT_ID"
+          @click="slideInPanelStore.toggleChat()"
+        >
+          Chat
+        </button>
+      </div>
+      <SlideInReferencePanels
+        :send-chat="(t: string) => conn.sendChat(t)"
+        :on-escape-focus-target="focusLobbyAfterChatEscape"
+      />
       <h2 class="mb-2 text-4 font-semibold">Lobby</h2>
       <p class="mb-4 text-3.5 text-text-secondary">{{ lobbyState.players.length }} / 4 players</p>
       <ul class="mb-6 space-y-2">
@@ -300,6 +344,7 @@ function onJokerRulesChange(ev: Event) {
       v-else-if="tableProps"
       v-bind="tableProps"
       :resolved-action="resolvedAction ?? null"
+      @send-chat="(t: string) => conn.sendChat(t)"
       @discard="onDiscard"
       @pass="onPass"
       @call="onCall"
