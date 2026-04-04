@@ -5,7 +5,10 @@ export type SlideInPanelId = "chat" | "nmjl";
 
 /**
  * Single source of truth for slide-in reference panels (chat vs NMJL card).
- * Story 6A.3 ReactionBar: use `isAnySlideInPanelOpen` to hide floating reactions.
+ *
+ * **6A.3 ReactionBar:** use `useSlideInPanelStore().isAnySlideInPanelOpen`. For toggle
+ * `aria-controls`, use `SLIDE_IN_CHAT_PANEL_ROOT_ID` / `SLIDE_IN_NMJL_PANEL_ROOT_ID` from
+ * `components/chat/slideInPanelIds` — do not duplicate open-state logic.
  */
 export const useSlideInPanelStore = defineStore("slideInPanel", () => {
   const activePanel = ref<SlideInPanelId | null>(null);

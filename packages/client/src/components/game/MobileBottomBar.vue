@@ -2,6 +2,7 @@
 import { onMounted, shallowRef, useTemplateRef } from "vue";
 import BasePanel from "../ui/BasePanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
+import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "../chat/slideInPanelIds";
 
 const slideInPanelStore = useSlideInPanelStore();
 
@@ -98,6 +99,7 @@ onMounted(() => {
       class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/85 focus-visible:focus-ring-on-chrome"
       aria-label="Show NMJL card"
       :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
+      :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
       @click="slideInPanelStore.openNmjl()"
     >
       <span class="text-5">🀄</span>
@@ -110,6 +112,7 @@ onMounted(() => {
       class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/85 focus-visible:focus-ring-on-chrome"
       aria-label="Open chat"
       :aria-expanded="slideInPanelStore.activePanel === 'chat'"
+      :aria-controls="SLIDE_IN_CHAT_PANEL_ROOT_ID"
       @click="slideInPanelStore.toggleChat()"
     >
       <span class="text-5">💬</span>

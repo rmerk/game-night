@@ -4,6 +4,10 @@ import { useRoute, useRouter } from "vue-router";
 import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
+import {
+  SLIDE_IN_CHAT_PANEL_ROOT_ID,
+  SLIDE_IN_NMJL_PANEL_ROOT_ID,
+} from "../components/chat/slideInPanelIds";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
 import { mapPlayerGameViewToGameTableProps } from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
@@ -273,8 +277,9 @@ function onJokerRulesChange(ev: Event) {
       <div class="mb-4 flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          class="rounded-md border border-chrome-border bg-chrome-surface/90 px-3 py-2 text-3 text-text-secondary shadow-sm hover:bg-chrome-surface focus-visible:focus-ring-on-chrome"
+          class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-chrome"
           :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
+          :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
           @click="slideInPanelStore.openNmjl()"
         >
           Card
@@ -282,8 +287,9 @@ function onJokerRulesChange(ev: Event) {
         <button
           type="button"
           data-testid="lobby-chat-toggle"
-          class="rounded-md border border-chrome-border bg-chrome-surface/90 px-3 py-2 text-3 text-text-secondary shadow-sm hover:bg-chrome-surface focus-visible:focus-ring-on-chrome"
+          class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-chrome"
           :aria-expanded="slideInPanelStore.activePanel === 'chat'"
+          :aria-controls="SLIDE_IN_CHAT_PANEL_ROOT_ID"
           @click="slideInPanelStore.toggleChat()"
         >
           Chat

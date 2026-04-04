@@ -157,6 +157,7 @@ Composer (Cursor cloud agent)
 ### Completion Notes List
 
 - Implemented Story 6A.2: `CHAT_BROADCAST` / `REACTION_BROADCAST` parsing, `sendChat` on `useRoomConnection`, Pinia `useChatStore` + `useSlideInPanelStore` with `isAnySlideInPanelOpen` for 6A.3, responsive `SlideInPanel` + `ChatPanel`, shared `SlideInReferencePanels`, GameTable / MobileBottomBar / lobby toggles, NMJL stub panel for mutual exclusivity, store reset on WebSocket disconnect/close and new `connect()`. Escape from chat input returns focus to action zone (in-play) or lobby focus sink.
+- **Pass 2:** One panel DOM node per type (valid `id` for `aria-controls`); exported `SLIDE_IN_*_PANEL_ROOT_ID`; tertiary ghost toggles; `useRoomConnection.sendChat.test.ts`.
 
 ### File List
 
@@ -172,6 +173,8 @@ Composer (Cursor cloud agent)
 - `packages/client/src/components/ui/SlideInPanel.vue`
 - `packages/client/src/components/chat/ChatPanel.vue`
 - `packages/client/src/components/chat/SlideInReferencePanels.vue`
+- `packages/client/src/components/chat/slideInPanelIds.ts`
+- `packages/client/src/composables/useRoomConnection.sendChat.test.ts`
 - `packages/client/src/components/game/GameTable.vue`
 - `packages/client/src/components/game/GameTable.test.ts`
 - `packages/client/src/components/game/MobileBottomBar.vue`
@@ -181,6 +184,7 @@ Composer (Cursor cloud agent)
 ## Change Log
 
 - **2026-04-04:** Story 6A.2 implemented — chat panel UI, protocol wiring, stores, tests; status → review.
+- **2026-04-04 (pass 2):** Single responsive `SlideInPanel` root (fixes duplicate element IDs); stable `slideInPanelIds` + `aria-controls` on toggles; tertiary-style chrome toggles; `useRoomConnection.sendChat` unit tests; store doc points 6A.3 to shared IDs.
 
 ---
 

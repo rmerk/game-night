@@ -2,6 +2,7 @@
 import SlideInPanel from "../ui/SlideInPanel.vue";
 import ChatPanel from "./ChatPanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
+import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "./slideInPanelIds";
 
 defineProps<{
   sendChat: (text: string) => void;
@@ -15,9 +16,10 @@ const slideInPanelStore = useSlideInPanelStore();
   <SlideInPanel
     :open="slideInPanelStore.activePanel === 'chat'"
     label="Chat"
+    :content-id="SLIDE_IN_CHAT_PANEL_ROOT_ID"
     @close="slideInPanelStore.close()"
   >
-    <div id="room-chat-panel" class="flex min-h-0 min-h-[12rem] flex-1 flex-col md:min-h-0">
+    <div class="flex min-h-0 min-h-[12rem] flex-1 flex-col md:min-h-0">
       <div class="flex items-center justify-between border-b border-chrome-border px-3 py-2">
         <h2 class="text-interactive text-3.5 font-medium">Chat</h2>
         <button
@@ -35,6 +37,7 @@ const slideInPanelStore = useSlideInPanelStore();
   <SlideInPanel
     :open="slideInPanelStore.activePanel === 'nmjl'"
     label="NMJL card"
+    :content-id="SLIDE_IN_NMJL_PANEL_ROOT_ID"
     @close="slideInPanelStore.close()"
   >
     <div class="flex min-h-0 flex-1 flex-col p-4 md:min-h-0">
