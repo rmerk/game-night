@@ -33,6 +33,7 @@ export class RoomManager {
       graceTimers: new Map(),
       lifecycleTimers: new Map(),
       socialOverrideTimer: null,
+      tableTalkReportTimer: null,
       gameState: null,
       jokerRulesMode: "standard",
       createdAt: Date.now(),
@@ -105,6 +106,10 @@ export class RoomManager {
     if (room.socialOverrideTimer) {
       clearTimeout(room.socialOverrideTimer);
       room.socialOverrideTimer = null;
+    }
+    if (room.tableTalkReportTimer) {
+      clearTimeout(room.tableTalkReportTimer);
+      room.tableTalkReportTimer = null;
     }
 
     // 2. Snapshot sessions and clear map — prevents stale close handlers

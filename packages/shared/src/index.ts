@@ -41,6 +41,7 @@ export type {
   PendingMahjongState,
   ChallengeState,
   SocialOverrideState,
+  TableTalkReportState,
 } from "./types/game-state";
 
 export { CHALLENGE_TIMEOUT_SECONDS, SOCIAL_OVERRIDE_TIMEOUT_SECONDS } from "./types/game-state";
@@ -70,6 +71,8 @@ export type {
   ChallengeVoteAction,
   SocialOverrideRequestAction,
   SocialOverrideVoteAction,
+  TableTalkReportAction,
+  TableTalkVoteAction,
   ShowHandAction,
 } from "./types/actions";
 
@@ -200,5 +203,11 @@ export {
   handleSocialOverrideVote,
   handleSocialOverrideTimeout,
 } from "./engine/actions/social-override";
+
+export {
+  handleTableTalkReport,
+  handleTableTalkVote,
+  handleTableTalkTimeout,
+} from "./engine/actions/table-talk-report";
 
 export { handleShowHand } from "./engine/actions/show-hand";

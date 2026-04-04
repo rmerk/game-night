@@ -26,6 +26,9 @@ export function handleSocialOverrideRequest(
   if (state.socialOverrideState) {
     return { accepted: false, reason: "SOCIAL_OVERRIDE_ALREADY_ACTIVE" };
   }
+  if (state.tableTalkReportState) {
+    return { accepted: false, reason: "TABLE_TALK_PENDING" };
+  }
   if (!state.callWindow) {
     return { accepted: false, reason: "CALL_WINDOW_NOT_ELIGIBLE" };
   }

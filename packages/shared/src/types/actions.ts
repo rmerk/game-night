@@ -25,6 +25,8 @@ export type GameAction =
   | ChallengeVoteAction
   | SocialOverrideRequestAction
   | SocialOverrideVoteAction
+  | TableTalkReportAction
+  | TableTalkVoteAction
   | ShowHandAction;
 
 /** Action to start a game with 4 players */
@@ -187,6 +189,21 @@ export interface SocialOverrideRequestAction {
 /** Non-requesting player votes on a social override */
 export interface SocialOverrideVoteAction {
   readonly type: "SOCIAL_OVERRIDE_VOTE";
+  readonly playerId: string;
+  readonly approve: boolean;
+}
+
+/** Reporter accuses another player of table talk (Story 3C.5) */
+export interface TableTalkReportAction {
+  readonly type: "TABLE_TALK_REPORT";
+  readonly playerId: string;
+  readonly reportedPlayerId: string;
+  readonly description: string;
+}
+
+/** Eligible voter approves or denies a table-talk report */
+export interface TableTalkVoteAction {
+  readonly type: "TABLE_TALK_VOTE";
   readonly playerId: string;
   readonly approve: boolean;
 }

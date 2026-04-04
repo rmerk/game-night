@@ -120,6 +120,17 @@ export interface SocialOverrideState {
   votes: Record<string, "approve" | "deny">;
 }
 
+/** Majority vote (2/3) on a table-talk report — dead hand on reported if upheld (Story 3C.5) */
+export interface TableTalkReportState {
+  readonly reporterId: string;
+  readonly reportedPlayerId: string;
+  readonly description: string;
+  readonly expiresAt: number;
+  /** The three non-reporters (includes reported — they may vote deny) */
+  readonly voterIds: readonly string[];
+  votes: Record<string, "approve" | "deny">;
+}
+
 /** Server schedules this duration; shared defines the constant */
 export const SOCIAL_OVERRIDE_TIMEOUT_SECONDS = 10;
 
@@ -179,6 +190,10 @@ export interface GameState {
   challengeState: ChallengeState | null;
   /** Pending social override vote (discard undo) — blocks call-window actions until resolved */
   socialOverrideState: SocialOverrideState | null;
+  /** Pending table-talk report vote (majority 2/3) — blocks call-window actions until resolved */
+  tableTalkReportState: TableTalkReportState | null;
+  /** Completed table-talk submissions per reporter this game (denied outcomes count toward FR83 limit) */
+  tableTalkReportCountsByPlayerId: Record<string, number>;
   /** Host-visible audit lines (append-only) */
   hostAuditLog: string[];
   /** Tracks Charleston pass sequencing and blind-pass visibility */
@@ -326,5 +341,22 @@ export type ResolvedAction =
       readonly type: "SOCIAL_OVERRIDE_RESOLVED";
       readonly outcome: "applied" | "rejected";
       readonly requesterId: string;
+    }
+  | {
+      readonly type: "TABLE_TALK_REPORT_SUBMITTED";
+      readonly reporterId: string;
+      readonly reportedPlayerId: string;
+      readonly description: string;
+    }
+  | {
+      readonly type: "TABLE_TALK_VOTE_CAST";
+      readonly playerId: string;
+      readonly vote: "approve" | "deny";
+    }
+  | {
+      readonly type: "TABLE_TALK_REPORT_RESOLVED";
+      readonly outcome: "upheld" | "denied";
+      readonly reporterId: string;
+      readonly reportedPlayerId: string;
     }
   | { readonly type: "HAND_SHOWN"; readonly playerId: string };

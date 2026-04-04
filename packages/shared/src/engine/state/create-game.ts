@@ -86,6 +86,8 @@ export function createGame(
     pendingMahjong: null,
     challengeState: null,
     socialOverrideState: null,
+    tableTalkReportState: null,
+    tableTalkReportCountsByPlayerId: {},
     hostAuditLog: [],
     charleston: createInitialCharlestonState(playerIds),
     shownHands: {},
