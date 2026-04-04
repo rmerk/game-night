@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
+import ReactionBar from "../components/reactions/ReactionBar.vue";
 import {
   SLIDE_IN_CHAT_PANEL_ROOT_ID,
   SLIDE_IN_NMJL_PANEL_ROOT_ID,
@@ -295,6 +296,12 @@ function onJokerRulesChange(ev: Event) {
           Chat
         </button>
       </div>
+      <div
+        v-if="!slideInPanelStore.isAnySlideInPanelOpen"
+        class="mb-4 flex justify-center"
+      >
+        <ReactionBar layout="horizontal" :on-react="(e: string) => conn.sendReaction(e)" />
+      </div>
       <SlideInReferencePanels
         :send-chat="(t: string) => conn.sendChat(t)"
         :on-escape-focus-target="focusLobbyAfterChatEscape"
@@ -345,6 +352,7 @@ function onJokerRulesChange(ev: Event) {
       v-bind="tableProps"
       :resolved-action="resolvedAction ?? null"
       @send-chat="(t: string) => conn.sendChat(t)"
+      @send-reaction="(e: string) => conn.sendReaction(e)"
       @discard="onDiscard"
       @pass="onPass"
       @call="onCall"
