@@ -86,6 +86,13 @@ export const devShowcaseDefs: DevShowcaseDef[] = [
     blurb: "Host SET_JOKER_RULES protocol and modes (Story 3C.2).",
     component: () => import("./components/dev/JokerRulesShowcase.vue"),
   },
+  {
+    path: "/dev/player-view-bridge",
+    name: "dev-player-view-bridge",
+    label: "PlayerView bridge",
+    blurb: "PlayerGameView → GameTable props (Epic 3B retro).",
+    component: () => import("./components/dev/PlayerGameViewBridgeShowcase.vue"),
+  },
 ];
 
 export function devShowcaseRouteRecords(): RouteRecordRaw[] {
