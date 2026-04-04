@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useNow } from "@vueuse/core";
+import { storeToRefs } from "pinia";
 import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
@@ -8,6 +9,8 @@ import TurnIndicator from "./TurnIndicator.vue";
 import WallCounter from "./WallCounter.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
 import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
+import ReactionBar from "../reactions/ReactionBar.vue";
+import ReactionBubbleStack from "../reactions/ReactionBubbleStack.vue";
 import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "../chat/slideInPanelIds";
 import DiscardPool from "./DiscardPool.vue";
 import DiscardConfirm from "./DiscardConfirm.vue";
@@ -36,12 +39,15 @@ import {
   type TableTalkReportState,
 } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
+import { useReactionsStore, type ReactionBubbleRecord } from "../../stores/reactions";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 
 const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
+const reactionsStore = useReactionsStore();
+const { items: reactionItems } = storeToRefs(reactionsStore);
 
 const props = withDefaults(
   defineProps<{
@@ -77,6 +83,8 @@ const props = withDefaults(
     canRequestTableTalkReport?: boolean;
     tableTalkReportState?: TableTalkReportState | null;
     tableTalkReportCountsByPlayerId?: Record<string, number>;
+    /** When set (in-play from PlayerGameView), resolves reaction bubble anchor via shared seat geometry (6A.3 AC4). */
+    reactionAnchorForPlayer?: (playerId: string) => "top" | "left" | "right" | "local" | null;
   }>(),
   {
     opponents: () => ({}),
@@ -99,6 +107,7 @@ const props = withDefaults(
     canRequestTableTalkReport: false,
     tableTalkReportState: null,
     tableTalkReportCountsByPlayerId: undefined,
+    reactionAnchorForPlayer: undefined,
   },
 );
 
@@ -119,6 +128,7 @@ const emit = defineEmits<{
   confirmCall: [payload: { tileIds: string[] }];
   retractCall: [];
   sendChat: [text: string];
+  sendReaction: [emoji: string];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -397,6 +407,58 @@ const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
 
+const isScoreboardPhase = computed(() => props.gamePhase === "scoreboard");
+
+watch(isScoreboardPhase, (v) => {
+  if (v) {
+    reactionsStore.clear();
+  }
+});
+
+const reactionUiAllowed = computed(
+  () => !slideInPanelStore.isAnySlideInPanelOpen && !isScoreboardPhase.value,
+);
+
+/** AC10: scoreboard is results-focused — hide reactions (see UX / story AC10). */
+const showReactionChrome = computed(() => reactionUiAllowed.value);
+
+type ReactionAnchor = "top" | "left" | "right" | "local";
+
+/** Fallback when `reactionAnchorForPlayer` is not passed (tests / dev harness). */
+const playerIdToReactionAnchorFallback = computed((): Map<string, ReactionAnchor> => {
+  const m = new Map<string, ReactionAnchor>();
+  if (props.localPlayer?.id) {
+    m.set(props.localPlayer.id, "local");
+  }
+  if (topPlayer.value?.id) m.set(topPlayer.value.id, "top");
+  if (leftPlayer.value?.id) m.set(leftPlayer.value.id, "left");
+  if (rightPlayer.value?.id) m.set(rightPlayer.value.id, "right");
+  return m;
+});
+
+const reactionBubblesByAnchor = computed(() => {
+  const buckets: Record<ReactionAnchor, ReactionBubbleRecord[]> = {
+    top: [],
+    left: [],
+    right: [],
+    local: [],
+  };
+  const fallback = playerIdToReactionAnchorFallback.value;
+  const resolve = props.reactionAnchorForPlayer;
+  for (const item of reactionItems.value) {
+    const anchor = resolve
+      ? resolve(item.playerId)
+      : (fallback.get(item.playerId) ?? null);
+    if (!anchor) continue;
+    buckets[anchor].push(item);
+  }
+  return buckets;
+});
+
+function onReactionTap(emoji: string): void {
+  emit("sendReaction", emoji);
+}
+
 const reportTargets = computed(() => {
   const list: { id: string; name: string }[] = [];
   for (const opp of [props.opponents?.top, props.opponents?.left, props.opponents?.right]) {
@@ -420,7 +482,6 @@ const callWindowHasMahjong = computed(
   () => isCallWindowOpen.value && props.validCallOptions.includes("mahjong"),
 );
 const invalidMahjongVisible = computed(() => props.invalidMahjongMessage !== null);
-const isScoreboardPhase = computed(() => props.gamePhase === "scoreboard");
 const playerNamesBySeat = computed<Record<SeatWind, string>>(() => {
   const names: Record<SeatWind, string> = {
     east: "East",
@@ -520,8 +581,29 @@ function onChatEscape() {
     data-testid="game-table"
     class="game-table relative bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
   >
+    <!-- Desktop / tablet: floating reaction bar (AC7) — clear of right-column toggles via offset -->
+    <div
+      v-if="showReactionChrome"
+      class="pointer-events-none fixed right-2 top-1/3 z-30 hidden md:block md:right-[max(0.5rem,calc(100vw-80rem)/2+0.5rem)]"
+      aria-hidden="false"
+    >
+      <div class="pointer-events-auto">
+        <ReactionBar layout="vertical" :on-react="onReactionTap" />
+      </div>
+    </div>
+
     <!-- Opponent Top -->
-    <div data-testid="opponent-top" class="game-table__opponent-top flex justify-center">
+    <div
+      data-testid="opponent-top"
+      class="game-table__opponent-top relative flex justify-center"
+    >
+      <div
+        v-if="showReactionChrome && reactionBubblesByAnchor.top.length > 0"
+        class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2"
+        aria-live="polite"
+      >
+        <ReactionBubbleStack :items="reactionBubblesByAnchor.top" />
+      </div>
       <OpponentArea
         position="top"
         :player="topPlayer"
@@ -535,8 +617,15 @@ function onChatEscape() {
       <!-- Opponent Left (hidden on phone, shown via grid on tablet/desktop) -->
       <div
         data-testid="opponent-left"
-        class="game-table__opponent-left hidden md:flex items-center justify-center"
+        class="game-table__opponent-left relative hidden md:flex items-center justify-center"
       >
+        <div
+          v-if="showReactionChrome && reactionBubblesByAnchor.left.length > 0"
+          class="pointer-events-none absolute right-full top-1/2 z-20 mr-1 -translate-y-1/2"
+          aria-live="polite"
+        >
+          <ReactionBubbleStack :items="reactionBubblesByAnchor.left" />
+        </div>
         <OpponentArea
           position="left"
           :player="leftPlayer"
@@ -617,19 +706,37 @@ function onChatEscape() {
             />
 
             <!-- Phone: inline opponent row for left/right -->
-            <div class="flex md:hidden gap-4 justify-center w-full">
-              <OpponentArea
-                position="left"
-                :player="leftPlayer"
-                :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
-                :score="leftPlayer?.score ?? null"
-              />
-              <OpponentArea
-                position="right"
-                :player="rightPlayer"
-                :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
-                :score="rightPlayer?.score ?? null"
-              />
+            <div class="flex md:hidden w-full justify-center gap-4">
+              <div class="relative flex flex-col items-center">
+                <div
+                  v-if="showReactionChrome && reactionBubblesByAnchor.left.length > 0"
+                  class="pointer-events-none absolute bottom-full z-20 mb-1"
+                  aria-live="polite"
+                >
+                  <ReactionBubbleStack :items="reactionBubblesByAnchor.left" />
+                </div>
+                <OpponentArea
+                  position="left"
+                  :player="leftPlayer"
+                  :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
+                  :score="leftPlayer?.score ?? null"
+                />
+              </div>
+              <div class="relative flex flex-col items-center">
+                <div
+                  v-if="showReactionChrome && reactionBubblesByAnchor.right.length > 0"
+                  class="pointer-events-none absolute bottom-full z-20 mb-1"
+                  aria-live="polite"
+                >
+                  <ReactionBubbleStack :items="reactionBubblesByAnchor.right" />
+                </div>
+                <OpponentArea
+                  position="right"
+                  :player="rightPlayer"
+                  :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
+                  :score="rightPlayer?.score ?? null"
+                />
+              </div>
             </div>
 
             <!-- Discard Pools -->
@@ -662,8 +769,15 @@ function onChatEscape() {
       <!-- Opponent Right (hidden on phone, shown via grid on tablet/desktop) -->
       <div
         data-testid="opponent-right"
-        class="game-table__opponent-right hidden md:flex flex-col items-center justify-center gap-2"
+        class="game-table__opponent-right relative hidden md:flex flex-col items-center justify-center gap-2"
       >
+        <div
+          v-if="showReactionChrome && reactionBubblesByAnchor.right.length > 0"
+          class="pointer-events-none absolute left-full top-1/2 z-20 ml-1 -translate-y-1/2"
+          aria-live="polite"
+        >
+          <ReactionBubbleStack :items="reactionBubblesByAnchor.right" />
+        </div>
         <div class="flex flex-col gap-2">
           <button
             type="button"
@@ -702,6 +816,20 @@ function onChatEscape() {
       class="game-table__rack order-4 md:pb-[env(safe-area-inset-bottom)] transition-transform"
       :class="rackPassAnimClass"
     >
+      <!-- Mobile: horizontal reaction row above rack (AC8) -->
+      <div
+        v-if="showReactionChrome"
+        class="mb-2 flex justify-center px-2 pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        <ReactionBar layout="horizontal" :on-react="onReactionTap" />
+      </div>
+      <div
+        v-if="showReactionChrome && reactionBubblesByAnchor.local.length > 0"
+        class="pointer-events-none mb-1 flex justify-center"
+        aria-live="polite"
+      >
+        <ReactionBubbleStack :items="reactionBubblesByAnchor.local" />
+      </div>
       <div data-testid="rack-zone-entry">
         <div v-if="localPlayer" class="mb-2 flex justify-center">
           <BasePanel

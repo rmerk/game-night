@@ -89,7 +89,7 @@ test("CHAT_BROADCAST returns null when text empty", () => {
   expect(parseServerMessage(raw)).toBeNull();
 });
 
-test("REACTION_BROADCAST with valid shape returns ignored (explicit for future 6A.3)", () => {
+test("parses valid REACTION_BROADCAST into reaction_broadcast", () => {
   const raw = JSON.stringify({
     version: PROTOCOL_VERSION,
     type: "REACTION_BROADCAST",
@@ -98,7 +98,26 @@ test("REACTION_BROADCAST with valid shape returns ignored (explicit for future 6
     emoji: "👍",
     timestamp: 1,
   });
-  expect(parseServerMessage(raw)?.kind).toBe("ignored");
+  const p = parseServerMessage(raw);
+  expect(p?.kind).toBe("reaction_broadcast");
+  if (p?.kind !== "reaction_broadcast") return;
+  expect(p.message.type).toBe("REACTION_BROADCAST");
+  expect(p.message.playerId).toBe("p1");
+  expect(p.message.playerName).toBe("Ada");
+  expect(p.message.emoji).toBe("👍");
+  expect(p.message.timestamp).toBe(1);
+});
+
+test("REACTION_BROADCAST returns null when emoji is not on allowlist", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "REACTION_BROADCAST",
+    playerId: "p1",
+    playerName: "Ada",
+    emoji: "💀",
+    timestamp: 1,
+  });
+  expect(parseServerMessage(raw)).toBeNull();
 });
 
 test("REACTION_BROADCAST invalid shape returns null", () => {

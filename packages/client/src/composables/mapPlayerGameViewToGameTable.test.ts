@@ -6,7 +6,11 @@ import {
   type Tile,
   type TileValue,
 } from "@mahjong-game/shared";
-import { mapPlayerGameViewToGameTableProps } from "./mapPlayerGameViewToGameTable";
+import {
+  mapPlayerGameViewToGameTableProps,
+  reactionBubbleAnchorForLobby,
+  reactionBubbleAnchorForPlayer,
+} from "./mapPlayerGameViewToGameTable";
 import { parseServerMessage } from "./parseServerMessage";
 
 function t(id: string, suit: "dot" | "bam" | "crak", value: TileValue, copy: number): SuitedTile {
@@ -91,6 +95,30 @@ test("maps south-local opponents to top=north, left=east, right=west", () => {
   expect(m.opponents.top?.seatWind).toBe("north");
   expect(m.opponents.left?.seatWind).toBe("east");
   expect(m.opponents.right?.seatWind).toBe("west");
+});
+
+test("reactionBubbleAnchorForPlayer matches opponent slots for south-local view", () => {
+  const v = minimalPlayerView();
+  expect(reactionBubbleAnchorForPlayer(v, "pS")).toBe("local");
+  expect(reactionBubbleAnchorForPlayer(v, "pN")).toBe("top");
+  expect(reactionBubbleAnchorForPlayer(v, "pE")).toBe("left");
+  expect(reactionBubbleAnchorForPlayer(v, "pW")).toBe("right");
+});
+
+test("reactionBubbleAnchorForPlayer returns null for unknown playerId", () => {
+  const v = minimalPlayerView();
+  expect(reactionBubbleAnchorForPlayer(v, "ghost")).toBeNull();
+});
+
+test("reactionBubbleAnchorForLobby matches in-play geometry for same winds", () => {
+  const lobby = {
+    myPlayerId: "pS",
+    players: minimalPlayerView().players,
+  };
+  expect(reactionBubbleAnchorForLobby(lobby, "pS")).toBe("local");
+  expect(reactionBubbleAnchorForLobby(lobby, "pN")).toBe("top");
+  expect(reactionBubbleAnchorForLobby(lobby, "pE")).toBe("left");
+  expect(reactionBubbleAnchorForLobby(lobby, "pW")).toBe("right");
 });
 
 test("maps discard pools by seat relative to local player", () => {

@@ -6,11 +6,12 @@ import type {
   PlayerGameView,
   ResolvedAction,
 } from "@mahjong-game/shared";
-import { MAX_CHAT_LENGTH, PROTOCOL_VERSION } from "@mahjong-game/shared";
+import { isAllowedReactionEmoji, MAX_CHAT_LENGTH, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { parseServerMessage, isLobbyState } from "./parseServerMessage";
 import { getWebSocketUrl } from "./wsUrl";
 import { clearSessionToken, readSessionToken, writeSessionToken } from "./sessionTokenStorage";
 import { useChatStore } from "../stores/chat";
+import { useReactionsStore } from "../stores/reactions";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
 
 export type RoomConnectionStatus = "idle" | "connecting" | "open" | "closed";
@@ -27,6 +28,7 @@ export function useRoomConnection() {
 
   function resetSocialUiForSession(): void {
     useChatStore().clear();
+    useReactionsStore().resetForRoomLeave();
     useSlideInPanelStore().resetForRoomLeave();
   }
 
@@ -77,6 +79,10 @@ export function useRoomConnection() {
     }
     if (parsed.kind === "chat_broadcast") {
       useChatStore().appendBroadcast(parsed.message);
+      return;
+    }
+    if (parsed.kind === "reaction_broadcast") {
+      useReactionsStore().pushBroadcast(parsed.message);
     }
   }
 
@@ -170,6 +176,13 @@ export function useRoomConnection() {
     sendRaw({ type: "CHAT", text: payload });
   }
 
+  function sendReaction(emoji: string): void {
+    if (!isAllowedReactionEmoji(emoji)) {
+      return;
+    }
+    sendRaw({ type: "REACTION", emoji });
+  }
+
   function clearLastError(): void {
     lastErrorMessage.value = null;
   }
@@ -192,6 +205,7 @@ export function useRoomConnection() {
     sendSetJokerRules,
     requestState,
     sendChat,
+    sendReaction,
     clearLastError,
     /** Clear persisted token for this room (e.g. user leaves intentionally). */
     clearTokenForRoom: (roomCode: string) => {

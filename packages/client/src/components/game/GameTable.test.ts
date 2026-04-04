@@ -1,17 +1,19 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { flushPromises, mount } from "@vue/test-utils";
-import { createPinia, setActivePinia } from "pinia";
+import { createPinia, setActivePinia, type Pinia } from "pinia";
 import GameTable from "./GameTable.vue";
 import { useRackStore } from "../../stores/rack";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
+import { useReactionsStore } from "../../stores/reactions";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
-import type {
-  SuitedTile,
-  Tile,
-  CallWindowState,
-  GameResult,
-  PlayerCharlestonView,
-  ResolvedAction,
+import {
+  PROTOCOL_VERSION,
+  type SuitedTile,
+  type Tile,
+  type CallWindowState,
+  type GameResult,
+  type PlayerCharlestonView,
+  type ResolvedAction,
 } from "@mahjong-game/shared";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 
@@ -103,14 +105,14 @@ const mockCallWindow: CallWindowState = {
   winningCall: null,
 };
 
-function mountTable(props: Record<string, unknown> = {}) {
+function mountTable(props: Record<string, unknown> = {}, pinia?: Pinia) {
   return mount(GameTable, {
     props: {
       opponents: mockPlayers,
       ...props,
     },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia ?? createPinia()],
       stubs: {
         TileSprite: { template: "<svg />" },
       },
@@ -173,6 +175,33 @@ describe("GameTable — max width constraint", () => {
     const wrapper = mountTable();
     const table = wrapper.find("[data-testid='game-table']");
     expect(table.classes().some((c: string) => c.includes("max-w-"))).toBe(true);
+  });
+});
+
+describe("GameTable — reaction bubbles", () => {
+  it("renders a bubble on opponent-top when anchor resolver maps player to top", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const reactions = useReactionsStore();
+    reactions.pushBroadcast({
+      version: PROTOCOL_VERSION,
+      type: "REACTION_BROADCAST",
+      playerId: "player-north",
+      playerName: "Alice",
+      emoji: "🎉",
+      timestamp: 42,
+    });
+
+    const wrapper = mountTable(
+      {
+        reactionAnchorForPlayer: (id: string) => (id === "player-north" ? "top" : null),
+      },
+      pinia,
+    );
+
+    const top = wrapper.get('[data-testid="opponent-top"]');
+    expect(top.text()).toContain("🎉");
+    wrapper.unmount();
   });
 });
 

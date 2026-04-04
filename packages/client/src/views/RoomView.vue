@@ -4,15 +4,23 @@ import { useRoute, useRouter } from "vue-router";
 import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
+import ReactionBar from "../components/reactions/ReactionBar.vue";
+import ReactionBubbleStack from "../components/reactions/ReactionBubbleStack.vue";
 import {
   SLIDE_IN_CHAT_PANEL_ROOT_ID,
   SLIDE_IN_NMJL_PANEL_ROOT_ID,
 } from "../components/chat/slideInPanelIds";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
-import { mapPlayerGameViewToGameTableProps } from "../composables/mapPlayerGameViewToGameTable";
+import {
+  mapPlayerGameViewToGameTableProps,
+  reactionBubbleAnchorForLobby,
+  reactionBubbleAnchorForPlayer as reactionBubbleAnchorForPlayerFromView,
+} from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
 import { useRackStore } from "../stores/rack";
+import { useReactionsStore, type ReactionBubbleRecord } from "../stores/reactions";
+import { storeToRefs } from "pinia";
 
 const route = useRoute();
 const router = useRouter();
@@ -52,6 +60,8 @@ const showSessionErrorBanner = computed(
 );
 const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
+const reactionsStore = useReactionsStore();
+const { items: lobbyReactionItems } = storeToRefs(reactionsStore);
 
 const lobbyFocusReturnRef = useTemplateRef<HTMLDivElement>("lobbyFocusReturn");
 
@@ -65,6 +75,14 @@ const tableProps = computed(() => {
     return null;
   }
   return mapPlayerGameViewToGameTableProps(v, { resolvedAction: resolvedAction.value });
+});
+
+const reactionAnchorForPlayer = computed(() => {
+  const v = playerGameView.value;
+  if (!v) {
+    return undefined;
+  }
+  return (playerId: string) => reactionBubbleAnchorForPlayerFromView(v, playerId);
 });
 
 const isLobby = computed(() => lobbyState.value !== null && playerGameView.value === null);
@@ -88,6 +106,51 @@ watch(
   },
   { immediate: true },
 );
+
+/** Lobby reaction bubbles must not carry into the table (fresh in-play bubbles only; AC11 / UX). */
+watch(
+  () => ({
+    pgv: playerGameView.value,
+    lob: lobbyState.value,
+  }),
+  (cur, prev) => {
+    if (prev === undefined) {
+      return;
+    }
+    if (cur.pgv && prev.lob !== null && prev.pgv === null) {
+      reactionsStore.clear();
+    }
+  },
+);
+
+const lobbyReactionAnchor = computed(() => {
+  const lob = lobbyState.value;
+  if (!lob) {
+    return undefined;
+  }
+  return (playerId: string) => reactionBubbleAnchorForLobby(lob, playerId);
+});
+
+type LobbyReactionAnchor = "top" | "left" | "right" | "local";
+
+const lobbyReactionBubblesByAnchor = computed(() => {
+  const buckets: Record<LobbyReactionAnchor, ReactionBubbleRecord[]> = {
+    top: [],
+    left: [],
+    right: [],
+    local: [],
+  };
+  const resolve = lobbyReactionAnchor.value;
+  if (!resolve) {
+    return buckets;
+  }
+  for (const item of lobbyReactionItems.value) {
+    const anchor = resolve(item.playerId);
+    if (!anchor) continue;
+    buckets[anchor].push(item);
+  }
+  return buckets;
+});
 
 function joinRoom() {
   const name = displayNameInput.value.trim();
@@ -267,7 +330,11 @@ function onJokerRulesChange(ev: Event) {
       </button>
     </div>
 
-    <div v-else-if="isLobby && lobbyState" class="relative mx-auto max-w-lg px-4 py-8">
+    <div
+      v-else-if="isLobby && lobbyState"
+      class="relative mx-auto max-w-lg px-4 py-8"
+      data-testid="lobby-root"
+    >
       <div
         ref="lobbyFocusReturn"
         tabindex="-1"
@@ -294,6 +361,40 @@ function onJokerRulesChange(ev: Event) {
         >
           Chat
         </button>
+      </div>
+      <div
+        v-if="!slideInPanelStore.isAnySlideInPanelOpen"
+        class="relative mb-4 flex justify-center"
+      >
+        <div
+          v-if="lobbyReactionBubblesByAnchor.local.length > 0"
+          class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2"
+          aria-live="polite"
+        >
+          <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.local" />
+        </div>
+        <ReactionBar layout="horizontal" :on-react="(e: string) => conn.sendReaction(e)" />
+      </div>
+      <div
+        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.top.length > 0"
+        class="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2"
+        aria-live="polite"
+      >
+        <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.top" />
+      </div>
+      <div
+        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.left.length > 0"
+        class="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2"
+        aria-live="polite"
+      >
+        <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.left" />
+      </div>
+      <div
+        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.right.length > 0"
+        class="pointer-events-none absolute right-2 top-1/2 z-10 -translate-y-1/2"
+        aria-live="polite"
+      >
+        <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.right" />
       </div>
       <SlideInReferencePanels
         :send-chat="(t: string) => conn.sendChat(t)"
@@ -343,8 +444,10 @@ function onJokerRulesChange(ev: Event) {
     <GameTable
       v-else-if="tableProps"
       v-bind="tableProps"
+      :reaction-anchor-for-player="reactionAnchorForPlayer"
       :resolved-action="resolvedAction ?? null"
       @send-chat="(t: string) => conn.sendChat(t)"
+      @send-reaction="(e: string) => conn.sendReaction(e)"
       @discard="onDiscard"
       @pass="onPass"
       @call="onCall"
