@@ -83,4 +83,21 @@ describe("handleStartGame", () => {
     handleStartGame(state, { type: "START_GAME", playerIds: ["p1", "p2", "p3"] });
     expect(state.gamePhase).toBe("lobby");
   });
+
+  it("sets jokerRulesMode on GameState from action (simplified)", () => {
+    const state = createLobbyState();
+    handleStartGame(state, {
+      type: "START_GAME",
+      playerIds: ["p1", "p2", "p3", "p4"],
+      seed: 42,
+      jokerRulesMode: "simplified",
+    });
+    expect(state.jokerRulesMode).toBe("simplified");
+  });
+
+  it("defaults jokerRulesMode to standard when omitted", () => {
+    const state = createLobbyState();
+    handleStartGame(state, START_ACTION);
+    expect(state.jokerRulesMode).toBe("standard");
+  });
 });

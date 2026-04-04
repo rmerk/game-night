@@ -327,6 +327,7 @@ function handleStartGameAction(
   const result = handleAction(room.gameState, {
     type: "START_GAME",
     playerIds,
+    jokerRulesMode: room.jokerRulesMode,
   });
 
   if (result.accepted) {

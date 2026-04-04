@@ -6,6 +6,7 @@ describe("createLobbyState", () => {
   it("creates a state in lobby phase", () => {
     const state = createLobbyState();
     expect(state.gamePhase).toBe("lobby");
+    expect(state.jokerRulesMode).toBe("standard");
   });
 
   it("has empty players, wall, and scores", () => {

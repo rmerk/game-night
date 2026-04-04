@@ -44,6 +44,7 @@ export function createLobbyState(): GameState {
     challengeState: null,
     charleston: null,
     shownHands: {},
+    jokerRulesMode: "standard",
   };
 }
 

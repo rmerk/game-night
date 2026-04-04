@@ -5,7 +5,7 @@ import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
-import { handleJoinRoom } from "./join-handler";
+import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
 import { sendCurrentState } from "./state-broadcaster";
 
@@ -94,6 +94,23 @@ export function setupWebSocketServer(
 
         if (parsed.type === "JOIN_ROOM") {
           handleJoinRoom(ws, parsed, roomManager, logger);
+        } else if (parsed.type === "SET_JOKER_RULES") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before changing settings",
+              },
+              logger,
+              "set-joker-rules-not-in-room",
+            );
+            return;
+          }
+          handleSetJokerRules(ws, session.room, session.playerId, parsed.jokerRulesMode, logger);
         } else if (parsed.type === "ACTION") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

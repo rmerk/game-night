@@ -118,6 +118,7 @@ export function buildPlayerView(
     challengeState: gameState.challengeState,
     charleston,
     shownHands: gameState.shownHands,
+    jokerRulesMode: gameState.jokerRulesMode,
   };
 }
 
@@ -152,6 +153,7 @@ export function buildSpectatorView(room: Room, gameState: GameState): SpectatorG
     gameResult: gameState.gameResult,
     charleston,
     shownHands: gameState.shownHands,
+    jokerRulesMode: gameState.jokerRulesMode,
   };
 }
 
@@ -196,6 +198,7 @@ export function sendCurrentState(room: Room, playerId: string, ws: WebSocket): v
       gamePhase: "lobby" as const,
       players,
       myPlayerId: playerId,
+      jokerRulesMode: room.jokerRulesMode,
     };
   }
 

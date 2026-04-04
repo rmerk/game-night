@@ -37,6 +37,9 @@ export function handleJokerExchange(state: GameState, action: JokerExchangeActio
   if (state.turnPhase !== "discard") {
     return { accepted: false, reason: "ALREADY_DISCARDED" };
   }
+  if (state.jokerRulesMode === "simplified") {
+    return { accepted: false, reason: "JOKER_EXCHANGE_DISABLED" };
+  }
 
   const resolved = resolveExposedGroup(state, action.jokerGroupId);
   if (!resolved) {

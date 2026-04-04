@@ -1,4 +1,4 @@
-import type { GameState } from "../types/game-state";
+import type { GameState, JokerRulesMode } from "../types/game-state";
 import { createGame } from "../engine/state/create-game";
 import { fastForwardToPlayPhase } from "./helpers";
 import { createLobbyState } from "../engine/game-engine";
@@ -15,6 +15,9 @@ export function createLobbyFixture(): GameState {
 }
 
 /** A game in play state with tiles dealt (seed 42) */
-export function createPlayState(seed: number = TEST_SEED): GameState {
-  return fastForwardToPlayPhase(createGame([...TEST_PLAYER_IDS], seed));
+export function createPlayState(
+  seed: number = TEST_SEED,
+  jokerRulesMode: JokerRulesMode = "standard",
+): GameState {
+  return fastForwardToPlayPhase(createGame([...TEST_PLAYER_IDS], seed, jokerRulesMode));
 }

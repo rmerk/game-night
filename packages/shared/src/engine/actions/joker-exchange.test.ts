@@ -334,4 +334,14 @@ describe("handleJokerExchange", () => {
     if (!result.accepted || !result.resolved || result.resolved.type !== "JOKER_EXCHANGE") return;
     expect(result.resolved.jokerTileId).toBe(j.id);
   });
+
+  it("simplified Joker rules: rejects with JOKER_EXCHANGE_DISABLED", () => {
+    const { state, currentPlayerId, matchingTile, jokerGroupId } = setupExchangeScenario();
+    state.jokerRulesMode = "simplified";
+    const result = handleJokerExchange(
+      state,
+      makeAction(currentPlayerId, jokerGroupId, matchingTile.id),
+    );
+    expect(result).toEqual({ accepted: false, reason: "JOKER_EXCHANGE_DISABLED" });
+  });
 });

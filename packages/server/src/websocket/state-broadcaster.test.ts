@@ -58,6 +58,7 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     graceTimers: new Map(),
     lifecycleTimers: new Map(),
     gameState: null,
+    jokerRulesMode: "standard",
     createdAt: Date.now(),
     logger: createMockLogger(),
   };
@@ -116,6 +117,7 @@ function createTestGameState(): GameState {
     challengeState: null,
     charleston: null,
     shownHands: {},
+    jokerRulesMode: "standard",
   };
 }
 
@@ -186,6 +188,7 @@ function createFourPlayerGameState(): GameState {
     challengeState: null,
     charleston: null,
     shownHands: {},
+    jokerRulesMode: "standard",
   };
 }
 
@@ -225,6 +228,19 @@ describe("buildPlayerView", () => {
     expect(view.myRack[0].id).toBe("bam-1-1");
     expect(view.myRack[1].id).toBe("bam-2-1");
     expect(view.myPlayerId).toBe("player-0");
+  });
+
+  it("includes jokerRulesMode from GameState", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    const gameState = createTestGameState();
+    gameState.jokerRulesMode = "simplified";
+    const view = buildPlayerView(room, gameState, "player-0");
+    expect(view.jokerRulesMode).toBe("simplified");
   });
 
   it("does NOT include opponent rack data in the view", () => {
@@ -493,7 +509,13 @@ describe("buildPlayerView", () => {
       const ch = view.charleston;
       return ch && typeof ch === "object" ? (ch as unknown as Record<string, unknown>) : null;
     };
-    const forbiddenInPartnerViews = ["bam-1-1", "bam-2-1", "bam-3-1", "dot-1-1", "dot-2-1"] as const;
+    const forbiddenInPartnerViews = [
+      "bam-1-1",
+      "bam-2-1",
+      "bam-3-1",
+      "dot-1-1",
+      "dot-2-1",
+    ] as const;
     for (const view of [playerOneView, spectatorView]) {
       const ch = parseCharleston(view);
       expect(ch).not.toBeNull();

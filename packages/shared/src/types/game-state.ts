@@ -4,6 +4,9 @@ import type { GroupType, NMJLCard } from "./card";
 /** Game-level phase */
 export type GamePhase = "lobby" | "charleston" | "play" | "scoreboard" | "rematch";
 
+/** Joker rules mode for the match — set at game start, immutable until rematch */
+export type JokerRulesMode = "standard" | "simplified";
+
 /** Turn-level phase within active play */
 export type TurnPhase = "draw" | "discard" | "callWindow";
 
@@ -164,6 +167,8 @@ export interface GameState {
   charleston: CharlestonState | null;
   /** Hands voluntarily shown during scoreboard phase — playerId → rack tiles */
   shownHands: Record<string, Tile[]>;
+  /** Joker exchange and related rules — fixed for the match at START_GAME */
+  jokerRulesMode: JokerRulesMode;
 }
 
 /** Result of processing a game action */

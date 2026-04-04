@@ -96,6 +96,7 @@ describe("handleJoinRoom", () => {
     expect(state.gamePhase).toBe("lobby");
     expect(state.roomCode).toBe(roomCode);
     expect(state.myPlayerId).toBe("player-0");
+    expect(state.jokerRulesMode).toBe("standard");
 
     const players = state.players as Array<Record<string, unknown>>;
     expect(players).toHaveLength(1);
@@ -1404,5 +1405,95 @@ describe("charleston disconnect auto-action", () => {
     }
 
     for (const ws of clients.slice(1)) ws.close();
+  });
+});
+
+describe("SET_JOKER_RULES", () => {
+  async function joinFourPlayers(roomCode: string): Promise<WebSocket[]> {
+    const names = ["Alice", "Bob", "Charlie", "Diana"] as const;
+    const players: WebSocket[] = [];
+    for (const name of names) {
+      const ws = await connectWs(wsUrl);
+      const broadcastPromises = players.map((p) => waitForMessage(p));
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, name);
+      await msgPromise;
+      await Promise.all(broadcastPromises);
+      players.push(ws);
+    }
+    return players;
+  }
+
+  it("host can set simplified in lobby; all players receive updated jokerRulesMode", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+
+    const bobWs = await connectWs(wsUrl);
+    const b0 = waitForMessage(bobWs);
+    sendJoin(bobWs, roomCode, "Bob");
+    await b0;
+    await waitForMessage(hostWs);
+
+    const hostUp = waitForMessage(hostWs);
+    const bobUp = waitForMessage(bobWs);
+    hostWs.send(
+      JSON.stringify({ version: 1, type: "SET_JOKER_RULES", jokerRulesMode: "simplified" }),
+    );
+    const [mh, mb] = await Promise.all([hostUp, bobUp]);
+    expect(mh.type).toBe("STATE_UPDATE");
+    expect(mb.type).toBe("STATE_UPDATE");
+    expect((mh.state as Record<string, unknown>).jokerRulesMode).toBe("simplified");
+    expect((mb.state as Record<string, unknown>).jokerRulesMode).toBe("simplified");
+    expect(app.roomManager.getRoom(roomCode)!.jokerRulesMode).toBe("simplified");
+
+    hostWs.close();
+    bobWs.close();
+  });
+
+  it("rejects SET_JOKER_RULES from non-host", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+
+    const bobWs = await connectWs(wsUrl);
+    const b0 = waitForMessage(bobWs);
+    sendJoin(bobWs, roomCode, "Bob");
+    await b0;
+    await waitForMessage(hostWs);
+
+    const err = waitForMessage(bobWs);
+    bobWs.send(
+      JSON.stringify({ version: 1, type: "SET_JOKER_RULES", jokerRulesMode: "simplified" }),
+    );
+    const msg = await err;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("NOT_HOST");
+
+    hostWs.close();
+    bobWs.close();
+  });
+
+  it("rejects SET_JOKER_RULES while game is in progress", async () => {
+    const { roomCode } = await createRoom();
+    const clients = await joinFourPlayers(roomCode);
+    const hostWs = clients[0];
+    const startPromises = clients.map((c) => waitForMessage(c));
+    hostWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(startPromises);
+
+    const err = waitForMessage(hostWs);
+    hostWs.send(
+      JSON.stringify({ version: 1, type: "SET_JOKER_RULES", jokerRulesMode: "simplified" }),
+    );
+    const msg = await err;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("GAME_IN_PROGRESS");
+
+    for (const ws of clients) ws.close();
   });
 });

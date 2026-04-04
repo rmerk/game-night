@@ -187,6 +187,18 @@ describe("createGame", () => {
     });
   });
 
+  describe("jokerRulesMode", () => {
+    it("defaults to standard", () => {
+      const state = createGame(PLAYER_IDS, SEED);
+      expect(state.jokerRulesMode).toBe("standard");
+    });
+
+    it("accepts simplified", () => {
+      const state = createGame(PLAYER_IDS, SEED, "simplified");
+      expect(state.jokerRulesMode).toBe("simplified");
+    });
+  });
+
   describe("validation", () => {
     it("throws if not exactly 4 players", () => {
       expect(() => createGame(["p1", "p2", "p3"], SEED)).toThrow("Expected 4 players, got 3");

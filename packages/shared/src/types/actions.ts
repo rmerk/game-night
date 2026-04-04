@@ -1,3 +1,5 @@
+import type { JokerRulesMode } from "./game-state";
+
 /** Discriminated union of all game actions */
 export type GameAction =
   | StartGameAction
@@ -28,6 +30,8 @@ export interface StartGameAction {
   readonly type: "START_GAME";
   readonly playerIds: string[];
   readonly seed?: number;
+  /** Server supplies authoritative mode; omitted defaults to standard in engine */
+  readonly jokerRulesMode?: JokerRulesMode;
 }
 
 /** Action for the current player to draw a tile from the wall */

@@ -3,6 +3,7 @@ import type {
   ResolvedAction,
   GamePhase,
   TurnPhase,
+  JokerRulesMode,
   CharlestonPairing,
   CharlestonDirection,
   CharlestonStage,
@@ -47,6 +48,13 @@ export interface RequestStateMessage {
   type: "REQUEST_STATE";
 }
 
+/** Client → Server: host sets Joker rules for the next game (lobby only) */
+export interface SetJokerRulesMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "SET_JOKER_RULES";
+  jokerRulesMode: JokerRulesMode;
+}
+
 /** Public info about a player visible to all clients */
 export interface PlayerPublicInfo {
   playerId: string;
@@ -63,6 +71,7 @@ export interface LobbyState {
   gamePhase: "lobby";
   players: PlayerPublicInfo[];
   myPlayerId: string;
+  jokerRulesMode: JokerRulesMode;
 }
 
 /** Safe Charleston metadata shared with all viewers */
@@ -82,12 +91,10 @@ export interface PlayerCharlestonView extends PublicCharlestonView {
   myHiddenTileCount: number;
   mySubmissionLocked: boolean;
   myVote: boolean | null;
-  myCourtesySubmission:
-    | {
-        count: number;
-        tileIds: string[];
-      }
-    | null;
+  myCourtesySubmission: {
+    count: number;
+    tileIds: string[];
+  } | null;
 }
 
 /** Spectator Charleston metadata — public information only */
@@ -114,6 +121,7 @@ export interface PlayerGameView {
   challengeState: ChallengeState | null;
   charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
+  jokerRulesMode: JokerRulesMode;
 }
 
 /** Spectator view — public information only, no player racks (post-MVP) */
@@ -133,6 +141,7 @@ export interface SpectatorGameView {
   gameResult: GameResult | null;
   charleston: SpectatorCharlestonView | null;
   shownHands: Record<string, Tile[]>;
+  jokerRulesMode: JokerRulesMode;
 }
 
 /** Server → Client: state update with optional resolved action and token */

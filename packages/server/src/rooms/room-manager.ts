@@ -33,6 +33,7 @@ export class RoomManager {
       graceTimers: new Map(),
       lifecycleTimers: new Map(),
       gameState: null,
+      jokerRulesMode: "standard",
       createdAt: Date.now(),
       logger: roomLogger,
     };

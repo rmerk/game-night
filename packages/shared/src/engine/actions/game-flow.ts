@@ -21,7 +21,7 @@ export function handleStartGame(state: GameState, action: StartGameAction): Acti
   }
 
   // 2. Mutate — only reached if all validation passed
-  const newState = createGame(action.playerIds, action.seed);
+  const newState = createGame(action.playerIds, action.seed, action.jokerRulesMode ?? "standard");
   Object.assign(state, newState);
 
   // 3. Return result

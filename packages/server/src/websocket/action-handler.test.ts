@@ -710,6 +710,25 @@ describe("handleActionMessage", () => {
       for (const p of players) p.ws.close();
     });
 
+    it("START_GAME copies room jokerRulesMode into GameState", async () => {
+      const { roomCode, players } = await setupGameRoom();
+      const host = players[0];
+      const setPromises = players.map((p) => waitForMessage(p.ws));
+      host.ws.send(
+        JSON.stringify({ version: 1, type: "SET_JOKER_RULES", jokerRulesMode: "simplified" }),
+      );
+      await Promise.all(setPromises);
+
+      const startPromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(host.ws, { type: "START_GAME" });
+      await Promise.all(startPromises);
+
+      const room = app.roomManager.getRoom(roomCode)!;
+      expect(room.gameState?.jokerRulesMode).toBe("simplified");
+
+      for (const p of players) p.ws.close();
+    });
+
     it("each player receives correctly filtered view with their own rack only", async () => {
       const { roomCode, players } = await setupGameRoom();
       const host = players[0];

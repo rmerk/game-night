@@ -1,4 +1,10 @@
-import type { CharlestonState, GameState, PlayerState, SeatWind } from "../../types/game-state";
+import type {
+  CharlestonState,
+  GameState,
+  JokerRulesMode,
+  PlayerState,
+  SeatWind,
+} from "../../types/game-state";
 import { SEATS, MAX_PLAYERS } from "../../constants";
 import { createWall } from "./wall";
 import { dealTiles } from "./dealing";
@@ -26,9 +32,14 @@ function createInitialCharlestonState(playerIds: string[]): CharlestonState {
  *
  * @param playerIds - Array of exactly 4 unique player IDs
  * @param seed - Optional seed for deterministic wall shuffle (for testing)
+ * @param jokerRulesMode - Joker rules for this match (default "standard")
  * @returns Complete initial GameState ready for Charleston
  */
-export function createGame(playerIds: string[], seed?: number): GameState {
+export function createGame(
+  playerIds: string[],
+  seed?: number,
+  jokerRulesMode: JokerRulesMode = "standard",
+): GameState {
   if (playerIds.length !== MAX_PLAYERS) {
     throw new Error(`Expected ${MAX_PLAYERS} players, got ${playerIds.length}`);
   }
@@ -76,5 +87,6 @@ export function createGame(playerIds: string[], seed?: number): GameState {
     challengeState: null,
     charleston: createInitialCharlestonState(playerIds),
     shownHands: {},
+    jokerRulesMode,
   };
 }

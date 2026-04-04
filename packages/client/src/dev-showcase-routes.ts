@@ -79,6 +79,13 @@ export const devShowcaseDefs: DevShowcaseDef[] = [
     blurb: "Skip-link and zone-based keyboard traversal checks.",
     component: () => import("./components/dev/KeyboardAccessibilityShowcase.vue"),
   },
+  {
+    path: "/dev/joker-rules",
+    name: "dev-joker-rules",
+    label: "Joker rules mode",
+    blurb: "Host SET_JOKER_RULES protocol and modes (Story 3C.2).",
+    component: () => import("./components/dev/JokerRulesShowcase.vue"),
+  },
 ];
 
 export function devShowcaseRouteRecords(): RouteRecordRaw[] {

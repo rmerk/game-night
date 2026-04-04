@@ -47,6 +47,7 @@ function buildLobbyState(room: Room, myPlayerId: string): LobbyState {
     gamePhase: "lobby",
     players,
     myPlayerId,
+    jokerRulesMode: room.jokerRulesMode,
   };
 }
 
@@ -71,6 +72,46 @@ function broadcastStateToRoom(
       type: "STATE_UPDATE",
       state,
       resolvedAction,
+    };
+    session.ws.send(JSON.stringify(message));
+  }
+}
+
+/** Host-only: set Joker rules for the next game while the room is in lobby (no active match). */
+export function handleSetJokerRules(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  rawMode: unknown,
+  logger: FastifyBaseLogger,
+): void {
+  const player = room.players.get(playerId);
+  if (!player?.isHost) {
+    logger.info({ roomCode: room.roomCode, playerId }, "SET_JOKER_RULES rejected: not host");
+    sendError(ws, "NOT_HOST", "Only the host can change Joker rules");
+    return;
+  }
+  if (room.gameState !== null) {
+    logger.info(
+      { roomCode: room.roomCode, playerId },
+      "SET_JOKER_RULES rejected: game in progress",
+    );
+    sendError(ws, "GAME_IN_PROGRESS", "Cannot change Joker rules while a game is in progress");
+    return;
+  }
+  if (rawMode !== "standard" && rawMode !== "simplified") {
+    sendError(ws, "INVALID_JOKER_RULES", "jokerRulesMode must be 'standard' or 'simplified'");
+    return;
+  }
+  room.jokerRulesMode = rawMode;
+  logger.info({ roomCode: room.roomCode, jokerRulesMode: rawMode }, "Joker rules mode updated");
+  for (const session of room.sessions.values()) {
+    if (session.ws.readyState !== WebSocket.OPEN) continue;
+    const state = buildLobbyState(room, session.player.playerId);
+    const message: StateUpdateMessage = {
+      version: PROTOCOL_VERSION,
+      type: "STATE_UPDATE",
+      state,
     };
     session.ws.send(JSON.stringify(message));
   }
