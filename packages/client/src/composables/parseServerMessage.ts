@@ -1,8 +1,10 @@
 import {
   PROTOCOL_VERSION,
+  isAllowedReactionEmoji,
   type ChatBroadcast,
   type LobbyState,
   type PlayerGameView,
+  type ReactionBroadcast,
   type ServerErrorMessage,
   type StateUpdateMessage,
   type SystemEventMessage,
@@ -13,6 +15,7 @@ export type ParsedServerMessage =
   | { kind: "error"; message: ServerErrorMessage }
   | { kind: "system_event"; message: SystemEventMessage }
   | { kind: "chat_broadcast"; message: ChatBroadcast }
+  | { kind: "reaction_broadcast"; message: ReactionBroadcast }
   | { kind: "ignored" };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -105,7 +108,18 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
       ) {
         return null;
       }
-      return { kind: "ignored" };
+      if (!isAllowedReactionEmoji(parsed.emoji)) {
+        return null;
+      }
+      const message: ReactionBroadcast = {
+        version: PROTOCOL_VERSION,
+        type: "REACTION_BROADCAST",
+        playerId: parsed.playerId,
+        playerName: parsed.playerName,
+        emoji: parsed.emoji,
+        timestamp: parsed.timestamp,
+      };
+      return { kind: "reaction_broadcast", message };
     }
     case "SYSTEM_EVENT": {
       if (parsed.event !== "SESSION_SUPERSEDED" && parsed.event !== "ROOM_CLOSING") {
