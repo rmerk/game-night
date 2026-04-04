@@ -54,6 +54,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Cross-session memory (claude-mem)
+
+**Memory-first:** The **claude-mem-context** rule injects recent cross-session summaries into your prompt. Treat that injected block as the **primary** source for past review patterns, recurring issues, and gotchas relevant to this review before any extra memory queries.
+
+**Search only on gap:** Call claude-mem MCP tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) only when injected context is empty or missing review-relevant history, when you need **deeper** detail than the summary, or when the user asks for a deeper memory dive. Do **not** run broad memory searches out of habit.
+
+**Note:** Reviewing code still uses `smart_outline`, `smart_search`, and `smart_unfold` for files under review—that is separate from optional claude-mem **session** search.
+
 ---
 
 ## EXECUTION
@@ -87,13 +95,12 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <action>Read fully and follow `{installed_path}/discover-inputs.md` to load all input files</action>
   <action>Load {project_context} for coding standards (if exists)</action>
 
-  <!-- Cross-session memory integration -->
-  <action>Query claude-mem search with project scope for review-relevant context:
-    - Past review feedback patterns for files/components being reviewed
-    - Recurring issues, architectural decisions, and known gotchas
-    - Past debugging experiences that reveal fragile areas to scrutinize
+  <!-- Cross-session memory integration (memory-first) -->
+  <action>Establish review-relevant memory from claude-mem:
+    - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Note past review feedback patterns, recurring issues, and fragile areas relevant to files/components under review.
+    - **Only if needed:** Query claude-mem MCP tools (project-scoped search, mem-search, timeline, get_observations) when injected context lacks this review's domain, you need deeper detail, or the user requests a deeper dive. Do not duplicate broad searches when injected context already suffices.
   </action>
-  <action>Use claude-mem findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
+  <action>Use merged memory findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
 
   <!-- Build structural understanding of files under review using smart tools -->
   <action>For EACH file in the review list, run smart_outline to get structural overview:

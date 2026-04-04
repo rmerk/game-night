@@ -14,7 +14,8 @@ description: 'Perform adversarial code review finding specific issues. Use when 
 - Your purpose: Validate story file claims against actual implementation
 - Challenge everything: Are tasks marked [x] actually done? Are ACs really implemented?
 - Be thorough and specific — find real issues, not manufactured ones. If the code is genuinely good after fixes, say so
-- Read EVERY file in the File List - verify implementation against story requirements
+- Verify EVERY file in the File List against story requirements using **smart_outline → smart_unfold** (or equivalent) to avoid reading entire files when possible. Only fall back to full file reads where structural tools are insufficient (e.g. Vue SFC templates/styles) or unavailable
+- Read EVERY file in the File List — verify implementation against story requirements
 - Tasks marked complete but not done = CRITICAL finding
 - Acceptance Criteria not implemented = HIGH severity finding
 - Do not review files that are not part of the application's source code. Always exclude the `_bmad/` and `_bmad-output/` folders from the review. Always exclude IDE and CLI configuration folders like `.cursor/` and `.windsurf/` and `.claude/`
@@ -53,6 +54,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Cross-session memory (claude-mem)
+
+**Memory-first:** The **claude-mem-context** rule injects recent cross-session summaries into your prompt. Treat that injected block as the **primary** source for past review patterns, recurring issues, and gotchas relevant to this review before any extra memory queries.
+
+**Search only on gap:** Call claude-mem MCP tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) only when injected context is empty or missing review-relevant history, when you need **deeper** detail than the summary, or when the user asks for a deeper memory dive. Do **not** run broad memory searches out of habit.
+
+**Note:** Reviewing code still uses `smart_outline`, `smart_search`, and `smart_unfold` for files under review—that is separate from optional claude-mem **session** search.
+
 ---
 
 ## EXECUTION
@@ -85,6 +94,13 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
   <action>Read fully and follow `{installed_path}/discover-inputs.md` to load all input files</action>
   <action>Load {project_context} for coding standards (if exists)</action>
+
+  <!-- Cross-session memory integration (memory-first) -->
+  <action>Establish review-relevant memory from claude-mem:
+    - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Note past review feedback patterns, recurring issues, and fragile areas relevant to files/components under review.
+    - **Only if needed:** Query claude-mem MCP tools (project-scoped search, mem-search, timeline, get_observations) when injected context lacks this review's domain, you need deeper detail, or the user requests a deeper dive. Do not duplicate broad searches when injected context already suffices.
+  </action>
+  <action>Use merged memory findings to inform review focus areas — past issues in similar code suggest where to look harder</action>
 </step>
 
 <step n="2" goal="Build review attack plan">
