@@ -1,5 +1,6 @@
 ---
-stepsCompleted:
+
+## stepsCompleted:
   - step-01-validate-prerequisites
   - step-02-design-epics
   - step-03-create-stories
@@ -8,7 +9,6 @@ inputDocuments:
   - _bmad-output/gdd.md
   - _bmad-output/game-architecture.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
----
 
 # Mahjong Night - Epic Breakdown
 
@@ -21,6 +21,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 ### Functional Requirements
 
 **Room Management & Access**
+
 - FR1: Create private rooms with shareable links (zero-friction access)
 - FR2: Exactly 4 players required to start a game
 - FR3: 5th player sees "table is full" page with spectator mode (read-only, no racks visible)
@@ -30,6 +31,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR7: Guest play with self-chosen display name (no account required to join)
 
 **Dealing & Seating**
+
 - FR8: Random seat assignment with wind designation (East, South, West, North)
 - FR9: East is first dealer; receives 14 tiles, others receive 13
 - FR10: Default instant dealing with tile-flip animation
@@ -37,6 +39,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR12: Dealer rotation clockwise after each game
 
 **Core Turn Flow**
+
 - FR13: Counterclockwise play direction (East -> South -> West -> North)
 - FR14: East's first turn: evaluate 14 tiles and discard (no draw)
 - FR15: Draw tile from wall on each subsequent turn
@@ -45,6 +48,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR18: Drag-and-drop discard as opt-in via settings
 
 **Calling System**
+
 - FR19: Hybrid call window after each discard (3-5 sec timer, configurable by host)
 - FR20: Players can click "Pass" to close window early (all pass = immediate close)
 - FR21: Mahjong call always has priority over all other calls
@@ -60,6 +64,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR31: Support for pattern-defined groups (NEWS, Dragon sets) in addition to same-tile groups
 
 **Charleston**
+
 - FR32: First Charleston mandatory: Right, Across, Left (all players)
 - FR33: Second Charleston optional: requires unanimous vote from all 4 players
 - FR34: Courtesy pass: 0-3 tiles with across player (lower count used on disagreement)
@@ -69,6 +74,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR38: Direction indicator showing current pass direction
 
 **NMJL Card System**
+
 - FR39: Machine-readable card data in JSON format (~50+ hand patterns per year)
 - FR40: Hand pattern encoding: ordered groups with tile requirements, group sizes, concealed/exposed, Joker eligibility, point values
 - FR41: Card display as slide-in panel from right on desktop (~280px), always toggle-accessible
@@ -82,6 +88,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR49: Shared hand evaluation engine for validation, guidance, Joker exchange, and scoring
 
 **Joker Rules**
+
 - FR50: Standard NMJL Joker rules (default): 8 Jokers, substitute in groups of 3+, cannot be in pairs/singles
 - FR51: Jokers cannot be discarded from rack
 - FR52: Dead Joker if somehow discarded — no player can call it
@@ -91,17 +98,20 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR56: Simplified Joker rules (host option): no Joker exchange
 
 **Exposure Rules**
+
 - FR57: Called groups displayed face-up, visible to all for rest of game
 - FR58: Exposed groups cannot be rearranged or broken apart
 - FR59: Clear UI distinction between concealed (rack) and exposed groups
 
 **Concealed vs. Exposed Hands**
+
 - FR60: Support for concealed (C) and exposed (X) hand requirements per NMJL card
 - FR61: Mixed hands: concealed/exposed at group level, not just hand level
 - FR62: Validation that concealed groups were not formed via calls
 - FR63: Hand guidance auto-filters achievable hands based on current exposed groups
 
 **Win/Loss & Declaration**
+
 - FR64: Mahjong button always visible, always clickable — fixed position in action zone
 - FR65: Auto-validation against NMJL card data before reveal to other players
 - FR66: Invalid Mahjong: private notification with Cancel option
@@ -110,6 +120,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR69: Self-drawn Mahjong: declare before discarding when wall draw completes hand
 
 **Celebration & Post-Game**
+
 - FR70: Full celebration sequence: dim (20-30% opacity on non-winner areas, excluding video thumbnails), held beat (0.5s), hand fan-out from seat to center, winner spotlight with brushed gold "Mahjong!" text, scoring overlay, signature 3-4 note motif
 - FR71: Discard Mahjong: discarder pays 2x, other 2 losers pay 1x hand value
 - FR72: Self-drawn Mahjong: all 3 losers pay 2x hand value
@@ -118,18 +129,21 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR75: Session scoreboard: running total of payments across all games
 
 **Dead Hands**
+
 - FR76: Dead hand triggers: incorrect declaration (confirmed), invalid exposure (irretractable), wrong tile count, table talk (upheld report)
 - FR77: Dead hand behavior: draw/discard normally, cannot call discards
 - FR78: Other players CAN call dead hand player's discards
 - FR79: Dead hand player's exposed tiles remain visible
 
 **Table Talk Report**
+
 - FR80: Table Talk Report button (distinct from Social Override)
 - FR81: Report sent to all other players as majority vote (2 of 3 must agree)
 - FR82: If upheld: reported player gets dead hand for current game
 - FR83: Max 2 Table Talk Reports per player per game (denied counts toward limit)
 
 **Social Override**
+
 - FR84: Undo for accidental discards, mistaken calls, Charleston passing errors only
 - FR85: Requires unanimous consent (3 of 3 non-requesting players)
 - FR86: Undo window: before next irreversible game state change (draw from wall or resolved call)
@@ -137,6 +151,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR88: All overrides logged and visible to host for transparency
 
 **Turn Timeout & AFK**
+
 - FR89: Configurable timer (15-30 sec default)
 - FR90: No-timer mode (group self-regulates)
 - FR91: First timeout: gentle nudge + time extension
@@ -144,6 +159,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR93: Third+ consecutive: AFK vote (2 of 3) to convert to dead seat
 
 **Player Departure**
+
 - FR94: Departure notification to remaining players
 - FR95: Host decision prompt: dead seat or end game (majority vote)
 - FR96: Dead seat: locked hand, auto-pass turns, draws skipped
@@ -152,12 +168,14 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR99: No AI fill-in for MVP
 
 **Wall Management**
+
 - FR100: Wall counter visible to all players throughout game
 - FR101: Wall game trigger: last tile drawn/discarded with no Mahjong and no call
 - FR102: Last tile self-drawn Mahjong allowed
 - FR103: Last discard can be called for any valid purpose (no "hot wall" restriction in MVP)
 
 **Reconnection**
+
 - FR104: Grace period (~30 sec) for reconnection
 - FR105: Full game state restore on reconnect (board, rack, scores, chat history)
 - FR106: "Player is reconnecting..." indicator for other players
@@ -167,6 +185,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR110: WebRTC auto-reconnect on rejoin with fallback to text-only
 
 **Communication**
+
 - FR111: Text chat always accessible during all game phases
 - FR112: Quick reactions (one-tap emoji/reaction, persistent row of 4-6 reactions)
 - FR113: Voice chat via WebRTC (third-party SDK)
@@ -175,6 +194,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR116: "Reconnect A/V" button if connection fails
 
 **Controls & Input**
+
 - FR117: Desktop: hybrid click and drag-and-drop tile interaction
 - FR118: Mobile: touch-based tap-to-select and drag-and-drop with 44px tap targets
 - FR119: Keyboard navigation: Tab cycles zones (Rack -> Actions -> NMJL -> Chat -> Controls), Arrow keys navigate within, Enter confirms, Escape exits chat
@@ -183,6 +203,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR122: Per-player discard pool in chronological rows (matching physical play)
 
 **Player Profiles & Stats**
+
 - FR123: Optional lightweight accounts (email or Google OAuth)
 - FR124: Guest play with self-chosen display name and session profile
 - FR125: Account benefits: persistent stats, session history, social stats, display name + avatar
@@ -191,6 +212,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - FR128: All stats private by default; optional shareable session summary
 
 **Scoreboard & Post-Game**
+
 - FR129: Post-game celebration sequence with winner spotlight
 - FR130: Optional "show hands" — all players can reveal racks after game end
 - FR131: Cumulative session scoreboard
@@ -200,6 +222,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 ### NonFunctional Requirements
 
 **Performance**
+
 - NFR1: 60fps target for all animations; 30fps acceptable floor on low-end mobile with WebRTC
 - NFR2: Below 30fps is a P1 bug
 - NFR3: Initial load <3 seconds on broadband, <5 seconds on 3G
@@ -210,6 +233,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR8: Hand guidance computation sub-100ms per draw/discard
 
 **Platform & Browser**
+
 - NFR9: Browser support: Chrome, Firefox, Safari, Edge (latest two versions)
 - NFR10: Mobile: iOS Safari 16+, Android Chrome — tested on real devices
 - NFR11: No polyfills for legacy browsers
@@ -219,6 +243,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR15: SVG rendering — resolution-independent, scales to ultrawide/4K
 
 **Network & Reliability**
+
 - NFR16: Latency tolerance: 200ms round-trip acceptable for turn-based play
 - NFR17: WebSocket uptime 99.9% during active sessions
 - NFR18: Game state sync latency <200ms p95
@@ -230,6 +255,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR24: Network issues must never crash the game
 
 **Accessibility**
+
 - NFR25: Font size adjustable in settings (default optimized for 40-70+ demographic)
 - NFR26: High contrast mode for tile suits and numbers
 - NFR27: Color-blind support: tile suits distinguished by shape/pattern in addition to color
@@ -242,6 +268,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR34: No text smaller than 14px anywhere in the application
 
 **Architecture & Design**
+
 - NFR35: Server-side authoritative game state (in memory for session duration)
 - NFR36: No durable persistence for MVP — server restart loses active games
 - NFR37: Command/action pattern from day one (player submits action, engine validates, returns state)
@@ -252,6 +279,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR42: Technology selection: Vue 3 + TypeScript (client), Node.js + Fastify + ws (server), pnpm monorepo
 
 **Security & Integrity**
+
 - NFR43: Server holds authoritative game state (anti-cheat); opponent racks never transmitted to other clients
 - NFR44: No account required to join a game (zero-friction USP)
 - NFR45: Voice/video via WebRTC with TURN/STUN server infrastructure
@@ -260,6 +288,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - NFR48: No v-html in codebase (XSS prevention); all user strings via Vue text interpolation only
 
 **Usability Targets**
+
 - NFR49: New player joins and completes first turn within 90 seconds of clicking link
 - NFR50: Voice/video connection establishes within 5 seconds in 95% of sessions
 - NFR51: Zero rule-accuracy bugs reported by experienced playtesters across 10+ games
@@ -267,6 +296,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 ### Additional Requirements
 
 **From Architecture:**
+
 - AR1: pnpm monorepo with three packages: shared/, client/, server/
 - AR2: Shared package contains pure TypeScript game engine — no browser or Node.js API dependencies; zero runtime dependencies
 - AR3: Validate-then-mutate action handler convention in all game logic (no partial mutations on rejection)
@@ -284,7 +314,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - AR15: TypeScript strict: true in all three package tsconfigs — no exceptions; no @ts-ignore without justification comment
 - AR16: Co-located tests (foo.ts -> foo.test.ts); E2E tests in client/e2e/ with Playwright; pnpm -r test runs all suites
 - AR17: Feature-based directory organization within each package
-- AR18: Single SVG sprite sheet for all 152 tile faces as <symbol> elements; Tile.vue uses <use href="#tile-id">
+- AR18: Single SVG sprite sheet for all 152 tile faces as  elements; Tile.vue uses 
 - AR19: Debug panel (Ctrl+Shift+D), server debug endpoint (env-gated), multi-seat testing mode — all dev-only
 - AR20: No database for MVP; all state in-memory (server) or browser storage (client)
 - AR21: Motion for Vue (motion-v) for unified animation API across all interactions; 5KB, native prefers-reduced-motion support
@@ -304,7 +334,8 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 ### UX Design Requirements
 
 **Design System & Tokens**
-- UX-DR1: All colors defined as UnoCSS theme tokens generating CSS custom properties — no raw hex values in .vue files. Tokens include: felt-teal (~#2A6B6B), chrome-surface (~#F5F0E8), chrome-surface-dark (~#2C2A28), gold-accent (~#C4A35A), suit colors (bam green, crak red, dot blue), state colors (turn-active, call-window, success, error, warning), wall counter states (normal, warning <=20, critical <=10), hand guidance (gold/neutral, never suit colors), celebration (gold, dim)
+
+- UX-DR1: All colors defined as UnoCSS theme tokens generating CSS custom properties — no raw hex values in .vue files. Tokens include: felt-teal (~~#2A6B6B), chrome-surface (~~#F5F0E8), chrome-surface-dark (~~#2C2A28), gold-accent (~~#C4A35A), suit colors (bam green, crak red, dot blue), state colors (turn-active, call-window, success, error, warning), wall counter states (normal, warning <=20, critical <=10), hand guidance (gold/neutral, never suit colors), celebration (gold, dim)
 - UX-DR2: Typography system with named semantic role shortcuts in uno.config.ts: text-game-critical (20px, semibold), text-interactive (18px, semibold), text-body (16px, regular), text-card-pattern (16px, monospace/tabular), text-secondary (14px, regular). No text below 14px. No light/thin weights (100-300).
 - UX-DR3: Animation tokens as CSS custom properties: tactile (120ms, ease-out), expressive (400ms, cubic-bezier), entrance (200ms, ease-out), exit (150ms, ease-in). All animations override to 0ms under prefers-reduced-motion. No raw CSS transition with hardcoded durations.
 - UX-DR4: 4px-based spacing scale (4/8/12/16/24/32/48/64/96). 16px minimum padding for interactive elements. 12px minimum gap between interactive elements. min-tap UnoCSS shortcut for 44px min-h/min-w.
@@ -315,6 +346,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - UX-DR9: Mood-specific gold temperature shift: warmer/amber during Arriving, cooler/brass during Playing, softer/muted during Lingering — same gold family, different emotional weight via mood token overrides.
 
 **Layout & Responsive**
+
 - UX-DR10: Direction B (Immersive Table) chosen — full-width felt surface, no persistent sidebar. NMJL card and chat via slide-in panels from right. Maximum felt immersion.
 - UX-DR11: iPad landscape (1024px) is the primary design target. Layout adapts upward to desktop and downward to phone. Container-based component sizing preferred over purely viewport-based breakpoints.
 - UX-DR12: NMJL and chat slide-in panels are mutually exclusive — opening one closes the other. Both ~280px, same animation tokens. Floating reactions hide when any panel is open (play mode vs. reference mode).
@@ -327,7 +359,8 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - UX-DR19: Safe area insets: fixed-bottom elements include padding-bottom: env(safe-area-inset-bottom). Discard confirm viewport detection accounts for env(safe-area-inset-top) on notch/Dynamic Island.
 
 **Component Specifications**
-- UX-DR20: Tile component: states (default, hover lift 4px, selected lift 8px + gold border, disabled reduced opacity, face-down). Variants: standard (~50px rack), small (~30px exposed/discards), celebration (larger fan-out). 10px drag/tap dead zone threshold. ARIA role="button", aria-label="3 of Bamboo".
+
+- UX-DR20: Tile component: states (default, hover lift 4px, selected lift 8px + gold border, disabled reduced opacity, face-down). Variants: standard (~~50px rack), small (~~30px exposed/discards), celebration (larger fan-out). 10px drag/tap dead zone threshold. ARIA role="button", aria-label="3 of Bamboo".
 - UX-DR21: TileRack component: states (interactive your turn, passive not your turn, selection mode for Charleston/call). Horizontal scroll on phone. Arrow keys navigate, Enter selects. role="list" with listitem children.
 - UX-DR22: CallButtons component: only valid call options shown (no grayed-out buttons). Appears instantly in fixed action zone. aria-live="assertive" announces call window. Auto-focus first button for keyboard.
 - UX-DR23: PlayerPresence component: video frame or avatar fallback at seat position. States: default, active turn (gold glow), speaking (animated indicator), reconnecting, disconnected/dead seat. Sizes: large ~140x96px desktop, medium ~120x80px iPad, small ~40px phone. Layout works identically with video or avatar — no restructuring on camera toggle.
@@ -339,6 +372,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - UX-DR29: TileSelectionAction shared composable for "select N tiles from rack" pattern used in Charleston (3), call confirmation, and Joker exchange (1). Progress indicator, confirm/cancel.
 
 **Interaction Patterns**
+
 - UX-DR30: Four-tier button hierarchy: Primary (gold fill, dark text — ONE per screen), Urgent (call-window fill, white text — only during call window), Secondary (chrome fill, border), Tertiary (transparent, subtle). Disabled buttons removed from DOM, not grayed out (exception: Mahjong always visible).
 - UX-DR31: Immediate acknowledgment pattern: every tap gets instant visual feedback (tile lift, button depress, panel slide) BEFORE server confirms. NOT optimistic updates — just "I heard you." Degraded network: 800ms pulse fallback, 3s escalate to "Reconnecting...".
 - UX-DR32: State narration for all game events: call resolution with priority explanation, turn skip-ahead visualization, Charleston direction changes, courtesy pass count narration, scoring breakdown with discarder-pays-double. The system always shows its work.
@@ -350,10 +384,12 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - UX-DR38: Empty states: waiting room shows avatars at filled seats + empty placeholders (voice/text already active). No chat placeholder. No exposed group placeholder. Loading: instant Arriving mood skeleton, NO spinners during gameplay, reconnection indicator at seat.
 
 **Shared Primitives (extract after first 3-4 feature components)**
+
 - UX-DR39: BaseButton (44px min, press states, focus ring, gold accent), BasePanel (consistent bg/border/shadow/radius), BaseBadge (turn indicator, wall counter, status dot), BaseToast (enter/exit animation, auto-dismiss, positioning), BaseOverlay (backdrop, enter/exit, scroll), BaseInput (border, focus ring, text-interactive, padding), BaseToggle (switch styling), MobileBottomBar (phone-only, fixed bottom, above safe area).
 - UX-DR40: Extraction strategy: do NOT build primitives in isolation first. Build first 3-4 feature components (Tile, TileRack, DiscardPool, CallButtons), then extract shared patterns as a dedicated refactoring story before Epic 5A closes.
 
 **Accessibility-Specific UX**
+
 - UX-DR41: Color-blind safe: tile suits use shape/pattern distinguishers in addition to color. Hand guidance uses gold/neutral highlights, never suit colors.
 - UX-DR42: Drag/tap dead zone: 10px movement threshold prevents accidental rack rearrangement from imprecise taps (critical for 40-70+ demographic).
 - UX-DR43: Keyboard Tab zones with focus-trap regions: Rack -> Action buttons -> NMJL card -> Chat -> Controls. Tab between zones, Arrow within zones, Enter confirms, Escape exits chat. Skip link: "Skip to game table."
@@ -361,6 +397,7 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 - UX-DR45: Tile readability validation at Epic 5A: render all 152 faces at 30px, test with target demographic (40-70+). If corner indices unreadable, bump to 32-34px before building dependent components.
 
 **Player Journey UX**
+
 - UX-DR46: Join flow under 10 seconds: tap link -> type name -> see friends. Friendly A/V permission prompt with guidance ("Allow mic so your friends can hear you"), graceful avatar fallback if denied.
 - UX-DR47: First-visit visual entrance: 2-second graceful entrance (felt fade-in, tiles materialize). Skipped on subsequent visits. Skipped entirely under prefers-reduced-motion.
 - UX-DR48: First-launch audio preview: brief 3-second showcase (tile draw, discard clack, Mahjong motif) during first game join. Toast: "Sound is on. Adjust in settings."
@@ -369,145 +406,148 @@ This document provides the complete epic and story breakdown for Mahjong Night, 
 
 ### FR Coverage Map
 
-| FR | Epic | Brief |
-|---|---|---|
-| FR1 | 4A | Private rooms with shareable links |
-| FR2 | 4A | 4 players required |
-| FR3 | 4B | 5th player / spectator |
-| FR4 | 4B | Host settings between games |
-| FR5 | 4B | Setting change notifications |
-| FR6 | 4B | Collapsible settings panel |
-| FR7 | 4A | Guest play with display name |
-| FR8 | 1 + 4A | Seat/wind assignment |
-| FR9 | 1 | Dealing 14/13/13/13 |
-| FR10 | 1 + 5A + 7 | Dealing animation |
-| FR11 | 5B | Animated traditional dealing option |
-| FR12 | 4A + 5B | Dealer rotation |
-| FR13 | 1 | Counterclockwise play |
-| FR14 | 1 | East's first turn |
-| FR15 | 1 | Draw from wall |
-| FR16 | 2 + 5B | Evaluate hand against card |
-| FR17 | 5A | Two-step discard |
-| FR18 | 5A + 5B | Drag-and-drop discard opt-in |
-| FR19 | 3A | Hybrid call window |
-| FR20 | 3A | Pass to close early |
-| FR21 | 3A | Mahjong call priority |
-| FR22 | 3A | Multiple Mahjong by turn order |
-| FR23 | 3A | Non-Mahjong by seat position |
-| FR24 | 3A | Call confirmation 5 sec |
-| FR25 | 3A | Call retraction |
-| FR26 | 3A | Call window freeze |
-| FR27 | 3A | No Chi/Chow |
-| FR28 | 3A | No pairs except Mahjong |
-| FR29 | 3A | Call validation against card |
-| FR30 | 5A | Dynamic call buttons |
-| FR31 | 3A | Pattern-defined groups |
-| FR32 | 3B | First Charleston |
-| FR33 | 3B | Second Charleston vote |
-| FR34 | 3B | Courtesy pass |
-| FR35 | 3B | Blind passing rule |
-| FR36 | 3B | Jokers in Charleston |
-| FR37 | 3B | Tile selection UI |
-| FR38 | 3B | Direction indicator |
-| FR39 | 2 | JSON card data |
-| FR40 | 2 | Hand pattern encoding |
-| FR41 | 5B | Card slide-in panel (desktop) |
-| FR42 | 5B | Card overlay (mobile) |
-| FR43 | 5B | Hand guidance system |
-| FR44 | 5B | Auto-disable after 3 games |
-| FR45 | 5B + 4B | Host toggle hints |
-| FR46 | 2 | Runtime card loading |
-| FR47 | 2 | Card data test suite |
-| FR48 | 2 | Current year only |
-| FR49 | 2 | Shared hand evaluation engine |
-| FR50 | 2 | Standard Joker rules |
-| FR51 | 1 | Joker discard restriction |
-| FR52 | 1 | Dead Joker if discarded |
-| FR53 | 3C | Joker exchange |
-| FR54 | 3C | Multiple exchanges per turn |
-| FR55 | 3A | Group identity fixed at exposure |
-| FR56 | 3C | Simplified Joker rules |
-| FR57 | 3A | Groups face-up visible |
-| FR58 | 3A | Groups cannot be rearranged |
-| FR59 | 5A | UI distinction concealed/exposed |
-| FR60 | 2 | C/X hand requirements |
-| FR61 | 2 | Mixed hands at group level |
-| FR62 | 3C | Concealed validation at Mahjong |
-| FR63 | 3C + 5B | Guidance filters by exposed |
-| FR64 | 5A | Mahjong button always visible |
-| FR65 | 3A | Auto-validation before reveal |
-| FR66 | 3A | Invalid Mahjong warning |
-| FR67 | 3A | Confirmed invalid = dead hand |
-| FR68 | 3A | Challenge button |
-| FR69 | 3A | Self-drawn Mahjong |
-| FR70 | 7 | Celebration sequence |
-| FR71 | 2 | Discard Mahjong payment rules |
-| FR72 | 2 | Self-drawn payment rules |
-| FR73 | 1 | Wall game no payments |
-| FR74 | 2 | Hand values from card |
-| FR75 | 5A + 5B | Scoreboard |
-| FR76 | 3C | Dead hand triggers |
-| FR77 | 3C | Dead hand behavior |
-| FR78 | 3C | Others call dead hand discards |
-| FR79 | 3C | Dead hand tiles visible |
-| FR80 | 3C | Table Talk Report button |
-| FR81 | 3C | Majority vote (2/3) |
-| FR82 | 3C | Upheld = dead hand |
-| FR83 | 3C | Max 2 reports per game |
-| FR84 | 3C | Social override scope |
-| FR85 | 3C | Unanimous consent (3/3) |
-| FR86 | 3C | Undo window timing |
-| FR87 | 3C | Silence = deny |
-| FR88 | 3C | Override logging visible to host |
-| FR89 | 4B | Configurable timer |
-| FR90 | 4B | No-timer mode |
-| FR91 | 4B | First timeout nudge |
-| FR92 | 4B | Second timeout auto-discard |
-| FR93 | 4B | AFK vote |
-| FR94 | 4B | Departure notification |
-| FR95 | 4B | Dead seat or end game vote |
-| FR96 | 4B | Dead seat behavior |
-| FR97 | 4B | Multi-departure auto-end |
-| FR98 | 4B | Host migration |
-| FR99 | 4B | No AI fill-in |
-| FR100 | 5B | Wall counter |
-| FR101 | 1 + 3C | Wall game trigger |
-| FR102 | 3C | Last tile self-drawn Mahjong |
-| FR103 | 3C | Last discard callable |
-| FR104 | 4B | Grace period |
-| FR105 | 4B | Full state restore |
-| FR106 | 4B | Reconnecting indicator |
-| FR107 | 4B | Phase-specific reconnection |
-| FR108 | 4B | Simultaneous disconnect pause |
-| FR109 | 4B | 2-minute timeout |
-| FR110 | 6B | WebRTC auto-reconnect |
-| FR111 | 6A | Text chat |
-| FR112 | 6A | Quick reactions |
-| FR113 | 6B | Voice chat |
-| FR114 | 6B | Video chat |
-| FR115 | 6B | Voice/video toggles |
-| FR116 | 6B | Reconnect A/V button |
-| FR117 | 5A | Desktop click/drag |
-| FR118 | 5A | Mobile touch |
-| FR119 | 5A | Keyboard navigation |
-| FR120 | 5A | Rack drag-and-drop |
-| FR121 | 5A | Sort rack button |
-| FR122 | 5A | Per-player discard pool |
-| FR123 | 8 | Optional accounts |
-| FR124 | 8 | Guest experience |
-| FR125 | 8 | Account benefits |
-| FR126 | 8 | localStorage guest stats |
-| FR127 | 8 | Stats tracking |
-| FR128 | 8 | Shareable session summary |
-| FR129 | 7 | Celebration sequence |
-| FR130 | 5B | Show hands |
-| FR131 | 5B | Session scoreboard |
-| FR132 | 5B | Rematch button |
-| FR133 | 5B | Linger time / wind-down |
+
+| FR    | Epic       | Brief                               |
+| ----- | ---------- | ----------------------------------- |
+| FR1   | 4A         | Private rooms with shareable links  |
+| FR2   | 4A         | 4 players required                  |
+| FR3   | 4B         | 5th player / spectator              |
+| FR4   | 4B         | Host settings between games         |
+| FR5   | 4B         | Setting change notifications        |
+| FR6   | 4B         | Collapsible settings panel          |
+| FR7   | 4A         | Guest play with display name        |
+| FR8   | 1 + 4A     | Seat/wind assignment                |
+| FR9   | 1          | Dealing 14/13/13/13                 |
+| FR10  | 1 + 5A + 7 | Dealing animation                   |
+| FR11  | 5B         | Animated traditional dealing option |
+| FR12  | 4A + 5B    | Dealer rotation                     |
+| FR13  | 1          | Counterclockwise play               |
+| FR14  | 1          | East's first turn                   |
+| FR15  | 1          | Draw from wall                      |
+| FR16  | 2 + 5B     | Evaluate hand against card          |
+| FR17  | 5A         | Two-step discard                    |
+| FR18  | 5A + 5B    | Drag-and-drop discard opt-in        |
+| FR19  | 3A         | Hybrid call window                  |
+| FR20  | 3A         | Pass to close early                 |
+| FR21  | 3A         | Mahjong call priority               |
+| FR22  | 3A         | Multiple Mahjong by turn order      |
+| FR23  | 3A         | Non-Mahjong by seat position        |
+| FR24  | 3A         | Call confirmation 5 sec             |
+| FR25  | 3A         | Call retraction                     |
+| FR26  | 3A         | Call window freeze                  |
+| FR27  | 3A         | No Chi/Chow                         |
+| FR28  | 3A         | No pairs except Mahjong             |
+| FR29  | 3A         | Call validation against card        |
+| FR30  | 5A         | Dynamic call buttons                |
+| FR31  | 3A         | Pattern-defined groups              |
+| FR32  | 3B         | First Charleston                    |
+| FR33  | 3B         | Second Charleston vote              |
+| FR34  | 3B         | Courtesy pass                       |
+| FR35  | 3B         | Blind passing rule                  |
+| FR36  | 3B         | Jokers in Charleston                |
+| FR37  | 3B         | Tile selection UI                   |
+| FR38  | 3B         | Direction indicator                 |
+| FR39  | 2          | JSON card data                      |
+| FR40  | 2          | Hand pattern encoding               |
+| FR41  | 5B         | Card slide-in panel (desktop)       |
+| FR42  | 5B         | Card overlay (mobile)               |
+| FR43  | 5B         | Hand guidance system                |
+| FR44  | 5B         | Auto-disable after 3 games          |
+| FR45  | 5B + 4B    | Host toggle hints                   |
+| FR46  | 2          | Runtime card loading                |
+| FR47  | 2          | Card data test suite                |
+| FR48  | 2          | Current year only                   |
+| FR49  | 2          | Shared hand evaluation engine       |
+| FR50  | 2          | Standard Joker rules                |
+| FR51  | 1          | Joker discard restriction           |
+| FR52  | 1          | Dead Joker if discarded             |
+| FR53  | 3C         | Joker exchange                      |
+| FR54  | 3C         | Multiple exchanges per turn         |
+| FR55  | 3A         | Group identity fixed at exposure    |
+| FR56  | 3C         | Simplified Joker rules              |
+| FR57  | 3A         | Groups face-up visible              |
+| FR58  | 3A         | Groups cannot be rearranged         |
+| FR59  | 5A         | UI distinction concealed/exposed    |
+| FR60  | 2          | C/X hand requirements               |
+| FR61  | 2          | Mixed hands at group level          |
+| FR62  | 3C         | Concealed validation at Mahjong     |
+| FR63  | 3C + 5B    | Guidance filters by exposed         |
+| FR64  | 5A         | Mahjong button always visible       |
+| FR65  | 3A         | Auto-validation before reveal       |
+| FR66  | 3A         | Invalid Mahjong warning             |
+| FR67  | 3A         | Confirmed invalid = dead hand       |
+| FR68  | 3A         | Challenge button                    |
+| FR69  | 3A         | Self-drawn Mahjong                  |
+| FR70  | 7          | Celebration sequence                |
+| FR71  | 2          | Discard Mahjong payment rules       |
+| FR72  | 2          | Self-drawn payment rules            |
+| FR73  | 1          | Wall game no payments               |
+| FR74  | 2          | Hand values from card               |
+| FR75  | 5A + 5B    | Scoreboard                          |
+| FR76  | 3C         | Dead hand triggers                  |
+| FR77  | 3C         | Dead hand behavior                  |
+| FR78  | 3C         | Others call dead hand discards      |
+| FR79  | 3C         | Dead hand tiles visible             |
+| FR80  | 3C         | Table Talk Report button            |
+| FR81  | 3C         | Majority vote (2/3)                 |
+| FR82  | 3C         | Upheld = dead hand                  |
+| FR83  | 3C         | Max 2 reports per game              |
+| FR84  | 3C         | Social override scope               |
+| FR85  | 3C         | Unanimous consent (3/3)             |
+| FR86  | 3C         | Undo window timing                  |
+| FR87  | 3C         | Silence = deny                      |
+| FR88  | 3C         | Override logging visible to host    |
+| FR89  | 4B         | Configurable timer                  |
+| FR90  | 4B         | No-timer mode                       |
+| FR91  | 4B         | First timeout nudge                 |
+| FR92  | 4B         | Second timeout auto-discard         |
+| FR93  | 4B         | AFK vote                            |
+| FR94  | 4B         | Departure notification              |
+| FR95  | 4B         | Dead seat or end game vote          |
+| FR96  | 4B         | Dead seat behavior                  |
+| FR97  | 4B         | Multi-departure auto-end            |
+| FR98  | 4B         | Host migration                      |
+| FR99  | 4B         | No AI fill-in                       |
+| FR100 | 5B         | Wall counter                        |
+| FR101 | 1 + 3C     | Wall game trigger                   |
+| FR102 | 3C         | Last tile self-drawn Mahjong        |
+| FR103 | 3C         | Last discard callable               |
+| FR104 | 4B         | Grace period                        |
+| FR105 | 4B         | Full state restore                  |
+| FR106 | 4B         | Reconnecting indicator              |
+| FR107 | 4B         | Phase-specific reconnection         |
+| FR108 | 4B         | Simultaneous disconnect pause       |
+| FR109 | 4B         | 2-minute timeout                    |
+| FR110 | 6B         | WebRTC auto-reconnect               |
+| FR111 | 6A         | Text chat                           |
+| FR112 | 6A         | Quick reactions                     |
+| FR113 | 6B         | Voice chat                          |
+| FR114 | 6B         | Video chat                          |
+| FR115 | 6B         | Voice/video toggles                 |
+| FR116 | 6B         | Reconnect A/V button                |
+| FR117 | 5A         | Desktop click/drag                  |
+| FR118 | 5A         | Mobile touch                        |
+| FR119 | 5A         | Keyboard navigation                 |
+| FR120 | 5A         | Rack drag-and-drop                  |
+| FR121 | 5A         | Sort rack button                    |
+| FR122 | 5A         | Per-player discard pool             |
+| FR123 | 8          | Optional accounts                   |
+| FR124 | 8          | Guest experience                    |
+| FR125 | 8          | Account benefits                    |
+| FR126 | 8          | localStorage guest stats            |
+| FR127 | 8          | Stats tracking                      |
+| FR128 | 8          | Shareable session summary           |
+| FR129 | 7          | Celebration sequence                |
+| FR130 | 5B         | Show hands                          |
+| FR131 | 5B         | Session scoreboard                  |
+| FR132 | 5B         | Rematch button                      |
+| FR133 | 5B         | Linger time / wind-down             |
+
 
 ## Epic List
 
 ### Epic 1: Project Foundation & Game Engine
+
 A complete game state machine that runs a full 4-seat draw-discard game locally with a minimal visual test harness. Includes monorepo setup, tooling, test infrastructure, and debug tools.
 **Phase:** 1 — Foundation
 **Dependencies:** None
@@ -517,6 +557,7 @@ A complete game state machine that runs a full 4-seat draw-discard game locally 
 **Implementation notes:** Project setup is Story 1.1. Test infrastructure early. Command/action pattern from day one per architecture hard requirement.
 
 ### Epic 2: Card Rules & Validation
+
 A standalone, exhaustively tested module that validates hands against the NMJL card, calculates scoring, and determines payment distribution. Powers all four subsystems: validation, guidance, Joker exchange, scoring.
 **Phase:** 1 — Foundation
 **Dependencies:** Epic 1
@@ -526,6 +567,7 @@ A standalone, exhaustively tested module that validates hands against the NMJL c
 **Implementation notes:** Per GLaDOS — test suite design story BEFORE pattern matcher implementation (red-green-refactor). This is the highest-risk, most complex system in the game. Exhaustive test coverage is an architectural requirement.
 
 ### Epic 3A: Turn Flow & Calling
+
 Full calling system with priority resolution, call window freeze, exposure rules, Mahjong declaration with auto-validation, and challenge mechanism.
 **Phase:** 2 — Playable Game
 **Dependencies:** Epic 1, Epic 2
@@ -534,6 +576,7 @@ Full calling system with priority resolution, call window freeze, exposure rules
 **Implementation notes:** Per Cloud Dragonborn — turn flow stories (draw/discard loop) can begin in parallel with Epic 2 work since they don't need the pattern matcher. Only call validation and Mahjong declaration stories require Epic 2.
 
 ### Epic 4A: Core Multiplayer
+
 Four players join a room via shared link and play a synchronized game in real time. Server-authoritative state, WebSocket protocol, session identity, room lifecycle.
 **Phase:** 2 — Playable Game
 **Dependencies:** Epic 1
@@ -543,6 +586,7 @@ Four players join a room via shared link and play a synchronized game in real ti
 **Implementation notes:** Per GLaDOS — view filtering security test (AR31: state-broadcaster.test.ts verifying no rack data leaks) must be an explicit story, not buried in a WebSocket integration story. Include Playwright multi-client integration test for call window fairness.
 
 ### Epic 5A: Core Game UI
+
 A strong, reusable browser UI vertical slice for the live table surface. Players see tiles, draw, discard, call, declare Mahjong, and see scores in a responsive layout. This epic delivers the core table UI, keyboard foundation, and shared primitives, but does not by itself deliver live client-state integration or basic audio.
 **Phase:** 2 — Playable Game
 **Dependencies:** Epic 3A, Epic 4A
@@ -554,6 +598,7 @@ A strong, reusable browser UI vertical slice for the live table surface. Players
 **>>> MILESTONE: Core table UI ready for live-state integration <<<**
 
 ### Epic 3B: Charleston
+
 Full Charleston pre-game passing ritual with blind pass enforcement, optional second Charleston vote, courtesy pass negotiation. All with social interaction fully active.
 **Phase:** 3 — Complete Rules
 **Dependencies:** Epic 3A, Epic 5A
@@ -563,15 +608,17 @@ Full Charleston pre-game passing ritual with blind pass enforcement, optional se
 **Implementation notes:** Do not begin Epic 3B story execution until the table UI is driven by live client-state integration and the Epic 3B plan is reviewed for `TileSelectionAction` reuse plus Charleston reconnect / auto-pass behavior.
 
 ### Epic 3C: Advanced Rules
-Complete rules engine — Joker exchange, dead hands, social governance (Social Override + Table Talk Report), wall end scenarios, concealed hand validation.
+
+Complete rules engine — Joker exchange, dead hands, social governance (Social Override + Table Talk Report), wall end scenarios, concealed hand validation, plus client integration and UI alignment carried forward from Epic 3B retrospective.
 **Phase:** 3 — Complete Rules
 **Dependencies:** Epic 3A, Epic 5A
 **FRs covered:** FR53, FR54, FR56, FR62, FR63, FR76-FR88, FR102, FR103
 **UX-DRs covered:** UX-DR34 (social override UX), UX-DR35 (dead hand indicator)
-**Est. stories:** 6-8
-**Implementation notes:** Order stories so voting UI pattern (Social Override) is built first, reused for Table Talk Report.
+**Est. stories:** 8-10
+**Implementation notes:** Order stories so voting UI pattern (Social Override) is built first, reused for Table Talk Report. **Epic 3B retro follow-up:** Stories 3C.8–3C.9 cover live `STATE_UPDATE` wiring to the table and `useTileSelection` reuse for call confirmation; for 3C.6+ story specs paste the validation checklist from `_bmad-output/implementation-artifacts/story-validation-checklist.md`; after any broadcaster filter change run `state-broadcaster.test.ts` and relevant WebSocket integration tests.
 
 ### Epic 6A: Text Chat & Reactions
+
 Lightweight social features over the existing WebSocket connection. Text chat and one-tap reactions during all game phases.
 **Phase:** 3 — Complete Rules (consider pulling to Phase 2 for playtest)
 **Dependencies:** Epic 4A
@@ -581,6 +628,7 @@ Lightweight social features over the existing WebSocket connection. Text chat an
 **Implementation notes:** Per Samus Shepard — consider pulling into Phase 2 alongside Epic 5A for better playtest experience. Rides on existing WebSocket connection from 4A. Without chat, the first playtest tests rules but not the social experience that differentiates the product.
 
 ### Epic 4B: Multiplayer Resilience
+
 Handle real-world scenarios gracefully — disconnections with full state restore, player departures with dead seats, turn timeouts, 5th player handling, host settings and migration.
 **Phase:** 4 — Polish & Social
 **Dependencies:** Epic 4A, Epic 5A
@@ -590,6 +638,7 @@ Handle real-world scenarios gracefully — disconnections with full state restor
 **Implementation notes:** Per GLaDOS — reconnection during each game phase (Charleston, frozen call window, active turn, simultaneous disconnect) needs its own Playwright E2E test. Budget 6-8 E2E tests for reconnection paths alone.
 
 ### Epic 5B: Remaining UI
+
 Complete UI experience — NMJL card display with hand guidance, wall counter with tension states, session scoreboard, rematch flow, show hands, settings panel.
 **Phase:** 4 — Polish & Social
 **Dependencies:** Epic 5A, Epic 3B
@@ -598,6 +647,7 @@ Complete UI experience — NMJL card display with hand guidance, wall counter wi
 **Est. stories:** 8-10
 
 ### Epic 6B: Voice & Video (WebRTC) — CUT LINE
+
 Integrated voice and video chat via LiveKit SDK. Players see each other's faces and hear each other's voices.
 **Phase:** 4 — Polish & Social
 **Dependencies:** Epic 4A, Epic 5A
@@ -607,6 +657,7 @@ Integrated voice and video chat via LiveKit SDK. Players see each other's faces 
 **Implementation notes:** Explicit cut target if timeline is tight. Game ships with text chat and reactions; WebRTC voice/video added as fast-follow.
 
 ### Epic 7: Visual Polish & Audio
+
 Make the game beautiful and tactile — Three Moods atmosphere, felt texture, celebration cinematics, complete sound design (all 10-12 effects), dark mode, first-visit entrance, first-launch audio preview.
 **Phase:** 4 — Polish & Social
 **Dependencies:** Epic 5A
@@ -616,6 +667,7 @@ Make the game beautiful and tactile — Three Moods atmosphere, felt texture, ce
 **Est. stories:** 8-10
 
 ### Epic 8: Profiles, Stats & Remaining Accessibility
+
 Optional accounts with persistent stats, session history, social tracking. Accessibility hardening: screen reader testing, high contrast, color-blind tile patterns, font size settings.
 **Phase:** 4 — Polish & Social
 **Dependencies:** Epic 5A
@@ -1633,7 +1685,7 @@ So that **I can identify every tile at a glance on both desktop and mobile (UX-D
 
 **Given** tile variants
 **When** rendering in different contexts
-**Then** three size variants work: standard (~50px for rack), small (~30px for exposed groups/discards at `tile-min-width`), and celebration (larger for fan-out)
+**Then** three size variants work: standard (~~50px for rack), small (~~30px for exposed groups/discards at `tile-min-width`), and celebration (larger for fan-out)
 
 **Given** accessibility requirements
 **When** inspecting tile markup
@@ -2121,13 +2173,15 @@ So that **one player's network issue doesn't freeze the entire Charleston for ev
 
 ## Epic 3C: Advanced Rules
 
-Complete rules engine — Joker exchange, dead hands, social governance (Social Override + Table Talk Report), wall end scenarios, and concealed hand validation. This epic makes the game fully rule-complete per NMJL standards.
+Complete rules engine — Joker exchange, dead hands, social governance (Social Override + Table Talk Report), wall end scenarios, and concealed hand validation. This epic makes the game fully rule-complete per NMJL standards. **Stories 3C.8 and 3C.9** schedule Epic 3B retrospective follow-up: live client wiring from `STATE_UPDATE` to `GameTable`, and refactoring call confirmation to shared `useTileSelection`.
 
 **Note on voting pattern reuse:** Story 3C.4 (Social Override) builds the unanimous voting pattern first. Story 3C.5 (Table Talk Report) reuses the same UI pattern with majority (2/3) threshold.
 
 **Note on TypeScript unions:** Stories in this epic extend `GameAction` and `ResolvedAction` unions with Joker exchange, dead hand, social override, and table talk types. See Epic 3A note.
 
 **Note on Story 3C.4 scope:** This story builds BOTH the voting interaction pattern AND the state reversal logic (undo a discard: remove from discard pool, return to rack, revert turn). The reversal logic is unique to Social Override and does not depend on 3C.3 (Dead Hand).
+
+**Note on validation checklist:** For Stories 3C.6+ (and new story files in this epic), include the shared checklist from `_bmad-output/implementation-artifacts/story-validation-checklist.md` in each story spec.
 
 ### Story 3C.1: Joker Exchange Mechanic
 
@@ -2364,6 +2418,50 @@ So that **concealed hand wins are legitimate and the card's C/X markings are enf
 **Given** the game state
 **When** tracking group origin
 **Then** every exposed group has metadata recording whether it was formed via a call (exposed) or from the wall (concealed) — this tracking is the foundation for concealed validation
+
+### Story 3C.8: WebSocket client — `STATE_UPDATE` to GameTable
+
+As a **player in a live room**,
+I want **the client to apply each filtered `PlayerGameView` from the server to the real table UI**,
+So that **I see racks, Charleston, calls, and governance UIs from authoritative state — not only dev harnesses (Epic 3B retro follow-up)**.
+
+**Acceptance Criteria:**
+
+**Given** a WebSocket connection to an active room with `STATE_UPDATE` messages
+**When** `state` is a `PlayerGameView`
+**Then** the client maps it with `mapPlayerGameViewToGameTableProps` (or equivalent) and renders `GameTable` from that mapping
+
+**Given** `state` is `LobbyState`
+**When** the client receives the update
+**Then** the table is not shown as an in-progress game (lobby / room shell handles pre-start)
+
+**Given** the player dispatches game actions (discard, call, Charleston, etc.)
+**When** messages are sent per `protocol.ts`
+**Then** the client does not mutate game state locally before server confirmation (server authority preserved)
+
+**Given** implementation
+**When** reviewed
+**Then** at least one automated test covers parsing a `STATE_UPDATE` payload and producing table-bound props, or an E2E path exercises a live room (project convention)
+
+### Story 3C.9: Call confirmation uses shared `useTileSelection`
+
+As a **developer**,
+I want **Epic 3A call confirmation tile selection to use the same `useTileSelection` composable as Charleston (Story 3B.4)**,
+So that **selection behavior, accessibility, and tests stay consistent (Epic 3B / epics note; supersedes ad hoc 3A.5 selection UI)**.
+
+**Acceptance Criteria:**
+
+**Given** the call confirmation flow (exposing tiles after a call)
+**When** the player selects tiles from their rack
+**Then** selection state is driven by `useTileSelection` (or a thin wrapper) shared with Charleston patterns
+
+**Given** existing call confirmation tests
+**When** the refactor lands
+**Then** behavior remains covered — update or add tests so confirm/retract and validation paths still pass
+
+**Given** Story 3B.4 `TileSelectionAction` / `useTileSelection` API
+**When** integrated here
+**Then** duplicate one-off selection logic in the call confirmation path is removed or minimized
 
 ---
 

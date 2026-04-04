@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-04 # 3c-5 story doc sync (file list + links)
+# last_updated: 2026-04-04 # epic-2/3a/3b marked done (all stories complete)
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-04 # 3c-5 done; story ticket refreshed
+last_updated: 2026-04-04 # 3c-8/3c-9 added (3B retro); 3c-5 done
 project: mahjong-game
 
 project_key: NOKEY
@@ -55,7 +55,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Card Rules & Validation
-  epic-2: in-progress
+  epic-2: done
   2-1-nmjl-card-data-schema-loader: done
   2-2-card-data-integrity-test-suite: done
   2-3-pattern-matching-engine: done
@@ -65,7 +65,7 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3A: Turn Flow & Calling
-  epic-3a: in-progress
+  epic-3a: done
   3a-1-call-window-open-timer-pass-early-close: done
   3a-2-call-actions-pung-kong-quint-with-validation: done
   3a-3-pattern-defined-group-calls-news-dragon-sets: done
@@ -103,13 +103,13 @@ development_status:
   epic-5a-retrospective: done
 
   # Epic 3B: Charleston
-  epic-3b: in-progress # gated by epic-5a retro follow-through items below
+  epic-3b: done
   3b-1-first-charleston-with-blind-pass-enforcement: done
   3b-2-second-charleston-vote-reversed-passes: done
   3b-3-courtesy-pass-negotiation: done
   3b-4-charleston-ui-direction-indicator-tileselectionaction-pass-interaction: done
   3b-5-charleston-disconnect-handling: done
-  epic-3b-retrospective: optional
+  epic-3b-retrospective: done
 
   # Epic 3C: Advanced Rules
   epic-3c: in-progress
@@ -120,6 +120,9 @@ development_status:
   3c-5-table-talk-report-majority-vote-dead-hand: done
   3c-6-wall-end-last-tile-rules: backlog
   3c-7-concealed-hand-validation-at-mahjong: backlog
+  # Epic 3B retro follow-up (see epics.md Epic 3C Stories 3C.8–3C.9)
+  3c-8-websocket-client-state-update-to-gametable: backlog
+  3c-9-call-confirmation-use-tile-selection: backlog
   epic-3c-retrospective: optional
 
   # Epic 6A: Text Chat & Reactions
@@ -184,5 +187,10 @@ retro_follow_through:
     5a-retro-1-validation-checklist-in-story-specs: done
     5a-retro-2-retro-action-items-in-sprint-status: done
     5a-retro-3-milestone-language-clarified-in-epics: done
-    5a-retro-4-client-integration-layer-before-epic-3b: backlog
-    5a-retro-5-epic-3b-planning-review: backlog
+    # Done 2026-04-04: Epic 3B shipped engine-first + prop-driven UI; thin PlayerGameView→GameTable bridge in packages/client (see mapPlayerGameViewToGameTable.ts + /dev/player-view-bridge).
+    5a-retro-4-client-integration-layer-before-epic-3b: done
+    # Done 2026-04-04: Alignment via per-story execution gates + epic-3b-retro; formal planning-review item closed.
+    5a-retro-5-epic-3b-planning-review: done
+  epic-3b:
+    # TileSelectionAction / 3A.5 refactor: tracked under Epic 3C as `3c-9-call-confirmation-use-tile-selection`.
+    3b-retro-tile-selection-refactor-call-confirmation: done
