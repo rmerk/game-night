@@ -1,6 +1,6 @@
 # Story 6A.2: Chat Panel UI (SlideInPanel)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine — 2026-04-04. Second pass: placeholder replacement, Pinia wiring, shared constants, lobby shell, a11y/z-index. Depends on 6A.1 protocol + server. -->
 
@@ -158,9 +158,12 @@ Composer (Cursor cloud agent)
 
 - Implemented Story 6A.2: `CHAT_BROADCAST` / `REACTION_BROADCAST` parsing, `sendChat` on `useRoomConnection`, Pinia `useChatStore` + `useSlideInPanelStore` with `isAnySlideInPanelOpen` for 6A.3, responsive `SlideInPanel` + `ChatPanel`, shared `SlideInReferencePanels`, GameTable / MobileBottomBar / lobby toggles, NMJL stub panel for mutual exclusivity, store reset on WebSocket disconnect/close and new `connect()`. Escape from chat input returns focus to action zone (in-play) or lobby focus sink.
 - **Pass 2:** One panel DOM node per type (valid `id` for `aria-controls`); exported `SLIDE_IN_*_PANEL_ROOT_ID`; tertiary ghost toggles; `useRoomConnection.sendChat.test.ts`.
+- **Code review (2026-04-04):** Adversarial review vs ACs — no HIGH code defects; regression gate passed (`pnpm test`, `pnpm run typecheck`, `vp lint`). File List updated to include shared protocol/constants touched on branch. Optional LOW: lobby uses the same fixed-position `SlideInPanel` as in-game (acceptable for AC9 minimum; refine if UX asks for column-anchored panel).
 
 ### File List
 
+- `packages/shared/src/chat-constants.ts` (client send guard alignment with server `MAX_CHAT_LENGTH`)
+- `packages/shared/src/types/protocol.ts` (`ChatBroadcast` / protocol alignment with 6A.1)
 - `packages/client/src/composables/parseServerMessage.ts`
 - `packages/client/src/composables/parseServerMessage.test.ts`
 - `packages/client/src/composables/useRoomConnection.ts`
@@ -185,7 +188,8 @@ Composer (Cursor cloud agent)
 
 - **2026-04-04:** Story 6A.2 implemented — chat panel UI, protocol wiring, stores, tests; status → review.
 - **2026-04-04 (pass 2):** Single responsive `SlideInPanel` root (fixes duplicate element IDs); stable `slideInPanelIds` + `aria-controls` on toggles; tertiary-style chrome toggles; `useRoomConnection.sendChat` unit tests; store doc points 6A.3 to shared IDs.
+- **2026-04-04 (code review):** Adversarial review complete; File List includes shared `chat-constants` / `protocol`; status → **done**.
 
 ---
 
-**Completion status:** Implementation complete — **review** (run `code-review` with a different model recommended).
+**Completion status:** Code review complete — **done**.
