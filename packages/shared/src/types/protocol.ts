@@ -71,7 +71,10 @@ export interface ReactionMessage {
   emoji: string;
 }
 
-/** Server → Client: sanitized chat line broadcast to the room */
+/**
+ * Server → Client: sanitized chat line broadcast to the room.
+ * User-derived fields are plain strings (NFR48). Story 6A.2 UI must render with `{{ }}` only — never `v-html` for message body.
+ */
 export interface ChatBroadcast {
   version: typeof PROTOCOL_VERSION;
   type: "CHAT_BROADCAST";
@@ -81,7 +84,10 @@ export interface ChatBroadcast {
   timestamp: number;
 }
 
-/** Server → Client: reaction broadcast (live-only; not stored in history) */
+/**
+ * Server → Client: reaction broadcast (live-only; not stored in history).
+ * User-derived fields are plain strings (NFR48). Story 6A.2 must not use `v-html` for emoji.
+ */
 export interface ReactionBroadcast {
   version: typeof PROTOCOL_VERSION;
   type: "REACTION_BROADCAST";
