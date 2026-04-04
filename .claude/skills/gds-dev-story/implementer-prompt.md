@@ -44,6 +44,17 @@ Task tool (general-purpose):
     - UnoCSS for styling (utility-first)
     - Conventional Commits for git messages
 
+    ## Vue skills (before code)
+
+    If this task touches **`packages/client`** (`.vue` SFCs, client composables, Pinia stores, Vue Router, or client `*.test.ts`), you MUST load the applicable skills **before** writing tests or production code. Invoke them via your environment's Skill mechanism, or read the skill file. Skip this section if the task only touches `packages/shared` or `packages/server`.
+
+    | Scope | Skills |
+    |--------|--------|
+    | Any Vue/client UI or composable work | `vue-best-practices`, `vue` |
+    | Component / client tests | `vue-testing-best-practices` |
+    | Route changes / navigation | `vue-router-best-practices` |
+    | Pinia store changes | `pinia` |
+
     ## Before You Begin
 
     If you have questions about:
