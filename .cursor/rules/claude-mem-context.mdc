@@ -7,86 +7,85 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-03-31 4:09pm CDT
+# $CMEM mahjong-game 2026-04-03 8:48pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,497t read) | 497,012t work | 95% savings
+Stats: 50 obs (29,013t read) | 552,842t work | 95% savings
 
-### Mar 30, 2026
-70 3:43p 🔵 GDS Story Creation Infrastructure Analyzed
-71 3:44p 🔵 Story 5a-6 Requirements Analyzed for Call Buttons Implementation
-72 3:50p ✅ Story 5a-6 marked in-progress in sprint tracking
-73 3:51p 🟣 CallButtons test suite created with comprehensive coverage
-74 " 🟣 CallButtons component implemented with full accessibility and responsive design
-75 3:52p 🟣 CallButtons integrated into GameTable with conditional ActionZone rendering
-76 " 🟣 GameTable integration tests added for CallButtons conditional rendering
-77 3:53p 🟣 CallButtonsShowcase dev page created with six interactive scenarios
-78 3:54p 🔴 Mock CallWindowState updated with missing winningCall field
-79 " ✅ Story 5a-6 completion documented in story file with comprehensive implementation summary
-80 3:55p ✅ Sprint status updated to mark story 5a-6 ready for review
-### Mar 31, 2026
-81 5:00a 🔵 Mahjong game project uses custom Game Development System (GDS) skills framework
-82 " 🔵 GDS code-review workflow integrates claude-mem for cross-session review context
-83 " 🔵 GDS code-review skill architecture uses 5-step adversarial validation with smart code navigation tools
-84 5:01a ✅ Enhanced gds-code-review Step 1 with explicit smart_outline and smart_search usage for token-efficient code navigation
-85 5:02a ✅ Updated gds-code-review Step 3 to use smart_search, smart_unfold, and smart_outline throughout adversarial review process
-86 5:03a ✅ Updated gds-code-review role description to mandate smart tools usage and prohibit Explore subagent for code navigation
-87 5:04a ✅ Removed conditional checks for claude-mem tools in Step 1, making smart_outline and smart_search mandatory operations
-88 " ✅ Comprehensively refactored Step 3 adversarial review to mandate smart tools with prescriptive usage patterns and context reuse from Step 1
-89 5:10a ✅ Created specification document for code review smart tools migration
-90 5:14a ⚖️ Structured brainstorming workflow established
-91 5:15a 🔵 Mahjong Night project structure and implementation state mapped
-92 5:16a 🔵 GDS Dev Story Workflow methodology documented in project
-93 5:24a ✅ Smart tools migration design document created for create-story and dev-story workflows
-94 5:26a ✅ Implementation plan created for smart tools migration with six detailed tasks
-95 5:28a 🔄 Conditional wrapper removed from gds-create-story cross-session memory integration
-96 5:29a 🔄 Smart tools mandate added to gds-dev-story role directive with Explore ban
-97 5:31a 🔄 Conditional wrapper removed and structural understanding added to gds-dev-story Step 2
-98 5:47a ⚖️ Structured design workflow established for mahjong game project
-S83 Design approval session for gds-retrospective smart tools migration with detailed edit specifications (Mar 31 at 5:52 AM)
-S84 Design specification for retrospective smart tools migration with self-review and user approval (Mar 31 at 5:52 AM)
-99 5:53a ⚖️ Design specification for retrospective smart tools migration
-S85 Design and planning phase for retrospective smart tools migration with execution approach decision (Mar 31 at 5:53 AM)
-100 5:54a ✅ Committed design specification for retrospective smart tools migration
-101 5:55a ✅ Implementation plan created for retrospective smart tools migration
-S86 Migrate gds-retrospective workflow to mandate claude-mem smart tools throughout the retrospective process (Mar 31 at 5:55 AM)
-102 6:00a 🟣 Added smart tools mandate to retrospective role directive
-103 6:07a 🔄 Retrospective Workflow Memory Integration Made Unconditional
-104 6:08a 🟣 Retrospective Workflow Enhanced with Smart Search for Action Item Follow-Through
-105 6:09a 🟣 Critical Readiness Exploration Enhanced with Proactive Stability Search
-S87 Push completed gds-retrospective workflow migration commits to remote repository (Mar 31 at 6:09 AM)
-S88 Create comprehensive story file for 5a-7 Mahjong Button & Declaration UI using gds-create-story workflow (Mar 31 at 6:10 AM)
-106 6:29a 🔵 GDS Story Creation Workflow System
-107 " 🔵 Mahjong Game Project Configuration and Sprint Status
-S122 Research claude-mem installation instructions for Cursor IDE integration (Mar 31 at 6:35 AM)
-120 3:57p 🔵 Claude-Mem Cursor IDE Integration Architecture Documented
-S123 Install claude-mem Cursor IDE integration for persistent AI memory (Mar 31 at 3:58 PM)
-121 3:58p 🟣 Claude-Mem Cursor Hooks Installed for Project
-S124 Install and configure claude-mem for Cursor IDE persistent memory (Mar 31 at 3:58 PM)
-122 4:01p 🟣 Mahjong Button Test Suite Created
-123 4:02p 🟣 MahjongButton Component Implemented
-124 " 🔴 Fixed MahjongButton Visibility Test Assertion
-125 " 🟣 InvalidMahjongNotification Test Suite Created
-126 " 🟣 InvalidMahjongNotification Component Implemented
-127 4:03p 🟣 GameTable Mahjong Button Integration Tests Added
-128 " 🟣 MahjongButton and InvalidMahjongNotification Integrated into GameTable
-129 " 🔴 Fixed GameTable Button Visibility Test Assertion
-130 4:04p 🟣 MahjongButton Development Showcase Created
-131 " ✅ MahjongButton Showcase Route Added to Dev Menu
-S125 Install claude-mem for Cursor IDE and understand monitoring options (Mar 31 at 4:09 PM)
-**Investigated**: Explored claude-mem Cursor integration documentation, installation procedures, and post-installation verification methods. Reviewed hook execution monitoring locations including Cursor Settings, context files, web viewer interface, and worker logs.
+### Apr 3, 2026
+S147 Complete cross-platform workflow architecture design synthesizing platform detection and review strategy decisions (Apr 3 at 6:09 AM)
+S148 Platform-adaptive dev story workflow design specification creation and refinement (Apr 3 at 6:10 AM)
+S149 Implementation plan creation, commit, and execution approach decision (Apr 3 at 6:11 AM)
+S150 Complete platform-adaptive gds-dev-story workflow refactoring - deployment sync and end-to-end verification (Apr 3 at 6:14 AM)
+S273 Create Story 3B.5: Charleston Disconnect Handling using gds-create-story workflow (Apr 3 at 6:24 AM)
+456 6:30a 🟣 Charleston vote integration and play-phase UI guards
+458 " 🔄 Removed redundant tileSelection reset call
+459 " 🟣 Charleston directional pass animations with accessibility support
+462 6:31a 🟣 Test coverage for CharlestonZone and CharlestonVote components
+464 " 🟣 CourtesyPassUI test coverage with skip and count selection workflows
+466 " 🟣 GameTable Charleston integration tests with component rendering and tile selection flow
+468 6:32a 🔴 Test failures revealed GameTable passing ref objects instead of unwrapped values
+471 " 🔄 Added explicit TypeScript generics to Set constructors in CourtesyPassUI tests
+473 6:33a ✅ Charleston UI task completed and moved to review status
+474 " 🟣 Charleston UI feature fully implemented with all tasks completed
+475 " ✅ Charleston UI implementation artifact finalized with technical details and file manifest
+476 6:34a ✅ Full test suite validation confirms Charleston UI implementation integrity
+477 6:38a 🟣 Charleston Phase UI with Tile Selection Composable
+478 6:40a 🔄 Charleston Components Refactored to Delegate Selection State to Parent
+479 " 🟣 Charleston UI Completed with Rack Animation and Vote Controls Tests
+579 7:54p 🔵 BMad GDS Story Creation Workflow Initialized
+580 " 🔵 Story Creation Workflow Analyzing Epic 3B Context and Project Artifacts
+581 " 🔵 Charleston Disconnect Handling Architecture and Implementation Patterns Extracted
+582 7:55p 🔵 Comprehensive Charleston Disconnect Handling Research Synthesized via Explore Subagent
+583 7:56p 🔵 Final Story Context Loading Complete for Story 3B.5 via Epic and Architecture Deep Dive
+584 7:57p 🔵 Charleston Engine Implementation Deep Dive Confirms Auto-Pass Logic Gap
+S274 Code quality review identified type annotation fix requirement; implementer fixed canonical action types in Charleston auto-pass code (Apr 3 at 8:02 PM)
+585 8:04p 🔵 AI-Orchestrated Game Development Story Workflow System
+586 " 🔵 Mahjong Game Charleston Disconnect Handling Story Preparation
+587 8:05p 🔵 Existing Grace Period and Charleston Reconnection Architecture Analysis
+588 " ✅ Story 3B.5 Status Updated to In-Progress
+589 8:07p ✅ Charleston Auto-Pass Implementation Dependencies Added
+590 " 🟣 Charleston Auto-Pass Helper Functions Implemented
+591 8:08p 🟣 Charleston Auto-Action Wired Into Grace Period Callback
+592 " 🟣 Charleston Auto-Action Implementation Committed
+S275 Story 3B.5 status transition to review after DoD validation pass (Apr 3 at 8:13 PM)
+S276 Adversarial code review of Story 3B.5 Charleston disconnect handling implementation (Apr 3 at 8:31 PM)
+593 8:32p 🔵 GDS Code Review Workflow System Configuration
+594 8:33p 🔵 Code Review Initiated for Story 3B.5 Charleston Disconnect Handling
+595 " 🔵 Charleston Auto-Pass Implementation Verified in Codebase
+596 8:34p 🟣 Charleston Disconnect Auto-Action Test Suite Complete
+597 " 🔵 Tile Type System Validation for Joker Filtering
+598 " 🔵 Charleston Action Types Properly Imported and Typed
+S277 Complete adversarial code review of Story 3B.5 Charleston disconnect handling with automated fixes and status update to done (Apr 3 at 8:35 PM)
+599 8:38p 🔵 Test Infrastructure Access Pattern for Room State Inspection
+600 " 🔵 Test File Setup with FastifyInstance and Session Manager Integration
+601 " 🔴 Reverted Cosmetic Test File Change and Enhanced Test 3.2
+602 " 🔴 Enhanced Test 3.2 with Seat Release Assertion and Verified All Tests Pass
+603 8:39p ✅ Story 3B.5 Code Review Complete and Status Updated to Done
+604 8:42p 🔵 GDS Story Creation Workflow System
+605 " 🔵 Story Quality Validation and Discovery Framework
+606 " 🔵 Story Context Intelligence Gathering for Epic 3C Story Creation
+607 8:43p 🔵 Epic 3C Story 3C.1 Joker Exchange Detailed Requirements Analysis
+608 " 🔵 Codebase Structure Analysis for Joker Exchange Implementation
+609 8:44p 🔵 Comprehensive Story Context Assembly for Joker Exchange Story Creation
+610 8:45p 🔵 Comprehensive Codebase Research via Subagent for Joker Exchange Implementation
+611 8:46p ✅ Sprint Status Updated for Story 3C.1 Ready-for-Dev
+612 " ✅ Epic 3C Transitioned to In-Progress with Story 3C.1 Ready-for-Dev
+613 8:47p 🟣 Story 3C.1 Joker Exchange Mechanic Comprehensive Story File Created
+S278 Create comprehensive story file for Story 3C.1 Joker Exchange Mechanic with complete developer implementation context (Apr 3 at 8:48 PM)
+**Investigated**: GDS create-story workflow executed exhaustive context intelligence gathering analyzing epics, architecture documents, GDD game rules, project-context with 85 critical rules, previous story patterns from Epic 3B Charleston completion, and deployed 110-second research subagent analyzing 31 codebase locations to extract action handler patterns, type systems, existing joker validation infrastructure from story 2-4, exposed group structures, turn state management, server-side integration points, and test conventions
 
-**Learned**: Claude-mem hooks run silently in background capturing observations and injecting context without visible UI in Cursor chat. Monitoring available through four locations: Cursor Settings → Hooks tab for execution logs/errors, .cursor/rules/claude-mem-context.mdc for injected context file, http://localhost:37777 web viewer for all observations/sessions, and ~/.claude-mem/logs/worker-YYYY-MM-DD.log for worker service logs. Context file updates after each session ends via stop hook.
+**Learned**: JOKER_EXCHANGE action type does not exist requiring greenfield implementation across 6 files, but validateJokerExchange helper function already exists in joker-eligibility.ts from story 2-4 enabling reuse for tile-identity matching. Action handlers follow strict validate-then-mutate pattern with early rejection returns before atomic mutations. ExposedGroup type contains immutable GroupIdentity established at exposure time per FR55 with jokerGroupId using {playerId}-group-{index} convention parsed at runtime avoiding type system changes. Multiple exchanges per turn achieved by keeping turnPhase at discard state throughout exchange sequence. Tile swap mutation must preserve visual position by replacing at same array index. Story 3B.5 confirmed tile category filtering pattern and canonical shared action type usage
 
-**Completed**: Successfully installed claude-mem Cursor hooks at project level (.cursor/hooks.json), generated initial context to .cursor/rules/claude-mem-context.mdc, configured unified CLI mode with Bun runtime, and started worker service on port 37777. Installation ready for use after Cursor IDE restart.
+**Completed**: Created comprehensive story file 3c-1-joker-exchange-mechanic.md with 12 detailed acceptance criteria covering basic exchange, identity matching, rejection scenarios, multiple exchanges per turn, and broadcast requirements. Six hierarchical tasks defined spanning type additions, handleJokerExchange handler creation, game engine registration, server parsing, 14 comprehensive tests, and validation gate. Dev Notes section provides jokerGroupId parsing implementation, tile swap mutation sequence, validateJokerExchange delegation pattern, turn phase management, key types reference, test setup pattern using createPlayState fixture, files to create/modify breakdown, scope boundaries excluding client UI and related stories, previous story context from 3B.5, cross-session intelligence integration, and 11 source document references with specific line numbers. Sprint status updated with Epic 3C transitioned to in-progress and story 3c-1 marked ready-for-dev following automatic epic progression workflow convention
 
-**Next Steps**: User to restart Cursor IDE to activate hooks, then verify integration by checking Cursor Settings → Hooks tab and monitoring first session's observations in web viewer at http://localhost:37777.
+**Next Steps**: Story file ready for developer review and implementation via dev-story workflow execution, followed by code-review workflow when implementation complete to validate against comprehensive acceptance criteria and architectural patterns
 
 
-Access 497k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 553k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

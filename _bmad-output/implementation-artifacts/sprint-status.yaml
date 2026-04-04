@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-03 # 3b-4 → done
+# last_updated: 2026-04-03 # 3c-1 → ready-for-dev
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-03
+last_updated: 2026-04-03 # 3c-1 → ready-for-dev
 project: mahjong-game
 
 project_key: NOKEY
@@ -108,12 +108,12 @@ development_status:
   3b-2-second-charleston-vote-reversed-passes: done
   3b-3-courtesy-pass-negotiation: done
   3b-4-charleston-ui-direction-indicator-tileselectionaction-pass-interaction: done
-  3b-5-charleston-disconnect-handling: backlog
+  3b-5-charleston-disconnect-handling: done
   epic-3b-retrospective: optional
 
   # Epic 3C: Advanced Rules
-  epic-3c: backlog
-  3c-1-joker-exchange-mechanic: backlog
+  epic-3c: in-progress
+  3c-1-joker-exchange-mechanic: ready-for-dev
   3c-2-simplified-joker-rules-host-option: backlog
   3c-3-dead-hand-detection-enforcement: backlog
   3c-4-social-override-system-unanimous-vote-undo: backlog

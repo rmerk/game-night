@@ -1146,7 +1146,7 @@ describe("charleston disconnect auto-action", () => {
   }
 
   it("3.2 grace expiry during passing status dispatches CHARLESTON_PASS and broadcasts state (AC1, AC8, AC9)", async () => {
-    const { clients, playerIds } = await setupCharlestonRoom();
+    const { roomCode, clients, playerIds } = await setupCharlestonRoom();
 
     // Drain disconnect broadcast on remaining players
     const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
@@ -1170,6 +1170,10 @@ describe("charleston disconnect auto-action", () => {
       // AC9: the auto-action broadcast is sent before seat release, verifying the pass was recorded
       expect(Array.isArray(charleston.submittedPlayerIds)).toBe(true);
     }
+
+    // AC9: seat released after auto-action (player removed from room.players)
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.players.has(playerIds[0])).toBe(false);
 
     for (const ws of clients.slice(1)) ws.close();
   });
