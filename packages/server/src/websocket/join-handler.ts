@@ -1,7 +1,15 @@
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import type { RoomManager } from "../rooms/room-manager";
-import type { PlayerPublicInfo, LobbyState, StateUpdateMessage, Tile } from "@mahjong-game/shared";
+import type {
+  PlayerPublicInfo,
+  LobbyState,
+  StateUpdateMessage,
+  Tile,
+  CharlestonPassAction,
+  CharlestonVoteAction,
+  CourtesyPassAction,
+} from "@mahjong-game/shared";
 import { PROTOCOL_VERSION, handleAction } from "@mahjong-game/shared";
 import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
@@ -173,11 +181,7 @@ function applyCharlestonAutoAction(room: Room, playerId: string, logger: Fastify
     return;
   }
 
-  let autoAction:
-    | { type: "CHARLESTON_PASS"; playerId: string; tileIds: string[] }
-    | { type: "CHARLESTON_VOTE"; playerId: string; accept: boolean }
-    | { type: "COURTESY_PASS"; playerId: string; count: number; tileIds: string[] }
-    | null = null;
+  let autoAction: CharlestonPassAction | CharlestonVoteAction | CourtesyPassAction | null = null;
 
   if (charleston.status === "passing") {
     if (!charleston.submittedPlayerIds.includes(playerId)) {
