@@ -16,6 +16,7 @@ function createTestRoom(playerIds: string[] = []): Room {
     graceTimers: new Map(),
     lifecycleTimers: new Map(),
     socialOverrideTimer: null,
+    tableTalkReportTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
     createdAt: Date.now(),

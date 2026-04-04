@@ -44,6 +44,19 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Vue / client frontend prerequisite
+
+When a story task touches **`packages/client`** — including new/changed `.vue` SFCs, composables used by the client, Pinia stores, Vue Router usage, or Vitest/Vue Test Utils tests under the client package — load the applicable skills **before** writing tests or production code for that task (Steps 5–7). Skills are installed in the environment; invoke them via your platform's Skill mechanism (or read the skill file).
+
+| Scope | Skills to load |
+|--------|----------------|
+| Any Vue/client UI or composable work | **`vue-best-practices`**, **`vue`** |
+| Component / client tests | **`vue-testing-best-practices`** |
+| Route changes / navigation | **`vue-router-best-practices`** |
+| Pinia store changes | **`pinia`** |
+
+If a task touches only `packages/shared` or `packages/server` with no `packages/client` files, skip this gate.
+
 ---
 
 ## EXECUTION
@@ -57,6 +70,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <critical>Absolutely DO NOT stop because of "milestones", "significant progress", or "session boundaries". Continue in a single execution until the story is COMPLETE UNLESS a HALT condition is triggered or the USER gives other instruction.</critical>
   <critical>Do NOT schedule a "next session" or request review pauses unless a HALT condition applies. Only Step 8 decides completion.</critical>
   <critical>User skill level ({game_dev_experience}) affects conversation style ONLY, not code updates.</critical>
+  <critical>For any Step 5–7 task that touches client Vue code (see Vue / client frontend prerequisite in INITIALIZATION), you MUST load the applicable Vue skills before implementation starts for that task — before writing tests or production code.</critical>
 
   <!-- ============================================================ -->
   <!-- STEP 1: STORY DISCOVERY                                       -->
@@ -202,6 +216,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
     <!-- Build structural understanding of files this story will touch -->
     <action>From story Tasks/Subtasks and File List, identify ALL source files this story will create or modify</action>
+    <action>If any mapped path is under `packages/client`, note that Step 5 must load Vue skills per the Vue / client frontend prerequisite before that task's implementation (tests or code).</action>
     <action>For each existing file that will be modified, run smart_outline to get structural overview:
       - Function/method signatures, type definitions, exports
       - This builds YOUR context for curating subagent prompts — subagents will read files themselves

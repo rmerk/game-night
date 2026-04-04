@@ -38,6 +38,9 @@ export function handlePassCall(state: GameState, action: PassCallAction): Action
   if (state.socialOverrideState) {
     return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
   }
+  if (state.tableTalkReportState) {
+    return { accepted: false, reason: "TABLE_TALK_PENDING" };
+  }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
@@ -163,6 +166,9 @@ export function handleCallMahjong(state: GameState, action: CallMahjongAction): 
   if (state.socialOverrideState) {
     return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
   }
+  if (state.tableTalkReportState) {
+    return { accepted: false, reason: "TABLE_TALK_PENDING" };
+  }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };
   }
@@ -238,6 +244,9 @@ export function handleCallAction(
   }
   if (state.socialOverrideState) {
     return { accepted: false, reason: "SOCIAL_OVERRIDE_PENDING" };
+  }
+  if (state.tableTalkReportState) {
+    return { accepted: false, reason: "TABLE_TALK_PENDING" };
   }
   if (!state.callWindow) {
     return { accepted: false, reason: "NO_CALL_WINDOW" };

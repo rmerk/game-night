@@ -6,6 +6,7 @@ import {
   handleAction,
   createLobbyState,
   handleSocialOverrideTimeout,
+  handleTableTalkTimeout,
   SOCIAL_OVERRIDE_TIMEOUT_SECONDS,
 } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
@@ -17,6 +18,13 @@ function clearSocialOverrideTimer(room: Room): void {
   if (room.socialOverrideTimer) {
     clearTimeout(room.socialOverrideTimer);
     room.socialOverrideTimer = null;
+  }
+}
+
+function clearTableTalkReportTimer(room: Room): void {
+  if (room.tableTalkReportTimer) {
+    clearTimeout(room.tableTalkReportTimer);
+    room.tableTalkReportTimer = null;
   }
 }
 
@@ -108,6 +116,14 @@ function validateActionPayload(action: Record<string, unknown>): string | null {
       return typeof action.approve === "boolean"
         ? null
         : "SOCIAL_OVERRIDE_VOTE requires boolean approve";
+    case "TABLE_TALK_REPORT":
+      return typeof action.reportedPlayerId === "string" && typeof action.description === "string"
+        ? null
+        : "TABLE_TALK_REPORT requires string reportedPlayerId and description";
+    case "TABLE_TALK_VOTE":
+      return typeof action.approve === "boolean"
+        ? null
+        : "TABLE_TALK_VOTE requires boolean approve";
     case "COURTESY_PASS": {
       const count = action.count;
       if (typeof count !== "number" || !Number.isInteger(count)) {
@@ -224,6 +240,19 @@ function parseGameAction(action: Record<string, unknown>, playerId: string): Gam
       return typeof action.approve === "boolean"
         ? { type: "SOCIAL_OVERRIDE_VOTE", playerId, approve: action.approve }
         : null;
+    case "TABLE_TALK_REPORT":
+      return typeof action.reportedPlayerId === "string" && typeof action.description === "string"
+        ? {
+            type: "TABLE_TALK_REPORT",
+            playerId,
+            reportedPlayerId: action.reportedPlayerId,
+            description: action.description,
+          }
+        : null;
+    case "TABLE_TALK_VOTE":
+      return typeof action.approve === "boolean"
+        ? { type: "TABLE_TALK_VOTE", playerId, approve: action.approve }
+        : null;
     case "SHOW_HAND":
       return { type: "SHOW_HAND", playerId };
     default:
@@ -301,6 +330,21 @@ export function handleActionMessage(
         const gs = room.gameState;
         if (!gs?.socialOverrideState) return;
         const timeoutResult = handleSocialOverrideTimeout(gs);
+        if (timeoutResult.accepted) {
+          broadcastGameState(room, gs, timeoutResult.resolved);
+        }
+      }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
+    }
+
+    if (!room.gameState.tableTalkReportState) {
+      clearTableTalkReportTimer(room);
+    } else if (authenticatedAction.type === "TABLE_TALK_REPORT") {
+      clearTableTalkReportTimer(room);
+      room.tableTalkReportTimer = setTimeout(() => {
+        room.tableTalkReportTimer = null;
+        const gs = room.gameState;
+        if (!gs?.tableTalkReportState) return;
+        const timeoutResult = handleTableTalkTimeout(gs);
         if (timeoutResult.accepted) {
           broadcastGameState(room, gs, timeoutResult.resolved);
         }

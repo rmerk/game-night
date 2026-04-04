@@ -58,6 +58,7 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     graceTimers: new Map(),
     lifecycleTimers: new Map(),
     socialOverrideTimer: null,
+    tableTalkReportTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
     createdAt: Date.now(),
@@ -117,6 +118,8 @@ function createTestGameState(): GameState {
     pendingMahjong: null,
     challengeState: null,
     socialOverrideState: null,
+    tableTalkReportState: null,
+    tableTalkReportCountsByPlayerId: {},
     hostAuditLog: [],
     charleston: null,
     shownHands: {},
@@ -190,6 +193,8 @@ function createFourPlayerGameState(): GameState {
     pendingMahjong: null,
     challengeState: null,
     socialOverrideState: null,
+    tableTalkReportState: null,
+    tableTalkReportCountsByPlayerId: {},
     hostAuditLog: [],
     charleston: null,
     shownHands: {},
@@ -563,6 +568,8 @@ describe("buildPlayerView", () => {
     expect(view.pendingMahjong).toBeNull();
     expect(view.challengeState).toBeNull();
     expect(view.socialOverrideState).toBeNull();
+    expect(view.tableTalkReportState).toBeNull();
+    expect(view.tableTalkReportCountsByPlayerId).toEqual({});
     expect(view.hostAuditLog).toEqual([]);
     expect(view.myDeadHand).toBe(false);
   });

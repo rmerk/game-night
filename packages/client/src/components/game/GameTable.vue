@@ -30,6 +30,7 @@ import {
   type ResolvedAction,
   type SeatWind,
   type SocialOverrideState,
+  type TableTalkReportState,
 } from "@mahjong-game/shared";
 import { useRackStore } from "../../stores/rack";
 import { useTileSelection } from "../../composables/useTileSelection";
@@ -66,6 +67,10 @@ const props = withDefaults(
     /** True when discarder may open a social-override vote (call window open, no calls) */
     canRequestSocialOverride?: boolean;
     socialOverrideState?: SocialOverrideState | null;
+    /** Table talk report (Story 3C.5) — distinct from social override */
+    canRequestTableTalkReport?: boolean;
+    tableTalkReportState?: TableTalkReportState | null;
+    tableTalkReportCountsByPlayerId?: Record<string, number>;
   }>(),
   {
     opponents: () => ({}),
@@ -85,6 +90,9 @@ const props = withDefaults(
     myDeadHand: false,
     canRequestSocialOverride: false,
     socialOverrideState: null,
+    canRequestTableTalkReport: false,
+    tableTalkReportState: null,
+    tableTalkReportCountsByPlayerId: undefined,
   },
 );
 
@@ -99,6 +107,8 @@ const emit = defineEmits<{
   courtesyPass: [payload: { count: number; tileIds: string[] }];
   socialOverrideRequest: [description: string];
   socialOverrideVote: [approve: boolean];
+  tableTalkReport: [reportedPlayerId: string, description: string];
+  tableTalkVote: [approve: boolean];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -266,6 +276,19 @@ function handleDiscard(tileId: string) {
 const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
+
+const reportTargets = computed(() => {
+  const list: { id: string; name: string }[] = [];
+  for (const opp of [props.opponents?.top, props.opponents?.left, props.opponents?.right]) {
+    if (opp) list.push({ id: opp.id, name: opp.name });
+  }
+  return list;
+});
+
+const myTableTalkReportsUsed = computed(() => {
+  if (!props.localPlayer?.id) return 0;
+  return props.tableTalkReportCountsByPlayerId?.[props.localPlayer.id] ?? 0;
+});
 
 const openCallWindow = computed(() => {
   const cw = props.callWindow;
@@ -449,9 +472,17 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
               v-if="gamePhase === 'play'"
               :can-request-social-override="canRequestSocialOverride"
               :social-override-state="socialOverrideState ?? null"
+              :can-request-table-talk-report="canRequestTableTalkReport"
+              :table-talk-report-state="tableTalkReportState ?? null"
+              :my-table-talk-reports-used="myTableTalkReportsUsed"
+              :report-targets="reportTargets"
               :my-player-id="localPlayer?.id ?? null"
               @social-override-request="(d: string) => emit('socialOverrideRequest', d)"
               @social-override-vote="(a: boolean) => emit('socialOverrideVote', a)"
+              @table-talk-report="
+                (reportedId: string, d: string) => emit('tableTalkReport', reportedId, d)
+              "
+              @table-talk-vote="(a: boolean) => emit('tableTalkVote', a)"
             />
 
             <!-- Phone: inline opponent row for left/right -->
@@ -474,7 +505,10 @@ function handleChatPlaceholderKeydown(event: KeyboardEvent) {
             <div
               data-testid="discard-pools"
               class="discard-pools grid grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1 w-full max-w-lg transition-shadow"
-              :class="{ 'ring-2 ring-state-warning/60 rounded-lg p-1': socialOverrideState }"
+              :class="{
+                'ring-2 ring-state-warning/60 rounded-lg p-1':
+                  socialOverrideState || tableTalkReportState,
+              }"
             >
               <div class="col-start-2 flex justify-center">
                 <DiscardPool :tiles="discardPools?.top ?? []" position="top" />

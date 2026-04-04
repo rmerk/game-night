@@ -32,6 +32,9 @@ with them via `SendMessage`.
     </action>
     <action>Select model for implementer based on task complexity (see {{context_curation}} model guidance)</action>
 
+    <!-- Vue skills: require in inline prompt when task touches packages/client -->
+    <action>If the curated task scope includes `packages/client` (`.vue` SFCs, client composables, Pinia stores, Vue Router, or client tests), include the full **Vue skills (before code)** section from {{implementer_template}} verbatim in the inline dispatch prompt (skill table + requirement to load before tests or code) so the implementer cannot skip it.</action>
+
     <!-- DISPATCH: Implementer subagent -->
     <action>Dispatch implementer subagent following {{implementer_template}}:
       - Use Agent tool (general-purpose) with curated context

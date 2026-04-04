@@ -23,6 +23,7 @@ import {
 } from "./actions/mahjong";
 import { handleChallengeMahjong, handleChallengeVote } from "./actions/challenge";
 import { handleSocialOverrideRequest, handleSocialOverrideVote } from "./actions/social-override";
+import { handleTableTalkReport, handleTableTalkVote } from "./actions/table-talk-report";
 import { handleShowHand } from "./actions/show-hand";
 
 /**
@@ -44,6 +45,8 @@ export function createLobbyState(): GameState {
     pendingMahjong: null,
     challengeState: null,
     socialOverrideState: null,
+    tableTalkReportState: null,
+    tableTalkReportCountsByPlayerId: {},
     hostAuditLog: [],
     charleston: null,
     shownHands: {},
@@ -104,6 +107,10 @@ export function handleAction(state: GameState, action: GameAction): ActionResult
       return handleSocialOverrideRequest(state, action);
     case "SOCIAL_OVERRIDE_VOTE":
       return handleSocialOverrideVote(state, action);
+    case "TABLE_TALK_REPORT":
+      return handleTableTalkReport(state, action);
+    case "TABLE_TALK_VOTE":
+      return handleTableTalkVote(state, action);
     case "SHOW_HAND":
       return handleShowHand(state, action);
     default: {

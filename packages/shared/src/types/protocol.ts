@@ -14,6 +14,7 @@ import type {
   PendingMahjongState,
   ChallengeState,
   SocialOverrideState,
+  TableTalkReportState,
 } from "./game-state";
 import type { Tile } from "./tiles";
 import type { GameAction } from "./actions";
@@ -121,6 +122,8 @@ export interface PlayerGameView {
   pendingMahjong: PendingMahjongState | null;
   challengeState: ChallengeState | null;
   socialOverrideState: SocialOverrideState | null;
+  tableTalkReportState: TableTalkReportState | null;
+  tableTalkReportCountsByPlayerId: Record<string, number>;
   charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;
@@ -146,6 +149,8 @@ export interface SpectatorGameView {
   lastDiscard: { tile: Tile; discarderId: string } | null;
   gameResult: GameResult | null;
   socialOverrideState: SocialOverrideState | null;
+  tableTalkReportState: TableTalkReportState | null;
+  tableTalkReportCountsByPlayerId: Record<string, number>;
   charleston: SpectatorCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;

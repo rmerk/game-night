@@ -28,6 +28,9 @@ for reviewers with mechanical self-review fallback.
     </action>
     <action>Focus ONLY on this task's context. Do not carry forward implementation details from previous tasks.</action>
 
+    <!-- Vue skills before TDD when task touches packages/client -->
+    <action>If the curated task scope includes `packages/client` (`.vue` SFCs, client composables, Pinia stores, Vue Router, or client tests), load the applicable skills per workflow.md **Vue / client frontend prerequisite** BEFORE following {{implementer_template}} for TDD: `vue-best-practices` and `vue` for UI/composables; `vue-testing-best-practices` for client tests; `vue-router-best-practices` for routes/navigation; `pinia` for store changes. Invoke via your environment's Skill mechanism or read the skill file.</action>
+
     <!-- IMPLEMENT: Controller does TDD directly -->
     <action>Follow {{implementer_template}} as your own implementation checklist:
       1. Write FAILING tests first (red phase)

@@ -26,12 +26,18 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     graceTimers: new Map(),
     lifecycleTimers: new Map(),
     socialOverrideTimer: null,
+    tableTalkReportTimer: null,
     gameState: null,
     jokerRulesMode: "standard",
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
   };
-  return { ...base, ...overrides, socialOverrideTimer: overrides?.socialOverrideTimer ?? null };
+  return {
+    ...base,
+    ...overrides,
+    socialOverrideTimer: overrides?.socialOverrideTimer ?? null,
+    tableTalkReportTimer: overrides?.tableTalkReportTimer ?? null,
+  };
 }
 
 describe("room-lifecycle", () => {
