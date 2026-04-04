@@ -1,6 +1,6 @@
 # Story 3C.7: Concealed Hand Validation at Mahjong
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -129,6 +129,7 @@ Composer (Cursor agent)
 
 - 2026-04-04 — Story 3C.7 implemented: exposure provenance, concealed validation at Mahjong, tests, gates passed; status → review.
 - 2026-04-04 — Code review follow-up: Task 1.1 text fix, 3C.7 discard confirmation engine test, client composable test lint fix; File List updated.
+- 2026-04-04 — Code review complete; status → done (sprint-status synced).
 
 ---
 
