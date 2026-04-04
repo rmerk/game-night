@@ -53,6 +53,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 | ux | UX design (fallback - epics file should have relevant sections) | whole: `{planning_artifacts}/*ux*.md`, sharded: `{planning_artifacts}/*ux*/*.md` | SELECTIVE_LOAD |
 | epics | Enhanced epics+stories file with BDD and source hints | whole: `{planning_artifacts}/*epic*.md`, sharded: `{planning_artifacts}/*epic*/*.md` | SELECTIVE_LOAD |
 
+### Cross-session memory (claude-mem)
+
+**Memory-first:** The **claude-mem-context** rule injects recent cross-session summaries into your prompt. Treat that injected block as the **primary** source for past decisions, pitfalls, and related story work. Pull story-relevant items into the generated story file (e.g. dev notes or cross-session section) when they help the implementer.
+
+**Search only on gap:** Call claude-mem MCP tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) only when injected context is empty or missing what this story needs, when you need **deeper** detail than the summary (e.g. specific observation IDs), or when the user asks for a deeper memory dive. Do **not** run broad memory searches out of habit if the injected context already covers the topic— that wastes tokens and duplicates work.
+
+**Cursor vs. other environments:** Where a workflow copy mandates an unconditional claude-mem query, in Cursor that role is filled by **injected context + optional gap-filling searches** as above.
+
 ---
 
 ## EXECUTION
@@ -243,7 +251,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <!-- Cross-session memory integration (memory-first) -->
   <action>Establish {{cross_session_intelligence}} from claude-mem:
     - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Extract story-relevant decisions, pitfalls, and prior work from it.
-    - **Only if needed:** Query claude-mem MCP tools (smart_search, project-scoped search, timeline, get_observations) when injected context is missing this story's domain, you need deeper detail than the summary, or the user requests a deeper dive. Do not run broad searches when injected context already suffices—avoid redundant token use.
+    - **Only if needed:** Query claude-mem MCP tools (mem-search, smart_search, project-scoped search, timeline, get_observations) when injected context is missing this story's domain, you need deeper detail than the summary, or the user requests a deeper dive. Do not run broad searches when injected context already suffices—avoid redundant token use.
   </action>
   <action>From the source above (injected and/or MCP), extract actionable intelligence:
     - Past design decisions and their rationale that affect this story

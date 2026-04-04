@@ -248,6 +248,19 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   all learnings that could impact current story implementation</action>
   </check>
 
+  <!-- Cross-session memory integration (memory-first) -->
+  <action>Establish {{cross_session_intelligence}} from claude-mem:
+    - **First:** Use any **injected** claude-mem summary already in context (e.g. claude-mem-context rule). Extract story-relevant decisions, pitfalls, and prior work from it.
+    - **Only if needed:** Query claude-mem MCP tools (mem-search, smart_search, project-scoped search, timeline, get_observations) when injected context is missing this story's domain, you need deeper detail than the summary, or the user requests a deeper dive. Do not run broad searches when injected context already suffices—avoid redundant token use.
+  </action>
+  <action>From the source above (injected and/or MCP), extract actionable intelligence:
+    - Past design decisions and their rationale that affect this story
+    - Known pitfalls or gotchas discovered in previous sessions
+    - Patterns established in earlier stories that this story should follow
+    - Debugging solutions that may be relevant
+  </action>
+  <action>Store merged findings as {{cross_session_intelligence}} for inclusion in story file</action>
+
   <!-- Git intelligence for previous work patterns -->
   <check
     if="previous story exists AND git repository detected">
@@ -338,6 +351,11 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <check
     if="git analysis completed">
     <template-output file="{default_output_file}">git_intelligence_summary</template-output>
+  </check>
+
+  <!-- Cross-session intelligence from claude-mem -->
+  <check if="{{cross_session_intelligence}} available">
+    <template-output file="{default_output_file}">cross_session_intelligence</template-output>
   </check>
 
   <!-- Latest technical specifics -->
