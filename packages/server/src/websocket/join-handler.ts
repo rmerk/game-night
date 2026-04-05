@@ -16,6 +16,7 @@ import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 import { buildPlayerView, broadcastGameState } from "./state-broadcaster";
+import { sendChatHistoryAfterStateUpdate } from "./chat-history";
 import { stripControlChars } from "./text-sanitize";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
@@ -178,6 +179,7 @@ function handleTokenReconnection(
     token,
   };
   ws.send(JSON.stringify(stateMessage));
+  sendChatHistoryAfterStateUpdate(ws, room, logger, "token-reconnect-chat-history");
 
   // Broadcast reconnection to others
   broadcastStateToRoom(room, playerId, {
@@ -411,6 +413,7 @@ export function handleJoinRoom(
     token: sessionToken,
   };
   ws.send(JSON.stringify(stateMessage));
+  sendChatHistoryAfterStateUpdate(ws, room, logger, "join-room-chat-history");
 
   // Broadcast PLAYER_JOINED to all other players (no token)
   broadcastStateToRoom(room, playerId, {
