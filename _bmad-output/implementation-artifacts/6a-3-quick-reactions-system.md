@@ -1,6 +1,6 @@
 # Story 6A.3: Quick Reactions System
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine — 2026-04-04. Pass 2: tightened AC10, RoomView/sendReaction wiring, seat mapping, parser hardening, anti-patterns. Depends on 6A.1 server + 6A.2 SlideInPanel / parse stub. -->
 
@@ -158,6 +158,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - Bubbles anchored via `playerId` → opponent slots from `GameTable` props (top/left/right) and local rack area; mobile duplicates anchors above inline opponent row. No `v-html` on emoji.
 - **Pass 2:** `reactionBubbleAnchorForPlayer(view, playerId)` in `mapPlayerGameViewToGameTable.ts` uses the same wind geometry as table mapping (AC4); `RoomView` passes it into `GameTable` as `reactionAnchorForPlayer`. Store skips duplicate `REACTION_BROADCAST` (same `playerId` + `emoji` + server `timestamp`) to harden against double-echo. `ReactionBubbleStack` keeps opacity-only transition under `prefers-reduced-motion`. Tests: anchor mapping, prune expiry, dedupe.
 - **Pass 3 (AC12):** `reactionBubbleAnchorForLobby` mirrors lobby `players` + `myPlayerId` wind geometry; `RoomView` shows `ReactionBubbleStack` at simplified anchors (top / left / right / above reaction bar for local) when slide-ins closed. **Lobby → game:** `watch` clears reactions when `playerGameView` appears after lobby-only so lobby bubbles do not carry into the table (aligns with AC11 fresh in-play UX). `GameTable` test: bubble renders under `opponent-top` when `reactionAnchorForPlayer` maps id to `top`.
+- **Code review pass 2:** Dedupe now compares `ReactionBroadcast.timestamp` via `ReactionBubbleRecord.serverTimestamp` (avoids encoding assumptions in string ids). `handleMessage` returns after handling `reaction_broadcast` for consistent control flow with other branches.
 
 ### File List
 
@@ -165,6 +166,8 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `packages/client/src/composables/parseServerMessage.test.ts`
 - `packages/client/src/composables/useRoomConnection.ts`
 - `packages/client/src/composables/useRoomConnection.sendReaction.test.ts`
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.ts` (AC4 / AC12: `reactionBubbleAnchorForPlayer`, `reactionBubbleAnchorForLobby`)
+- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts`
 - `packages/client/src/stores/reactions.ts`
 - `packages/client/src/stores/reactions.test.ts`
 - `packages/client/src/components/reactions/ReactionBar.vue`
@@ -172,8 +175,6 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - `packages/client/src/components/reactions/ReactionBubbleStack.vue`
 - `packages/client/src/components/game/GameTable.vue`
 - `packages/client/src/views/RoomView.vue`
-- `packages/client/src/composables/mapPlayerGameViewToGameTable.ts`
-- `packages/client/src/composables/mapPlayerGameViewToGameTable.test.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Change Log
@@ -181,6 +182,8 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - 2026-04-04: Story 6A.3 implemented — reaction protocol parse/send, ephemeral store, GameTable + lobby UI, tests; status → review.
 - 2026-04-04: Pass 2 — AC4 anchor helper from `PlayerGameView.players` + wind geometry; broadcast dedupe; reduced-motion opacity-only leave; store prune/dedupe tests.
 - 2026-04-04: Pass 3 — Lobby reaction bubbles (AC12) + clear on transition to game; `reactionBubbleAnchorForLobby`; GameTable reaction bubble integration test.
+- 2026-04-04: GDS code review — AC validation passed; regression gate passed; story File List aligned with git; status → done.
+- 2026-04-04: GDS code review pass 2 — hardened reaction dedupe (`serverTimestamp` on bubble records, no fragile `id` parsing); explicit `return` after `reaction_broadcast` in `handleMessage`.
 
 ---
 
