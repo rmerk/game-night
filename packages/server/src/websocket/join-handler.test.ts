@@ -83,6 +83,42 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Skip CHAT_HISTORY; resolve on first STATE_UPDATE whose resolvedAction.type matches. */
+function waitForResolvedActionType(
+  ws: WebSocket,
+  actionType: string,
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      ws.removeListener("message", onMessage);
+      reject(new Error(`timeout waiting for resolvedAction ${actionType}`));
+    }, 15_000);
+
+    function onMessage(data: Buffer) {
+      let msg: Record<string, unknown>;
+      try {
+        msg = JSON.parse(Buffer.from(data).toString("utf-8")) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (msg.type === "CHAT_HISTORY") return;
+      if (msg.type === "STATE_UPDATE") {
+        const ra = msg.resolvedAction;
+        if (isPlainObject(ra) && ra.type === actionType) {
+          clearTimeout(timer);
+          ws.removeListener("message", onMessage);
+          resolve(msg);
+        }
+      }
+    }
+    ws.on("message", onMessage);
+  });
+}
+
 beforeEach(async () => {
   app = createApp();
   await app.listen({ port: 0, host: "127.0.0.1" });
@@ -995,6 +1031,37 @@ describe("grace period recovery", () => {
 
     sockets[1].close();
     wsNew.close();
+  });
+
+  it("host disconnect grace expiry migrates host and broadcasts HOST_PROMOTED (4B.6)", async () => {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+      const ws = await connectWs(wsUrl);
+      const msgP = waitForMessage(ws);
+      sendJoin(ws, roomCode, `P${i}`);
+      await msgP;
+      clients.push(ws);
+      await Promise.all(broadcastPromises);
+    }
+
+    const hostWs = clients[0];
+    const observerWs = clients[1];
+    const hostPromoted = waitForResolvedActionType(observerWs, "HOST_PROMOTED");
+    hostWs.close();
+    await delay(50);
+    await delay(SHORT_GRACE_MS + 100);
+    const hp = await hostPromoted;
+    const ra = hp.resolvedAction as Record<string, unknown>;
+    expect(ra.previousHostId).toBe("player-0");
+    expect(ra.newHostId).toBe("player-1");
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.players.get("player-1")?.isHost).toBe(true);
+
+    for (const c of clients.slice(1)) c.close();
   });
 
   it("releases seat after grace period expires", async () => {

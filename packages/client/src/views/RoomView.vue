@@ -3,6 +3,7 @@ import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
+import BaseToast from "../components/ui/BaseToast.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
 import ReactionBar from "../components/reactions/ReactionBar.vue";
 import ReactionBubbleStack from "../components/reactions/ReactionBubbleStack.vue";
@@ -96,6 +97,20 @@ const isHost = computed(() => {
   if (!lobby) return false;
   return lobby.players.some((p) => p.playerId === lobby.myPlayerId && p.isHost);
 });
+
+const hostPromotedLobbyVisible = ref(false);
+const hostPromotedLobbyText = ref("");
+
+watch(
+  () => resolvedAction.value,
+  (ra) => {
+    if (!ra || ra.type !== "HOST_PROMOTED") return;
+    if (lobbyState.value !== null && playerGameView.value === null) {
+      hostPromotedLobbyText.value = `${ra.newHostName} is now the host`;
+      hostPromotedLobbyVisible.value = true;
+    }
+  },
+);
 
 watch(
   () => playerGameView.value,
@@ -335,6 +350,15 @@ function onJokerRulesChange(ev: Event) {
       class="relative mx-auto max-w-lg px-4 py-8"
       data-testid="lobby-root"
     >
+      <BaseToast
+        data-testid="host-promoted-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="hostPromotedLobbyVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="hostPromotedLobbyVisible = false"
+      >
+        {{ hostPromotedLobbyText }}
+      </BaseToast>
       <div ref="lobbyFocusReturn" tabindex="-1" class="sr-only" aria-hidden="true" />
       <div class="mb-4 flex flex-wrap justify-end gap-2">
         <button

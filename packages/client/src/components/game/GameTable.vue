@@ -562,6 +562,8 @@ const nudgeToastVisible = ref(false);
 const nudgeToastText = ref("");
 const autoDiscardToastVisible = ref(false);
 const autoDiscardToastText = ref("");
+const hostPromotedToastVisible = ref(false);
+const hostPromotedToastText = ref("");
 
 const afkVoteTargetDisplayName = computed(() => {
   const o = afkVoteOpen.value;
@@ -626,6 +628,14 @@ watch(
         const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
         turnSkippedDeadSeatToastText.value = `${name}'s turn skipped (dead seat)`;
         turnSkippedDeadSeatToastVisible.value = true;
+        break;
+      }
+      case "HOST_PROMOTED": {
+        const phase = props.gamePhase;
+        if (phase === "lobby" || phase === "scoreboard" || phase === "rematch") {
+          hostPromotedToastText.value = `${ra.newHostName} is now the host`;
+          hostPromotedToastVisible.value = true;
+        }
         break;
       }
       default:
@@ -726,6 +736,15 @@ function onChatEscape() {
         @dismiss="turnSkippedDeadSeatToastVisible = false"
       >
         {{ turnSkippedDeadSeatToastText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="host-promoted-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="hostPromotedToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="hostPromotedToastVisible = false"
+      >
+        {{ hostPromotedToastText }}
       </BaseToast>
     </div>
     <div

@@ -286,13 +286,17 @@ describe("leave-handler integration (Story 4B.5)", () => {
     sendDepartureVote(players[1].ws, targetId, "end_game");
     await waitForResolvedAction(players[2].ws, "DEPARTURE_VOTE_CAST");
 
+    const hostPromotedP3 = waitForResolvedAction(players[3].ws, "HOST_PROMOTED");
+    const abandonedP3 = waitForResolvedAction(players[3].ws, "GAME_ABANDONED");
     sendDepartureVote(players[2].ws, targetId, "end_game");
-    const msg = await waitForResolvedAction(players[3].ws, "GAME_ABANDONED");
+    await hostPromotedP3;
+    const msg = await abandonedP3;
     const ra = msg.resolvedAction as Record<string, unknown>;
     expect(ra.reason).toBe("player-departure");
 
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.gameState?.gamePhase).toBe("scoreboard");
+    expect(room.players.get(players[1].playerId)?.isHost).toBe(true);
   });
 
   it("T5: vote timeout with no quorum ends game", async () => {
@@ -332,8 +336,11 @@ describe("leave-handler integration (Story 4B.5)", () => {
     sendLeaveRoom(players[0].ws);
     await waitForResolvedAction(players[1].ws, "DEPARTURE_VOTE_STARTED");
 
+    const hostPromotedP2 = waitForResolvedAction(players[2].ws, "HOST_PROMOTED");
+    const abandonedP2 = waitForResolvedAction(players[2].ws, "GAME_ABANDONED");
     sendLeaveRoom(players[1].ws);
-    const msg = await waitForResolvedAction(players[2].ws, "GAME_ABANDONED");
+    await hostPromotedP2;
+    const msg = await abandonedP2;
     const ra = msg.resolvedAction as Record<string, unknown>;
     expect(ra.reason).toBe("player-departure");
   });
@@ -377,19 +384,26 @@ describe("leave-handler integration (Story 4B.5)", () => {
     await pauseDone;
   });
 
-  it("T12: lobby host leave releases seat — no departure vote", async () => {
+  it("T12: lobby host leave migrates host then PLAYER_DEPARTED — no departure vote", async () => {
     const { roomCode, players } = await setupLobbyWithPlayers(4);
     const room = app.roomManager.getRoom(roomCode)!;
     const host = players[0];
     expect(room.players.get(host.playerId)?.isHost).toBe(true);
 
     const others = players.slice(1);
+    const promoted = waitForResolvedAction(others[0].ws, "HOST_PROMOTED");
     const departedPromises = others.map((p) => waitForResolvedAction(p.ws, "PLAYER_DEPARTED"));
     sendLeaveRoom(host.ws);
+    const hp = await promoted;
+    const hpRa = hp.resolvedAction as Record<string, unknown>;
+    expect(hpRa.previousHostId).toBe(host.playerId);
+    expect(hpRa.newHostId).toBe(players[1].playerId);
     await Promise.all(departedPromises);
 
-    expect(app.roomManager.getRoom(roomCode)!.players.size).toBe(3);
-    expect(app.roomManager.getRoom(roomCode)!.departureVoteState).toBeNull();
+    const after = app.roomManager.getRoom(roomCode)!;
+    expect(after.players.size).toBe(3);
+    expect(after.players.get(players[1].playerId)?.isHost).toBe(true);
+    expect(after.departureVoteState).toBeNull();
     for (const p of players) p.ws.close();
   });
 
@@ -483,7 +497,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
     for (const p of players) p.ws.close();
   });
 
-  it("T20: LEAVE_ROOM during scoreboard releases seat — no departure vote", async () => {
+  it("T20: LEAVE_ROOM during scoreboard migrates host then PLAYER_DEPARTED — no departure vote", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;
     const gs = room.gameState!;
@@ -491,12 +505,15 @@ describe("leave-handler integration (Story 4B.5)", () => {
     gs.gameResult = { winnerId: null, points: 0 };
 
     const other = players[1];
+    const promoted = waitForResolvedAction(other.ws, "HOST_PROMOTED");
     const departedPromise = waitForResolvedAction(other.ws, "PLAYER_DEPARTED");
     sendLeaveRoom(players[0].ws);
+    await promoted;
     await departedPromise;
 
     expect(room.departureVoteState).toBeNull();
     expect(room.players.size).toBe(3);
+    expect(room.players.get(players[1].playerId)?.isHost).toBe(true);
 
     for (const p of players) p.ws.close();
   });
@@ -547,8 +564,12 @@ describe("leave-handler integration (Story 4B.5)", () => {
     sendDepartureVote(p1.ws, targetId, "dead_seat");
     await waitForResolvedAction(p2.ws, "DEPARTURE_VOTE_CAST");
 
+    const hostPromotedP3 = waitForResolvedAction(p3.ws, "HOST_PROMOTED");
     sendDepartureVote(p2.ws, targetId, "dead_seat");
     await waitForResolvedAction(p3.ws, "PLAYER_CONVERTED_TO_DEAD_SEAT");
+    const hp = await hostPromotedP3;
+    const hpRa = hp.resolvedAction as Record<string, unknown>;
+    expect(hpRa.newHostId).toBe(p1.playerId);
 
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.deadSeatPlayerIds.has(targetId)).toBe(true);

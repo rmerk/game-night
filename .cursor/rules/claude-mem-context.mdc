@@ -7,59 +7,18 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 2:17pm CDT
+# $CMEM mahjong-game 2026-04-05 4:45pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (27,023t read) | 525,883t work | 95% savings
+Stats: 50 obs (24,068t read) | 774,660t work | 97% savings
 
 ### Apr 5, 2026
-S298 Documentation of second-pass verification findings and review follow-up items (Apr 5 at 10:53 AM)
-S299 Create Story 4B.3 specification for simultaneous disconnection handling with game pause mechanism (Apr 5 at 10:54 AM)
-S300 Code review of Story 4B.3 simultaneous disconnection pause feature for multiplayer Mahjong game (Apr 5 at 11:45 AM)
-787 11:51a 🔄 T2 Test Refactored to Check Server State Instead of Broadcast Messages
-788 " 🟣 All Story 4B.3 Integration Tests Passing
-789 " 🟣 Action Rejection Test for Paused Room
-790 11:52a 🟣 Simultaneous Disconnection Game Pause Feature Complete
-791 11:53a ✅ Implementation Artifact Documentation Finalized
-792 11:54a 🟣 Expanded WebSocket test coverage for room pause and reconnection scenarios
-793 11:56a ✅ Game Pause Test Coverage Expansion - Pass 2
-794 12:18p 🔵 Code review workflow configured for mahjong-game project
-795 12:19p 🔵 Story 4B.3 simultaneous disconnection pause feature ready for review
-796 12:20p 🔵 Client-side pause banner implementation examined
-797 " 🔵 Pause handlers unit test coverage examined
-798 12:21p 🔵 Comprehensive test coverage verified across pause implementation
-799 12:22p 🔵 Pause auto-end integrates with existing scoreboard idle-timeout mechanism
-S301 Code review Pass 3 for Story 4B.3 (Simultaneous Disconnection & Game Pause) - identify issues, apply fixes, validate with regression gate, and mark story complete (Apr 5 at 12:23 PM)
-800 12:23p 🔵 Story 4B.3 transition scenario test implementations examined in detail
-801 12:24p 🔴 Code review fixes applied: idle-timeout arm, releaseSeat simplification, session cleanup comment
-802 " ✅ Test coverage added for idle-timeout and abandoned-timeout branching logic in handlePauseTimeout
-803 12:25p ✅ Test suite cleanup improved with belt-and-suspenders pause-timeout cancellation in afterEach hook
-804 " ✅ Full regression gate passed after code review fixes applied
-S302 Check git repository status and recent commit history before committing completed Story 4B.3 work (Apr 5 at 12:27 PM)
-S303 Commit Story 4B.3 (Simultaneous Disconnection & Game Pause) implementation to git repository (Apr 5 at 12:28 PM)
 S304 Verify clean working tree after Story 4B.3 commit and confirm all feature files staged properly (Apr 5 at 12:28 PM)
 S305 Create Story 4B.4 specification for turn timeout and AFK escalation feature (Apr 5 at 12:28 PM)
-805 12:29p 🔵 BMad Method Story Creation Workflow System
-806 12:30p 🔵 Simultaneous Disconnection Pause System (Story 4B.3)
-807 12:42p ✅ Story 4B.4 specification created: Turn Timeout & AFK Escalation
 S306 GDS Code Review for Story 4B.4 Turn Timeout & AFK Escalation - Validating Implementation Against 20 Acceptance Criteria (Apr 5 at 12:43 PM)
-808 1:36p 🟣 Turn timeout and AFK escalation event types
-809 " 🟣 Turn timer and AFK vote server infrastructure
-810 " 🟣 AFK vote timeout configuration
-811 1:37p 🟣 Complete turn timer and AFK voting system implementation
-812 " ✅ Turn timer system integration
-813 1:38p ✅ Turn timer event handler integration
-814 " 🔴 Fixed TypeScript errors from turn timer implementation
-815 1:39p 🟣 Client-side AFK vote sending function
-816 " 🟣 AFK vote modal UI component
-817 1:40p 🟣 Turn timer and AFK vote UI integration
-818 " 🟣 GameTable template completion for timer UI
-819 1:41p 🟣 Turn Timer Test Coverage
-820 " ✅ Turn Timeout AFK Escalation Ready for Review
-821 " ✅ Turn Timeout AFK Escalation Feature Documentation Completed
 822 1:45p 🟣 Comprehensive test suite for turn timer and AFK voting system
 823 1:46p 🔴 Fixed timer duration configuration in turn timer tests
 824 1:47p 🔄 Fixed TypeScript linting errors in turn-timer test suite
@@ -68,6 +27,7 @@ S306 GDS Code Review for Story 4B.4 Turn Timeout & AFK Escalation - Validating I
 827 " 🔵 Turn Timer Test Coverage and Integration Points Validated
 828 1:50p 🔵 Grace Expiry and Turn Timeout Share Auto-Discard Logic
 829 1:54p ✅ Turn Timer Infrastructure Added Across Server and Shared Types
+S307 Code review and bugfix pass for Story 4B.4 Turn Timeout & AFK Escalation addressing disconnect handling edge cases (Apr 5 at 1:54 PM)
 830 2:13p 🔴 Turn timer cancellation on player disconnect
 831 " 🔴 AFK escalation guards for disconnected players
 832 2:14p 🔴 Reconnection timer reset exploit prevention
@@ -75,17 +35,57 @@ S306 GDS Code Review for Story 4B.4 Turn Timeout & AFK Escalation - Validating I
 834 2:15p ✅ Clarified AFK vote flip test description
 835 " ✅ Added regression tests for AC9 disconnect AFK guards
 836 2:16p ✅ Story 4B.4 marked complete
-S307 Code review and bugfix pass for Story 4B.4 Turn Timeout & AFK Escalation addressing disconnect handling edge cases (Apr 5 at 2:17 PM)
-**Investigated**: Adversarial code review identified seven issues (H1, H2, M1, M2, M3, L1, L3) in the AFK escalation system's interaction with player disconnection, focusing on race conditions where the turn timer could fire for offline players, reconnection exploits that reset timers inappropriately, and defensive guards missing in vote casting paths.
+S308 Commit turn timeout and AFK escalation feature implementation (Story 4B.4) (Apr 5 at 2:17 PM)
+837 2:36p 🟣 Turn timeout and AFK escalation system
+S309 Create Story 4B.5: Player Departure & Dead Seat for Multiplayer Resilience Epic (Apr 5 at 2:36 PM)
+838 2:50p ✅ Story 4B.5 Created: Player Departure & Dead Seat with Vote-Based Resolution
+S310 Create Story 4B.6 specification: Host Migration for multiplayer resilience (Apr 5 at 2:51 PM)
+839 2:53p 🔵 Dev Story Workflow System Architecture Loaded
+840 " 🔵 Story 4B.5 Discovery and Workflow Initialization for Player Departure System
+841 2:54p ✅ Story 4B.5 Status Transitioned to In-Progress
+842 " ✅ Task Tracking Initialized for ws-server Protocol Dispatch
+843 2:55p ✅ Task Tracking Initialized and Shared Types Implementation Started
+844 " 🔵 Exhaustive Switch Sites Identified for ResolvedAction Type Extension
+845 2:57p 🟣 Protocol Message Types Added for Player Departure System
+846 4:00p 🔄 Charleston auto-action logic extracted into dedicated module
+847 4:02p ✅ Test coverage documentation updated for Story 4B.5
+848 4:03p ✅ Story 4B.5 marked complete after code review follow-up
+849 4:09p 🟣 Departure vote and dead-seat interaction tests implemented
+850 4:12p 🔵 BMad GDS story creation workflow initialized for mahjong-game
+851 " 🔵 Previous story 4b-5 analyzed for context continuity
+852 4:13p 🔵 Existing host role implementation analyzed for migration story
+853 " 🔵 Grace expiry and releaseSeat flow analyzed for host migration triggers
+854 4:18p 🟣 Story 4B.6 specification created: Host Migration for multiplayer Mahjong
+S311 GDS code review initiated - Story 4B.6 Host Migration identified as candidate based on git status (Apr 5 at 4:19 PM)
+855 4:26p 🟣 Added HOST_PROMOTED event type to game state
+856 4:27p 🟣 Implemented host migration system for multiplayer game rooms
+857 " 🔄 Optimized host migration candidate lookup
+858 " ✅ Added comprehensive test suite for host migration
+859 4:28p 🟣 Integrated host promotion for players joining hostless rooms
+860 " 🟣 Wired host migration to disconnect handler and event broadcasting
+861 " ✅ Added HOST_PROMOTED broadcast for attachToExistingSeat hostless scenario
+862 " 🟣 Integrated host migration into leave and dead seat handlers
+863 4:29p 🟣 Integrated host migration into turn timeout auto-departure
+864 4:35p 🔵 GDS Code Review Workflow System
+S312 Code review of Story 4B.6 Host Migration implementation for multiplayer Mahjong game (Apr 5 at 4:35 PM)
+865 4:41p 🔵 Host Migration System for Multiplayer Mahjong Game
+866 4:42p 🟣 Host Migration Integration Across Server Handlers
+867 " 🟣 Client-Side Phase-Conditional Host Promotion Toast
+868 " ✅ Host Migration Test Suite Validation Complete
+869 4:43p ✅ Type Safety and Lint Validation Passed
+870 4:44p ✅ Code Review Findings Documented in Story Spec
+871 " ✅ Story 4B.6 Marked as Done After Code Review
+S313 Code review and completion of Story 4B.6 Host Migration for multiplayer Mahjong game (Apr 5 at 4:45 PM)
+**Investigated**: Comprehensive code review of host migration implementation spanning 12 files with 366 insertions. Examined core migrateHost helper function with deterministic counterclockwise seat selection, integration points across four server handlers (join-handler grace-expiry trigger, leave-handler intentional departure triggers, turn-timer auto-end, and hostless room recovery), client-side phase-conditional toast rendering in GameTable.vue and RoomView.vue, and complete test coverage including unit tests and integration tests for all 18 transition scenarios. Validated all 17 acceptance criteria against implementation with focus on order-of-operations invariants (capture wasHost before releaseSeat, run migration after seat release but before final broadcasts) and regression compatibility with Stories 4B.3 pause mechanics and 4B.5 departure flows.
 
-**Learned**: AFK escalation must be strictly separated from disconnect handling: turn timers should cancel immediately when the current player disconnects (H1), timer expiry handlers need connection re-checks for defense-in-depth (H2), and reconnections by non-current players must not reset the stuck player's timer to prevent collusion exploits (M1). Grace-expiry owns all offline player auto-discard paths without incrementing AFK counters, while the turn timer system targets only present-but-inattentive players.
+**Learned**: Host migration implementation follows critical pattern: capture host state before mutation (wasHost flag before releaseSeat) because seat release removes player from room.players map. Migration triggers at exactly four points where host role becomes invalid: grace-expiry timeout after 30s disconnect, lobby/scoreboard LEAVE_ROOM, departure vote dead_seat outcome, and auto-end game on departure. Hostless room recovery promotes first reconnecting player when no one has isHost flag, preventing permanent host loss. Client implementation diverged from spec by placing toast watchers directly in UI components rather than useRoomConnection composable, following existing 4B.5 toast pattern. All migration broadcasts occur before final state broadcasts to ensure event-then-snapshot ordering for clients. Story closes T12 and T13 gaps from Story 4B.5 where host could be dead-seated or leave lobby without reassignment.
 
-**Completed**: Applied all HIGH and MEDIUM severity fixes: turn timer cancellation on current-player disconnect (join-handler.ts), connected guard in handleTurnTimerExpiry (turn-timer.ts), conditional syncTurnTimer gating in attachToExistingSeat to resume-from-pause or current-player-only (join-handler.ts), defensive connected check in handleAfkVoteCastMessage (turn-timer.ts), and startAfkVote rejection of disconnected targets (turn-timer.ts). Added two AC9 regression tests validating extended-expiry no-op on disconnect and AFK vote prevention for offline targets. Updated T20 test name for clarity and documented defensive cleanup in handlePauseTimeout. All 300 server tests pass, typecheck clean, lint 0 errors. Story status updated from review to done in both implementation artifact and sprint-status.yaml.
+**Completed**: Story 4B.6 approved and marked done with zero critical or medium issues. All regression gates passed: 1409 tests green (670 shared + 404 client + 335 server), TypeScript compilation clean, ESLint showing 0 errors. Three low-priority observations documented inline as optional future improvements: AC13 client architecture deviation (toast in components vs composable), GameTable rematch phase inclusion (benign extension beyond spec), and migrateHost east-start fallback pattern (deterministic but could be clarified via explicit opts). Status updated from review to done in both 4b-6-host-migration.md and sprint-status.yaml development_status tracking. Implementation delivers automatic host role transfer with counterclockwise seat order, hostless room recovery, and phase-specific UI behavior across 366 lines of changes.
 
-**Next Steps**: Story 4B.4 complete. Session wrapped up with documentation updates and sprint tracking. Epic 4B (Multiplayer Resilience) continues with 4B.5 (dead-seat turn skip) remaining in backlog.
+**Next Steps**: Story 4B.6 complete. Epic 4B has one remaining story: 4B.7 host-settings-5th-player-handling currently in backlog status. Session concluded with successful code review approval and story completion documentation.
 
 
-Access 526k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 775k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

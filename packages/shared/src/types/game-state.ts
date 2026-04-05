@@ -437,4 +437,10 @@ export type ResolvedAction =
       readonly playerId: string;
       readonly playerName: string;
     }
-  | { readonly type: "TURN_SKIPPED_DEAD_SEAT"; readonly playerId: string };
+  | { readonly type: "TURN_SKIPPED_DEAD_SEAT"; readonly playerId: string }
+  | {
+      readonly type: "HOST_PROMOTED";
+      readonly previousHostId: string | null;
+      readonly newHostId: string;
+      readonly newHostName: string;
+    };

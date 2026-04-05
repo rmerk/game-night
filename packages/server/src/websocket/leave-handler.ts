@@ -8,6 +8,9 @@
  * **Pause interaction (AC13):** On simultaneous-disconnect pause we cancel the departure vote and broadcast
  * `DEPARTURE_VOTE_RESOLVED { outcome: "cancelled" }`. On `GAME_RESUMED`, `resumeDepartureVoteIfNeeded` restarts
  * the vote for the first departed player if exactly one departure is pending and the game is still in-flight.
+ *
+ * **Host migration (Story 4B.6):** When the host's seat is released or they are dead-seated, `migrateHost`
+ * in [`../rooms/host-migration.ts`](../rooms/host-migration.ts) assigns `isHost` to the next eligible player.
  */
 import type { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
@@ -20,6 +23,7 @@ import {
   startLifecycleTimer,
 } from "../rooms/room-lifecycle";
 import { releaseSeat } from "../rooms/seat-release";
+import { migrateHost } from "../rooms/host-migration";
 import { drainCharlestonForDeadSeats } from "./charleston-auto-action";
 import { broadcastStateToRoom } from "./state-broadcaster";
 import {
@@ -153,7 +157,20 @@ export function markPlayerDeparted(
 
   if (isLobbyOrScoreboard) {
     const playerName = player.displayName;
+    const wasHost = player.isHost;
     releaseSeat(room, playerId);
+    if (wasHost) {
+      const migration = migrateHost(room, logger);
+      if (migration.newHostId) {
+        const newHost = room.players.get(migration.newHostId);
+        broadcastStateToRoom(room, undefined, {
+          type: "HOST_PROMOTED",
+          previousHostId: playerId,
+          newHostId: migration.newHostId,
+          newHostName: newHost?.displayName ?? "",
+        });
+      }
+    }
     broadcastStateToRoom(room, undefined, {
       type: "PLAYER_DEPARTED",
       playerId,
@@ -353,18 +370,32 @@ export function convertToDeadSeat(
   logger: FastifyBaseLogger,
   roomManager: RoomManager,
 ): void {
+  const subject = room.players.get(playerId);
+  const wasHost = subject?.isHost ?? false;
+  const playerName = subject?.displayName ?? "";
+
   room.departedPlayerIds.delete(playerId);
   room.deadSeatPlayerIds.add(playerId);
   room.sessions.delete(playerId);
-
-  const p = room.players.get(playerId);
-  const playerName = p?.displayName ?? "";
 
   broadcastStateToRoom(room, undefined, {
     type: "PLAYER_CONVERTED_TO_DEAD_SEAT",
     playerId,
     playerName,
   });
+
+  if (wasHost) {
+    const migration = migrateHost(room, logger, { excludePlayerIds: new Set([playerId]) });
+    if (migration.newHostId) {
+      const newHost = room.players.get(migration.newHostId);
+      broadcastStateToRoom(room, undefined, {
+        type: "HOST_PROMOTED",
+        previousHostId: playerId,
+        newHostId: migration.newHostId,
+        newHostName: newHost?.displayName ?? "",
+      });
+    }
+  }
 
   drainCharlestonForDeadSeats(room, logger, roomManager);
   syncTurnTimer(room, logger, 0, roomManager);

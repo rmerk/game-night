@@ -1066,3 +1066,64 @@ describe("GameTable — charleston", () => {
     }
   });
 });
+
+describe("GameTable — host migration toast (4B.6)", () => {
+  it("shows host-promoted toast on scoreboard when resolvedAction is HOST_PROMOTED", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "HOST_PROMOTED",
+      previousHostId: "player-0",
+      newHostId: "player-1",
+      newHostName: "Pat",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(document.querySelector('[data-testid="host-promoted-toast"]')).not.toBeNull();
+    wrapper.unmount();
+  });
+
+  it("suppresses host-promoted toast during play", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "HOST_PROMOTED",
+      previousHostId: "player-0",
+      newHostId: "player-1",
+      newHostName: "Pat",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="host-promoted-toast"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+});

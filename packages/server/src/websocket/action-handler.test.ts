@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import WsClient from "ws";
+import { migrateHost } from "../rooms/host-migration";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
 import { createLobbyState, handleAction } from "@mahjong-game/shared";
@@ -924,6 +925,29 @@ describe("handleActionMessage", () => {
       const msg = await msgPromise;
       expect(msg.type).toBe("ERROR");
       expect(msg.code).toBe("NOT_HOST");
+
+      for (const p of players) p.ws.close();
+    });
+
+    it("4B.6: after migrateHost, former host gets NOT_HOST and new host can START_GAME", async () => {
+      const { roomCode, players } = await setupGameRoom();
+      const room = app.roomManager.getRoom(roomCode)!;
+      migrateHost(room, app.log);
+
+      expect(room.players.get(players[1].playerId)?.isHost).toBe(true);
+      expect(room.players.get(players[0].playerId)?.isHost).toBe(false);
+
+      const rejectPromise = waitForMessage(players[0].ws);
+      sendAction(players[0].ws, { type: "START_GAME" });
+      const rejectMsg = await rejectPromise;
+      expect(rejectMsg.type).toBe("ERROR");
+      expect(rejectMsg.code).toBe("NOT_HOST");
+
+      const startPromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(players[1].ws, { type: "START_GAME" });
+      await Promise.all(startPromises);
+
+      expect(room.gameState?.gamePhase).toBe("charleston");
 
       for (const p of players) p.ws.close();
     });

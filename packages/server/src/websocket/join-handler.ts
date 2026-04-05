@@ -15,6 +15,7 @@ import { stripControlChars } from "./text-sanitize";
 import { applyGraceExpiryGameActions } from "./grace-expiry-fallbacks";
 import { cancelDepartureVote, resumeDepartureVoteIfNeeded } from "./leave-handler";
 import { applyCharlestonAutoAction } from "./charleston-auto-action";
+import { migrateHost } from "../rooms/host-migration";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
 
@@ -118,6 +119,12 @@ function attachToExistingSeat(
   player.connected = true;
   player.connectedAt = Date.now();
 
+  let promotedToHostForHostlessRoom = false;
+  if (![...room.players.values()].some((p) => p.isHost)) {
+    player.isHost = true;
+    promotedToHostForHostlessRoom = true;
+  }
+
   const base = buildCurrentStateMessage(room, playerId);
   if (!base) {
     // AC8: build failed — revert connected flag and do NOT install the new session
@@ -136,6 +143,15 @@ function attachToExistingSeat(
   room.sessions.set(playerId, session);
 
   logger.info({ roomCode: room.roomCode, playerId }, "Session reattached to existing seat");
+
+  if (promotedToHostForHostlessRoom) {
+    broadcastStateToRoom(room, undefined, {
+      type: "HOST_PROMOTED",
+      previousHostId: null,
+      newHostId: player.playerId,
+      newHostName: player.displayName,
+    });
+  }
 
   const stateMessage: StateUpdateMessage = {
     ...base,
@@ -290,8 +306,11 @@ function registerDisconnectHandler(
       return;
     }
 
+    // Story 4B.6: capture host before releaseSeat — migration runs after seat is dropped.
     const timer = setTimeout(() => {
       room.graceTimers.delete(playerId);
+
+      const wasHost = room.players.get(playerId)?.isHost ?? false;
 
       applyGraceExpiryGameActions(room, playerId, logger, roomManager);
 
@@ -300,6 +319,19 @@ function registerDisconnectHandler(
       releaseSeat(room, playerId);
 
       logger.info({ roomCode: room.roomCode, playerId }, "Grace period expired, seat released");
+
+      if (wasHost) {
+        const migration = migrateHost(room, logger);
+        if (migration.newHostId) {
+          const newHost = room.players.get(migration.newHostId);
+          broadcastStateToRoom(room, undefined, {
+            type: "HOST_PROMOTED",
+            previousHostId: playerId,
+            newHostId: migration.newHostId,
+            newHostName: newHost?.displayName ?? "",
+          });
+        }
+      }
 
       if (roomManager && room.players.size <= 1) {
         startLifecycleTimer(room, "abandoned-timeout", () => {
@@ -410,6 +442,12 @@ export function handleJoinRoom(
   };
   room.players.set(playerId, playerInfo);
 
+  let hostlessJoinPromotion = false;
+  if (![...room.players.values()].some((p) => p.isHost)) {
+    playerInfo.isHost = true;
+    hostlessJoinPromotion = true;
+  }
+
   // Cancel abandoned timer when 2+ players are in the room
   if (room.players.size >= 2) {
     cancelLifecycleTimer(room, "abandoned-timeout");
@@ -440,6 +478,16 @@ export function handleJoinRoom(
     ...baseMessage,
     token: sessionToken,
   };
+
+  if (hostlessJoinPromotion) {
+    broadcastStateToRoom(room, undefined, {
+      type: "HOST_PROMOTED",
+      previousHostId: null,
+      newHostId: playerInfo.playerId,
+      newHostName: playerInfo.displayName,
+    });
+  }
+
   sendPostStateSequence(ws, stateMessage, room, logger, "join-room");
 
   // Broadcast PLAYER_JOINED to all other players (no token)

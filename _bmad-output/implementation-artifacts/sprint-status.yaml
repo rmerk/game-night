@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 4b-5 done
+last_updated: 2026-04-05 # 4b-7 ready-for-dev
 project: mahjong-game
 
 project_key: NOKEY
@@ -140,8 +140,8 @@ development_status:
   4b-3-simultaneous-disconnection-game-pause: done
   4b-4-turn-timeout-afk-escalation: done
   4b-5-player-departure-dead-seat: done
-  4b-6-host-migration: backlog
-  4b-7-host-settings-5th-player-handling: backlog
+  4b-6-host-migration: done
+  4b-7-host-settings-5th-player-handling: ready-for-dev
   epic-4b-retrospective: optional
 
   # Epic 5B: Remaining UI

@@ -22,6 +22,7 @@ import {
   startLifecycleTimer,
 } from "../rooms/room-lifecycle";
 import { releaseSeat } from "../rooms/seat-release";
+import { migrateHost } from "../rooms/host-migration";
 import { broadcastGameState, broadcastStateToRoom } from "./state-broadcaster";
 
 export const DEFAULT_TURN_TIMER_CONFIG: Readonly<TurnTimerConfig> = {
@@ -95,6 +96,7 @@ export function autoEndGameOnDeparture(
   }
 
   const departed = [...room.departedPlayerIds];
+  const departedHostId = departed.find((pid) => room.players.get(pid)?.isHost === true) ?? null;
   for (const pid of departed) {
     releaseSeat(room, pid);
   }
@@ -106,6 +108,19 @@ export function autoEndGameOnDeparture(
   }
 
   resetTurnTimerStateOnGameEnd(room, logger);
+
+  if (departedHostId !== null) {
+    const migration = migrateHost(room, logger);
+    if (migration.newHostId) {
+      const newHost = room.players.get(migration.newHostId);
+      broadcastStateToRoom(room, undefined, {
+        type: "HOST_PROMOTED",
+        previousHostId: departedHostId,
+        newHostId: migration.newHostId,
+        newHostName: newHost?.displayName ?? "",
+      });
+    }
+  }
 
   const gsAfter = room.gameState;
   if (roomManager && gsAfter && gsAfter.gamePhase === "scoreboard") {
