@@ -10,6 +10,17 @@ export interface AfkVoteState {
   votes: Map<string, "approve" | "deny">;
 }
 
+/** Server-only departure vote state (Story 4B.5) — not part of shared protocol */
+export interface DepartureVoteState {
+  readonly targetPlayerId: string;
+  readonly targetPlayerName: string;
+  readonly startedAt: number;
+  /** Monotonic epoch millis when the 30s lifecycle timer expires — used by buildPlayerView (Task 7) */
+  expiresAt: number;
+  /** Mutable vote tally — voterId → choice */
+  votes: Map<string, "dead_seat" | "end_game">;
+}
+
 export type TurnTimerConfig = { readonly mode: "timed" | "none"; readonly durationMs: number };
 
 export interface PlayerInfo {
@@ -63,6 +74,10 @@ export interface Room {
   afkVoteState: AfkVoteState | null;
   afkVoteCooldownPlayerIds: Set<string>;
   deadSeatPlayerIds: Set<string>;
+  /** Players who sent LEAVE_ROOM and whose seats have not yet been cleaned up (Story 4B.5) */
+  departedPlayerIds: Set<string>;
+  /** Active departure vote (Story 4B.5) — at most one per room at a time */
+  departureVoteState: DepartureVoteState | null;
   createdAt: number;
   logger: FastifyBaseLogger;
 }

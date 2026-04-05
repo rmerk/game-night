@@ -464,6 +464,8 @@ function onJokerRulesChange(ev: Event) {
       @confirm-call="onConfirmCall"
       @retract-call="onRetractCall"
       @afk-vote="(targetId, vote) => conn.sendAfkVote(targetId, vote)"
+      @departure-vote="(targetId, choice) => conn.sendDepartureVote(targetId, choice)"
+      @leave-game="conn.sendLeaveRoom()"
     />
   </div>
 </template>

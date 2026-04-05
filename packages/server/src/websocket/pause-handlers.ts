@@ -2,24 +2,11 @@ import type { FastifyBaseLogger } from "fastify";
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
 import { startLifecycleTimer } from "../rooms/room-lifecycle";
+import { releaseSeat } from "../rooms/seat-release";
 import { broadcastStateToRoom } from "./state-broadcaster";
 import { resetTurnTimerStateOnGameEnd } from "./turn-timer";
 
-/**
- * Drop a player from the room maps (tokens, sessions, rate limits). Does not run engine actions.
- * Used by grace-expiry seat release and pause-timeout auto-end (Story 4B.3).
- */
-export function releaseSeat(room: Room, playerId: string): void {
-  const token = room.playerTokens.get(playerId);
-  if (token) {
-    room.tokenMap.delete(token);
-    room.playerTokens.delete(playerId);
-  }
-  room.players.delete(playerId);
-  room.sessions.delete(playerId);
-  room.chatRateTimestamps.delete(playerId);
-  room.reactionRateTimestamps.delete(playerId);
-}
+export { releaseSeat } from "../rooms/seat-release";
 
 /**
  * Auto-end an in-flight game when the room-level pause timer expires (AC7).

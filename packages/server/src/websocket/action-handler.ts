@@ -307,10 +307,15 @@ export function handleActionMessage(
     return;
   }
 
+  if (room.departedPlayerIds.has(playerId)) {
+    sendActionError(ws, logger, "PLAYER_DEPARTED", "Departed players cannot take actions");
+    return;
+  }
+
   // START_GAME is the only action allowed before gameState exists
   if (!room.gameState) {
     if (actionObj.type === "START_GAME") {
-      handleStartGameAction(ws, room, playerId, logger);
+      handleStartGameAction(ws, room, playerId, logger, roomManager);
       return;
     }
     sendActionError(ws, logger, "GAME_NOT_STARTED", "No active game in this room");
@@ -350,7 +355,7 @@ export function handleActionMessage(
       if (room.afkVoteState?.targetPlayerId === playerId) {
         cancelAfkVote(room, logger, "target_active");
       }
-      syncTurnTimer(room, logger);
+      syncTurnTimer(room, logger, 0, roomManager);
     }
 
     if (!room.gameState.socialOverrideState) {
@@ -367,7 +372,7 @@ export function handleActionMessage(
           if (gs.gamePhase === "scoreboard" || gs.gamePhase === "rematch") {
             resetTurnTimerStateOnGameEnd(room, logger);
           } else {
-            syncTurnTimer(room, logger);
+            syncTurnTimer(room, logger, 0, roomManager);
           }
         }
       }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
@@ -387,7 +392,7 @@ export function handleActionMessage(
           if (gs.gamePhase === "scoreboard" || gs.gamePhase === "rematch") {
             resetTurnTimerStateOnGameEnd(room, logger);
           } else {
-            syncTurnTimer(room, logger);
+            syncTurnTimer(room, logger, 0, roomManager);
           }
         }
       }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
@@ -424,6 +429,7 @@ function handleStartGameAction(
   room: Room,
   playerId: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): void {
   // 1. Validate — host authorization (server-side concern)
   const player = room.players.get(playerId);
@@ -470,8 +476,13 @@ function handleStartGameAction(
     }
     room.afkVoteCooldownPlayerIds.clear();
     room.deadSeatPlayerIds.clear();
+    room.departedPlayerIds.clear();
+    if (room.departureVoteState) {
+      cancelLifecycleTimer(room, "departure-vote-timeout");
+      room.departureVoteState = null;
+    }
     broadcastGameState(room, room.gameState, result.resolved);
-    syncTurnTimer(room, logger);
+    syncTurnTimer(room, logger, 0, roomManager);
   } else {
     // Engine rejected — clean up the lobby state
     room.gameState = null;

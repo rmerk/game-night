@@ -50,6 +50,7 @@ export interface GameTablePropsFromView {
   invalidMahjongMessage: string | null;
   paused: boolean;
   deadSeatPlayerIds: readonly string[];
+  departureVoteState: PlayerGameView["departureVoteState"];
 }
 
 function initialFromName(name: string): string {
@@ -258,5 +259,6 @@ export function mapPlayerGameViewToGameTableProps(
     invalidMahjongMessage: invalidMahjongMessageFor(view, options?.resolvedAction),
     paused: view.paused ?? false,
     deadSeatPlayerIds: view.deadSeatPlayerIds ?? [],
+    departureVoteState: view.departureVoteState ?? null,
   };
 }

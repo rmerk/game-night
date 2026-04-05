@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger } from "fastify";
 import { handleAction } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
+import type { RoomManager } from "../rooms/room-manager";
 import { broadcastGameState } from "./state-broadcaster";
 import { pickAutoDiscardTileId, syncTurnTimer } from "./turn-timer";
 
@@ -12,6 +13,7 @@ export function applyGraceExpiryGameActions(
   room: Room,
   playerId: string,
   logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
 ): void {
   if (room.paused) return;
   if (!room.gameState) return;
@@ -31,7 +33,7 @@ export function applyGraceExpiryGameActions(
       const result = handleAction(gs, { type: "PASS_CALL", playerId });
       if (result.accepted) {
         broadcastGameState(room, gs, result.resolved);
-        syncTurnTimer(room, logger);
+        syncTurnTimer(room, logger, 0, roomManager);
         logger.info(
           { roomCode: room.roomCode, playerId },
           "Grace expiry: auto PASS_CALL for disconnected player",
@@ -60,7 +62,7 @@ export function applyGraceExpiryGameActions(
     const result = handleAction(gs, { type: "DISCARD_TILE", playerId, tileId });
     if (result.accepted) {
       broadcastGameState(room, gs, result.resolved);
-      syncTurnTimer(room, logger);
+      syncTurnTimer(room, logger, 0, roomManager);
       logger.info(
         { roomCode: room.roomCode, playerId, tileId },
         "Grace expiry: auto DISCARD_TILE for disconnected player",

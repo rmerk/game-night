@@ -32,6 +32,8 @@ function createTestRoom(playerIds: string[] = []): Room {
     afkVoteState: null,
     afkVoteCooldownPlayerIds: new Set(),
     deadSeatPlayerIds: new Set(),
+    departedPlayerIds: new Set(),
+    departureVoteState: null,
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
   };

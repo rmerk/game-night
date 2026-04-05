@@ -36,6 +36,8 @@ function createMockRoom(overrides: Partial<Room> = {}): Room {
     afkVoteState: null,
     afkVoteCooldownPlayerIds: new Set(),
     deadSeatPlayerIds: new Set(),
+    departedPlayerIds: new Set(),
+    departureVoteState: null,
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
   };

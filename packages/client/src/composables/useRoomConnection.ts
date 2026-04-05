@@ -191,6 +191,22 @@ export function useRoomConnection() {
     sendRaw({ type: "AFK_VOTE_CAST", targetPlayerId, vote });
   }
 
+  function sendDepartureVote(targetPlayerId: string, choice: "dead_seat" | "end_game"): void {
+    sendRaw({ type: "DEPARTURE_VOTE_CAST", targetPlayerId, choice });
+  }
+
+  /** Intentional leave — server closes with 4000; socket closed here to avoid auto-reconnect. */
+  function sendLeaveRoom(): void {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "LEAVE_ROOM" }));
+      } catch {
+        /* ignore */
+      }
+    }
+    ws?.close();
+  }
+
   function clearLastError(): void {
     lastErrorMessage.value = null;
   }
@@ -215,6 +231,8 @@ export function useRoomConnection() {
     sendChat,
     sendReaction,
     sendAfkVote,
+    sendDepartureVote,
+    sendLeaveRoom,
     clearLastError,
     /** Clear persisted token for this room (e.g. user leaves intentionally). */
     clearTokenForRoom: (roomCode: string) => {

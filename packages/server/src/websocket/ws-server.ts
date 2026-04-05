@@ -8,6 +8,7 @@ import { handleMessage } from "./message-handler";
 import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
 import { handleAfkVoteCastMessage } from "./turn-timer";
+import { handleDepartureVoteCastMessage, handleLeaveRoomMessage } from "./leave-handler";
 import { buildCurrentStateMessage } from "./state-broadcaster";
 import { handleChatReactMessage } from "./chat-handler";
 import { sendPostStateSequence } from "./post-state-sequence";
@@ -164,6 +165,77 @@ export function setupWebSocketServer(
             return;
           }
           handleAfkVoteCastMessage(ws, playerSession, session.room, parsed, logger);
+        } else if (parsed.type === "LEAVE_ROOM") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before leaving",
+              },
+              logger,
+              "leave-room-not-in-room",
+            );
+            return;
+          }
+          const playerSession = session.room.sessions.get(session.playerId);
+          if (!playerSession) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "Session not found",
+              },
+              logger,
+              "leave-room-no-session",
+            );
+            return;
+          }
+          handleLeaveRoomMessage(ws, playerSession, session.room, logger, roomManager);
+        } else if (parsed.type === "DEPARTURE_VOTE_CAST") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before voting",
+              },
+              logger,
+              "departure-vote-not-in-room",
+            );
+            return;
+          }
+          const playerSession = session.room.sessions.get(session.playerId);
+          if (!playerSession) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "Session not found",
+              },
+              logger,
+              "departure-vote-no-session",
+            );
+            return;
+          }
+          handleDepartureVoteCastMessage(
+            ws,
+            playerSession,
+            session.room,
+            parsed,
+            logger,
+            roomManager,
+          );
         } else if (parsed.type === "REQUEST_STATE") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

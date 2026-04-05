@@ -1,5 +1,7 @@
 /**
  * Play-phase turn timer (Story 4B.4): `initial` → `extended` → auto-discard, with AFK vote escalation.
+ * Story 4B.5: dead-seat turn-skip + call-window auto-pass (`advancePastDeadSeats` / `autoPassCallWindowForDeadSeats`).
+ * See `leave-handler.ts` for intentional departure / departure vote lifecycle.
  *
  * The turn timer uses a dedicated `room.turnTimerHandle` (stateful stages). The AFK vote expiry uses
  * the lifecycle framework (`"afk-vote-timeout"`).
@@ -10,14 +12,16 @@
  */
 import type { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
-import { handleAction, PROTOCOL_VERSION } from "@mahjong-game/shared";
-import type { Tile } from "@mahjong-game/shared";
+import { handleAction, PROTOCOL_VERSION, SEATS } from "@mahjong-game/shared";
+import type { GameState, Tile } from "@mahjong-game/shared";
 import type { PlayerSession, Room, TurnTimerConfig } from "../rooms/room";
+import type { RoomManager } from "../rooms/room-manager";
 import {
   cancelLifecycleTimer,
   getAfkVoteTimeoutMs,
   startLifecycleTimer,
 } from "../rooms/room-lifecycle";
+import { releaseSeat } from "../rooms/seat-release";
 import { broadcastGameState, broadcastStateToRoom } from "./state-broadcaster";
 
 export const DEFAULT_TURN_TIMER_CONFIG: Readonly<TurnTimerConfig> = {
@@ -57,7 +61,7 @@ export function cancelTurnTimer(room: Room, logger: FastifyBaseLogger): void {
 }
 
 /**
- * Clear turn timer + consecutive-timeout map + AFK vote state (no vote broadcast — game already ended).
+ * Clear turn timer + consecutive-timeout map + AFK / departure vote state (game already ended).
  */
 export function resetTurnTimerStateOnGameEnd(room: Room, logger: FastifyBaseLogger): void {
   cancelTurnTimer(room, logger);
@@ -66,6 +70,66 @@ export function resetTurnTimerStateOnGameEnd(room: Room, logger: FastifyBaseLogg
     cancelLifecycleTimer(room, "afk-vote-timeout");
     room.afkVoteState = null;
   }
+  if (room.departureVoteState) {
+    cancelLifecycleTimer(room, "departure-vote-timeout");
+    const target = room.departureVoteState.targetPlayerId;
+    room.departureVoteState = null;
+    broadcastStateToRoom(room, undefined, {
+      type: "DEPARTURE_VOTE_RESOLVED",
+      targetPlayerId: target,
+      outcome: "cancelled",
+    });
+  }
+}
+
+/** Story 4B.5 — auto-end when departure vote resolves to end_game or multi-departure gate fires. */
+export function autoEndGameOnDeparture(
+  room: Room,
+  logger: FastifyBaseLogger,
+  roomManager: RoomManager,
+): void {
+  const gs = room.gameState;
+  if (gs && (gs.gamePhase === "play" || gs.gamePhase === "charleston")) {
+    gs.gamePhase = "scoreboard";
+    gs.gameResult = { winnerId: null, points: 0 };
+  }
+
+  const departed = [...room.departedPlayerIds];
+  for (const pid of departed) {
+    releaseSeat(room, pid);
+  }
+  room.departedPlayerIds.clear();
+
+  if (room.departureVoteState) {
+    cancelLifecycleTimer(room, "departure-vote-timeout");
+    room.departureVoteState = null;
+  }
+
+  resetTurnTimerStateOnGameEnd(room, logger);
+
+  const gsAfter = room.gameState;
+  if (roomManager && gsAfter && gsAfter.gamePhase === "scoreboard") {
+    if (room.players.size <= 1) {
+      startLifecycleTimer(room, "abandoned-timeout", () => {
+        roomManager.cleanupRoom(room.roomCode, "abandoned");
+      });
+    } else {
+      startLifecycleTimer(room, "idle-timeout", () => {
+        roomManager.cleanupRoom(room.roomCode, "idle_timeout");
+      });
+    }
+  }
+
+  broadcastStateToRoom(room, undefined, { type: "GAME_ABANDONED", reason: "player-departure" });
+
+  logger.info(
+    {
+      roomCode: room.roomCode,
+      departedCount: departed.length,
+      departedPlayerIds: departed,
+    },
+    "Game auto-ended due to player departure",
+  );
 }
 
 function sendProtocolError(
@@ -338,31 +402,104 @@ export function handleTurnTimerExpiry(room: Room, logger: FastifyBaseLogger): vo
   }
 }
 
-const MAX_DEAD_SEAT_SYNC_DEPTH = 4;
+const MAX_DEAD_SEAT_SYNC_DEPTH = 8;
+
+function getNextPlayerId(gs: GameState, fromPlayerId: string): string {
+  const currentPlayer = gs.players[fromPlayerId];
+  if (!currentPlayer) throw new Error(`getNextPlayerId: missing player '${fromPlayerId}'`);
+  const currentSeatIndex = SEATS.indexOf(currentPlayer.seatWind);
+  const nextSeatWind = SEATS[(currentSeatIndex + 1) % SEATS.length];
+  const nextPlayer = Object.values(gs.players).find((p) => p.seatWind === nextSeatWind);
+  if (!nextPlayer) throw new Error(`getNextPlayerId: no player for seat '${nextSeatWind}'`);
+  return nextPlayer.id;
+}
 
 /**
- * Single entry: cancel any existing timer, then either run the dead-seat stub, arm a new timer, or no-op.
+ * Advance `currentTurn` past dead-seat players (draw/discard). See Story 4B.5 AC9.
  */
-export function syncTurnTimer(room: Room, logger: FastifyBaseLogger, deadSeatDepth = 0): void {
+export function advancePastDeadSeats(
+  room: Room,
+  logger: FastifyBaseLogger,
+  roomManager: RoomManager | undefined,
+): boolean {
+  const gs = room.gameState;
+  if (!gs || gs.gamePhase !== "play") return false;
+
+  const allIds = Object.keys(gs.players);
+  if (allIds.length > 0 && allIds.every((id) => room.deadSeatPlayerIds.has(id)) && roomManager) {
+    logger.error({ roomCode: room.roomCode }, "All seats dead-seat — auto-ending game");
+    autoEndGameOnDeparture(room, logger, roomManager);
+    return true;
+  }
+
+  let any = false;
+  for (let i = 0; i < 4; i++) {
+    const cur = gs.currentTurn;
+    if (!room.deadSeatPlayerIds.has(cur)) break;
+    if (gs.turnPhase !== "draw" && gs.turnPhase !== "discard") break;
+
+    const nextId = getNextPlayerId(gs, cur);
+    gs.currentTurn = nextId;
+    gs.turnPhase = "draw";
+    any = true;
+    broadcastStateToRoom(room, undefined, { type: "TURN_SKIPPED_DEAD_SEAT", playerId: cur });
+
+    if (!room.deadSeatPlayerIds.has(nextId)) break;
+  }
+
+  return any;
+}
+
+/** Auto-pass call window for dead-seat players (Story 4B.5 AC9). */
+export function autoPassCallWindowForDeadSeats(room: Room, _logger: FastifyBaseLogger): boolean {
+  if (room.paused) return false;
+  const gs = room.gameState;
+  if (!gs || gs.gamePhase !== "play" || gs.turnPhase !== "callWindow" || !gs.callWindow) {
+    return false;
+  }
+  const cw = gs.callWindow;
+  let any = false;
+  for (const pid of room.deadSeatPlayerIds) {
+    if (cw.discarderId === pid) continue;
+    if (cw.passes.includes(pid)) continue;
+    const result = handleAction(gs, { type: "PASS_CALL", playerId: pid });
+    if (result.accepted) {
+      broadcastGameState(room, gs, result.resolved);
+      any = true;
+    }
+  }
+  return any;
+}
+
+function advanceDeadSeatState(
+  room: Room,
+  logger: FastifyBaseLogger,
+  roomManager: RoomManager | undefined,
+): boolean {
+  return (
+    advancePastDeadSeats(room, logger, roomManager) || autoPassCallWindowForDeadSeats(room, logger)
+  );
+}
+
+/**
+ * Single entry: cancel any existing timer, then dead-seat advance, arm a new timer, or no-op.
+ */
+export function syncTurnTimer(
+  room: Room,
+  logger: FastifyBaseLogger,
+  deadSeatDepth = 0,
+  roomManager?: RoomManager,
+): void {
   cancelTurnTimer(room, logger);
 
   const gs = room.gameState;
   if (!gs || gs.gamePhase !== "play") return;
 
-  const current = gs.currentTurn;
-  const pl = room.players.get(current);
-
-  // TODO(4B.5): replace with proper dead-seat turn-skip — stub advances turn via auto-discard only.
-  if (
-    deadSeatDepth < MAX_DEAD_SEAT_SYNC_DEPTH &&
-    room.deadSeatPlayerIds.has(current) &&
-    pl?.connected &&
-    !room.paused &&
-    (gs.turnPhase === "draw" || gs.turnPhase === "discard")
-  ) {
-    performTurnTimeoutAutoDiscard(room, current, logger);
-    syncTurnTimer(room, logger, deadSeatDepth + 1);
-    return;
+  if (deadSeatDepth < MAX_DEAD_SEAT_SYNC_DEPTH && !room.paused) {
+    if (advanceDeadSeatState(room, logger, roomManager)) {
+      syncTurnTimer(room, logger, deadSeatDepth + 1, roomManager);
+      return;
+    }
   }
 
   if (!shouldArmPlayPhaseTimer(room)) return;

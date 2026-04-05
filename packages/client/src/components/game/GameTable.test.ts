@@ -132,6 +132,30 @@ describe("GameTable — simultaneous disconnect pause", () => {
   });
 });
 
+describe("GameTable — leave game (4B.5)", () => {
+  it("shows leave button in play phase and opens confirm dialog", async () => {
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        gamePhase: "play",
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+        },
+      },
+    });
+    const leaveBtn = wrapper.find('[data-testid="leave-game-button"]');
+    expect(leaveBtn.exists()).toBe(true);
+    await leaveBtn.trigger("click");
+    await flushPromises();
+    expect(document.querySelector('[data-testid="leave-game-confirm-dialog"]')).not.toBeNull();
+    wrapper.unmount();
+  });
+});
+
 describe("GameTable — layout structure", () => {
   it("renders the game table container", () => {
     const wrapper = mountTable();

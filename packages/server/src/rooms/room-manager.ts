@@ -50,6 +50,8 @@ export class RoomManager {
       afkVoteState: null,
       afkVoteCooldownPlayerIds: new Set(),
       deadSeatPlayerIds: new Set(),
+      departedPlayerIds: new Set(),
+      departureVoteState: null,
       createdAt: Date.now(),
       logger: roomLogger,
     };

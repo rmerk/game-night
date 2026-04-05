@@ -74,6 +74,8 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     afkVoteState: null,
     afkVoteCooldownPlayerIds: new Set(),
     deadSeatPlayerIds: new Set(),
+    departedPlayerIds: new Set(),
+    departureVoteState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
   };
@@ -264,6 +266,39 @@ describe("buildPlayerView", () => {
     gameState.jokerRulesMode = "simplified";
     const view = buildPlayerView(room, gameState, "player-0");
     expect(view.jokerRulesMode).toBe("simplified");
+  });
+
+  it("T10 (4B.5): dead-seat player stays in public roster with exposed groups visible", () => {
+    const { room } = createFourPlayerRoom();
+    const base = createFourPlayerGameState();
+    const gameState: GameState = {
+      ...base,
+      players: {
+        ...base.players,
+        "player-0": {
+          ...base.players["player-0"],
+          exposedGroups: [
+            {
+              type: "kong",
+              identity: { type: "kong", suit: "bam", value: 5 },
+              tiles: [
+                { id: "bam-5-1", category: "suited", suit: "bam", value: 5, copy: 1 },
+                { id: "bam-5-2", category: "suited", suit: "bam", value: 5, copy: 2 },
+                { id: "bam-5-3", category: "suited", suit: "bam", value: 5, copy: 3 },
+                { id: "bam-5-4", category: "suited", suit: "bam", value: 5, copy: 4 },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    room.deadSeatPlayerIds.add("player-0");
+
+    const view = buildPlayerView(room, gameState, "player-1");
+
+    expect(view.players.map((p) => p.playerId)).toContain("player-0");
+    expect(view.deadSeatPlayerIds).toContain("player-0");
+    expect(view.exposedGroups["player-0"]).toHaveLength(1);
   });
 
   it("does NOT include opponent rack data in the view", () => {

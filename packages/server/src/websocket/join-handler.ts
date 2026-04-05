@@ -1,28 +1,20 @@
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import type { RoomManager } from "../rooms/room-manager";
-import type {
-  StateUpdateMessage,
-  Tile,
-  CharlestonPassAction,
-  CharlestonVoteAction,
-  CourtesyPassAction,
-} from "@mahjong-game/shared";
-import { PROTOCOL_VERSION, handleAction } from "@mahjong-game/shared";
+import type { StateUpdateMessage } from "@mahjong-game/shared";
+import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
 import { cancelAfkVote, cancelTurnTimer, syncTurnTimer } from "./turn-timer";
 import { handlePauseTimeout, releaseSeat } from "./pause-handlers";
-import {
-  broadcastGameState,
-  buildCurrentStateMessage,
-  broadcastStateToRoom,
-} from "./state-broadcaster";
+import { buildCurrentStateMessage, broadcastStateToRoom } from "./state-broadcaster";
 import { sendPostStateSequence } from "./post-state-sequence";
 import { stripControlChars } from "./text-sanitize";
 import { applyGraceExpiryGameActions } from "./grace-expiry-fallbacks";
+import { cancelDepartureVote, resumeDepartureVoteIfNeeded } from "./leave-handler";
+import { applyCharlestonAutoAction } from "./charleston-auto-action";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
 
@@ -94,6 +86,12 @@ function attachToExistingSeat(
     return;
   }
 
+  if (room.departedPlayerIds.has(playerId)) {
+    sendError(ws, "PLAYER_DEPARTED", "Departed players cannot rejoin this game");
+    ws.close(4000, "PLAYER_DEPARTED");
+    return;
+  }
+
   const existingSession = room.sessions.get(playerId);
   if (existingSession && existingSession.ws.readyState === WebSocket.OPEN) {
     existingSession.ws.send(
@@ -158,6 +156,9 @@ function attachToExistingSeat(
     room.pausedAt = null;
     logger.info({ roomCode: room.roomCode }, "Room resumed — all players reconnected");
     broadcastStateToRoom(room, undefined, { type: "GAME_RESUMED" });
+    if (roomManager) {
+      resumeDepartureVoteIfNeeded(room, logger, roomManager);
+    }
   }
 
   registerDisconnectHandler(ws, room, playerId, logger, roomManager);
@@ -169,7 +170,7 @@ function attachToExistingSeat(
   // current player a fresh full-duration turn (exploitable to dodge AFK
   // escalation). `syncTurnTimer` is a no-op while paused anyway.
   if (resumedFromPause || room.gameState?.currentTurn === playerId) {
-    syncTurnTimer(room, logger);
+    syncTurnTimer(room, logger, 0, roomManager);
   }
 }
 
@@ -197,71 +198,14 @@ function allPlayersDisconnected(room: Room): boolean {
   return room.players.size > 0;
 }
 
+/** Count players who are offline but not intentionally departed (4B.5 — departed stay in room, connected=false). */
 function countDisconnectedPlayers(room: Room): number {
   let n = 0;
   for (const p of room.players.values()) {
+    if (room.departedPlayerIds.has(p.playerId)) continue;
     if (!p.connected) n++;
   }
   return n;
-}
-
-function selectRandomNonJokerTiles(rack: Tile[], count: number): Tile[] {
-  const nonJokers = rack.filter((t) => t.category !== "joker");
-  const jokers = rack.filter((t) => t.category === "joker");
-  const shuffled = [...nonJokers].sort(() => Math.random() - 0.5);
-  const selected: Tile[] = shuffled.slice(0, count);
-  // Backfill with Jokers if not enough non-Jokers (rare edge case)
-  if (selected.length < count) {
-    selected.push(...jokers.slice(0, count - selected.length));
-  }
-  return selected;
-}
-
-function applyCharlestonAutoAction(room: Room, playerId: string, logger: FastifyBaseLogger): void {
-  if (!room.gameState || room.gameState.gamePhase !== "charleston" || !room.gameState.charleston) {
-    return;
-  }
-
-  const charleston = room.gameState.charleston;
-  const playerState = room.gameState.players[playerId];
-
-  if (!playerState || !charleston.activePlayerIds.includes(playerId)) {
-    return;
-  }
-
-  let autoAction: CharlestonPassAction | CharlestonVoteAction | CourtesyPassAction | null = null;
-
-  if (charleston.status === "passing") {
-    if (!charleston.submittedPlayerIds.includes(playerId)) {
-      const tiles = selectRandomNonJokerTiles(playerState.rack, 3);
-      autoAction = { type: "CHARLESTON_PASS", playerId, tileIds: tiles.map((t) => t.id) };
-    }
-  } else if (charleston.status === "vote-ready") {
-    if (charleston.votesByPlayerId[playerId] === undefined) {
-      autoAction = { type: "CHARLESTON_VOTE", playerId, accept: false };
-    }
-  } else if (charleston.status === "courtesy-ready") {
-    if (charleston.courtesySubmissionsByPlayerId[playerId] === undefined) {
-      autoAction = { type: "COURTESY_PASS", playerId, count: 0, tileIds: [] };
-    }
-  }
-
-  if (!autoAction) return;
-
-  const result = handleAction(room.gameState, autoAction);
-  if (result.accepted) {
-    broadcastGameState(room, room.gameState, result.resolved);
-    syncTurnTimer(room, logger);
-    logger.info(
-      { roomCode: room.roomCode, playerId, actionType: autoAction.type },
-      "Charleston auto-action applied for disconnected player",
-    );
-  } else {
-    logger.warn(
-      { roomCode: room.roomCode, playerId, actionType: autoAction.type, reason: result.reason },
-      "Charleston auto-action rejected unexpectedly",
-    );
-  }
 }
 
 function registerDisconnectHandler(
@@ -279,6 +223,10 @@ function registerDisconnectHandler(
     // Also bail if session was cleared (e.g., room cleanup)
     const session = room.sessions.get(playerId);
     if (!session || session.ws !== ws) return;
+
+    if (room.departedPlayerIds.has(playerId)) {
+      return;
+    }
 
     player.connected = false;
     logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
@@ -320,6 +268,7 @@ function registerDisconnectHandler(
       if (room.afkVoteState) {
         cancelAfkVote(room, logger, "pause");
       }
+      cancelDepartureVote(room, logger, "pause");
       cancelLifecycleTimer(room, "disconnect-timeout");
       room.paused = true;
       room.pausedAt = Date.now();
@@ -344,9 +293,9 @@ function registerDisconnectHandler(
     const timer = setTimeout(() => {
       room.graceTimers.delete(playerId);
 
-      applyGraceExpiryGameActions(room, playerId, logger);
+      applyGraceExpiryGameActions(room, playerId, logger, roomManager);
 
-      applyCharlestonAutoAction(room, playerId, logger);
+      applyCharlestonAutoAction(room, playerId, logger, roomManager, "grace_expiry");
 
       releaseSeat(room, playerId);
 

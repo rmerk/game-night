@@ -806,6 +806,31 @@ describe("handleActionMessage", () => {
       for (const p of players) p.ws.close();
     });
 
+    it("T22 (4B.5): START_GAME clears departed, dead-seat, and departure-vote room state", async () => {
+      const { roomCode, players } = await setupGameRoom();
+      const host = players[0];
+      const room = app.roomManager.getRoom(roomCode)!;
+      room.departedPlayerIds.add(players[1].playerId);
+      room.deadSeatPlayerIds.add(players[2].playerId);
+      room.departureVoteState = {
+        targetPlayerId: players[1].playerId,
+        targetPlayerName: "x",
+        startedAt: Date.now(),
+        expiresAt: Date.now() + 30_000,
+        votes: new Map(),
+      };
+
+      const startPromises = players.map((p) => waitForMessage(p.ws));
+      sendAction(host.ws, { type: "START_GAME" });
+      await Promise.all(startPromises);
+
+      expect(room.departedPlayerIds.size).toBe(0);
+      expect(room.deadSeatPlayerIds.size).toBe(0);
+      expect(room.departureVoteState).toBeNull();
+
+      for (const p of players) p.ws.close();
+    });
+
     it("START_GAME copies room jokerRulesMode into GameState", async () => {
       const { roomCode, players } = await setupGameRoom();
       const host = players[0];
@@ -1018,6 +1043,20 @@ describe("handleActionMessage", () => {
         expect(cw).toHaveProperty("discarderId");
       }
     }
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("T16: rejects actions from departed players (PLAYER_DEPARTED)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.departedPlayerIds.add(players[0].playerId);
+
+    const msgPromise = waitForMessage(players[0].ws);
+    sendAction(players[0].ws, { type: "DRAW_TILE", playerId: players[0].playerId });
+    const msg = await msgPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("PLAYER_DEPARTED");
 
     for (const p of players) p.ws.close();
   });

@@ -2,9 +2,12 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vite-plus/test"
 import type { WebSocket } from "ws";
 import type { GameState, SeatWind, Tile } from "@mahjong-game/shared";
 import { handleAction } from "@mahjong-game/shared";
+import type { RoomManager } from "../rooms/room-manager";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import {
   DEFAULT_TURN_TIMER_CONFIG,
+  advancePastDeadSeats,
+  autoPassCallWindowForDeadSeats,
   getDefaultTurnTimerConfig,
   pickAutoDiscardTileId,
   setDefaultTurnTimerConfig,
@@ -86,6 +89,8 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Roo
     afkVoteState: null,
     afkVoteCooldownPlayerIds: new Set(),
     deadSeatPlayerIds: new Set(),
+    departedPlayerIds: new Set(),
+    departureVoteState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
   };
@@ -157,6 +162,8 @@ describe("turn-timer helpers", () => {
       afkVoteState: null,
       afkVoteCooldownPlayerIds: new Set(),
       deadSeatPlayerIds: new Set(),
+      departedPlayerIds: new Set(),
+      departureVoteState: null,
       paused: false,
       gameState: null,
       players: new Map(),
@@ -283,22 +290,22 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     ).toHaveLength(0);
   });
 
-  it("T19: dead-seat stub auto-discards so turn advances (TODO 4B.5)", () => {
+  it("T19: dead-seat turn-skip advances past draw/discard (4B.5)", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
     const east = getPlayerBySeat(gs, "east");
     room.deadSeatPlayerIds.add(east);
     syncTurnTimer(room, room.logger);
-    expect(broadcastGameCalls).toBeGreaterThan(0);
     expect(
       broadcastRoomActions.some(
         (a) =>
           typeof a === "object" &&
           a !== null &&
-          (a as { type: string }).type === "TURN_TIMEOUT_AUTO_DISCARD",
+          (a as { type: string }).type === "TURN_SKIPPED_DEAD_SEAT",
       ),
     ).toBe(true);
-    expect(gs.turnPhase === "callWindow" || gs.currentTurn !== east).toBe(true);
+    expect(gs.currentTurn !== east).toBe(true);
+    expect(gs.turnPhase).toBe("draw");
   });
 
   it("T5: two approves pass vote — dead seat + resolved", () => {
@@ -515,5 +522,106 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     vi.advanceTimersByTime(50);
     vi.advanceTimersByTime(50);
     expect(room.afkVoteState).toBeNull();
+  });
+});
+
+describe("Story 4B.5 — dead-seat helpers (fake timers)", () => {
+  let broadcastRoomActions: unknown[];
+  let broadcastGameCalls: number;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setDefaultTurnTimerConfig({ mode: "timed", durationMs: 50 });
+    broadcastRoomActions = [];
+    broadcastGameCalls = 0;
+    vi.spyOn(stateBroadcaster, "broadcastStateToRoom").mockImplementation(
+      (_room, _ex, resolvedAction) => {
+        if (resolvedAction !== undefined) {
+          broadcastRoomActions.push(resolvedAction);
+        }
+      },
+    );
+    vi.spyOn(stateBroadcaster, "broadcastGameState").mockImplementation(() => {
+      broadcastGameCalls++;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    setDefaultTurnTimerConfig({ ...DEFAULT_TURN_TIMER_CONFIG });
+  });
+
+  function fourPlayers(): PlayerInfo[] {
+    return [
+      createTestPlayer("p1", "east", true),
+      createTestPlayer("p2", "south"),
+      createTestPlayer("p3", "west"),
+      createTestPlayer("p4", "north"),
+    ];
+  }
+
+  function shortTimedRoom(gs: GameState): Room {
+    const room = createTestRoom(fourPlayers(), gs);
+    room.turnTimerConfig = { mode: "timed", durationMs: 50 };
+    return room;
+  }
+
+  it("T8 (4B.5): skips two consecutive dead seats in seat order", () => {
+    const gs = playStateAtDiscard();
+    const east = getPlayerBySeat(gs, "east");
+    const south = getPlayerBySeat(gs, "south");
+    const west = getPlayerBySeat(gs, "west");
+    const room = shortTimedRoom(gs);
+    room.deadSeatPlayerIds.add(east);
+    room.deadSeatPlayerIds.add(south);
+    syncTurnTimer(room, room.logger);
+    const skips = broadcastRoomActions.filter(
+      (a) =>
+        typeof a === "object" &&
+        a !== null &&
+        (a as { type: string }).type === "TURN_SKIPPED_DEAD_SEAT",
+    );
+    expect(skips).toHaveLength(2);
+    expect(gs.currentTurn).toBe(west);
+    expect(gs.turnPhase).toBe("draw");
+  });
+
+  it("T9 (4B.5): auto-passes call window for dead-seat player", () => {
+    const gs = playStateAtDiscard();
+    const discarderId = getPlayerBySeat(gs, "east");
+    const south = getPlayerBySeat(gs, "south");
+    const tileId = gs.players[discarderId].rack.find((t) => t.category !== "joker")!.id;
+    const dr = handleAction(gs, { type: "DISCARD_TILE", playerId: discarderId, tileId });
+    expect(dr.accepted).toBe(true);
+    expect(gs.turnPhase).toBe("callWindow");
+
+    const room = shortTimedRoom(gs);
+    room.deadSeatPlayerIds.add(south);
+    broadcastGameCalls = 0;
+    const progressed = autoPassCallWindowForDeadSeats(room, room.logger);
+    expect(progressed).toBe(true);
+    expect(broadcastGameCalls).toBeGreaterThan(0);
+    expect(gs.callWindow?.passes).toContain(south);
+  });
+
+  it("T24 (4B.5): all engine seats dead-seat triggers auto-end", () => {
+    const gs = playStateAtDiscard();
+    const room = shortTimedRoom(gs);
+    for (const id of Object.keys(gs.players)) {
+      room.deadSeatPlayerIds.add(id);
+    }
+    const roomManager = { cleanupRoom: vi.fn() } as unknown as RoomManager;
+    advancePastDeadSeats(room, room.logger, roomManager);
+    expect(
+      broadcastRoomActions.some(
+        (a) =>
+          typeof a === "object" &&
+          a !== null &&
+          (a as { type: string }).type === "GAME_ABANDONED" &&
+          (a as { reason?: string }).reason === "player-departure",
+      ),
+    ).toBe(true);
+    expect(gs.gamePhase).toBe("scoreboard");
   });
 });

@@ -5,19 +5,22 @@ export type LifecycleTimerType =
   | "idle-timeout"
   | "abandoned-timeout"
   | "pause-timeout"
-  | "afk-vote-timeout";
+  | "afk-vote-timeout"
+  | "departure-vote-timeout";
 
 export const DEFAULT_DISCONNECT_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 export const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export const DEFAULT_ABANDONED_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 export const DEFAULT_PAUSE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes (FR109)
 export const DEFAULT_AFK_VOTE_TIMEOUT_MS = 30 * 1000; // Story 4B.4
+export const DEFAULT_DEPARTURE_VOTE_TIMEOUT_MS = 30 * 1000; // Story 4B.5
 
 let disconnectTimeoutMs = DEFAULT_DISCONNECT_TIMEOUT_MS;
 let idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS;
 let abandonedTimeoutMs = DEFAULT_ABANDONED_TIMEOUT_MS;
 let pauseTimeoutMs = DEFAULT_PAUSE_TIMEOUT_MS;
 let afkVoteTimeoutMs = DEFAULT_AFK_VOTE_TIMEOUT_MS;
+let departureVoteTimeoutMs = DEFAULT_DEPARTURE_VOTE_TIMEOUT_MS;
 
 export function setDisconnectTimeoutMs(ms: number): void {
   disconnectTimeoutMs = ms;
@@ -39,8 +42,16 @@ export function setAfkVoteTimeoutMs(ms: number): void {
   afkVoteTimeoutMs = ms;
 }
 
+export function setDepartureVoteTimeoutMs(ms: number): void {
+  departureVoteTimeoutMs = ms;
+}
+
 export function getAfkVoteTimeoutMs(): number {
   return afkVoteTimeoutMs;
+}
+
+export function getDepartureVoteTimeoutMs(): number {
+  return departureVoteTimeoutMs;
 }
 
 function getTimeoutForType(type: LifecycleTimerType): number {
@@ -55,6 +66,8 @@ function getTimeoutForType(type: LifecycleTimerType): number {
       return pauseTimeoutMs;
     case "afk-vote-timeout":
       return afkVoteTimeoutMs;
+    case "departure-vote-timeout":
+      return departureVoteTimeoutMs;
   }
 }
 

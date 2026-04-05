@@ -19,6 +19,7 @@ import MahjongButton from "./MahjongButton.vue";
 import InvalidMahjongNotification from "./InvalidMahjongNotification.vue";
 import BaseToast from "../ui/BaseToast.vue";
 import AfkVoteModal from "./AfkVoteModal.vue";
+import DepartureVoteModal from "./DepartureVoteModal.vue";
 import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
@@ -91,6 +92,12 @@ const props = withDefaults(
     paused?: boolean;
     /** Story 4B.4 — player ids marked dead-seat */
     deadSeatPlayerIds?: readonly string[];
+    /** Story 4B.5 — active departure vote (reconnect resume) */
+    departureVoteState?: {
+      targetPlayerId: string;
+      targetPlayerName: string;
+      expiresAt: number;
+    } | null;
   }>(),
   {
     opponents: () => ({}),
@@ -116,6 +123,7 @@ const props = withDefaults(
     reactionAnchorForPlayer: undefined,
     paused: false,
     deadSeatPlayerIds: () => [],
+    departureVoteState: null,
   },
 );
 
@@ -138,6 +146,8 @@ const emit = defineEmits<{
   sendChat: [text: string];
   sendReaction: [emoji: string];
   afkVote: [targetPlayerId: string, vote: "approve" | "deny"];
+  departureVote: [targetPlayerId: string, choice: "dead_seat" | "end_game"];
+  leaveGame: [];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -540,6 +550,14 @@ const playerNamesById = computed<Record<string, string>>(() => {
 });
 
 const afkVoteOpen = ref<{ targetPlayerId: string; expiresAt: number } | null>(null);
+const departureVoteOpen = ref<{
+  targetPlayerId: string;
+  targetPlayerName: string;
+  expiresAt: number;
+} | null>(null);
+const leaveConfirmOpen = ref(false);
+const turnSkippedDeadSeatToastVisible = ref(false);
+const turnSkippedDeadSeatToastText = ref("");
 const nudgeToastVisible = ref(false);
 const nudgeToastText = ref("");
 const autoDiscardToastVisible = ref(false);
@@ -550,6 +568,20 @@ const afkVoteTargetDisplayName = computed(() => {
   if (!o) return "";
   return playerNamesById.value[o.targetPlayerId] ?? o.targetPlayerId;
 });
+
+watch(
+  () => props.departureVoteState,
+  (dv) => {
+    if (dv?.targetPlayerId) {
+      departureVoteOpen.value = {
+        targetPlayerId: dv.targetPlayerId,
+        targetPlayerName: dv.targetPlayerName,
+        expiresAt: dv.expiresAt,
+      };
+    }
+  },
+  { immediate: true },
+);
 
 function isDeadSeatPlayer(playerId: string | undefined): boolean {
   if (!playerId) return false;
@@ -580,6 +612,22 @@ watch(
       case "AFK_VOTE_RESOLVED":
         afkVoteOpen.value = null;
         break;
+      case "DEPARTURE_VOTE_STARTED":
+        departureVoteOpen.value = {
+          targetPlayerId: ra.targetPlayerId,
+          targetPlayerName: ra.targetPlayerName,
+          expiresAt: ra.expiresAt,
+        };
+        break;
+      case "DEPARTURE_VOTE_RESOLVED":
+        departureVoteOpen.value = null;
+        break;
+      case "TURN_SKIPPED_DEAD_SEAT": {
+        const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
+        turnSkippedDeadSeatToastText.value = `${name}'s turn skipped (dead seat)`;
+        turnSkippedDeadSeatToastVisible.value = true;
+        break;
+      }
       default:
         break;
     }
@@ -670,7 +718,66 @@ function onChatEscape() {
       >
         {{ autoDiscardToastText }}
       </BaseToast>
+      <BaseToast
+        data-testid="turn-skipped-dead-seat-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="turnSkippedDeadSeatToastVisible"
+        :auto-dismiss-ms="2000"
+        @dismiss="turnSkippedDeadSeatToastVisible = false"
+      >
+        {{ turnSkippedDeadSeatToastText }}
+      </BaseToast>
     </div>
+    <div
+      v-if="!isScoreboardPhase && (gamePhase === 'play' || gamePhase === 'charleston')"
+      class="absolute right-2 top-14 z-40 sm:top-2"
+    >
+      <button
+        type="button"
+        data-testid="leave-game-button"
+        class="rounded-md border border-chrome-border bg-chrome-surface/90 px-3 py-1.5 text-3 text-text-primary shadow-sm"
+        @click="leaveConfirmOpen = true"
+      >
+        Leave game
+      </button>
+    </div>
+    <Teleport to="body">
+      <div
+        v-if="leaveConfirmOpen"
+        data-testid="leave-game-confirm-dialog"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div
+          class="max-w-md rounded-lg border border-chrome-border bg-chrome-surface p-6 text-text-primary shadow-lg"
+        >
+          <p class="mb-4 text-3.5 text-text-secondary">
+            Leave the game? Your teammates will decide whether to continue without you or end the
+            game.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              class="rounded-md border border-chrome-border bg-chrome-surface px-4 py-2 text-3.5"
+              @click="leaveConfirmOpen = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-md bg-state-error px-4 py-2 text-3.5 font-medium text-text-on-felt"
+              @click="
+                leaveConfirmOpen = false;
+                emit('leaveGame');
+              "
+            >
+              Leave
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
     <AfkVoteModal
       :open="afkVoteOpen !== null"
       :target-player-id="afkVoteOpen?.targetPlayerId ?? ''"
@@ -680,6 +787,15 @@ function onChatEscape() {
       "
       :expires-at="afkVoteOpen?.expiresAt ?? null"
       @vote="(v) => (afkVoteOpen ? emit('afkVote', afkVoteOpen.targetPlayerId, v) : undefined)"
+    />
+    <DepartureVoteModal
+      :open="departureVoteOpen !== null"
+      :target-player-name="departureVoteOpen?.targetPlayerName ?? ''"
+      :expires-at="departureVoteOpen?.expiresAt ?? null"
+      @vote="
+        (c) =>
+          departureVoteOpen ? emit('departureVote', departureVoteOpen.targetPlayerId, c) : undefined
+      "
     />
     <!-- Desktop / tablet: floating reaction bar (AC7) — clear of right-column toggles via offset -->
     <div
