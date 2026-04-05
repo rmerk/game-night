@@ -100,6 +100,7 @@ export type {
   ChatMessage,
   ReactionMessage,
   ChatBroadcast,
+  ChatHistoryMessage,
   ReactionBroadcast,
   PlayerPublicInfo,
   LobbyState,
