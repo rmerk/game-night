@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 4b-2 done (code review); 4b-1 done; 4b1-review-1/2/3 pending
+last_updated: 2026-04-05 # 4b-3 done
 project: mahjong-game
 
 project_key: NOKEY
@@ -137,7 +137,7 @@ development_status:
   epic-4b: in-progress
   4b-1-reconnection-with-full-state-restore: done
   4b-2-phase-specific-reconnection-fallbacks: done
-  4b-3-simultaneous-disconnection-game-pause: backlog
+  4b-3-simultaneous-disconnection-game-pause: done
   4b-4-turn-timeout-afk-escalation: backlog
   4b-5-player-departure-dead-seat: backlog
   4b-6-host-migration: backlog

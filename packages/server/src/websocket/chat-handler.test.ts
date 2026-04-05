@@ -59,6 +59,8 @@ function createRoomWithSessions(
     chatHistory: [],
     chatRateTimestamps: new Map(),
     reactionRateTimestamps: new Map(),
+    paused: false,
+    pausedAt: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
   };

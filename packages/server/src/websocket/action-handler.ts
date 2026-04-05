@@ -291,6 +291,11 @@ export function handleActionMessage(
     return;
   }
 
+  if (room.paused) {
+    sendActionError(ws, logger, "ROOM_PAUSED", "Room is paused waiting for players to reconnect");
+    return;
+  }
+
   // START_GAME is the only action allowed before gameState exists
   if (!room.gameState) {
     if (actionObj.type === "START_GAME") {

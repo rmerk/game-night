@@ -13,6 +13,7 @@ import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
+import { handlePauseTimeout, releaseSeat } from "./pause-handlers";
 import {
   broadcastGameState,
   buildCurrentStateMessage,
@@ -74,6 +75,10 @@ function sanitizeDisplayName(displayName: unknown): string | null {
   return sanitized.length > 0 ? sanitized : null;
 }
 
+/**
+ * Reattach a WebSocket to an existing seat (token or tokenless grace recovery via `handleJoinRoom`).
+ * Resume-after-pause (4B.3) runs here after `PLAYER_RECONNECTED` broadcast.
+ */
 function attachToExistingSeat(
   ws: WebSocket,
   room: Room,
@@ -145,6 +150,14 @@ function attachToExistingSeat(
     playerName: player.displayName,
   });
 
+  if (room.paused && countDisconnectedPlayers(room) === 0) {
+    cancelLifecycleTimer(room, "pause-timeout");
+    room.paused = false;
+    room.pausedAt = null;
+    logger.info({ roomCode: room.roomCode }, "Room resumed — all players reconnected");
+    broadcastStateToRoom(room, undefined, { type: "GAME_RESUMED" });
+  }
+
   registerDisconnectHandler(ws, room, playerId, logger, roomManager);
 }
 
@@ -170,6 +183,14 @@ function allPlayersDisconnected(room: Room): boolean {
     if (player.connected) return false;
   }
   return room.players.size > 0;
+}
+
+function countDisconnectedPlayers(room: Room): number {
+  let n = 0;
+  for (const p of room.players.values()) {
+    if (!p.connected) n++;
+  }
+  return n;
 }
 
 function selectRandomNonJokerTiles(rack: Tile[], count: number): Tile[] {
@@ -246,48 +267,74 @@ function registerDisconnectHandler(
     const session = room.sessions.get(playerId);
     if (!session || session.ws !== ws) return;
 
-    const disconnectedAt = Date.now();
     player.connected = false;
     logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
 
-    // Start grace period
+    if (room.paused) {
+      // AC11: dead session entry is intentionally left in room.sessions here —
+      // readyState filter in broadcastStateToRoom skips it, and the eventual
+      // release happens via handlePauseTimeout (AC7) or the post-resume grace path.
+      broadcastStateToRoom(room);
+      logger.info(
+        { roomCode: room.roomCode, playerId },
+        "Additional player disconnected while paused",
+      );
+      return;
+    }
+
+    const gs = room.gameState;
+    const inGamePausePhase =
+      gs !== null && (gs.gamePhase === "play" || gs.gamePhase === "charleston");
+    const disconnectedCount = countDisconnectedPlayers(room);
+
+    if (disconnectedCount >= 2 && inGamePausePhase) {
+      for (const t of room.graceTimers.values()) {
+        clearTimeout(t);
+      }
+      room.graceTimers.clear();
+      cancelLifecycleTimer(room, "disconnect-timeout");
+      room.paused = true;
+      room.pausedAt = Date.now();
+      startLifecycleTimer(room, "pause-timeout", () => {
+        handlePauseTimeout(room, roomManager, logger);
+      });
+      const disconnectedPlayerIds = [...room.players.values()]
+        .filter((p) => !p.connected)
+        .map((p) => p.playerId);
+      broadcastStateToRoom(room, undefined, {
+        type: "GAME_PAUSED",
+        disconnectedPlayerIds,
+        reason: "simultaneous-disconnect",
+      });
+      logger.info(
+        { roomCode: room.roomCode, disconnectedPlayerIds, count: disconnectedCount },
+        "Room paused due to simultaneous disconnect",
+      );
+      return;
+    }
+
     const timer = setTimeout(() => {
       room.graceTimers.delete(playerId);
 
       applyGraceExpiryGameActions(room, playerId, logger);
 
-      // Auto-submit Charleston action before releasing the seat so the engine
-      // still finds the player in gameState.players (AC9)
       applyCharlestonAutoAction(room, playerId, logger);
 
-      // Release the seat
-      const token = room.playerTokens.get(playerId);
-      if (token) {
-        room.tokenMap.delete(token);
-        room.playerTokens.delete(playerId);
-      }
-      room.players.delete(playerId);
-      room.sessions.delete(playerId);
-      // Recycled seat ids (player-0..3) must not inherit prior occupant's chat/reaction rate limits
-      room.chatRateTimestamps.delete(playerId);
-      room.reactionRateTimestamps.delete(playerId);
+      releaseSeat(room, playerId);
 
       logger.info({ roomCode: room.roomCode, playerId }, "Grace period expired, seat released");
 
-      // Restart abandoned timer if player count drops to 0-1
       if (roomManager && room.players.size <= 1) {
         startLifecycleTimer(room, "abandoned-timeout", () => {
           roomManager.cleanupRoom(room.roomCode, "abandoned");
         });
       }
 
-      // Broadcast seat release to remaining players
       broadcastStateToRoom(room);
     }, getGracePeriodMs());
 
     room.graceTimers.set(playerId, timer);
 
-    // Check if ALL players are now disconnected → start room cleanup timer
     if (roomManager && allPlayersDisconnected(room)) {
       startLifecycleTimer(room, "disconnect-timeout", () => {
         roomManager.cleanupRoom(room.roomCode, "all_disconnected");
@@ -295,7 +342,7 @@ function registerDisconnectHandler(
     }
 
     logger.info(
-      { roomCode: room.roomCode, playerId, disconnectedAt },
+      { roomCode: room.roomCode, playerId },
       "PLAYER_RECONNECTING broadcast, grace period started",
     );
     broadcastStateToRoom(room, playerId, {

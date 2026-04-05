@@ -64,6 +64,8 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     chatHistory: [],
     chatRateTimestamps: new Map(),
     reactionRateTimestamps: new Map(),
+    paused: false,
+    pausedAt: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
   };
@@ -609,6 +611,23 @@ describe("buildPlayerView", () => {
 
     expect(view0.myDeadHand).toBe(true);
     expect(view1.myDeadHand).toBe(false);
+  });
+
+  it("sets paused and pauseReason from room (4B.3)", () => {
+    const players = [
+      createTestPlayer("player-0", "east", true),
+      createTestPlayer("player-1", "south"),
+    ];
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoom(players, wsList);
+    room.paused = true;
+    room.pausedAt = Date.now();
+    const gameState = createTestGameState();
+
+    const view = buildPlayerView(room, gameState, "player-0");
+
+    expect(view.paused).toBe(true);
+    expect(view.pauseReason).toBe("simultaneous-disconnect");
   });
 
   it("includes all players' exposed groups and discard pools", () => {

@@ -205,6 +205,54 @@ describe("handleActionMessage", () => {
     for (const p of players) p.ws.close();
   });
 
+  it("rejects game actions when room is paused (AC3)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.paused = true;
+
+    const tileId = room.gameState!.players[players[0].playerId].rack[0].id;
+
+    const discardPromise = waitForMessage(players[0].ws);
+    sendAction(players[0].ws, { type: "DISCARD_TILE", playerId: players[0].playerId, tileId });
+    const discardMsg = await discardPromise;
+    expect(discardMsg.type).toBe("ERROR");
+    expect(discardMsg.code).toBe("ROOM_PAUSED");
+
+    room.paused = false;
+    room.gameState = null;
+    room.paused = true;
+    const startPromise = waitForMessage(players[0].ws);
+    sendAction(players[0].ws, { type: "START_GAME", playerIds: [] });
+    const startMsg = await startPromise;
+    expect(startMsg.type).toBe("ERROR");
+    expect(startMsg.code).toBe("ROOM_PAUSED");
+
+    room.paused = true;
+    const charlestonPassPromise = waitForMessage(players[0].ws);
+    sendAction(players[0].ws, {
+      type: "CHARLESTON_PASS",
+      playerId: players[0].playerId,
+      tileIds: ["x", "y", "z"],
+    });
+    const charlestonPassMsg = await charlestonPassPromise;
+    expect(charlestonPassMsg.type).toBe("ERROR");
+    expect(charlestonPassMsg.code).toBe("ROOM_PAUSED");
+
+    room.paused = true;
+    const callPungPromise = waitForMessage(players[0].ws);
+    sendAction(players[0].ws, {
+      type: "CALL_PUNG",
+      playerId: players[0].playerId,
+      tileIds: ["t0"],
+    });
+    const callPungMsg = await callPungPromise;
+    expect(callPungMsg.type).toBe("ERROR");
+    expect(callPungMsg.code).toBe("ROOM_PAUSED");
+
+    room.paused = false;
+    for (const p of players) p.ws.close();
+  });
+
   it("broadcasts STATE_UPDATE to all players on valid action", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;

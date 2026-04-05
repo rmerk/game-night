@@ -40,6 +40,9 @@ export interface Room {
   chatRateTimestamps: Map<string, number[]>;
   /** Per-player sliding-window timestamps for reaction rate limit */
   reactionRateTimestamps: Map<string, number[]>;
+  /** Simultaneous-disconnect pause (Epic 4B.3) — orthogonal to engine phase */
+  paused: boolean;
+  pausedAt: number | null;
   createdAt: number;
   logger: FastifyBaseLogger;
 }

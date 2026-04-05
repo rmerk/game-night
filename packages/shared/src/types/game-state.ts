@@ -380,4 +380,11 @@ export type ResolvedAction =
       readonly reporterId: string;
       readonly reportedPlayerId: string;
     }
+  | {
+      readonly type: "GAME_PAUSED";
+      readonly disconnectedPlayerIds: readonly string[];
+      readonly reason: "simultaneous-disconnect";
+    }
+  | { readonly type: "GAME_RESUMED" }
+  | { readonly type: "GAME_ABANDONED"; readonly reason: "pause-timeout" }
   | { readonly type: "HAND_SHOWN"; readonly playerId: string };

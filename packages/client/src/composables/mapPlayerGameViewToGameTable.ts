@@ -48,6 +48,7 @@ export interface GameTablePropsFromView {
   tableTalkReportState: PlayerGameView["tableTalkReportState"];
   tableTalkReportCountsByPlayerId: PlayerGameView["tableTalkReportCountsByPlayerId"];
   invalidMahjongMessage: string | null;
+  paused: boolean;
 }
 
 function initialFromName(name: string): string {
@@ -254,5 +255,6 @@ export function mapPlayerGameViewToGameTableProps(
     tableTalkReportState: view.tableTalkReportState,
     tableTalkReportCountsByPlayerId: view.tableTalkReportCountsByPlayerId,
     invalidMahjongMessage: invalidMahjongMessageFor(view, options?.resolvedAction),
+    paused: view.paused ?? false,
   };
 }

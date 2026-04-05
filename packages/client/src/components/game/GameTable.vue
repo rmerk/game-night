@@ -85,6 +85,8 @@ const props = withDefaults(
     tableTalkReportCountsByPlayerId?: Record<string, number>;
     /** When set (in-play from PlayerGameView), resolves reaction bubble anchor via shared seat geometry (6A.3 AC4). */
     reactionAnchorForPlayer?: (playerId: string) => "top" | "left" | "right" | "local" | null;
+    /** Room paused (simultaneous disconnect) — server rejects game actions */
+    paused?: boolean;
   }>(),
   {
     opponents: () => ({}),
@@ -108,6 +110,7 @@ const props = withDefaults(
     tableTalkReportState: null,
     tableTalkReportCountsByPlayerId: undefined,
     reactionAnchorForPlayer: undefined,
+    paused: false,
   },
 );
 
@@ -446,9 +449,7 @@ const reactionBubblesByAnchor = computed(() => {
   const fallback = playerIdToReactionAnchorFallback.value;
   const resolve = props.reactionAnchorForPlayer;
   for (const item of reactionItems.value) {
-    const anchor = resolve
-      ? resolve(item.playerId)
-      : (fallback.get(item.playerId) ?? null);
+    const anchor = resolve ? resolve(item.playerId) : (fallback.get(item.playerId) ?? null);
     if (!anchor) continue;
     buckets[anchor].push(item);
   }
@@ -581,6 +582,19 @@ function onChatEscape() {
     data-testid="game-table"
     class="game-table relative bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
   >
+    <div
+      v-if="paused"
+      data-testid="game-paused-banner"
+      class="pointer-events-none absolute inset-x-2 top-2 z-40 flex justify-center sm:inset-x-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        class="max-w-full rounded-md bg-chrome-surface/90 px-4 py-2 text-center text-sm text-text-on-felt/85 shadow-sm"
+      >
+        Waiting for players to reconnect…
+      </div>
+    </div>
     <!-- Desktop / tablet: floating reaction bar (AC7) — clear of right-column toggles via offset -->
     <div
       v-if="showReactionChrome"
@@ -593,10 +607,7 @@ function onChatEscape() {
     </div>
 
     <!-- Opponent Top -->
-    <div
-      data-testid="opponent-top"
-      class="game-table__opponent-top relative flex justify-center"
-    >
+    <div data-testid="opponent-top" class="game-table__opponent-top relative flex justify-center">
       <div
         v-if="showReactionChrome && reactionBubblesByAnchor.top.length > 0"
         class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2"

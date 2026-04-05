@@ -1,10 +1,17 @@
 /* eslint-disable no-await-in-loop -- sequential WebSocket joins keep broadcast ordering deterministic in these integration tests */
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- parsed WebSocket payloads are intentionally inspected as loose JSON test fixtures */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WsClient from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
 import { setGracePeriodMs, DEFAULT_GRACE_PERIOD_MS } from "../rooms/session-manager";
+import {
+  setPauseTimeoutMs,
+  DEFAULT_PAUSE_TIMEOUT_MS,
+  cancelLifecycleTimer,
+  hasLifecycleTimer,
+} from "../rooms/room-lifecycle";
+import * as stateBroadcaster from "./state-broadcaster";
 
 type WebSocket = WsClient;
 
@@ -1638,5 +1645,394 @@ describe("SET_JOKER_RULES", () => {
     expect(msg.code).toBe("GAME_IN_PROGRESS");
 
     for (const ws of clients) ws.close();
+  });
+});
+
+describe("Story 4B.3 — simultaneous disconnect pause", () => {
+  const SHORT_GRACE_MS = 50;
+  const SHORT_PAUSE_MS = 200;
+
+  beforeEach(() => {
+    setGracePeriodMs(SHORT_GRACE_MS);
+    setPauseTimeoutMs(SHORT_PAUSE_MS);
+  });
+
+  afterEach(() => {
+    // Belt-and-suspenders: cancel any lingering pause-timeout across all active
+    // rooms so a test that forgets the per-test cleanup does not leak a real
+    // setTimeout into the next test (SHORT_PAUSE_MS is real time, not fake).
+    for (const code of app.roomManager.getActiveRoomCodes()) {
+      const r = app.roomManager.getRoom(code);
+      if (r) {
+        cancelLifecycleTimer(r, "pause-timeout");
+      }
+    }
+    setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
+    setPauseTimeoutMs(DEFAULT_PAUSE_TIMEOUT_MS);
+  });
+
+  async function setupCharlestonFour(): Promise<{
+    roomCode: string;
+    clients: WebSocket[];
+    tokens: string[];
+  }> {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+    const tokens: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `PauseP${i}`);
+      const msg = await msgPromise;
+
+      clients.push(ws);
+      tokens.push(msg.token as string);
+      await Promise.all(broadcastPromises);
+    }
+
+    const gameStartMessages = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(gameStartMessages);
+
+    return { roomCode, clients, tokens };
+  }
+
+  it("T1: second disconnect triggers GAME_PAUSED and clears per-player grace timers", async () => {
+    const { roomCode, clients } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    let room = app.roomManager.getRoom(roomCode)!;
+    expect(room.graceTimers.size).toBe(1);
+    expect(room.paused).toBe(false);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    const msgs = await Promise.all(secondDc);
+
+    room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(true);
+    expect(room.graceTimers.size).toBe(0);
+
+    for (const m of msgs) {
+      expect(m.resolvedAction).toMatchObject({
+        type: "GAME_PAUSED",
+        reason: "simultaneous-disconnect",
+      });
+    }
+
+    for (const c of clients.slice(2)) c.close();
+    const rT1 = app.roomManager.getRoom(roomCode);
+    if (rT1) cancelLifecycleTimer(rT1, "pause-timeout");
+  });
+
+  it("T2: full reconnect clears pause and cancels pause-timeout (AC5)", async () => {
+    const { roomCode, clients, tokens } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const r0 = await connectWs(wsUrl);
+    sendJoinWithToken(r0, roomCode, tokens[0]);
+    await waitForMessage(r0);
+
+    const r1 = await connectWs(wsUrl);
+    sendJoinWithToken(r1, roomCode, tokens[1]);
+    await waitForMessage(r1);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(false);
+    expect(room.pausedAt).toBeNull();
+    expect(hasLifecycleTimer(room, "pause-timeout")).toBe(false);
+
+    r0.close();
+    r1.close();
+    for (const c of clients.slice(2)) c.close();
+  });
+
+  it("T3: pause-timeout auto-ends to scoreboard with GAME_ABANDONED", async () => {
+    const { roomCode, clients } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const cleanupSpy = vi.spyOn(app.roomManager, "cleanupRoom");
+
+    const abandonMsgs = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    await delay(SHORT_PAUSE_MS + 80);
+    await Promise.all(abandonMsgs);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.gameState?.gamePhase).toBe("scoreboard");
+    expect(room.gameState?.gameResult).toEqual({ winnerId: null, points: 0 });
+    expect(room.paused).toBe(false);
+    expect(cleanupSpy).not.toHaveBeenCalled();
+    cleanupSpy.mockRestore();
+
+    for (const c of clients.slice(2)) c.close();
+    const rT3 = app.roomManager.getRoom(roomCode);
+    if (rT3) cancelLifecycleTimer(rT3, "pause-timeout");
+  });
+
+  it("T4: third disconnect while paused does not add grace timers", async () => {
+    const { roomCode, clients } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const thirdDc = clients.slice(3, 4).map((ws) => waitForMessage(ws));
+    clients[2].close();
+    await Promise.all(thirdDc);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(true);
+    expect(room.graceTimers.size).toBe(0);
+
+    clients[3].close();
+    const rT4 = app.roomManager.getRoom(roomCode);
+    if (rT4) cancelLifecycleTimer(rT4, "pause-timeout");
+  });
+
+  it("T7: two lobby disconnects do not pause the room", async () => {
+    const { roomCode } = await createRoom();
+    const a = await connectWs(wsUrl);
+    const a0 = waitForMessage(a);
+    sendJoin(a, roomCode, "L0");
+    await a0;
+
+    const b = await connectWs(wsUrl);
+    const b0 = waitForMessage(b);
+    const aJoinB = waitForMessage(a);
+    sendJoin(b, roomCode, "L1");
+    await Promise.all([b0, aJoinB]);
+
+    const aAfterBLeave = waitForMessage(a);
+    b.close();
+    await aAfterBLeave;
+
+    a.close();
+    await delay(50);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(false);
+    expect(room.gameState).toBeNull();
+  });
+
+  it("T5: third disconnect while paused then reconnect all three — GAME_RESUMED only on last reconnect", async () => {
+    const { roomCode, clients, tokens } = await setupCharlestonFour();
+    const broadcastSpy = vi.spyOn(stateBroadcaster, "broadcastStateToRoom");
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const thirdDc = clients.slice(3, 4).map((ws) => waitForMessage(ws));
+    clients[2].close();
+    await Promise.all(thirdDc);
+
+    function gameResumedCount(): number {
+      return broadcastSpy.mock.calls.filter(
+        (c) =>
+          c[2] !== undefined &&
+          typeof c[2] === "object" &&
+          c[2] !== null &&
+          "type" in c[2] &&
+          (c[2] as { type: string }).type === "GAME_RESUMED",
+      ).length;
+    }
+
+    const r0 = await connectWs(wsUrl);
+    sendJoinWithToken(r0, roomCode, tokens[0]);
+    await waitForMessage(r0);
+    expect(gameResumedCount()).toBe(0);
+
+    const r1 = await connectWs(wsUrl);
+    sendJoinWithToken(r1, roomCode, tokens[1]);
+    await waitForMessage(r1);
+    expect(gameResumedCount()).toBe(0);
+
+    const r2 = await connectWs(wsUrl);
+    sendJoinWithToken(r2, roomCode, tokens[2]);
+    await waitForMessage(r2);
+    expect(gameResumedCount()).toBe(1);
+
+    expect(app.roomManager.getRoom(roomCode)!.paused).toBe(false);
+
+    broadcastSpy.mockRestore();
+    r0.close();
+    r1.close();
+    r2.close();
+    clients[3].close();
+  });
+
+  it("T8: two disconnects during scoreboard do not pause — per-player grace timers apply", async () => {
+    setGracePeriodMs(10_000);
+    const { roomCode, clients } = await setupCharlestonFour();
+    const room0 = app.roomManager.getRoom(roomCode)!;
+    room0.gameState!.gamePhase = "scoreboard";
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const r1 = app.roomManager.getRoom(roomCode)!;
+    expect(r1.paused).toBe(false);
+    expect(r1.graceTimers.size).toBe(1);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const r2 = app.roomManager.getRoom(roomCode)!;
+    expect(r2.paused).toBe(false);
+    expect(r2.graceTimers.size).toBe(2);
+
+    for (const t of r2.graceTimers.values()) {
+      clearTimeout(t);
+    }
+    r2.graceTimers.clear();
+
+    clients[2].close();
+    clients[3].close();
+  });
+
+  it("T9: after resume from pause, single disconnect starts fresh per-player grace timer", async () => {
+    setGracePeriodMs(10_000);
+    const { roomCode, clients, tokens } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const r0 = await connectWs(wsUrl);
+    sendJoinWithToken(r0, roomCode, tokens[0]);
+    await waitForMessage(r0);
+
+    const r1 = await connectWs(wsUrl);
+    sendJoinWithToken(r1, roomCode, tokens[1]);
+    await waitForMessage(r1);
+
+    let room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(false);
+    expect(room.graceTimers.size).toBe(0);
+
+    clients[2].close();
+    await delay(100);
+
+    room = app.roomManager.getRoom(roomCode)!;
+    expect(room.paused).toBe(false);
+    expect(room.graceTimers.size).toBe(1);
+    expect(room.graceTimers.has("player-2")).toBe(true);
+
+    const t = room.graceTimers.get("player-2");
+    if (t) clearTimeout(t);
+    room.graceTimers.delete("player-2");
+
+    cancelLifecycleTimer(room, "pause-timeout");
+    r0.close();
+    r1.close();
+    clients[3].close();
+  });
+
+  it("T10: superseded socket close while paused does not mark player disconnected", async () => {
+    const { roomCode, clients, tokens } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const wsA = await connectWs(wsUrl);
+    const wsAMsg = waitForMessage(wsA);
+    sendJoinWithToken(wsA, roomCode, tokens[0]);
+    await wsAMsg;
+
+    const wsB = await connectWs(wsUrl);
+    const supersededPromise = waitForMessage(wsA);
+    const wsBMsgPromise = waitForMessage(wsB);
+    sendJoinWithToken(wsB, roomCode, tokens[0]);
+
+    const supersededMsg = await supersededPromise;
+    expect(supersededMsg.type).toBe("SYSTEM_EVENT");
+    expect(supersededMsg.event).toBe("SESSION_SUPERSEDED");
+    await wsBMsgPromise;
+
+    const closePromise = waitForClose(wsA);
+    await closePromise;
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.players.get("player-0")?.connected).toBe(true);
+    expect(room.paused).toBe(true);
+
+    cancelLifecycleTimer(room, "pause-timeout");
+    wsB.close();
+    const r1 = await connectWs(wsUrl);
+    sendJoinWithToken(r1, roomCode, tokens[1]);
+    await waitForMessage(r1);
+    r1.close();
+    clients[2].close();
+    clients[3].close();
+  });
+
+  it("T12: stale token after pause-timeout auto-end does not reattach released seat", async () => {
+    const { roomCode, clients, tokens } = await setupCharlestonFour();
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    const abandonMsgs = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    await delay(SHORT_PAUSE_MS + 80);
+    await Promise.all(abandonMsgs);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.gameState?.gamePhase).toBe("scoreboard");
+    expect(room.players.has("player-0")).toBe(false);
+
+    const ws = await connectWs(wsUrl);
+    const errPromise = waitForMessage(ws);
+    sendJoinWithToken(ws, roomCode, tokens[0]);
+    const msg = await errPromise;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_DISPLAY_NAME");
+
+    ws.close();
+    clients[2].close();
+    clients[3].close();
   });
 });

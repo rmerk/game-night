@@ -58,6 +58,7 @@ function fixtureView(): PlayerGameView {
     shownHands: {},
     jokerRulesMode: "standard",
     myDeadHand: false,
+    paused: false,
   };
 }
 

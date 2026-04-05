@@ -1,14 +1,20 @@
 import type { Room } from "./room";
 
-export type LifecycleTimerType = "disconnect-timeout" | "idle-timeout" | "abandoned-timeout";
+export type LifecycleTimerType =
+  | "disconnect-timeout"
+  | "idle-timeout"
+  | "abandoned-timeout"
+  | "pause-timeout";
 
 export const DEFAULT_DISCONNECT_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 export const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export const DEFAULT_ABANDONED_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+export const DEFAULT_PAUSE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes (FR109)
 
 let disconnectTimeoutMs = DEFAULT_DISCONNECT_TIMEOUT_MS;
 let idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS;
 let abandonedTimeoutMs = DEFAULT_ABANDONED_TIMEOUT_MS;
+let pauseTimeoutMs = DEFAULT_PAUSE_TIMEOUT_MS;
 
 export function setDisconnectTimeoutMs(ms: number): void {
   disconnectTimeoutMs = ms;
@@ -22,6 +28,10 @@ export function setAbandonedTimeoutMs(ms: number): void {
   abandonedTimeoutMs = ms;
 }
 
+export function setPauseTimeoutMs(ms: number): void {
+  pauseTimeoutMs = ms;
+}
+
 function getTimeoutForType(type: LifecycleTimerType): number {
   switch (type) {
     case "disconnect-timeout":
@@ -30,6 +40,8 @@ function getTimeoutForType(type: LifecycleTimerType): number {
       return idleTimeoutMs;
     case "abandoned-timeout":
       return abandonedTimeoutMs;
+    case "pause-timeout":
+      return pauseTimeoutMs;
   }
 }
 

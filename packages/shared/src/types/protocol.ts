@@ -176,6 +176,9 @@ export interface PlayerGameView {
   jokerRulesMode: JokerRulesMode;
   /** True when this viewer's hand is dead — private; opponents have no per-seat dead flag */
   myDeadHand: boolean;
+  /** Room-level pause (simultaneous disconnect) — orthogonal to {@link GamePhase} */
+  paused: boolean;
+  pauseReason?: "simultaneous-disconnect";
   /** Host-only audit log (FR88) — omitted for non-host clients */
   hostAuditLog?: string[];
 }

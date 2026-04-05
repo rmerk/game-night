@@ -45,6 +45,7 @@ function minimalView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
     shownHands: {},
     jokerRulesMode: "standard",
     myDeadHand: false,
+    paused: false,
   };
   return { ...base, ...overrides };
 }

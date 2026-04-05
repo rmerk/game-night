@@ -81,6 +81,7 @@ describe("useRoomConnection reconnection resolvedAction", () => {
         shownHands: {},
         jokerRulesMode: "standard",
         myDeadHand: false,
+        paused: false,
       },
     });
 
@@ -119,6 +120,7 @@ describe("useRoomConnection reconnection resolvedAction", () => {
         shownHands: {},
         jokerRulesMode: "standard",
         myDeadHand: false,
+        paused: false,
       },
     });
 
@@ -157,6 +159,7 @@ describe("useRoomConnection reconnection resolvedAction", () => {
       shownHands: {},
       jokerRulesMode: "standard" as const,
       myDeadHand: false,
+      paused: false,
     };
 
     dispatchServerMessage({
@@ -180,5 +183,89 @@ describe("useRoomConnection reconnection resolvedAction", () => {
     });
 
     expect(conn.playerGameView.value?.myRack.map((x) => x.id)).toEqual(["bam-3-2", "bam-1-1"]);
+  });
+
+  it("reflects paused and scoreboard transition from STATE_UPDATE payloads (4B.3)", async () => {
+    const conn = useRoomConnection();
+    conn.connect("ABC12", "TestUser");
+    await Promise.resolve();
+
+    const t1: SuitedTile = { id: "bam-1-1", category: "suited", suit: "bam", value: 1, copy: 1 };
+
+    dispatchServerMessage({
+      version: PROTOCOL_VERSION,
+      type: "STATE_UPDATE",
+      resolvedAction: {
+        type: "GAME_PAUSED",
+        disconnectedPlayerIds: ["a"],
+        reason: "simultaneous-disconnect",
+      },
+      state: {
+        roomId: "r",
+        roomCode: "ABC12",
+        gamePhase: "play",
+        players: [],
+        myPlayerId: "player-1",
+        myRack: [t1],
+        exposedGroups: {},
+        discardPools: {},
+        wallRemaining: 10,
+        currentTurn: "player-0",
+        turnPhase: "draw",
+        callWindow: null,
+        scores: {},
+        lastDiscard: null,
+        gameResult: null,
+        pendingMahjong: null,
+        challengeState: null,
+        socialOverrideState: null,
+        tableTalkReportState: null,
+        tableTalkReportCountsByPlayerId: {},
+        charleston: null,
+        shownHands: {},
+        jokerRulesMode: "standard",
+        myDeadHand: false,
+        paused: true,
+      },
+    });
+
+    expect(conn.playerGameView.value?.paused).toBe(true);
+
+    dispatchServerMessage({
+      version: PROTOCOL_VERSION,
+      type: "STATE_UPDATE",
+      resolvedAction: { type: "GAME_ABANDONED", reason: "pause-timeout" },
+      state: {
+        roomId: "r",
+        roomCode: "ABC12",
+        gamePhase: "scoreboard",
+        players: [],
+        myPlayerId: "player-1",
+        myRack: [t1],
+        exposedGroups: {},
+        discardPools: {},
+        wallRemaining: 0,
+        currentTurn: "player-0",
+        turnPhase: "discard",
+        callWindow: null,
+        scores: {},
+        lastDiscard: null,
+        gameResult: { winnerId: null, points: 0 },
+        pendingMahjong: null,
+        challengeState: null,
+        socialOverrideState: null,
+        tableTalkReportState: null,
+        tableTalkReportCountsByPlayerId: {},
+        charleston: null,
+        shownHands: {},
+        jokerRulesMode: "standard",
+        myDeadHand: false,
+        paused: false,
+      },
+    });
+
+    expect(conn.playerGameView.value?.paused).toBe(false);
+    expect(conn.playerGameView.value?.gamePhase).toBe("scoreboard");
+    expect(conn.resolvedAction.value?.type).toBe("GAME_ABANDONED");
   });
 });

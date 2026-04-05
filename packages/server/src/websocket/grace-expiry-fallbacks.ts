@@ -23,6 +23,7 @@ export function applyGraceExpiryGameActions(
   playerId: string,
   logger: FastifyBaseLogger,
 ): void {
+  if (room.paused) return;
   if (!room.gameState) return;
   const gs = room.gameState;
 

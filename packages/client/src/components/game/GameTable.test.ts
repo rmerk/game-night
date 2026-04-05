@@ -120,6 +120,18 @@ function mountTable(props: Record<string, unknown> = {}, pinia?: Pinia) {
   });
 }
 
+describe("GameTable — simultaneous disconnect pause", () => {
+  it("shows pause banner when paused prop is true", () => {
+    const wrapper = mountTable({ paused: true });
+    expect(wrapper.find('[data-testid="game-paused-banner"]').exists()).toBe(true);
+  });
+
+  it("does not render pause banner when paused is false", () => {
+    const wrapper = mountTable({ paused: false });
+    expect(wrapper.find('[data-testid="game-paused-banner"]').exists()).toBe(false);
+  });
+});
+
 describe("GameTable — layout structure", () => {
   it("renders the game table container", () => {
     const wrapper = mountTable();

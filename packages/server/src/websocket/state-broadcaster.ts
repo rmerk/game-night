@@ -178,6 +178,8 @@ export function buildPlayerView(
     shownHands: gameState.shownHands,
     jokerRulesMode: gameState.jokerRulesMode,
     myDeadHand: playerState?.deadHand ?? false,
+    paused: room.paused,
+    ...(room.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
     ...(room.players.get(playerId)?.isHost ? { hostAuditLog: [...gameState.hostAuditLog] } : {}),
   };
 }
