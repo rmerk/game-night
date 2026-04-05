@@ -2,7 +2,7 @@
 
 Status: ready-for-dev
 
-<!-- Ultimate context engine — 2026-04-05. Targets first backlog in sprint-status; server ring buffer + client chat store hooks from 6A.1/6A.2; aligns FR105 + AR30. -->
+<!-- Ultimate context engine — 2026-04-05. Pass 2: fixed payload sizing (UTF-8 bytes), mandated send order, REQUEST_STATE path, SESSION_SUPERSEDED + list-key notes. -->
 
 ## Story
 
@@ -12,15 +12,15 @@ so that **I don't miss the conversation and can catch up on what friends were sa
 
 ## Acceptance Criteria
 
-1. **AC1 — Wire message on join:** Given a player completes **initial** room join (new seat, `JOIN_ROOM` without valid `token`), when the server has sent the joining client their first `STATE_UPDATE` (with `token`), then the server **also** sends a **`CHAT_HISTORY`** server message on that same WebSocket **before** or **after** that `STATE_UPDATE` (pick one order, document it in code comment, and **keep it consistent** for reconnection). Payload: `version`, `type: "CHAT_HISTORY"`, `messages`: array of **`ChatBroadcast`** objects (same shape as live `CHAT_BROADCAST` — see [`protocol.ts`](../../packages/shared/src/types/protocol.ts)), **chronological order** (oldest → newest) so the newest line is last.
+1. **AC1 — Wire message on join:** Given a player completes **initial** room join (new seat, `JOIN_ROOM` without valid `token`), when the server has sent the joining client their first `STATE_UPDATE` (with `token`), then the server **also** sends **`CHAT_HISTORY`** on that same WebSocket **immediately after** that `STATE_UPDATE` (same order for every code path — document in a one-line comment on the helper). Rationale: `handleMessage` processes messages serially; state (and session token write) should land before chat hydration. Payload: `version`, `type: "CHAT_HISTORY"`, `messages`: array of **`ChatBroadcast`** objects (same shape as live `CHAT_BROADCAST` — see [`protocol.ts`](../../packages/shared/src/types/protocol.ts)), **chronological order** (oldest → newest) so the newest line is last. Entries may be **copies** of `room.chatHistory` elements (already include `version` + `type: "CHAT_BROADCAST"`).
 
-2. **AC2 — Wire message on token reconnect:** Given token-based reconnection in [`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts), when the server sends the reconnecting client their `STATE_UPDATE` (with `token`), then the server **also** sends **`CHAT_HISTORY`** with the same semantics as AC1.
+2. **AC2 — Wire message on token reconnect:** Given token-based reconnection in [`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts), when the server sends the reconnecting client their `STATE_UPDATE` (with `token`), then the server **also** sends **`CHAT_HISTORY` immediately after** that `STATE_UPDATE` with the same semantics as AC1.
 
 3. **AC3 — Empty history:** Given a room with **no** stored chat lines, when a client connects (join or reconnect), then `CHAT_HISTORY` is sent with **`messages: []`** — no error, no omission of the message type.
 
 4. **AC4 — Source of truth:** Given `room.chatHistory` populated by [`appendChatHistory`](../../packages/server/src/websocket/chat-handler.ts) (capacity [`CHAT_HISTORY_CAPACITY`](../../packages/shared/src/chat-constants.ts) = **100**), when building `CHAT_HISTORY`, then the array matches the authoritative buffer (oldest-first order in memory — today `shift()` evicts oldest; **do not** reverse order when serializing).
 
-5. **AC5 — 64KB cap (AR30):** Given serialization of `CHAT_HISTORY`, when `JSON.stringify` length would exceed **65536** bytes (match server `maxPayload` in [`ws-server.ts`](../../packages/server/src/websocket/ws-server.ts)), then the server **drops entries from the oldest end** until the serialized message fits (or until `messages` is empty). **No** reliance on incoming `maxPayload` for **outbound** sizing — implement explicit length check / truncation loop. Document the constant (reuse **65536** or import a single named constant shared with tests).
+5. **AC5 — 64KB cap (AR30):** Given serialization of `CHAT_HISTORY`, when the **on-the-wire UTF-8 size** would exceed **65536** bytes (match `maxPayload` in [`ws-server.ts`](../../packages/server/src/websocket/ws-server.ts)), then the server **drops entries from the oldest end** until the payload fits (or until `messages` is empty). **Critical:** measure with **`Buffer.byteLength(json, "utf8")`** (or equivalent), **not** `json.length` — JavaScript string length is UTF-16 code units and can diverge from WebSocket frame bytes (emoji, astral planes). **No** reliance on inbound `maxPayload` for **outbound** sizing — explicit truncation loop. Export or centralize a named constant (e.g. `WS_MAX_PAYLOAD_BYTES = 65_536`) in server (or shared) for the helper + tests.
 
 6. **AC6 — Client parse:** Given a valid `CHAT_HISTORY` JSON message, when [`parseServerMessage`](../../packages/client/src/composables/parseServerMessage.ts) runs, then return a typed result (e.g. `kind: "chat_history"`, `message: ChatHistoryMessage`) or equivalent — **not** `{ kind: "ignored" }`. Validate: `messages` is an array; each element satisfies the **same field contract** as `CHAT_BROADCAST` parsing (reuse validation logic or a shared helper to avoid drift). Malformed payloads → `null` (consistent with other server message parse failures).
 
@@ -36,11 +36,15 @@ so that **I don't miss the conversation and can catch up on what friends were sa
 
 12. **AC12 — Regression gate:** `pnpm test`, `pnpm run typecheck`, and `vp lint` pass ([`AGENTS.md`](../../AGENTS.md)).
 
+13. **AC13 — REQUEST_STATE resync:** Given an **already-joined** client sends [`REQUEST_STATE`](../../packages/server/src/websocket/ws-server.ts) (handled after session lookup), when the server responds with [`sendCurrentState`](../../packages/server/src/websocket/state-broadcaster.ts), then it **also** sends **`CHAT_HISTORY` immediately after** that `STATE_UPDATE` using the same helper as AC1–2. Rationale: resync refreshes game view without a new `JOIN_ROOM`; without this, chat could stay empty or stale while state updates. **Note:** `sendCurrentState` does not emit a `token` — do not change that; only add `CHAT_HISTORY` beside it.
+
+14. **AC14 — SESSION_SUPERSEDED:** Given a second connection supersedes the first ([`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts) closes the old socket with `SESSION_SUPERSEDED`), the **old** socket does **not** receive `CHAT_HISTORY`. The replacement connection follows normal join/reconnect and receives history per AC1/AC2 — **no** extra requirement beyond documenting this in Dev Notes so implementers do not chase a ghost bug.
+
 ### Scope boundaries
 
 | In scope (6A.4) | Out of scope |
 | ---------------- | ------------- |
-| `CHAT_HISTORY` server emit on join + token reconnect; truncation to 64KB | **Epic 4B** grace-period / `PLAYER_RECONNECTED` UX (may consume this payload later) |
+| `CHAT_HISTORY` server emit on join, token reconnect, and `REQUEST_STATE`; truncation to 64KB (UTF-8) | **Epic 4B** grace-period / `PLAYER_RECONNECTED` UX (may consume this payload later) |
 | Client parse + `setMessages` + ordering guarantees | Persistent chat across server restart / DB |
 | Tests for server + client parser + store behavior | Pagination, search, or editing history |
 
@@ -50,10 +54,11 @@ so that **I don't miss the conversation and can catch up on what friends were sa
   - [ ] 1.1 Add `ChatHistoryMessage` interface: `version`, `type: "CHAT_HISTORY"`, `messages: readonly ChatBroadcast[]` (or mutable array type consistent with codebase).
   - [ ] 1.2 Export from [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts).
 
-- [ ] **Task 2: Server — build + send** (AC: 1–5, 12)
-  - [ ] 2.1 Add a small module or functions in server (e.g. next to [`chat-handler.ts`](../../packages/server/src/websocket/chat-handler.ts)): `serializeChatHistory(room: Room): string` or `buildChatHistoryMessages(room): ChatBroadcast[]` + truncation until `JSON.stringify({ version, type: "CHAT_HISTORY", messages })` length ≤ **65536**.
-  - [ ] 2.2 Call from [`handleJoinRoom`](../../packages/server/src/websocket/join-handler.ts) after successful seat assignment and initial `STATE_UPDATE` (and from `handleTokenReconnection` after `STATE_UPDATE`). Use `ws.send` with the pre-built string **or** structured object — must not throw; log warn on failure (mirror [`trySendJson`](../../packages/server/src/websocket/ws-server.ts) behavior).
-  - [ ] 2.3 Unit tests: empty history; N messages round-trip; artificial oversized payload forces oldest dropped; order preserved.
+- [ ] **Task 2: Server — build + send** (AC: 1–5, 12–13)
+  - [ ] 2.1 Add a small module or functions in server (e.g. next to [`chat-handler.ts`](../../packages/server/src/websocket/chat-handler.ts)): build `{ version, type: "CHAT_HISTORY", messages }` from `room.chatHistory`, then truncate from the **oldest** end until `Buffer.byteLength(JSON.stringify(...), "utf8")` ≤ **`WS_MAX_PAYLOAD_BYTES`** (65536). Prefer returning a **final JSON string** from the helper so join/reconnect/request-state paths share one implementation.
+  - [ ] 2.2 Call from [`handleJoinRoom`](../../packages/server/src/websocket/join-handler.ts) **immediately after** the initial `STATE_UPDATE` `ws.send`, and from [`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts) **immediately after** its `STATE_UPDATE` `ws.send`. Wrap send in try/catch; on failure log **warn** (mirror [`trySendJson`](../../packages/server/src/websocket/ws-server.ts)).
+  - [ ] 2.3 After [`sendCurrentState`](../../packages/server/src/websocket/state-broadcaster.ts) in the `REQUEST_STATE` branch of [`ws-server.ts`](../../packages/server/src/websocket/ws-server.ts), call the same `CHAT_HISTORY` send helper (same `ws`).
+  - [ ] 2.4 Unit tests: empty history; N messages; UTF-8-heavy content (emoji in `text`) proves byte-based cap; oversized payload drops oldest; order preserved; optional: `REQUEST_STATE` integration test asserts second message is `CHAT_HISTORY`.
 
 - [ ] **Task 3: Client — parse + route** (AC: 6–9, 12)
   - [ ] 3.1 Extend `ParsedServerMessage` union and [`parseServerMessage`](../../packages/client/src/composables/parseServerMessage.ts) `switch` for `CHAT_HISTORY`.
@@ -96,8 +101,16 @@ Source: [`6a-3-quick-reactions-system.md`](./6a-3-quick-reactions-system.md).
 
 - **Appending `CHAT_HISTORY` with `appendBroadcast` in a loop** — duplicates risk if any message replays; use **replace** once.
 - **Sending history only on join but not on token reconnect** — violates AC2 and FR105 narrative.
+- **Skipping `REQUEST_STATE`** — leaves chat stale after resync (AC13).
+- **Using `json.length` for the 64KB budget** — wrong unit; use **UTF-8 byte length** (AC5).
 - **Omitting truncation** — worst-case 100 × 500-char messages can exceed 64KB JSON.
 - **Using architecture doc’s `ChatBroadcast.type` label `CHAT`** — wrong; breaks parser and server parity.
+
+### Implementation edge cases
+
+- **Vue list keys:** [`ChatPanel.vue`](../../packages/client/src/components/chat/ChatPanel.vue) uses `` :key="\`${m.timestamp}-${m.playerId}-${m.text}\`" ``. Two distinct lines could theoretically collide if a player sends the **same** text twice in the **same** millisecond — rare. If tests or QA surface duplicate-key warnings, add a monotonic **client-side** `id` when hydrating (`setMessages` maps entries) or use array index as last-resort disambiguator; not required for MVP unless observed.
+- **Malformed `CHAT_HISTORY`:** Parser returns `null` → `handleMessage` returns early; chat stays empty until next successful `CHAT_HISTORY` or live `CHAT_BROADCAST` — acceptable; do not crash.
+- **Protocol direction:** `CHAT_HISTORY` is **server → client only**; it never appears in [`handleMessage`](../../packages/server/src/websocket/message-handler.ts) as an inbound `parsed.type` from clients.
 
 ### File structure (expected touches)
 
@@ -139,4 +152,4 @@ _(filled by dev agent)_
 
 ## Story completion status
 
-**ready-for-dev** — Ultimate context engine analysis completed; comprehensive developer guide created.
+**ready-for-dev** — Pass 2 complete: UTF-8 byte sizing, fixed post–`STATE_UPDATE` send order, `REQUEST_STATE` + `sendCurrentState` path, supersession note, ChatPanel key edge case.
