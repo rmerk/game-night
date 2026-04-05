@@ -7,6 +7,7 @@ import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useReactionsStore } from "../../stores/reactions";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import {
+  DEFAULT_ROOM_SETTINGS,
   PROTOCOL_VERSION,
   type SuitedTile,
   type Tile,
@@ -1124,6 +1125,98 @@ describe("GameTable — host migration toast (4B.6)", () => {
     await wrapper.setProps({ resolvedAction: resolved });
     await flushPromises();
     expect(wrapper.find('[data-testid="host-promoted-toast"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+});
+
+describe("GameTable — room settings + rematch toasts (4B.7)", () => {
+  it("shows room-settings toast for non-host when another player changed settings", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "ROOM_SETTINGS_CHANGED",
+      changedBy: "player-north",
+      changedByName: "Alice",
+      previous: DEFAULT_ROOM_SETTINGS,
+      next: { ...DEFAULT_ROOM_SETTINGS, timerMode: "none" },
+      changedKeys: ["timerMode"],
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(document.querySelector('[data-testid="room-settings-changed-toast"]')).not.toBeNull();
+    wrapper.unmount();
+  });
+
+  it("suppresses room-settings toast when local player made the change", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "ROOM_SETTINGS_CHANGED",
+      changedBy: localPlayer.id,
+      changedByName: "You",
+      previous: DEFAULT_ROOM_SETTINGS,
+      next: { ...DEFAULT_ROOM_SETTINGS, jokerRulesMode: "simplified" },
+      changedKeys: ["jokerRulesMode"],
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="room-settings-changed-toast"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("shows rematch-waiting toast for REMATCH_WAITING_FOR_PLAYERS", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      attachTo: document.body,
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "REMATCH_WAITING_FOR_PLAYERS",
+      missingSeats: 1,
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(document.querySelector('[data-testid="rematch-waiting-toast"]')).not.toBeNull();
     wrapper.unmount();
   });
 });

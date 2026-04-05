@@ -4,7 +4,12 @@
  * (STATE_UPDATE.state) to GameTable props — without a live WebSocket.
  */
 import { computed } from "vue";
-import type { PlayerGameView, SuitedTile, Tile } from "@mahjong-game/shared";
+import {
+  DEFAULT_ROOM_SETTINGS,
+  type PlayerGameView,
+  type SuitedTile,
+  type Tile,
+} from "@mahjong-game/shared";
 import TileSprite from "../tiles/TileSprite.vue";
 import GameTable from "../game/GameTable.vue";
 import { mapPlayerGameViewToGameTableProps } from "../../composables/mapPlayerGameViewToGameTable";
@@ -57,6 +62,7 @@ function fixtureView(): PlayerGameView {
     charleston: null,
     shownHands: {},
     jokerRulesMode: "standard",
+    settings: DEFAULT_ROOM_SETTINGS,
     myDeadHand: false,
     paused: false,
     deadSeatPlayerIds: [],

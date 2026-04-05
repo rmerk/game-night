@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import {
+  DEFAULT_ROOM_SETTINGS,
   PROTOCOL_VERSION,
   CHAT_HISTORY_CAPACITY,
   CHAT_RATE_LIMIT_WINDOW_MS,
@@ -55,6 +56,7 @@ function createRoomWithSessions(
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

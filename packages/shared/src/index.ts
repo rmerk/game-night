@@ -15,6 +15,13 @@ export type {
   JokerTile,
 } from "./types/tiles";
 
+export type { TimerMode, DealingStyle, RoomSettings } from "./types/room-settings";
+export {
+  DEFAULT_ROOM_SETTINGS,
+  MIN_TURN_DURATION_MS,
+  MAX_TURN_DURATION_MS,
+} from "./types/room-settings";
+
 export type {
   GameState,
   GamePhase,
@@ -97,6 +104,8 @@ export type {
   ActionMessage,
   RequestStateMessage,
   SetJokerRulesMessage,
+  SetRoomSettingsMessage,
+  RematchMessage,
   AfkVoteCastMessage,
   LeaveRoomMessage,
   DepartureVoteCastMessage,

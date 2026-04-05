@@ -16,6 +16,11 @@ import { applyGraceExpiryGameActions } from "./grace-expiry-fallbacks";
 import { cancelDepartureVote, resumeDepartureVoteIfNeeded } from "./leave-handler";
 import { applyCharlestonAutoAction } from "./charleston-auto-action";
 import { migrateHost } from "../rooms/host-migration";
+import {
+  applyRoomSettingsUpdate,
+  isBetweenGames,
+  type RoomSettingsPatch,
+} from "../rooms/room-settings";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
 
@@ -30,7 +35,7 @@ function sendError(ws: WebSocket, code: string, message: string): void {
   );
 }
 
-/** Host-only: set Joker rules for the next game while the room is in lobby (no active match). */
+/** Host-only: legacy shortcut for `SET_ROOM_SETTINGS { jokerRulesMode }` — same pipeline (Story 4B.7). */
 export function handleSetJokerRules(
   ws: WebSocket,
   room: Room,
@@ -44,7 +49,7 @@ export function handleSetJokerRules(
     sendError(ws, "NOT_HOST", "Only the host can change Joker rules");
     return;
   }
-  if (room.gameState !== null) {
+  if (!isBetweenGames(room)) {
     logger.info(
       { roomCode: room.roomCode, playerId },
       "SET_JOKER_RULES rejected: game in progress",
@@ -56,9 +61,110 @@ export function handleSetJokerRules(
     sendError(ws, "INVALID_JOKER_RULES", "jokerRulesMode must be 'standard' or 'simplified'");
     return;
   }
-  room.jokerRulesMode = rawMode;
+  const result = applyRoomSettingsUpdate(room, { jokerRulesMode: rawMode }, logger);
+  if (result.ok === false) {
+    sendError(ws, "INVALID_JOKER_RULES", result.error);
+    return;
+  }
+  if (result.ok === "noop") {
+    return;
+  }
   logger.info({ roomCode: room.roomCode, jokerRulesMode: rawMode }, "Joker rules mode updated");
-  broadcastStateToRoom(room);
+  broadcastStateToRoom(room, undefined, {
+    type: "ROOM_SETTINGS_CHANGED",
+    changedBy: playerId,
+    changedByName: player.displayName,
+    previous: result.previous,
+    next: result.next,
+    changedKeys: result.changedKeys,
+  });
+}
+
+/** Host-only: merge partial room settings between games (Story 4B.7). */
+export function handleSetRoomSettings(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  parsed: Record<string, unknown>,
+  logger: FastifyBaseLogger,
+): void {
+  const player = room.players.get(playerId);
+  if (!player?.isHost) {
+    logger.info({ roomCode: room.roomCode, playerId }, "SET_ROOM_SETTINGS rejected: not host");
+    sendError(ws, "NOT_HOST", "Only the host can change room settings");
+    return;
+  }
+  if (!isBetweenGames(room)) {
+    logger.info(
+      { roomCode: room.roomCode, playerId },
+      "SET_ROOM_SETTINGS rejected: game in progress",
+    );
+    sendError(ws, "GAME_IN_PROGRESS", "Settings can only change between games");
+    return;
+  }
+
+  const patch: RoomSettingsPatch = {};
+  if ("timerMode" in parsed && parsed.timerMode !== undefined) {
+    if (parsed.timerMode !== "timed" && parsed.timerMode !== "none") {
+      sendError(ws, "INVALID_SETTINGS", "timerMode: invalid value");
+      return;
+    }
+    patch.timerMode = parsed.timerMode;
+  }
+  if ("turnDurationMs" in parsed && parsed.turnDurationMs !== undefined) {
+    if (typeof parsed.turnDurationMs !== "number") {
+      sendError(ws, "INVALID_SETTINGS", "turnDurationMs: invalid value");
+      return;
+    }
+    patch.turnDurationMs = parsed.turnDurationMs;
+  }
+  if ("jokerRulesMode" in parsed && parsed.jokerRulesMode !== undefined) {
+    if (parsed.jokerRulesMode !== "standard" && parsed.jokerRulesMode !== "simplified") {
+      sendError(ws, "INVALID_SETTINGS", "jokerRulesMode: invalid value");
+      return;
+    }
+    patch.jokerRulesMode = parsed.jokerRulesMode;
+  }
+  if ("dealingStyle" in parsed && parsed.dealingStyle !== undefined) {
+    if (parsed.dealingStyle !== "instant" && parsed.dealingStyle !== "animated") {
+      sendError(ws, "INVALID_SETTINGS", "dealingStyle: invalid value");
+      return;
+    }
+    patch.dealingStyle = parsed.dealingStyle;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    sendError(ws, "INVALID_SETTINGS", "No valid settings fields");
+    return;
+  }
+
+  const result = applyRoomSettingsUpdate(room, patch, logger);
+  if (result.ok === false) {
+    sendError(ws, "INVALID_SETTINGS", result.error);
+    return;
+  }
+  if (result.ok === "noop") {
+    return;
+  }
+
+  logger.info(
+    {
+      roomCode: room.roomCode,
+      changedBy: playerId,
+      changedKeys: result.changedKeys,
+      previous: result.previous,
+      next: result.next,
+    },
+    "Room settings updated",
+  );
+  broadcastStateToRoom(room, undefined, {
+    type: "ROOM_SETTINGS_CHANGED",
+    changedBy: playerId,
+    changedByName: player.displayName,
+    previous: result.previous,
+    next: result.next,
+    changedKeys: result.changedKeys,
+  });
 }
 
 function sanitizeDisplayName(displayName: unknown): string | null {

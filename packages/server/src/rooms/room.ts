@@ -1,5 +1,11 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { ChatBroadcast, SeatWind, GameState, JokerRulesMode } from "@mahjong-game/shared";
+import type {
+  ChatBroadcast,
+  SeatWind,
+  GameState,
+  JokerRulesMode,
+  RoomSettings,
+} from "@mahjong-game/shared";
 import type { WebSocket } from "ws";
 
 /** Server-only AFK vote state (Story 4B.4) — not part of shared protocol */
@@ -53,6 +59,8 @@ export interface Room {
   /** Single scheduled table-talk vote expiry (Story 3C.5) */
   tableTalkReportTimer: ReturnType<typeof setTimeout> | null;
   gameState: GameState | null;
+  /** Canonical host settings — keep jokerRulesMode and turnTimerConfig in sync (Story 4B.7) */
+  settings: RoomSettings;
   /** Host-selected Joker rules for the next game (authoritative for START_GAME) */
   jokerRulesMode: JokerRulesMode;
   /** Last chat lines for future CHAT_HISTORY / 6A.4 — reactions not stored */

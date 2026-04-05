@@ -5,6 +5,7 @@ import type {
   LobbyState,
   PlayerGameView,
   ResolvedAction,
+  RoomSettings,
 } from "@mahjong-game/shared";
 import { isAllowedReactionEmoji, MAX_CHAT_LENGTH, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { parseServerMessage, isLobbyState } from "./parseServerMessage";
@@ -23,6 +24,8 @@ export function useRoomConnection() {
   const playerGameView = shallowRef<PlayerGameView | null>(null);
   const resolvedAction = shallowRef<ResolvedAction | undefined>(undefined);
   const systemNotice = ref<"session_superseded" | "room_closing" | null>(null);
+  /** Set when server sends ERROR code ROOM_FULL (race after status check said not full). */
+  const roomFullError = ref(false);
 
   let ws: WebSocket | null = null;
 
@@ -60,6 +63,11 @@ export function useRoomConnection() {
       return;
     }
     if (parsed.kind === "error") {
+      if (parsed.message.code === "ROOM_FULL") {
+        roomFullError.value = true;
+        disconnect();
+        return;
+      }
       lastErrorMessage.value = `${parsed.message.code}: ${parsed.message.message}`;
       return;
     }
@@ -104,6 +112,7 @@ export function useRoomConnection() {
     disconnect();
     lastErrorMessage.value = null;
     systemNotice.value = null;
+    roomFullError.value = false;
     lobbyState.value = null;
     playerGameView.value = null;
     resolvedAction.value = undefined;
@@ -167,6 +176,14 @@ export function useRoomConnection() {
     sendRaw({ type: "SET_JOKER_RULES", jokerRulesMode });
   }
 
+  function sendSetRoomSettings(patch: Partial<RoomSettings>): void {
+    sendRaw({ type: "SET_ROOM_SETTINGS", ...patch });
+  }
+
+  function sendRematch(): void {
+    sendRaw({ type: "REMATCH" });
+  }
+
   function requestState(): void {
     sendRaw({ type: "REQUEST_STATE" });
   }
@@ -211,6 +228,10 @@ export function useRoomConnection() {
     lastErrorMessage.value = null;
   }
 
+  function clearRoomFullError(): void {
+    roomFullError.value = false;
+  }
+
   onBeforeUnmount(() => {
     disconnect();
   });
@@ -222,11 +243,14 @@ export function useRoomConnection() {
     playerGameView,
     resolvedAction,
     systemNotice,
+    roomFullError,
     connect,
     disconnect,
     sendGameAction,
     sendStartGame,
     sendSetJokerRules,
+    sendSetRoomSettings,
+    sendRematch,
     requestState,
     sendChat,
     sendReaction,
@@ -234,6 +258,7 @@ export function useRoomConnection() {
     sendDepartureVote,
     sendLeaveRoom,
     clearLastError,
+    clearRoomFullError,
     /** Clear persisted token for this room (e.g. user leaves intentionally). */
     clearTokenForRoom: (roomCode: string) => {
       clearSessionToken(roomCode.trim().toUpperCase());

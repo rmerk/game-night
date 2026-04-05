@@ -18,6 +18,7 @@ import type {
 } from "./game-state";
 import type { Tile } from "./tiles";
 import type { GameAction } from "./actions";
+import type { DealingStyle, RoomSettings, TimerMode } from "./room-settings";
 
 export const PROTOCOL_VERSION = 1;
 
@@ -55,6 +56,22 @@ export interface SetJokerRulesMessage {
   version: typeof PROTOCOL_VERSION;
   type: "SET_JOKER_RULES";
   jokerRulesMode: JokerRulesMode;
+}
+
+/** Client → Server: host updates room settings between games — partial merge on server (Story 4B.7) */
+export interface SetRoomSettingsMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "SET_ROOM_SETTINGS";
+  timerMode?: TimerMode;
+  turnDurationMs?: number;
+  jokerRulesMode?: JokerRulesMode;
+  dealingStyle?: DealingStyle;
+}
+
+/** Client → Server: host requests rematch after scoreboard — server validates preconditions (Story 4B.7) */
+export interface RematchMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "REMATCH";
 }
 
 /** Client → Server: vote during an active AFK escalation vote (Story 4B.4) */
@@ -143,6 +160,7 @@ export interface LobbyState {
   players: PlayerPublicInfo[];
   myPlayerId: string;
   jokerRulesMode: JokerRulesMode;
+  readonly settings: RoomSettings;
 }
 
 /** Safe Charleston metadata shared with all viewers */
@@ -196,6 +214,7 @@ export interface PlayerGameView {
   charleston: PlayerCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;
+  readonly settings: RoomSettings;
   /** True when this viewer's hand is dead — private; opponents have no per-seat dead flag */
   myDeadHand: boolean;
   /** Room-level pause (simultaneous disconnect) — orthogonal to {@link GamePhase} */
@@ -240,6 +259,7 @@ export interface SpectatorGameView {
   charleston: SpectatorCharlestonView | null;
   shownHands: Record<string, Tile[]>;
   jokerRulesMode: JokerRulesMode;
+  readonly settings: RoomSettings;
 }
 
 /** Server → Client: state update with optional resolved action and token */

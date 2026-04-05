@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import WsClient from "ws";
+import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { createApp } from "../index";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -252,5 +254,72 @@ describe("Integration: full room flow", () => {
       }),
     );
     expect(codes.size).toBe(10);
+  });
+});
+
+describe("GET /api/rooms/:code/status — full room (4B.7)", () => {
+  it("returns full: true when four players are seated", async () => {
+    const app = buildApp();
+    await app.listen({ port: 0, host: "127.0.0.1" });
+    const address = app.server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    const wsUrl = `ws://127.0.0.1:${port}`;
+
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/api/rooms",
+      payload: { hostName: "TestHost" },
+    });
+    expect(createResponse.statusCode).toBe(201);
+    const { roomCode } = createResponse.json() as { roomCode: string };
+
+    function connectWs(): Promise<InstanceType<typeof WsClient>> {
+      return new Promise((resolve, reject) => {
+        const ws = new WsClient(wsUrl);
+        ws.on("open", () => resolve(ws));
+        ws.on("error", reject);
+      });
+    }
+
+    async function waitForStateUpdate(ws: InstanceType<typeof WsClient>): Promise<void> {
+      for (;;) {
+        const raw = await new Promise<string>((resolve) => {
+          ws.once("message", (data: Buffer) => {
+            resolve(data.toString("utf-8"));
+          });
+        });
+        const msg = JSON.parse(raw) as { type?: string };
+        if (msg.type === "CHAT_HISTORY") continue;
+        if (msg.type === "STATE_UPDATE") return;
+        throw new Error(`Expected STATE_UPDATE, got ${JSON.stringify(msg)}`);
+      }
+    }
+
+    const sockets: InstanceType<typeof WsClient>[] = [];
+    for (let i = 0; i < 4; i++) {
+      const ws = await connectWs();
+      ws.send(
+        JSON.stringify({
+          version: PROTOCOL_VERSION,
+          type: "JOIN_ROOM",
+          roomCode,
+          displayName: `P${i}`,
+        }),
+      );
+      await waitForStateUpdate(ws);
+      sockets.push(ws);
+    }
+
+    const statusResponse = await app.inject({
+      method: "GET",
+      url: `/api/rooms/${roomCode}/status`,
+    });
+    expect(statusResponse.statusCode).toBe(200);
+    const body = statusResponse.json() as { full: boolean; playerCount: number };
+    expect(body.full).toBe(true);
+    expect(body.playerCount).toBe(4);
+
+    for (const s of sockets) s.close();
+    await app.close();
   });
 });

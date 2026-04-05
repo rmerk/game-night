@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- message payloads are intentionally inspected as loose JSON fixtures in broadcaster tests */
 import { describe, expect, it, vi, type Mock } from "vitest";
 import { WebSocket } from "ws";
-import { loadCard, type GameState, type SeatWind } from "@mahjong-game/shared";
+import {
+  DEFAULT_ROOM_SETTINGS,
+  loadCard,
+  type GameState,
+  type SeatWind,
+} from "@mahjong-game/shared";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { buildPlayerView, buildSpectatorView, broadcastGameState } from "./state-broadcaster";
@@ -60,6 +65,7 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),
@@ -255,17 +261,19 @@ describe("buildPlayerView", () => {
     expect(view.myPlayerId).toBe("player-0");
   });
 
-  it("includes jokerRulesMode from GameState", () => {
+  it("includes jokerRulesMode from room.settings (Story 4B.7)", () => {
     const players = [
       createTestPlayer("player-0", "east", true),
       createTestPlayer("player-1", "south"),
     ];
     const wsList = [createMockWs(), createMockWs()];
     const room = createTestRoom(players, wsList);
+    room.settings = { ...room.settings, jokerRulesMode: "simplified" };
+    room.jokerRulesMode = "simplified";
     const gameState = createTestGameState();
-    gameState.jokerRulesMode = "simplified";
     const view = buildPlayerView(room, gameState, "player-0");
     expect(view.jokerRulesMode).toBe("simplified");
+    expect(view.settings.jokerRulesMode).toBe("simplified");
   });
 
   it("T10 (4B.5): dead-seat player stays in public roster with exposed groups visible", () => {

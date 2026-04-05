@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WsClient from "ws";
 import { createApp } from "../index";
+import { migrateHost } from "../rooms/host-migration";
 import type { FastifyInstance } from "fastify";
 import { setGracePeriodMs, DEFAULT_GRACE_PERIOD_MS } from "../rooms/session-manager";
 import {
@@ -1710,6 +1711,242 @@ describe("SET_JOKER_RULES", () => {
     const msg = await err;
     expect(msg.type).toBe("ERROR");
     expect(msg.code).toBe("GAME_IN_PROGRESS");
+
+    for (const ws of clients) ws.close();
+  });
+});
+
+describe("SET_ROOM_SETTINGS (4B.7)", () => {
+  async function joinFourPlayers(roomCode: string): Promise<WebSocket[]> {
+    const names = ["Alice", "Bob", "Charlie", "Diana"] as const;
+    const players: WebSocket[] = [];
+    for (const name of names) {
+      const broadcastPromises = players.map((p) => waitForMessage(p));
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, name);
+      await msgPromise;
+      await Promise.all(broadcastPromises);
+      players.push(ws);
+    }
+    return players;
+  }
+
+  function waitForError(ws: WebSocket): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        ws.removeListener("message", onMessage);
+        reject(new Error("timeout waiting for ERROR"));
+      }, 15_000);
+
+      function onMessage(data: Buffer) {
+        let msg: Record<string, unknown>;
+        try {
+          msg = JSON.parse(Buffer.from(data).toString("utf-8")) as Record<string, unknown>;
+        } catch {
+          return;
+        }
+        if (msg.type === "CHAT_HISTORY") return;
+        if (msg.type === "ERROR") {
+          clearTimeout(timer);
+          ws.removeListener("message", onMessage);
+          resolve(msg);
+        }
+      }
+      ws.on("message", onMessage);
+    });
+  }
+
+  it("T1: lobby host sets timerMode to none — ROOM_SETTINGS_CHANGED and synced settings", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+
+    const bobWs = await connectWs(wsUrl);
+    const b0 = waitForMessage(bobWs);
+    sendJoin(bobWs, roomCode, "Bob");
+    await b0;
+    await waitForMessage(hostWs);
+
+    const hostUp = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
+    const bobUp = waitForResolvedActionType(bobWs, "ROOM_SETTINGS_CHANGED");
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "none" }));
+    const [mh, mb] = await Promise.all([hostUp, bobUp]);
+    expect(mh.type).toBe("STATE_UPDATE");
+    expect(mb.type).toBe("STATE_UPDATE");
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.settings.timerMode).toBe("none");
+    expect(room.turnTimerConfig.mode).toBe("none");
+
+    hostWs.close();
+    bobWs.close();
+  });
+
+  it("T2: lobby host sets turnDurationMs to 25s — turnTimerConfig updated", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+    const up = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", turnDurationMs: 25_000 }));
+    await up;
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.settings.turnDurationMs).toBe(25_000);
+    expect(room.turnTimerConfig.durationMs).toBe(25_000);
+    hostWs.close();
+  });
+
+  it("T3: rejects turnDurationMs below minimum", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+    const errP = waitForError(hostWs);
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", turnDurationMs: 10_000 }));
+    const msg = await errP;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_SETTINGS");
+    hostWs.close();
+  });
+
+  it("T4: rejects turnDurationMs above maximum", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+    const errP = waitForError(hostWs);
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", turnDurationMs: 40_000 }));
+    const msg = await errP;
+    expect(msg.type).toBe("ERROR");
+    expect(msg.code).toBe("INVALID_SETTINGS");
+    hostWs.close();
+  });
+
+  it("T5: lobby host sets jokerRulesMode via SET_ROOM_SETTINGS", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+    const up = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
+    hostWs.send(
+      JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", jokerRulesMode: "simplified" }),
+    );
+    await up;
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.settings.jokerRulesMode).toBe("simplified");
+    expect(room.jokerRulesMode).toBe("simplified");
+    hostWs.close();
+  });
+
+  it("T6: play phase — GAME_IN_PROGRESS (raw WebSocket)", async () => {
+    const { roomCode } = await createRoom();
+    const clients = await joinFourPlayers(roomCode);
+    const hostWs = clients[0];
+    const startPromises = clients.map((c) => waitForMessage(c));
+    hostWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(startPromises);
+
+    const errP = waitForError(hostWs);
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "none" }));
+    const msg = await errP;
+    expect(msg.code).toBe("GAME_IN_PROGRESS");
+
+    for (const ws of clients) ws.close();
+  });
+
+  it("T7: scoreboard phase — host can set dealingStyle", async () => {
+    const { roomCode } = await createRoom();
+    const clients = await joinFourPlayers(roomCode);
+    const hostWs = clients[0];
+    const startPromises = clients.map((c) => waitForMessage(c));
+    hostWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(startPromises);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.gamePhase = "scoreboard";
+    room.gameState!.gameResult = { winnerId: null, points: 0 };
+
+    const up = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
+    hostWs.send(
+      JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", dealingStyle: "animated" }),
+    );
+    await up;
+    expect(room.settings.dealingStyle).toBe("animated");
+
+    for (const ws of clients) ws.close();
+  });
+
+  it("T8: non-host receives NOT_HOST", async () => {
+    const { roomCode } = await createRoom();
+    const hostWs = await connectWs(wsUrl);
+    const h0 = waitForMessage(hostWs);
+    sendJoin(hostWs, roomCode, "Host");
+    await h0;
+    const bobWs = await connectWs(wsUrl);
+    const b0 = waitForMessage(bobWs);
+    sendJoin(bobWs, roomCode, "Bob");
+    await b0;
+    await waitForMessage(hostWs);
+
+    const errP = waitForError(bobWs);
+    bobWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "none" }));
+    const msg = await errP;
+    expect(msg.code).toBe("NOT_HOST");
+
+    hostWs.close();
+    bobWs.close();
+  });
+
+  it("T11: scoreboard host flips timerMode none→timed", async () => {
+    const { roomCode } = await createRoom();
+    const clients = await joinFourPlayers(roomCode);
+    const hostWs = clients[0];
+    const startPromises = clients.map((c) => waitForMessage(c));
+    hostWs.send(JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }));
+    await Promise.all(startPromises);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    room.gameState!.gamePhase = "scoreboard";
+    room.gameState!.gameResult = { winnerId: null, points: 0 };
+    room.settings = { ...room.settings, timerMode: "none" };
+    room.turnTimerConfig = { mode: "none", durationMs: room.settings.turnDurationMs };
+
+    const up = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
+    hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "timed" }));
+    await up;
+    expect(room.settings.timerMode).toBe("timed");
+    expect(room.turnTimerConfig.mode).toBe("timed");
+
+    for (const ws of clients) ws.close();
+  });
+
+  it("T9 / AC13: after migrateHost, new host SET_ROOM_SETTINGS succeeds; former host NOT_HOST", async () => {
+    const { roomCode } = await createRoom();
+    const clients = await joinFourPlayers(roomCode);
+    const room = app.roomManager.getRoom(roomCode)!;
+    migrateHost(room, app.log);
+
+    expect(room.players.get("player-1")?.isHost).toBe(true);
+
+    const newHostWs = clients[1];
+    const oldHostWs = clients[0];
+
+    const ok = waitForResolvedActionType(newHostWs, "ROOM_SETTINGS_CHANGED");
+    newHostWs.send(
+      JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", dealingStyle: "animated" }),
+    );
+    await ok;
+
+    const rej = waitForError(oldHostWs);
+    oldHostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "none" }));
+    const err = await rej;
+    expect(err.code).toBe("NOT_HOST");
 
     for (const ws of clients) ws.close();
   });

@@ -7,57 +7,20 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 4:45pm CDT
+# $CMEM mahjong-game 2026-04-05 6:36pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (24,068t read) | 774,660t work | 97% savings
+Stats: 50 obs (23,255t read) | 403,084t work | 94% savings
 
 ### Apr 5, 2026
-S304 Verify clean working tree after Story 4B.3 commit and confirm all feature files staged properly (Apr 5 at 12:28 PM)
-S305 Create Story 4B.4 specification for turn timeout and AFK escalation feature (Apr 5 at 12:28 PM)
-S306 GDS Code Review for Story 4B.4 Turn Timeout & AFK Escalation - Validating Implementation Against 20 Acceptance Criteria (Apr 5 at 12:43 PM)
-822 1:45p 🟣 Comprehensive test suite for turn timer and AFK voting system
-823 1:46p 🔴 Fixed timer duration configuration in turn timer tests
-824 1:47p 🔄 Fixed TypeScript linting errors in turn-timer test suite
-825 1:48p 🔵 GDS Code Review Workflow Loaded
-826 1:49p 🔵 Story 4B.4 Turn Timer Implementation Under Review
-827 " 🔵 Turn Timer Test Coverage and Integration Points Validated
-828 1:50p 🔵 Grace Expiry and Turn Timeout Share Auto-Discard Logic
-829 1:54p ✅ Turn Timer Infrastructure Added Across Server and Shared Types
 S307 Code review and bugfix pass for Story 4B.4 Turn Timeout & AFK Escalation addressing disconnect handling edge cases (Apr 5 at 1:54 PM)
-830 2:13p 🔴 Turn timer cancellation on player disconnect
-831 " 🔴 AFK escalation guards for disconnected players
-832 2:14p 🔴 Reconnection timer reset exploit prevention
-833 " ✅ Documented defensive timer cleanup in pause timeout handler
-834 2:15p ✅ Clarified AFK vote flip test description
-835 " ✅ Added regression tests for AC9 disconnect AFK guards
-836 2:16p ✅ Story 4B.4 marked complete
 S308 Commit turn timeout and AFK escalation feature implementation (Story 4B.4) (Apr 5 at 2:17 PM)
-837 2:36p 🟣 Turn timeout and AFK escalation system
 S309 Create Story 4B.5: Player Departure & Dead Seat for Multiplayer Resilience Epic (Apr 5 at 2:36 PM)
-838 2:50p ✅ Story 4B.5 Created: Player Departure & Dead Seat with Vote-Based Resolution
 S310 Create Story 4B.6 specification: Host Migration for multiplayer resilience (Apr 5 at 2:51 PM)
-839 2:53p 🔵 Dev Story Workflow System Architecture Loaded
-840 " 🔵 Story 4B.5 Discovery and Workflow Initialization for Player Departure System
-841 2:54p ✅ Story 4B.5 Status Transitioned to In-Progress
-842 " ✅ Task Tracking Initialized for ws-server Protocol Dispatch
-843 2:55p ✅ Task Tracking Initialized and Shared Types Implementation Started
-844 " 🔵 Exhaustive Switch Sites Identified for ResolvedAction Type Extension
-845 2:57p 🟣 Protocol Message Types Added for Player Departure System
-846 4:00p 🔄 Charleston auto-action logic extracted into dedicated module
-847 4:02p ✅ Test coverage documentation updated for Story 4B.5
-848 4:03p ✅ Story 4B.5 marked complete after code review follow-up
-849 4:09p 🟣 Departure vote and dead-seat interaction tests implemented
-850 4:12p 🔵 BMad GDS story creation workflow initialized for mahjong-game
-851 " 🔵 Previous story 4b-5 analyzed for context continuity
-852 4:13p 🔵 Existing host role implementation analyzed for migration story
-853 " 🔵 Grace expiry and releaseSeat flow analyzed for host migration triggers
-854 4:18p 🟣 Story 4B.6 specification created: Host Migration for multiplayer Mahjong
 S311 GDS code review initiated - Story 4B.6 Host Migration identified as candidate based on git status (Apr 5 at 4:19 PM)
-855 4:26p 🟣 Added HOST_PROMOTED event type to game state
 856 4:27p 🟣 Implemented host migration system for multiplayer game rooms
 857 " 🔄 Optimized host migration candidate lookup
 858 " ✅ Added comprehensive test suite for host migration
@@ -73,19 +36,56 @@ S312 Code review of Story 4B.6 Host Migration implementation for multiplayer Mah
 867 " 🟣 Client-Side Phase-Conditional Host Promotion Toast
 868 " ✅ Host Migration Test Suite Validation Complete
 869 4:43p ✅ Type Safety and Lint Validation Passed
+S313 Code review and completion of Story 4B.6 Host Migration for multiplayer Mahjong game (Apr 5 at 4:43 PM)
 870 4:44p ✅ Code Review Findings Documented in Story Spec
 871 " ✅ Story 4B.6 Marked as Done After Code Review
-S313 Code review and completion of Story 4B.6 Host Migration for multiplayer Mahjong game (Apr 5 at 4:45 PM)
-**Investigated**: Comprehensive code review of host migration implementation spanning 12 files with 366 insertions. Examined core migrateHost helper function with deterministic counterclockwise seat selection, integration points across four server handlers (join-handler grace-expiry trigger, leave-handler intentional departure triggers, turn-timer auto-end, and hostless room recovery), client-side phase-conditional toast rendering in GameTable.vue and RoomView.vue, and complete test coverage including unit tests and integration tests for all 18 transition scenarios. Validated all 17 acceptance criteria against implementation with focus on order-of-operations invariants (capture wasHost before releaseSeat, run migration after seat release but before final broadcasts) and regression compatibility with Stories 4B.3 pause mechanics and 4B.5 departure flows.
+S314 Story 4B.7 specification created for host settings panel, 5th player handling, and REMATCH validation (Apr 5 at 4:45 PM)
+872 4:59p 🟣 Story 4B.7 Created: Host Settings, 5th Player Handling, and REMATCH Validation
+S315 Adversarial code review of Story 4B.7 (Host Settings & 5th Player Handling) implementation using gds-code-review workflow (Apr 5 at 5:00 PM)
+873 5:02p 🟣 Host-configurable room settings with type-safe schema
+874 " 🟣 Protocol and server integration for room settings
+875 " 🔴 Fixed TypeScript compilation errors for mandatory settings field
+876 5:03p 🔴 Added settings field to 10 additional Room test mocks
+877 " 🔴 Fixed final TypeScript error in Vue showcase component
+878 " 🟣 Added unit tests for RoomSettings defaults and constants
+879 5:04p 🟣 Room settings validation, merge, and sync engine
+880 " 🟣 Protocol handlers for SET_ROOM_SETTINGS and refactored SET_JOKER_RULES
+881 5:05p 🟣 REMATCH protocol handler with lobby fallback
+882 " 🟣 WebSocket protocol routing for SET_ROOM_SETTINGS and REMATCH
+883 " 🟣 Unit tests for room settings validation and synchronization
+884 5:33p ✅ gds-dev-story validation pass documented for 5th player handling
+885 5:34p 🔵 GDS Code Review Workflow System
+886 5:35p 🔵 Story 4B.7 Room Settings and Rematch Implementation
+887 " 🔵 Server-Side Room Settings Handlers Implementation
+888 5:36p 🔵 Client-Side Room Settings UI and Table-Full Flow
+889 " 🔵 Test Coverage and Protocol Integration Points
+890 5:37p 🔵 Complete Stack Integration and Exhaustive Switch Coverage
+891 " 🔵 Comprehensive Test Coverage Across All Layers
+892 " 🔵 Detailed Test Strategy Implementation and Transition Scenario Coverage
+893 5:38p 🔵 Client UI Layer Complete Integration and Formatting
+894 6:33p ✅ Room settings panel now visible to all lobby players
+895 " 🔴 Fixed missing seats calculation in rematch waiting logic
+896 " ✅ Added test coverage for settings persistence on rematch fallback
+897 6:34p ✅ Added error handling test coverage for room join flow
+898 " ✅ Created test suite for SpectatorPlaceholderView component
+899 " 🔴 Test suite run revealed WebSocket mock constructor issue in T13
+900 6:35p 🔴 Fixed WebSocket mock constructor error in T13 test
+901 " 🔴 Verified T13 test now passes after WebSocket mock fix
+902 " ✅ Full test suite passes with all fixes applied
+903 " ✅ All tests and typecheck pass after implementation changes
+904 6:36p ✅ Updated implementation artifacts with code review fixes changelog
+905 " ✅ Updated File List to include SpectatorPlaceholderView test file
+S316 Code review fixes applied to Story 4B.7 (Host Settings & 5th Player Handling) - UI visibility improvement, test coverage additions, and bugfixes (Apr 5 at 6:36 PM)
+**Investigated**: Five issues identified during code review: room settings panel visibility restricted to host-only (AC6 violation), missing error handling test coverage for table-full edge cases, missing settings persistence test assertions, double-counting bug in rematch missing-seats calculation, and missing test for spectator placeholder component.
 
-**Learned**: Host migration implementation follows critical pattern: capture host state before mutation (wasHost flag before releaseSeat) because seat release removes player from room.players map. Migration triggers at exactly four points where host role becomes invalid: grace-expiry timeout after 30s disconnect, lobby/scoreboard LEAVE_ROOM, departure vote dead_seat outcome, and auto-end game on departure. Hostless room recovery promotes first reconnecting player when no one has isHost flag, preventing permanent host loss. Client implementation diverged from spec by placing toast watchers directly in UI components rather than useRoomConnection composable, following existing 4B.5 toast pattern. All migration broadcasts occur before final state broadcasts to ensure event-then-snapshot ordering for clients. Story closes T12 and T13 gaps from Story 4B.5 where host could be dead-seated or leave lobby without reassignment.
+**Learned**: RoomSettingsPanel visibility was incorrectly scoped inside v-if="isHost" conditional, preventing non-hosts from viewing settings in lobby despite :can-edit prop controlling editability. Missing seats calculation in handleRematch used arithmetic on set sizes (deadSeatPlayerIds + departedPlayerIds) which double-counts players in both sets; correct approach filters room.players for eligible seats (connected AND not dead AND not departed). WebSocket mocks in Vitest require ES6 class constructor pattern, not vi.fn().mockImplementation() pattern.
 
-**Completed**: Story 4B.6 approved and marked done with zero critical or medium issues. All regression gates passed: 1409 tests green (670 shared + 404 client + 335 server), TypeScript compilation clean, ESLint showing 0 errors. Three low-priority observations documented inline as optional future improvements: AC13 client architecture deviation (toast in components vs composable), GameTable rematch phase inclusion (benign extension beyond spec), and migrateHost east-start fallback pattern (deterministic but could be clarified via explicit opts). Status updated from review to done in both 4b-6-host-migration.md and sprint-status.yaml development_status tracking. Implementation delivers automatic host role transfer with counterclockwise seat order, hostless room recovery, and phase-specific UI behavior across 366 lines of changes.
+**Completed**: H1: Moved RoomSettingsPanel outside host conditional in RoomView.vue lobby section. M1: Added T13 (ROOM_FULL race guard), T15 (404 error), T16 (network error) tests to RoomView.test.ts. M2: Enhanced rematch-handler.test.ts T18 with AC11 settings persistence assertions. L1: Fixed handleRematch missingSeats formula in action-handler.ts to use eligible player count. L2: Created SpectatorPlaceholderView.test.ts. Fixed T13 WebSocket mock constructor error by converting to ES6 class. All tests passing (1449), typecheck clean, lint 0 errors. Updated implementation artifacts with gds-code-review changelog entry and corrected file list.
 
-**Next Steps**: Story 4B.6 complete. Epic 4B has one remaining story: 4B.7 host-settings-5th-player-handling currently in backlog status. Session concluded with successful code review approval and story completion documentation.
+**Next Steps**: Code review session complete. Story 4B.7 marked done with all fixes applied and validated. Epic 4B complete per sprint-status.yaml. No additional work planned for this story.
 
 
-Access 775k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 403k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

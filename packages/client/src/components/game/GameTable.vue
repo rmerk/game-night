@@ -23,6 +23,7 @@ import DepartureVoteModal from "./DepartureVoteModal.vue";
 import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
+import RoomSettingsPanel from "./RoomSettingsPanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
 import CharlestonZone from "../charleston/CharlestonZone.vue";
 import CharlestonVote from "../charleston/CharlestonVote.vue";
@@ -37,6 +38,7 @@ import {
   type GameResult,
   type PlayerCharlestonView,
   type ResolvedAction,
+  type RoomSettings,
   type SeatWind,
   type SocialOverrideState,
   type TableTalkReportState,
@@ -46,6 +48,7 @@ import { useReactionsStore, type ReactionBubbleRecord } from "../../stores/react
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
+import { humanLabel, humanValue } from "../../composables/roomSettingsFormatters";
 
 const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
@@ -98,6 +101,10 @@ const props = withDefaults(
       targetPlayerName: string;
       expiresAt: number;
     } | null;
+    /** Story 4B.7 — when set, shows collapsible settings panel */
+    roomSettings?: RoomSettings | null;
+    /** Host may edit between games (lobby handled in RoomView) */
+    canEditRoomSettings?: boolean;
   }>(),
   {
     opponents: () => ({}),
@@ -124,6 +131,8 @@ const props = withDefaults(
     paused: false,
     deadSeatPlayerIds: () => [],
     departureVoteState: null,
+    roomSettings: null,
+    canEditRoomSettings: false,
   },
 );
 
@@ -148,6 +157,7 @@ const emit = defineEmits<{
   afkVote: [targetPlayerId: string, vote: "approve" | "deny"];
   departureVote: [targetPlayerId: string, choice: "dead_seat" | "end_game"];
   leaveGame: [];
+  roomSettingsChange: [patch: Partial<RoomSettings>];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -564,6 +574,11 @@ const autoDiscardToastVisible = ref(false);
 const autoDiscardToastText = ref("");
 const hostPromotedToastVisible = ref(false);
 const hostPromotedToastText = ref("");
+/** Story 4B.7 — settings change notification (shown in all phases; see HOST_PROMOTED asymmetry above). */
+const roomSettingsToastVisible = ref(false);
+const roomSettingsToastText = ref("");
+const rematchWaitingToastVisible = ref(false);
+const rematchWaitingToastText = ref("");
 
 const afkVoteTargetDisplayName = computed(() => {
   const o = afkVoteOpen.value;
@@ -636,6 +651,23 @@ watch(
           hostPromotedToastText.value = `${ra.newHostName} is now the host`;
           hostPromotedToastVisible.value = true;
         }
+        break;
+      }
+      case "ROOM_SETTINGS_CHANGED": {
+        if (ra.changedBy === props.localPlayer?.id) break;
+        if (ra.changedKeys.length === 1) {
+          const k = ra.changedKeys[0];
+          roomSettingsToastText.value = `Host changed ${humanLabel(k)} to ${humanValue(k, ra.next)}`;
+        } else {
+          roomSettingsToastText.value = `Host updated room settings (${ra.changedKeys.length} changes)`;
+        }
+        roomSettingsToastVisible.value = true;
+        break;
+      }
+      case "REMATCH_WAITING_FOR_PLAYERS": {
+        const n = ra.missingSeats;
+        rematchWaitingToastText.value = `Waiting for ${n} more player${n === 1 ? "" : "s"}`;
+        rematchWaitingToastVisible.value = true;
         break;
       }
       default:
@@ -746,6 +778,32 @@ function onChatEscape() {
       >
         {{ hostPromotedToastText }}
       </BaseToast>
+      <BaseToast
+        data-testid="room-settings-changed-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="roomSettingsToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="roomSettingsToastVisible = false"
+      >
+        {{ roomSettingsToastText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="rematch-waiting-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="rematchWaitingToastVisible"
+        :auto-dismiss-ms="5000"
+        @dismiss="rematchWaitingToastVisible = false"
+      >
+        {{ rematchWaitingToastText }}
+      </BaseToast>
+    </div>
+    <div v-if="roomSettings" class="absolute left-2 top-14 z-40 max-w-[min(100%,20rem)] sm:top-2">
+      <RoomSettingsPanel
+        :settings="roomSettings"
+        :can-edit="canEditRoomSettings"
+        :phase="gamePhase"
+        @change="(p) => emit('roomSettingsChange', p)"
+      />
     </div>
     <div
       v-if="!isScoreboardPhase && (gamePhase === 'play' || gamePhase === 'charleston')"

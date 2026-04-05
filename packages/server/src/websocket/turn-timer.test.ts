@@ -1,6 +1,11 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vite-plus/test";
 import type { WebSocket } from "ws";
-import type { GameState, SeatWind, Tile } from "@mahjong-game/shared";
+import {
+  DEFAULT_ROOM_SETTINGS,
+  type GameState,
+  type SeatWind,
+  type Tile,
+} from "@mahjong-game/shared";
 import { handleAction } from "@mahjong-game/shared";
 import type { RoomManager } from "../rooms/room-manager";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
@@ -75,6 +80,7 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Roo
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

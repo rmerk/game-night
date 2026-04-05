@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
-import { handleAction, type GameState, type SeatWind } from "@mahjong-game/shared";
+import {
+  DEFAULT_ROOM_SETTINGS,
+  handleAction,
+  type GameState,
+  type SeatWind,
+} from "@mahjong-game/shared";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { createTestState, getPlayerBySeat } from "../../../shared/src/testing/helpers";
@@ -49,6 +54,7 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Roo
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

@@ -11,6 +11,7 @@ import {
   DEFAULT_IDLE_TIMEOUT_MS,
   DEFAULT_ABANDONED_TIMEOUT_MS,
 } from "./room-lifecycle";
+import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { Room } from "./room";
 import { createSilentTestLogger } from "../testing/silent-logger";
 
@@ -28,6 +29,7 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

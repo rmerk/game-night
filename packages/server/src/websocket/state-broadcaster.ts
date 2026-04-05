@@ -9,6 +9,7 @@ import type {
   LobbyState,
 } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import type { RoomSettings } from "@mahjong-game/shared";
 import type { PlayerInfo, Room } from "../rooms/room";
 
 function trySendStatePayload(ws: WebSocket, payload: string, room: Room, context: string): void {
@@ -176,7 +177,8 @@ export function buildPlayerView(
     tableTalkReportCountsByPlayerId: { ...gameState.tableTalkReportCountsByPlayerId },
     charleston,
     shownHands: gameState.shownHands,
-    jokerRulesMode: gameState.jokerRulesMode,
+    jokerRulesMode: room.settings.jokerRulesMode,
+    settings: { ...room.settings } satisfies RoomSettings,
     myDeadHand: playerState?.deadHand ?? false,
     paused: room.paused,
     ...(room.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
@@ -226,7 +228,8 @@ export function buildSpectatorView(room: Room, gameState: GameState): SpectatorG
     tableTalkReportCountsByPlayerId: { ...gameState.tableTalkReportCountsByPlayerId },
     charleston,
     shownHands: gameState.shownHands,
-    jokerRulesMode: gameState.jokerRulesMode,
+    jokerRulesMode: room.settings.jokerRulesMode,
+    settings: { ...room.settings } satisfies RoomSettings,
   };
 }
 
@@ -268,7 +271,8 @@ export function buildCurrentStateMessage(room: Room, playerId: string): StateUpd
       gamePhase: "lobby" as const,
       players,
       myPlayerId: playerId,
-      jokerRulesMode: room.jokerRulesMode,
+      jokerRulesMode: room.settings.jokerRulesMode,
+      settings: { ...room.settings },
     };
   }
 

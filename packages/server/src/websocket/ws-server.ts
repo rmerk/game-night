@@ -5,8 +5,8 @@ import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
-import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
-import { handleActionMessage } from "./action-handler";
+import { handleJoinRoom, handleSetJokerRules, handleSetRoomSettings } from "./join-handler";
+import { handleActionMessage, handleRematch } from "./action-handler";
 import { handleAfkVoteCastMessage } from "./turn-timer";
 import { handleDepartureVoteCastMessage, handleLeaveRoomMessage } from "./leave-handler";
 import { buildCurrentStateMessage } from "./state-broadcaster";
@@ -116,6 +116,40 @@ export function setupWebSocketServer(
             return;
           }
           handleSetJokerRules(ws, session.room, session.playerId, parsed.jokerRulesMode, logger);
+        } else if (parsed.type === "SET_ROOM_SETTINGS") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before changing settings",
+              },
+              logger,
+              "set-room-settings-not-in-room",
+            );
+            return;
+          }
+          handleSetRoomSettings(ws, session.room, session.playerId, parsed, logger);
+        } else if (parsed.type === "REMATCH") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before requesting a rematch",
+              },
+              logger,
+              "rematch-not-in-room",
+            );
+            return;
+          }
+          handleRematch(ws, session.room, session.playerId, logger, roomManager);
         } else if (parsed.type === "ACTION") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

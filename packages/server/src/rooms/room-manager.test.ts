@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { WebSocket } from "ws";
+import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import { RoomManager } from "./room-manager";
 import { createSessionToken } from "./session-manager";
 import {
@@ -76,6 +77,19 @@ describe("RoomManager", () => {
       }
 
       expect(codes.size).toBe(20);
+    });
+
+    it("initializes room.settings to DEFAULT_ROOM_SETTINGS (4B.7)", () => {
+      const manager = new RoomManager();
+      const { roomCode } = manager.createRoom("Host", createMockLogger());
+      const room = manager.getRoom(roomCode);
+      expect(room).toBeDefined();
+      expect(room!.settings).toEqual(DEFAULT_ROOM_SETTINGS);
+      expect(room!.jokerRulesMode).toBe(DEFAULT_ROOM_SETTINGS.jokerRulesMode);
+      expect(room!.turnTimerConfig).toEqual({
+        mode: DEFAULT_ROOM_SETTINGS.timerMode,
+        durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
+      });
     });
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vite-plus/test";
 import type { WebSocket } from "ws";
-import { createGame } from "@mahjong-game/shared";
+import { createGame, DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { GameState } from "@mahjong-game/shared";
 import type { Room, PlayerInfo } from "../rooms/room";
 import { createSilentTestLogger } from "../testing/silent-logger";
@@ -41,6 +41,7 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

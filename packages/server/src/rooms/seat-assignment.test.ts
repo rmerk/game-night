@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SeatWind } from "@mahjong-game/shared";
+import { DEFAULT_ROOM_SETTINGS, type SeatWind } from "@mahjong-game/shared";
 import { assignNextSeat } from "./seat-assignment";
 import type { Room } from "./room";
 import { createSilentTestLogger } from "../testing/silent-logger";
@@ -18,6 +18,7 @@ function createTestRoom(playerIds: string[] = []): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

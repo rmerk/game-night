@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
-import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import { DEFAULT_ROOM_SETTINGS, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { RoomClosingReason, SystemEventMessage } from "@mahjong-game/shared";
 import { generateUniqueRoomCode } from "./room-code";
 import type { Room } from "./room";
 import { cancelAllLifecycleTimers, startLifecycleTimer } from "./room-lifecycle";
 import { revokeToken } from "./session-manager";
-import { cancelTurnTimer, getDefaultTurnTimerConfig } from "../websocket/turn-timer";
+import { cancelTurnTimer } from "../websocket/turn-timer";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
 
@@ -36,13 +36,17 @@ export class RoomManager {
       socialOverrideTimer: null,
       tableTalkReportTimer: null,
       gameState: null,
-      jokerRulesMode: "standard",
+      settings: { ...DEFAULT_ROOM_SETTINGS },
+      jokerRulesMode: DEFAULT_ROOM_SETTINGS.jokerRulesMode,
       chatHistory: [],
       chatRateTimestamps: new Map(),
       reactionRateTimestamps: new Map(),
       paused: false,
       pausedAt: null,
-      turnTimerConfig: getDefaultTurnTimerConfig(),
+      turnTimerConfig: {
+        mode: DEFAULT_ROOM_SETTINGS.timerMode,
+        durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
+      },
       turnTimerHandle: null,
       turnTimerStage: null,
       turnTimerPlayerId: null,

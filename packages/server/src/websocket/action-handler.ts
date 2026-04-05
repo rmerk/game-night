@@ -12,7 +12,7 @@ import {
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
 import { cancelLifecycleTimer, startLifecycleTimer } from "../rooms/room-lifecycle";
-import { broadcastGameState } from "./state-broadcaster";
+import { broadcastGameState, broadcastStateToRoom } from "./state-broadcaster";
 import {
   cancelAfkVote,
   cancelTurnTimer,
@@ -417,6 +417,79 @@ export function handleActionMessage(
     );
     sendActionError(ws, logger, "ACTION_REJECTED", result.reason ?? "Action was rejected");
   }
+}
+
+/**
+ * Host-only rematch gate after scoreboard/rematch phase (Story 4B.7).
+ * Four eligible connected seats with no dead-seat / departed flags → same path as START_GAME.
+ */
+export function handleRematch(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
+): void {
+  const player = room.players.get(playerId);
+  if (!player?.isHost) {
+    logger.info({ roomCode: room.roomCode, playerId }, "REMATCH rejected: not host");
+    sendActionError(ws, logger, "NOT_HOST", "Only the host can start a rematch");
+    return;
+  }
+  if (room.gameState === null) {
+    sendActionError(ws, logger, "NOT_BETWEEN_GAMES", "Rematch only available after a game ends");
+    return;
+  }
+  const phase = room.gameState.gamePhase;
+  if (phase !== "scoreboard" && phase !== "rematch") {
+    sendActionError(ws, logger, "NOT_BETWEEN_GAMES", "Rematch only available after a game ends");
+    return;
+  }
+
+  const connectedCount = [...room.players.values()].filter((p) => p.connected).length;
+  const canRematch =
+    connectedCount === 4 && room.deadSeatPlayerIds.size === 0 && room.departedPlayerIds.size === 0;
+
+  if (!canRematch) {
+    // Eligible = connected AND not dead-seat AND not departed (departed may still be tracked
+    // even after seat release). Avoids double-counting from overlapping sets.
+    const eligible = [...room.players.values()].filter(
+      (p) =>
+        p.connected &&
+        !room.deadSeatPlayerIds.has(p.playerId) &&
+        !room.departedPlayerIds.has(p.playerId),
+    ).length;
+    const missingSeats = Math.max(1, 4 - eligible);
+
+    cancelTurnTimer(room, logger);
+    room.consecutiveTurnTimeouts.clear();
+    if (room.afkVoteState) {
+      cancelLifecycleTimer(room, "afk-vote-timeout");
+      room.afkVoteState = null;
+    }
+    room.afkVoteCooldownPlayerIds.clear();
+    room.deadSeatPlayerIds.clear();
+    room.departedPlayerIds.clear();
+    if (room.departureVoteState) {
+      cancelLifecycleTimer(room, "departure-vote-timeout");
+      room.departureVoteState = null;
+    }
+    clearSocialOverrideTimer(room);
+    clearTableTalkReportTimer(room);
+
+    room.gameState = null;
+    logger.info(
+      { roomCode: room.roomCode, connectedCount, missingSeats },
+      "REMATCH: not enough eligible seats — returned to lobby",
+    );
+    broadcastStateToRoom(room, undefined, {
+      type: "REMATCH_WAITING_FOR_PLAYERS",
+      missingSeats,
+    });
+    return;
+  }
+
+  handleStartGameAction(ws, room, playerId, logger, roomManager);
 }
 
 /**

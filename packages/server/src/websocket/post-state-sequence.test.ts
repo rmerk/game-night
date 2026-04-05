@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
-import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import { DEFAULT_ROOM_SETTINGS, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { StateUpdateMessage } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import { sendPostStateSequence } from "./post-state-sequence";
@@ -51,6 +51,7 @@ describe("sendPostStateSequence", () => {
         players: [],
         myPlayerId: "player-0",
         jokerRulesMode: "standard",
+        settings: DEFAULT_ROOM_SETTINGS,
       },
     };
 
@@ -80,6 +81,7 @@ describe("sendPostStateSequence", () => {
         players: [],
         myPlayerId: "player-0",
         jokerRulesMode: "standard",
+        settings: DEFAULT_ROOM_SETTINGS,
       },
     };
 
@@ -108,6 +110,7 @@ describe("sendPostStateSequence", () => {
         players: [],
         myPlayerId: "player-0",
         jokerRulesMode: "standard",
+        settings: DEFAULT_ROOM_SETTINGS,
       },
     };
 
@@ -136,6 +139,7 @@ describe("sendPostStateSequence", () => {
         players: [],
         myPlayerId: "player-0",
         jokerRulesMode: "standard",
+        settings: DEFAULT_ROOM_SETTINGS,
       },
     };
 

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vite-plus/test";
-import type { PlayerGameView, SuitedTile, Tile, TileSuit, TileValue } from "@mahjong-game/shared";
+import {
+  DEFAULT_ROOM_SETTINGS,
+  type PlayerGameView,
+  type SuitedTile,
+  type Tile,
+  type TileSuit,
+  type TileValue,
+} from "@mahjong-game/shared";
 import {
   buildGameActionFromTableEvent,
   getRequiredRackCountForCallType,
@@ -44,6 +51,7 @@ function minimalView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
     charleston: null,
     shownHands: {},
     jokerRulesMode: "standard",
+    settings: DEFAULT_ROOM_SETTINGS,
     myDeadHand: false,
     paused: false,
     deadSeatPlayerIds: [],

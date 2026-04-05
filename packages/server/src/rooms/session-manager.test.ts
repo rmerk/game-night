@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import {
   createSessionToken,
   resolveToken,
@@ -22,6 +23,7 @@ function createMockRoom(overrides: Partial<Room> = {}): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

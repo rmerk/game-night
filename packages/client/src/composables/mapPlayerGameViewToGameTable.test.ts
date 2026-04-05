@@ -1,5 +1,6 @@
 import { expect, test } from "vite-plus/test";
 import {
+  DEFAULT_ROOM_SETTINGS,
   PROTOCOL_VERSION,
   type PlayerGameView,
   type SuitedTile,
@@ -82,13 +83,13 @@ function minimalPlayerView(overrides: Partial<PlayerGameView> = {}): PlayerGameV
     charleston: null,
     shownHands: {},
     jokerRulesMode: "standard",
+    settings: DEFAULT_ROOM_SETTINGS,
     myDeadHand: false,
     paused: false,
     deadSeatPlayerIds: [],
     departureVoteState: null,
-    ...overrides,
   };
-  return base;
+  return { ...base, ...overrides, settings: overrides.settings ?? DEFAULT_ROOM_SETTINGS };
 }
 
 test("maps south-local opponents to top=north, left=east, right=west", () => {

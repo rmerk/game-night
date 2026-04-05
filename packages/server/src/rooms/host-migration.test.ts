@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import type { SeatWind } from "@mahjong-game/shared";
+import { DEFAULT_ROOM_SETTINGS, type SeatWind } from "@mahjong-game/shared";
 import { migrateHost } from "./host-migration";
 import type { PlayerInfo, Room } from "./room";
 import { createSilentTestLogger } from "../testing/silent-logger";
@@ -34,6 +34,7 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     socialOverrideTimer: null,
     tableTalkReportTimer: null,
     gameState: null,
+    settings: { ...DEFAULT_ROOM_SETTINGS },
     jokerRulesMode: "standard",
     chatHistory: [],
     chatRateTimestamps: new Map(),

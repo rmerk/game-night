@@ -1,5 +1,6 @@
 import type { Tile } from "./tiles";
 import type { GroupType, NMJLCard } from "./card";
+import type { RoomSettings } from "./room-settings";
 
 /** Game-level phase */
 export type GamePhase = "lobby" | "charleston" | "play" | "scoreboard" | "rematch";
@@ -443,4 +444,16 @@ export type ResolvedAction =
       readonly previousHostId: string | null;
       readonly newHostId: string;
       readonly newHostName: string;
+    }
+  | {
+      readonly type: "ROOM_SETTINGS_CHANGED";
+      readonly changedBy: string;
+      readonly changedByName: string;
+      readonly previous: RoomSettings;
+      readonly next: RoomSettings;
+      readonly changedKeys: readonly (keyof RoomSettings)[];
+    }
+  | {
+      readonly type: "REMATCH_WAITING_FOR_PLAYERS";
+      readonly missingSeats: number;
     };

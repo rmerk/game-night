@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 4b-7 ready-for-dev
+last_updated: 2026-04-05 # 4b-7 done — Epic 4B complete
 project: mahjong-game
 
 project_key: NOKEY
@@ -134,14 +134,14 @@ development_status:
   epic-6a-retrospective: done
 
   # Epic 4B: Multiplayer Resilience
-  epic-4b: in-progress
+  epic-4b: done
   4b-1-reconnection-with-full-state-restore: done
   4b-2-phase-specific-reconnection-fallbacks: done
   4b-3-simultaneous-disconnection-game-pause: done
   4b-4-turn-timeout-afk-escalation: done
   4b-5-player-departure-dead-seat: done
   4b-6-host-migration: done
-  4b-7-host-settings-5th-player-handling: ready-for-dev
+  4b-7-host-settings-5th-player-handling: done
   epic-4b-retrospective: optional
 
   # Epic 5B: Remaining UI
@@ -207,6 +207,8 @@ retro_follow_through:
     # notes must name the function as the extension point and forbid a parallel reset via anti-pattern entry.
     6a-retro-3-extend-resetSocialUiForSession: done
   epic-4b:
+    # 4B.7 ships spectator UX as a static placeholder route; full SpectatorGameView + JOIN_SPECTATOR deferred post-MVP.
+    4b7-spectator-stub-shipped: done
     # Surfaced during 4B.1 code review (pass 2) — pre-existing debt that 4B.1 rides on top of but does not
     # worsen. Captured as first-class follow-up to keep the review trail honest.
     #

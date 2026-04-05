@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import type { CallType, JokerRulesMode } from "@mahjong-game/shared";
+import type { CallType } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
+import RoomSettingsPanel from "../components/game/RoomSettingsPanel.vue";
 import BaseToast from "../components/ui/BaseToast.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
 import ReactionBar from "../components/reactions/ReactionBar.vue";
@@ -19,6 +20,8 @@ import {
 } from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
+import { getApiBaseUrl } from "../composables/apiBaseUrl";
+import { canEditRoomSettings, humanLabel, humanValue } from "../composables/roomSettingsFormatters";
 import { useRackStore } from "../stores/rack";
 import { useReactionsStore, type ReactionBubbleRecord } from "../stores/reactions";
 import { storeToRefs } from "pinia";
@@ -51,7 +54,15 @@ const {
   resolvedAction,
   systemNotice,
   clearLastError,
+  roomFullError,
+  clearRoomFullError,
 } = conn;
+
+const isCheckingRoomStatus = ref(false);
+const isTableFullFromFetch = ref(false);
+const statusFetchError = ref<string | null>(null);
+
+const isTableFull = computed(() => isTableFullFromFetch.value || roomFullError.value);
 
 const showSessionErrorBanner = computed(
   () =>
@@ -98,8 +109,31 @@ const isHost = computed(() => {
   return lobby.players.some((p) => p.playerId === lobby.myPlayerId && p.isHost);
 });
 
+const isHostInGame = computed(() => {
+  const v = playerGameView.value;
+  if (!v) return false;
+  return v.players.some((p) => p.playerId === v.myPlayerId && p.isHost);
+});
+
+const canEditLobbySettings = computed(() => {
+  const lob = lobbyState.value;
+  if (!lob) return false;
+  const host = lob.players.some((p) => p.playerId === lob.myPlayerId && p.isHost);
+  return canEditRoomSettings(host, "lobby");
+});
+
+const canEditGameSettings = computed(() => {
+  const v = playerGameView.value;
+  if (!v) return false;
+  return canEditRoomSettings(isHostInGame.value, v.gamePhase);
+});
+
 const hostPromotedLobbyVisible = ref(false);
 const hostPromotedLobbyText = ref("");
+const roomSettingsLobbyToastVisible = ref(false);
+const roomSettingsLobbyToastText = ref("");
+const rematchWaitingLobbyVisible = ref(false);
+const rematchWaitingLobbyText = ref("");
 
 watch(
   () => resolvedAction.value,
@@ -109,6 +143,34 @@ watch(
       hostPromotedLobbyText.value = `${ra.newHostName} is now the host`;
       hostPromotedLobbyVisible.value = true;
     }
+  },
+);
+
+watch(
+  () => resolvedAction.value,
+  (ra) => {
+    if (!ra || ra.type !== "ROOM_SETTINGS_CHANGED") return;
+    const lob = lobbyState.value;
+    if (!lob || playerGameView.value !== null) return;
+    if (ra.changedBy === lob.myPlayerId) return;
+    if (ra.changedKeys.length === 1) {
+      const k = ra.changedKeys[0];
+      roomSettingsLobbyToastText.value = `Host changed ${humanLabel(k)} to ${humanValue(k, ra.next)}`;
+    } else {
+      roomSettingsLobbyToastText.value = `Host updated room settings (${ra.changedKeys.length} changes)`;
+    }
+    roomSettingsLobbyToastVisible.value = true;
+  },
+);
+
+watch(
+  () => resolvedAction.value,
+  (ra) => {
+    if (!ra || ra.type !== "REMATCH_WAITING_FOR_PLAYERS") return;
+    if (lobbyState.value === null || playerGameView.value !== null) return;
+    const n = ra.missingSeats;
+    rematchWaitingLobbyText.value = `Waiting for ${n} more player${n === 1 ? "" : "s"}`;
+    rematchWaitingLobbyVisible.value = true;
   },
 );
 
@@ -167,18 +229,54 @@ const lobbyReactionBubblesByAnchor = computed(() => {
   return buckets;
 });
 
-function joinRoom() {
+async function joinRoom() {
   const name = displayNameInput.value.trim();
   if (!name || !roomCode.value) {
     return;
   }
+  statusFetchError.value = null;
+  isTableFullFromFetch.value = false;
+  clearRoomFullError();
+  isCheckingRoomStatus.value = true;
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/rooms/${roomCode.value}/status`);
+    if (res.status === 404) {
+      statusFetchError.value = "room_not_found";
+      isCheckingRoomStatus.value = false;
+      return;
+    }
+    if (!res.ok) {
+      statusFetchError.value = "server_error";
+      isCheckingRoomStatus.value = false;
+      return;
+    }
+    const data = (await res.json()) as { full: boolean };
+    if (data.full) {
+      isTableFullFromFetch.value = true;
+      hasRequestedConnect.value = true;
+      isCheckingRoomStatus.value = false;
+      return;
+    }
+  } catch {
+    statusFetchError.value = "network";
+    isCheckingRoomStatus.value = false;
+    return;
+  }
+  isCheckingRoomStatus.value = false;
   hasRequestedConnect.value = true;
   conn.connect(roomCode.value, name);
+}
+
+function retryStatusCheck() {
+  statusFetchError.value = null;
+  void joinRoom();
 }
 
 function leaveRoom() {
   conn.clearTokenForRoom(roomCode.value);
   conn.disconnect();
+  isTableFullFromFetch.value = false;
+  statusFetchError.value = null;
   rackStore.resetForRoomLeave();
   void router.push({ name: "home" });
 }
@@ -250,9 +348,8 @@ function onRetractCall() {
   sendFromView({ type: "retractCall" });
 }
 
-function onJokerRulesChange(ev: Event) {
-  const el = ev.target as HTMLSelectElement;
-  conn.sendSetJokerRules(el.value as JokerRulesMode);
+function goSpectatePlaceholder() {
+  void router.push({ name: "room-spectate", params: { code: roomCode.value } });
 }
 </script>
 
@@ -303,7 +400,57 @@ function onJokerRulesChange(ev: Event) {
       </button>
     </div>
 
-    <div v-if="!hasRequestedConnect" class="mx-auto max-w-md px-4 py-10">
+    <div
+      v-else-if="isTableFull"
+      data-testid="table-full-view"
+      class="mx-auto max-w-lg px-4 py-16 text-center text-text-on-felt"
+    >
+      <h1 class="mb-2 text-5 font-semibold">This table is full</h1>
+      <p class="mb-6 text-3.5 text-text-secondary">
+        Four players are already seated at this table.
+      </p>
+      <div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <button
+          type="button"
+          data-testid="table-full-back-home"
+          class="rounded-md bg-chrome-surface px-4 py-2 text-3.5 font-medium text-text-primary"
+          @click="router.push({ name: 'home' })"
+        >
+          Back to home
+        </button>
+        <button
+          type="button"
+          data-testid="table-full-spectate"
+          class="rounded-md border border-chrome-border bg-transparent px-4 py-2 text-3.5 text-text-on-felt"
+          @click="goSpectatePlaceholder"
+        >
+          Watch as spectator
+        </button>
+      </div>
+    </div>
+
+    <div v-else-if="statusFetchError" class="mx-auto max-w-md px-4 py-10 text-center">
+      <p
+        v-if="statusFetchError === 'room_not_found'"
+        class="text-3.5 text-state-error"
+        role="alert"
+      >
+        Room not found.
+      </p>
+      <p v-else-if="statusFetchError === 'network'" class="text-3.5 text-state-error" role="alert">
+        Could not reach the server
+      </p>
+      <p v-else class="text-3.5 text-state-error" role="alert">Unable to check room status.</p>
+      <button
+        type="button"
+        class="mt-4 rounded-md border border-chrome-border bg-chrome-surface px-4 py-2 text-3.5 text-text-primary"
+        @click="retryStatusCheck"
+      >
+        Retry
+      </button>
+    </div>
+
+    <div v-else-if="!hasRequestedConnect" class="mx-auto max-w-md px-4 py-10">
       <h1 class="mb-4 text-5 font-semibold">Join room</h1>
       <label class="mb-2 block text-3.5 text-text-secondary">Display name</label>
       <input
@@ -325,6 +472,10 @@ function onJokerRulesChange(ev: Event) {
       <p v-if="lastErrorMessage" class="mt-4 text-state-error text-3.5">
         {{ lastErrorMessage }}
       </p>
+    </div>
+
+    <div v-else-if="isCheckingRoomStatus" class="px-4 py-10 text-center text-3.5 text-text-on-felt">
+      Checking room…
     </div>
 
     <div v-else-if="status === 'connecting'" class="px-4 py-10 text-center text-3.5">
@@ -358,6 +509,24 @@ function onJokerRulesChange(ev: Event) {
         @dismiss="hostPromotedLobbyVisible = false"
       >
         {{ hostPromotedLobbyText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="room-settings-changed-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="roomSettingsLobbyToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="roomSettingsLobbyToastVisible = false"
+      >
+        {{ roomSettingsLobbyToastText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="rematch-waiting-lobby-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="rematchWaitingLobbyVisible"
+        :auto-dismiss-ms="5000"
+        @dismiss="rematchWaitingLobbyVisible = false"
+      >
+        {{ rematchWaitingLobbyText }}
       </BaseToast>
       <div ref="lobbyFocusReturn" tabindex="-1" class="sr-only" aria-hidden="true" />
       <div class="mb-4 flex flex-wrap justify-end gap-2">
@@ -439,18 +608,13 @@ function onJokerRulesChange(ev: Event) {
         </li>
       </ul>
 
-      <div v-if="isHost" class="flex flex-col gap-4">
-        <label class="block text-3.5">
-          <span class="mb-1 block text-text-secondary">Joker rules (next game)</span>
-          <select
-            class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-            :value="lobbyState.jokerRulesMode"
-            @change="onJokerRulesChange"
-          >
-            <option value="standard">Standard</option>
-            <option value="simplified">Simplified</option>
-          </select>
-        </label>
+      <RoomSettingsPanel
+        :settings="lobbyState.settings"
+        :can-edit="canEditLobbySettings"
+        phase="lobby"
+        @change="(p) => conn.sendSetRoomSettings(p)"
+      />
+      <div v-if="isHost" class="mt-4 flex flex-col gap-4">
         <button
           type="button"
           class="rounded-md bg-state-turn-active px-4 py-2 text-3.5 font-medium text-text-on-felt disabled:opacity-50"
@@ -463,7 +627,9 @@ function onJokerRulesChange(ev: Event) {
           Need four players connected to start.
         </p>
       </div>
-      <p v-else class="text-3.5 text-text-secondary">Waiting for the host to start the game.</p>
+      <p v-else class="mt-4 text-3.5 text-text-secondary">
+        Waiting for the host to start the game.
+      </p>
     </div>
 
     <GameTable
@@ -471,6 +637,9 @@ function onJokerRulesChange(ev: Event) {
       v-bind="tableProps"
       :reaction-anchor-for-player="reactionAnchorForPlayer"
       :resolved-action="resolvedAction ?? null"
+      :room-settings="playerGameView?.settings ?? null"
+      :can-edit-room-settings="canEditGameSettings"
+      @room-settings-change="(p) => conn.sendSetRoomSettings(p)"
       @send-chat="(t: string) => conn.sendChat(t)"
       @send-reaction="(e: string) => conn.sendReaction(e)"
       @discard="onDiscard"
