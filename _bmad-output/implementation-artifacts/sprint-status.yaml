@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-05 # 6a-4 review
+# last_updated: 2026-04-05 # epic-6a retrospective
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -126,12 +126,12 @@ development_status:
   epic-3c-retrospective: done
 
   # Epic 6A: Text Chat & Reactions
-  epic-6a: in-progress
+  epic-6a: done
   6a-1-chat-message-protocol-server-handling: done
   6a-2-chat-panel-ui-slideinpanel: done
   6a-3-quick-reactions-system: done
-  6a-4-chat-history-on-connect-reconnect: review
-  epic-6a-retrospective: optional
+  6a-4-chat-history-on-connect-reconnect: done
+  epic-6a-retrospective: done
 
   # Epic 4B: Multiplayer Resilience
   epic-4b: backlog
@@ -194,3 +194,15 @@ retro_follow_through:
   epic-3b:
     # TileSelectionAction / 3A.5 refactor: tracked under Epic 3C as `3c-9-call-confirmation-use-tile-selection`.
     3b-retro-tile-selection-refactor-call-confirmation: done
+  epic-6a:
+    # Pass 1 of every 6A story approved against ACs; pass 2 caught a state-transition bug in all 4 stories
+    # (seat recycle, scoreboard phase, lobby->game, inbound/outbound maxPayload). Template fix: enumerate
+    # transitions in story specs so pass 1 catches them. First applied at Story 4B.1 creation.
+    6a-retro-1-transition-scenarios-in-story-specs: pending
+    # 6A.4 established "STATE_UPDATE then CHAT_HISTORY" as an invariant living in inline comments at 3 ws.send
+    # call sites. Epic 4B will add more post-state messages (PLAYER_RECONNECTED, grace-cancel, phase fallbacks)
+    # where order matters. Extract a sendPostStateSequence helper so canonical order lives in one file before 4B.1.
+    6a-retro-2-send-post-state-sequence-helper: pending
+    # 4B reconnect must extend `resetSocialUiForSession` in useRoomConnection.ts, not fork it. Story 4B.1 dev
+    # notes must name the function as the extension point and forbid a parallel reset via anti-pattern entry.
+    6a-retro-3-extend-resetSocialUiForSession: pending
