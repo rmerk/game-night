@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 6a-4 review
+last_updated: 2026-04-05 # 4b-1 → done (code review passed); 6a-retro-1/2/3 → done; 4b1-review-1/2/3 captured
 project: mahjong-game
 
 project_key: NOKEY
@@ -134,8 +134,8 @@ development_status:
   epic-6a-retrospective: done
 
   # Epic 4B: Multiplayer Resilience
-  epic-4b: backlog
-  4b-1-reconnection-with-full-state-restore: backlog
+  epic-4b: in-progress
+  4b-1-reconnection-with-full-state-restore: done
   4b-2-phase-specific-reconnection-fallbacks: backlog
   4b-3-simultaneous-disconnection-game-pause: backlog
   4b-4-turn-timeout-afk-escalation: backlog
@@ -198,11 +198,32 @@ retro_follow_through:
     # Pass 1 of every 6A story approved against ACs; pass 2 caught a state-transition bug in all 4 stories
     # (seat recycle, scoreboard phase, lobby->game, inbound/outbound maxPayload). Template fix: enumerate
     # transitions in story specs so pass 1 catches them. First applied at Story 4B.1 creation.
-    6a-retro-1-transition-scenarios-in-story-specs: pending
+    6a-retro-1-transition-scenarios-in-story-specs: done
     # 6A.4 established "STATE_UPDATE then CHAT_HISTORY" as an invariant living in inline comments at 3 ws.send
     # call sites. Epic 4B will add more post-state messages (PLAYER_RECONNECTED, grace-cancel, phase fallbacks)
     # where order matters. Extract a sendPostStateSequence helper so canonical order lives in one file before 4B.1.
-    6a-retro-2-send-post-state-sequence-helper: pending
+    6a-retro-2-send-post-state-sequence-helper: done
     # 4B reconnect must extend `resetSocialUiForSession` in useRoomConnection.ts, not fork it. Story 4B.1 dev
     # notes must name the function as the extension point and forbid a parallel reset via anti-pattern entry.
-    6a-retro-3-extend-resetSocialUiForSession: pending
+    6a-retro-3-extend-resetSocialUiForSession: done
+  epic-4b:
+    # Surfaced during 4B.1 code review (pass 2) — pre-existing debt that 4B.1 rides on top of but does not
+    # worsen. Captured as first-class follow-up to keep the review trail honest.
+    #
+    # join-handler.ts:broadcastStateToRoom iterates room.sessions with a bare session.ws.send(...) call and
+    # no try/catch. If any socket throws mid-loop (e.g. race between readyState check and write), remaining
+    # peers miss the broadcast. 4B.1 uses this helper for PLAYER_RECONNECTING / PLAYER_RECONNECTED. Apply
+    # the trySendJson pattern (warn-on-failure, keep iterating) inside the loop. Natural fit for 4B.2 since
+    # that story adds more room-state broadcasts (phase fallbacks).
+    4b1-review-1-broadcast-fanout-try-catch: pending
+    # join-handler.ts:broadcastStateToRoom and state-broadcaster.ts:broadcastGameState are two near-identical
+    # fan-out iterators over room.sessions that build per-viewer StateUpdateMessages. The former carries
+    # room-level resolvedActions (PLAYER_JOINED, PLAYER_RECONNECTING, PLAYER_RECONNECTED, seat release), the
+    # latter carries game-action resolutions. 4B.1 widens the gap by adding another call site to the former.
+    # Consolidate into one helper in state-broadcaster.ts.
+    4b1-review-2-consolidate-broadcast-helpers: pending
+    # attachToExistingSeat mutates session state (player.connected, graceTimers, room.sessions) BEFORE
+    # calling buildCurrentStateMessage. The defensive `if (!base) return` at join-handler.ts:171 is
+    # unreachable today but would leave the server half-attached with no STATE_UPDATE delivered if it ever
+    # fired. Reshape to "build first, mutate on success" so the invariant matches buildCurrentStateMessage.
+    4b1-review-3-attach-seat-build-before-mutate: pending

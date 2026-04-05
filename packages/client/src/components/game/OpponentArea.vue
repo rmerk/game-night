@@ -46,6 +46,14 @@ const isDev = import.meta.env.DEV;
         {{ player.name }}
       </span>
 
+      <p
+        v-if="!player.connected"
+        data-testid="seat-reconnecting-label"
+        class="text-text-on-felt/70 text-2.5 lg:text-3 text-center max-w-full truncate"
+      >
+        {{ player.name }} is reconnecting…
+      </p>
+
       <BaseBadge
         v-if="isActiveTurn"
         data-testid="seat-status"

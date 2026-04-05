@@ -210,11 +210,11 @@ export function broadcastGameState(
 }
 
 /**
- * Send the current state to a single player (for resync).
- * Sends lobby state if no game is active, or filtered game view if game is in progress.
+ * Build a {@link StateUpdateMessage} for one player (lobby or filtered game view).
+ * Returns null if the player is not in the room.
  */
-export function sendCurrentState(room: Room, playerId: string, ws: WebSocket): void {
-  if (ws.readyState !== WebSocket.OPEN) return;
+export function buildCurrentStateMessage(room: Room, playerId: string): StateUpdateMessage | null {
+  if (!room.players.has(playerId)) return null;
 
   let state: LobbyState | PlayerGameView;
   if (room.gameState) {
@@ -231,10 +231,9 @@ export function sendCurrentState(room: Room, playerId: string, ws: WebSocket): v
     };
   }
 
-  const message: StateUpdateMessage = {
+  return {
     version: PROTOCOL_VERSION,
     type: "STATE_UPDATE",
     state,
   };
-  ws.send(JSON.stringify(message));
 }

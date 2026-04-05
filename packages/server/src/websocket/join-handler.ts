@@ -15,8 +15,8 @@ import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
-import { buildPlayerView, broadcastGameState } from "./state-broadcaster";
-import { sendChatHistoryAfterStateUpdate } from "./chat-history";
+import { buildPlayerView, broadcastGameState, buildCurrentStateMessage } from "./state-broadcaster";
+import { sendPostStateSequence } from "./post-state-sequence";
 import { stripControlChars } from "./text-sanitize";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
@@ -125,6 +125,72 @@ function sanitizeDisplayName(displayName: unknown): string | null {
   return sanitized.length > 0 ? sanitized : null;
 }
 
+function attachToExistingSeat(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  token: string,
+  logger: FastifyBaseLogger,
+  roomManager?: RoomManager,
+): void {
+  const player = room.players.get(playerId);
+  if (!player) {
+    logger.warn({ roomCode: room.roomCode, playerId }, "attachToExistingSeat: player missing");
+    return;
+  }
+
+  const existingSession = room.sessions.get(playerId);
+  if (existingSession && existingSession.ws.readyState === WebSocket.OPEN) {
+    existingSession.ws.send(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "SYSTEM_EVENT",
+        event: "SESSION_SUPERSEDED",
+      }),
+    );
+    existingSession.ws.close(4001, "SESSION_SUPERSEDED");
+  }
+
+  const graceTimer = room.graceTimers.get(playerId);
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    room.graceTimers.delete(playerId);
+  }
+
+  cancelLifecycleTimer(room, "disconnect-timeout");
+
+  player.connected = true;
+  player.connectedAt = Date.now();
+
+  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
+  room.sessions.set(playerId, session);
+
+  logger.info({ roomCode: room.roomCode, playerId }, "Session reattached to existing seat");
+
+  const base = buildCurrentStateMessage(room, playerId);
+  if (!base) {
+    logger.warn(
+      { roomCode: room.roomCode, playerId },
+      "attachToExistingSeat: could not build state",
+    );
+    return;
+  }
+
+  const stateMessage: StateUpdateMessage = {
+    ...base,
+    token,
+  };
+  sendPostStateSequence(ws, stateMessage, room, logger, "token-reconnect");
+
+  broadcastStateToRoom(room, playerId, {
+    type: "PLAYER_RECONNECTED",
+    playerId,
+    playerName: player.displayName,
+  });
+
+  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
+}
+
 function handleTokenReconnection(
   ws: WebSocket,
   room: Room,
@@ -138,57 +204,7 @@ function handleTokenReconnection(
   const player = room.players.get(playerId);
   if (!player) return false;
 
-  // Supersede existing connection if still open
-  const existingSession = room.sessions.get(playerId);
-  if (existingSession && existingSession.ws.readyState === WebSocket.OPEN) {
-    existingSession.ws.send(
-      JSON.stringify({
-        version: PROTOCOL_VERSION,
-        type: "SYSTEM_EVENT",
-        event: "SESSION_SUPERSEDED",
-      }),
-    );
-    existingSession.ws.close(4001, "SESSION_SUPERSEDED");
-  }
-
-  // Cancel grace period timer if active
-  const graceTimer = room.graceTimers.get(playerId);
-  if (graceTimer) {
-    clearTimeout(graceTimer);
-    room.graceTimers.delete(playerId);
-  }
-
-  // Cancel room disconnect-timeout since a player reconnected
-  cancelLifecycleTimer(room, "disconnect-timeout");
-
-  // Restore connection
-  player.connected = true;
-  player.connectedAt = Date.now();
-
-  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
-  room.sessions.set(playerId, session);
-
-  logger.info({ roomCode: room.roomCode, playerId }, "Player reconnected via token");
-
-  // Reconnection should immediately restore the active filtered game view when a game is in progress.
-  const state = stateViewForPlayer(room, playerId);
-  const stateMessage: StateUpdateMessage = {
-    version: PROTOCOL_VERSION,
-    type: "STATE_UPDATE",
-    state,
-    token,
-  };
-  ws.send(JSON.stringify(stateMessage));
-  sendChatHistoryAfterStateUpdate(ws, room, logger, "token-reconnect-chat-history");
-
-  // Broadcast reconnection to others
-  broadcastStateToRoom(room, playerId, {
-    type: "PLAYER_RECONNECTED",
-    playerId,
-    playerName: player.displayName,
-  });
-
-  registerDisconnectHandler(ws, room, playerId, logger, roomManager);
+  attachToExistingSeat(ws, room, playerId, token, logger, roomManager);
   return true;
 }
 
@@ -273,6 +289,7 @@ function registerDisconnectHandler(
     const session = room.sessions.get(playerId);
     if (!session || session.ws !== ws) return;
 
+    const disconnectedAt = Date.now();
     player.connected = false;
     logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
 
@@ -318,8 +335,15 @@ function registerDisconnectHandler(
       });
     }
 
-    // Broadcast disconnected state to remaining players
-    broadcastStateToRoom(room);
+    logger.info(
+      { roomCode: room.roomCode, playerId, disconnectedAt },
+      "PLAYER_RECONNECTING broadcast, grace period started",
+    );
+    broadcastStateToRoom(room, playerId, {
+      type: "PLAYER_RECONNECTING",
+      playerId,
+      playerName: player.displayName,
+    });
   });
 }
 
@@ -350,15 +374,34 @@ export function handleJoinRoom(
     if (handleTokenReconnection(ws, room, token, logger, roomManager)) {
       return;
     }
-    // Invalid token — fall through to new player join
     logger.warn({ roomCode: room.roomCode }, "Invalid token, treating as new player");
   }
 
-  // Validate displayName (required for new joins)
   const sanitizedName = sanitizeDisplayName(message.displayName);
   if (!sanitizedName) {
     sendError(ws, "INVALID_DISPLAY_NAME", "Display name is required");
     ws.close(4000, "INVALID_DISPLAY_NAME");
+    return;
+  }
+
+  const graceRecoveryMatches: PlayerInfo[] = [];
+  for (const p of room.players.values()) {
+    if (
+      !p.connected &&
+      room.graceTimers.has(p.playerId) &&
+      p.displayName.toLowerCase() === sanitizedName.toLowerCase()
+    ) {
+      graceRecoveryMatches.push(p);
+    }
+  }
+  if (graceRecoveryMatches.length === 1) {
+    const [recovered] = graceRecoveryMatches;
+    const newToken = createSessionToken(room, recovered.playerId);
+    logger.info(
+      { roomCode: room.roomCode, playerId: recovered.playerId, displayName: sanitizedName },
+      "Player reconnected via displayName grace recovery (tokenless)",
+    );
+    attachToExistingSeat(ws, room, recovered.playerId, newToken, logger, roomManager);
     return;
   }
 
@@ -404,16 +447,17 @@ export function handleJoinRoom(
     "Player joined room",
   );
 
-  // Send STATE_UPDATE to the joining player (with token)
-  const lobbyState = buildLobbyState(room, playerId);
+  const baseMessage = buildCurrentStateMessage(room, playerId);
+  if (!baseMessage) {
+    sendError(ws, "INTERNAL_ERROR", "Could not build room state");
+    ws.close(4000, "INTERNAL_ERROR");
+    return;
+  }
   const stateMessage: StateUpdateMessage = {
-    version: PROTOCOL_VERSION,
-    type: "STATE_UPDATE",
-    state: lobbyState,
+    ...baseMessage,
     token: sessionToken,
   };
-  ws.send(JSON.stringify(stateMessage));
-  sendChatHistoryAfterStateUpdate(ws, room, logger, "join-room-chat-history");
+  sendPostStateSequence(ws, stateMessage, room, logger, "join-room");
 
   // Broadcast PLAYER_JOINED to all other players (no token)
   broadcastStateToRoom(room, playerId, {

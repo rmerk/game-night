@@ -344,6 +344,12 @@ describe("Full Game Flow Integration", () => {
       const postDiscard = await eastPlayer.reader.nextStateUpdate();
       expect(postDiscard.type).toBe("STATE_UPDATE");
 
+      await Promise.all([
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
+      ]);
+
       // 11. Verify room status shows game in progress
       const playStatus = await app.inject({
         method: "GET",
@@ -351,13 +357,34 @@ describe("Full Game Flow Integration", () => {
       });
       expect(playStatus.json().phase).toBe("play");
 
-      // 12. Token-based reconnection works
+      // 12. Token-based reconnection works (disconnect → PLAYER_RECONNECTING → reconnect → full view)
+      const disconnectBroadcastsPromise = Promise.all([
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
+      ]);
       aliceWs.close();
       await waitForClose(aliceWs);
+
+      const disconnectOthers = await disconnectBroadcastsPromise;
+      for (const b of disconnectOthers) {
+        expect(b.resolvedAction).toMatchObject({
+          type: "PLAYER_RECONNECTING",
+          playerId: alicePlayerId,
+        });
+      }
 
       const aliceReconnectWs = createWs();
       await waitForOpen(aliceReconnectWs);
       const aliceReconnectReader = createMessageReader(aliceReconnectWs);
+
+      const aliceReconnectStateP = aliceReconnectReader.nextStateUpdate();
+      const othersReconnectP = Promise.all([
+        bobReader.nextStateUpdate(),
+        carolReader.nextStateUpdate(),
+        daveReader.nextStateUpdate(),
+      ]);
+
       aliceReconnectWs.send(
         JSON.stringify({
           version: 1,
@@ -367,9 +394,26 @@ describe("Full Game Flow Integration", () => {
           token: aliceToken,
         }),
       );
-      const reconnectMsg = await aliceReconnectReader.nextStateUpdate();
+
+      const reconnectMsg = await aliceReconnectStateP;
       expect(reconnectMsg.type).toBe("STATE_UPDATE");
       expect(reconnectMsg.state.myPlayerId).toBe(alicePlayerId);
+      const reconnectPv = requirePlayerGameView(reconnectMsg.state);
+      const postDiscardPv = requirePlayerGameView(postDiscard.state);
+      expect(reconnectPv.gamePhase).toBe("play");
+      expect(reconnectPv.currentTurn).toBe(postDiscardPv.currentTurn);
+      expect(reconnectPv.turnPhase).toBe(postDiscardPv.turnPhase);
+      expect(rackTileIdsFromStateMessage(reconnectMsg).sort()).toEqual(
+        rackTileIdsFromStateMessage(postDiscard).sort(),
+      );
+
+      const othersAfterReconnect = await othersReconnectP;
+      for (const b of othersAfterReconnect) {
+        expect(b.resolvedAction).toMatchObject({
+          type: "PLAYER_RECONNECTED",
+          playerId: alicePlayerId,
+        });
+      }
     },
   );
 

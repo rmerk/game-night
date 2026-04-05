@@ -56,6 +56,19 @@ describe("OpponentArea — player present", () => {
     expect(dot.classes()).toContain("bg-text-secondary");
   });
 
+  it("shows reconnecting label when player is disconnected", () => {
+    const wrapper = mountOpponentArea({ player: disconnectedPlayer });
+    const label = wrapper.find("[data-testid='seat-reconnecting-label']");
+    expect(label.exists()).toBe(true);
+    expect(label.text()).toContain("Bob");
+    expect(label.text()).toContain("reconnecting");
+  });
+
+  it("does not show reconnecting label when player is connected", () => {
+    const wrapper = mountOpponentArea({ player: connectedPlayer });
+    expect(wrapper.find("[data-testid='seat-reconnecting-label']").exists()).toBe(false);
+  });
+
   it("renders avatar with aria-label including player name", () => {
     const wrapper = mountOpponentArea();
     const avatar = wrapper.find('[aria-label="Alice\'s seat"]');

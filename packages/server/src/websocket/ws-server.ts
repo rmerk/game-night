@@ -7,9 +7,10 @@ import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
 import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
-import { sendCurrentState } from "./state-broadcaster";
+import { buildCurrentStateMessage } from "./state-broadcaster";
 import { handleChatReactMessage } from "./chat-handler";
-import { sendChatHistoryAfterStateUpdate, WS_MAX_PAYLOAD_BYTES } from "./chat-history";
+import { sendPostStateSequence } from "./post-state-sequence";
+import { WS_MAX_PAYLOAD_BYTES } from "./chat-history";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -146,8 +147,10 @@ export function setupWebSocketServer(
             );
             return;
           }
-          sendCurrentState(session.room, session.playerId, ws);
-          sendChatHistoryAfterStateUpdate(ws, session.room, logger, "request-state-chat-history");
+          const stateMessage = buildCurrentStateMessage(session.room, session.playerId);
+          if (stateMessage) {
+            sendPostStateSequence(ws, stateMessage, session.room, logger, "request-state");
+          }
         } else if (parsed.type === "CHAT" || parsed.type === "REACTION") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

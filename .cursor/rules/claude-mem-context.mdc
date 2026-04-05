@@ -7,54 +7,15 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 9:41am CDT
+# $CMEM mahjong-game 2026-04-05 10:29am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,732t read) | 263,237t work | 90% savings
+Stats: 50 obs (23,592t read) | 522,178t work | 95% savings
 
-### Apr 3, 2026
-S276 Adversarial code review of Story 3B.5 Charleston disconnect handling implementation (Apr 3 at 8:31 PM)
-S277 Complete adversarial code review of Story 3B.5 Charleston disconnect handling with automated fixes and status update to done (Apr 3 at 8:35 PM)
-S278 Create comprehensive story file for Story 3C.1 Joker Exchange Mechanic with complete developer implementation context (Apr 3 at 8:39 PM)
-S279 Run retrospective for Epic 6A (Text Chat & Reactions) - status verification and decision point reached (Apr 3 at 8:48 PM)
 ### Apr 4, 2026
-674 4:02a ✅ State broadcaster test fixtures updated for table-talk fields
-675 " 🟣 Table-talk report UI in SocialOverridePanel component
-676 " 🟣 GameTable integration and comprehensive test suite for table-talk reports
-677 4:27a ✅ Vue skills prerequisite added to gds-dev-story workflow
-678 " ✅ Strategy files updated to enforce Vue skills loading mechanism
-679 4:47a ✅ Epic 3B Charleston Retrospective Completed
-680 4:55a ✅ Epic 3B Retrospective Action Items Executed
-681 " 🟣 Client Integration Bridge: PlayerGameView to GameTable Props
-682 5:02a ✅ Branch pushed to remote for Epic 3B retrospective follow-through
-683 " 🟣 PlayerGameView bridge implemented with Epic 3B retrospective and Epic 3C planning
-684 5:04a ✅ Story 3C.6 specification created for wall-end and last-tile rules
-685 5:07a ✅ Story 3C.6 specification refined with git context and streamlined acceptance criteria
-686 5:09a ✅ gds-create-story workflow integrated with claude-mem cross-session intelligence
-687 5:11a 🟣 Story 3C.7 — Concealed Hand Validation at Mahjong
-688 5:15a 🟣 Wall-end and last-tile rule tests for NMJL Mahjong
-689 " 🔴 Fixed wall-end test failures by using Jokers for Pung calls
-690 6:21a 🟣 Exposure source tracking for mahjong melds
-691 6:22a 🟣 Concealed hand validation respects exposure source
-692 6:28a ✅ Task 3c-7 Concealed Hand Validation Marked Complete
-693 6:30a ✅ Story 3C.8 WebSocket client STATE_UPDATE integration created
-694 " ✅ Story 3C.8 task breakdown refined with implementation details
-695 6:31a ✅ Story 3C.8 enhanced with technical guardrails and anti-patterns
-696 6:32a 🟣 WebSocket client infrastructure for mahjong game
-697 6:33a 🟣 Game action builder and WebSocket connection composable
-698 " 🟣 Server state reconciliation and game table prop mapping
-699 " 🟣 RoomView component and online room creation flow
-700 6:34a 🟣 Room creation API integration and join flow
-701 " 🔴 TypeScript narrowing error in call type validation
-702 6:42a ✅ Story 3C.9 specification created for call confirmation tile selection refactor
-703 6:46a 🟣 Call confirmation flow with tile selection validation
-704 6:47a 🟣 Call confirmation UI toolbar with confirm/retract buttons
-705 " ✅ Comprehensive unit tests for call confirmation validation logic
-706 " ✅ Component tests for call confirmation UI behavior and interactions
-707 6:58a ✅ Epic 3C Advanced Rules Retrospective Completed
 708 7:00a ⚖️ Epic Completion Criteria Defined
 709 " ⚖️ Epic 3C Risk Register and Future Epic Dependencies Documented
 710 7:03a 🟣 Chat and Reaction Protocol Specification (Story 6A.1)
@@ -65,29 +26,67 @@ S279 Run retrospective for Epic 6A (Text Chat & Reactions) - status verification
 ### Apr 5, 2026
 715 6:35a ✅ Chat reaction broadcast test coverage completed
 716 6:44a 🔵 GDS Retrospective Workflow Configuration
-S280 Epic 6A retrospective session: completing Text Chat & Reactions feature set and preparing for Epic 4B (Apr 5 at 6:44 AM)
 717 7:06a ✅ Sprint status updated for Epic 6A retrospective
 718 7:07a ✅ Epic 6A completed: Text Chat & Reactions feature set delivered
-S281 Retrospective analysis of Epic 6A completion and readiness assessment for Epic 4B transition (Apr 5 at 7:08 AM)
-S282 Epic 6A retrospective: document completion of text chat & reactions, establish process improvements for Epic 4B (Apr 5 at 8:15 AM)
 719 8:35a ⚖️ Epic 6A retrospective completed: Text chat & reactions shipped with protocol-first architecture
-S283 Wrap-up check after completing Epic 6A retrospective and sprint status updates (Apr 5 at 8:35 AM)
-S284 Create comprehensive Epic 6A timeline document synthesizing memory observations, git history, and story files (Apr 5 at 9:34 AM)
 720 9:36a 🔵 Epic 6A Memory Timeline Analysis
 721 " ✅ Epic 6A Archival Data Collection
 722 9:40a ✅ Epic 6A Timeline Document Created
+S285 Commit Epic 6A retrospective documentation and archive timeline with sprint status updates (Apr 5 at 9:40 AM)
 723 9:41a ✅ Epic 6A Retrospective and Timeline Committed
-S285 Commit Epic 6A retrospective documentation and archive timeline with sprint status updates (Apr 5 at 9:41 AM)
-**Investigated**: Git status showing uncommitted retrospective artifacts (epic-6a-retro-2026-04-05.md, epic-6a-timeline.md, sprint-status.yaml) and auto-updated claude-mem context rules
+S286 Create Story 4B.1: Reconnection with Full State Restore (first story in Epic 4B: Multiplayer Resilience) (Apr 5 at 9:41 AM)
+724 9:42a 🔵 GDS Create-Story Workflow System
+725 9:50a ✅ Story 4B.1 (Reconnection with Full State Restore) created and Epic 4B initiated
+S287 Pass 2 review and refinement of Story 4B.1: Reconnection with Full State Restore specification to eliminate implementation ambiguities and prevent bugs (Apr 5 at 9:50 AM)
+726 9:59a 🔵 Player State and Session Management Architecture in Mahjong Game
+727 " ✅ Story 4B.1 Specification Refined with Pass 2 Clarifications
+728 10:00a ✅ Refined AC1-AC3 with Explicit Broadcast Architecture and Scope Boundaries
+729 10:01a ⚖️ AC7 Architecture Locked to Build-Send Separation with sendCurrentState Deletion
+730 " ✅ AC8 Tokenless Recovery Tightened with Sanitization Symmetry and Grace-Expiry Edge Case
+731 10:02a ✅ AC14 Testing Strategy Expanded with Dual Grace-Period Handling Options
+732 " ✅ Task 2 Corrected from Additive to Replacement Broadcast Pattern
+733 10:03a ✅ Task 3 Expanded with Full TypeScript Signatures and Explicit Code Migration Patterns
+734 " ✅ Task 4 Restructured with Mandatory Extract-First Pattern and Complete attachToExistingSeat Specification
+735 " ✅ Task 5 Refined with Correct Property Reference and Empty-Seat Branch Handling
+S288 Code review of story 4B.1 (Reconnection with Full State Restore) - comprehensive adversarial validation of 14 acceptance criteria and 14 transition scenarios (Apr 5 at 10:05 AM)
+736 10:06a ✅ Sprint task status updated for reconnection feature
+737 " 🟣 Player reconnection event type added to game state
+738 " 🟣 Reconnection state management refactored with centralized message sequencing
+739 10:07a 🟣 Tokenless grace recovery enables reconnection via displayName match
+740 " 🟣 Reconnection status displayed in opponent area UI
+741 " 🔴 Test suite updated to reflect tokenless grace recovery behavior
+742 " ✅ Reconnection test coverage expanded with broadcast and supersession verification
+743 10:08a ✅ Post-state sequence module test suite created and validated
+744 " ✅ Client reconnection test suite created for useRoomConnection composable
+745 " ✅ OpponentArea component tests added for reconnection label display
+746 " ✅ Integration test enhanced with full reconnection event verification
+747 " 🔴 Integration test fixed to consume pending broadcasts before disconnect
+748 10:09a ✅ Full test suite passing with complete reconnection feature coverage
+749 " 🔄 Linting warnings addressed with safer type handling
+750 " ✅ Task 4B-1 status updated to review with completed subtasks marked
+751 " ✅ All task 4B-1 subtasks marked complete and sprint status updated
+752 10:10a ✅ Implementation artifact finalized with comprehensive metadata and file manifest
+S289 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion (Apr 5 at 10:15 AM)
+753 10:16a ✅ Added AC9 and T7 negative test coverage
+754 10:17a ✅ Updated sprint status comment for 4b-1 completion
+755 " ✅ Updated sprint status tracking for story and retro completion
+S290 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion, with additional GameTable.vue prop-flow investigation (Apr 5 at 10:19 AM)
+S291 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion, with detailed GameTable.vue component prop-flow investigation (Apr 5 at 10:20 AM)
+S292 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore), with detailed investigation of REQUEST_STATE handler implementation and test coverage for AC7 (sendPostStateSequence helper) (Apr 5 at 10:21 AM)
+S293 Second-pass verification of Story 4B.1 (Reconnection with Full State Restore) after code review completion - deep dive into component prop-flow, REQUEST_STATE handler, and architectural patterns to identify any remaining issues (Apr 5 at 10:21 AM)
+756 10:28a 🔵 Retrospective Follow-Through Tracked as First-Class Work Items
+757 10:29a ✅ Code Review Technical Debt Captured for Epic 4B
+S294 Captured technical debt items from 4B.1 code review pass 2 as trackable follow-up work (Apr 5 at 10:29 AM)
+**Investigated**: Sprint-status.yaml retro_follow_through section structure and existing pattern of tracking code review findings as first-class work items across epics 5A, 3B, and 6A
 
-**Learned**: Epic closure workflow involves three artifact types: formal retrospective document with action items, comprehensive timeline narrative synthesizing multiple data sources, and sprint-status updates marking epic/stories complete while tracking retro_follow_through commitments for next epic; claude-mem context rules auto-update with session activity and require separate commit from documentation artifacts
+**Learned**: Code review findings are captured with detailed technical context including affected files, functions, rationale, and suggested implementation timing. Pre-existing debt that current work rides on but doesn't worsen is formally tracked rather than ignored, keeping the review trail honest
 
-**Completed**: Two commits created: 469e5cc commits Epic 6A retrospective and timeline (518 insertions, 3 files), formally closing epic-6a and 6a-4 with four retro_follow_through action items for Epic 4B; 02f16c7 refreshes claude-mem auto-context rules (66 line changes); working tree clean; branch 2 commits ahead of origin/main
+**Completed**: Added epic-4b section to retro_follow_through with three pending items: 4b1-review-1-broadcast-fanout-try-catch (missing error handling in broadcast loops), 4b1-review-2-consolidate-broadcast-helpers (duplicate fan-out code in join-handler.ts and state-broadcaster.ts), and 4b1-review-3-attach-seat-build-before-mutate (state mutation order issue in attachToExistingSeat). Updated last_updated timestamp to reflect capture of these items
 
-**Next Steps**: Commits ready to push to origin/main when user decides; Epic 6A formally closed with archival documentation and cross-epic continuity established for Epic 4B
+**Next Steps**: Technical debt items are now tracked in sprint-status.yaml and positioned for future implementation, with 4b1-review-1 identified as natural fit for Story 4B.2 which will add more room-state broadcasts requiring the same error handling pattern
 
 
-Access 263k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 522k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

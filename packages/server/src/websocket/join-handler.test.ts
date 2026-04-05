@@ -761,6 +761,11 @@ describe("token-based reconnection", () => {
       const broadcast = disconnectMessages[index];
       const expectedPlayerId = `player-${index + 1}`;
       expect(broadcast.type).toBe("STATE_UPDATE");
+      expect(broadcast.resolvedAction).toMatchObject({
+        type: "PLAYER_RECONNECTING",
+        playerId: "player-0",
+        playerName: "Player0",
+      });
 
       const state = broadcast.state as Record<string, unknown>;
       expect(state.myPlayerId).toBe(expectedPlayerId);
@@ -820,14 +825,16 @@ describe("token-based reconnection", () => {
     // Consume the PLAYER_JOINED broadcast on ws1
     await waitForMessage(ws1);
 
-    // Alice disconnects
     ws1.close();
-    // Consume disconnection broadcast on ws2
-    await waitForMessage(ws2);
+    const disconnectMsg = await waitForMessage(ws2);
+    expect(disconnectMsg.resolvedAction).toMatchObject({
+      type: "PLAYER_RECONNECTING",
+      playerId: "player-0",
+      playerName: "Alice",
+    });
 
     await delay(50);
 
-    // Listen for reconnection broadcast on ws2
     const reconnectBroadcast = waitForMessage(ws2);
 
     // Alice reconnects
@@ -850,6 +857,37 @@ describe("token-based reconnection", () => {
 });
 
 describe("session supersession", () => {
+  it("superseded socket close does not mark player disconnected or start grace timer", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    const msg1 = await msg1Promise;
+    const token = msg1.token as string;
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+    await msg2Promise;
+
+    const closePromise = waitForClose(ws1);
+
+    const ws3 = await connectWs(wsUrl);
+    const msg3Promise = waitForMessage(ws3);
+    sendJoinWithToken(ws3, roomCode, token);
+
+    await closePromise;
+    await msg3Promise;
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    expect(room.players.get("player-0")?.connected).toBe(true);
+    expect(room.graceTimers.has("player-0")).toBe(false);
+
+    ws3.close();
+    ws2.close();
+  });
+
   it("disconnects first connection when second uses same token", async () => {
     const { roomCode } = await createRoom();
 
@@ -899,30 +937,57 @@ describe("grace period recovery", () => {
     setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
   });
 
-  it("does not recover seat via displayName alone (token required)", async () => {
+  it("recovers seat via displayName tokenless match while player is in grace period", async () => {
     const { roomCode } = await createRoom();
 
-    // Player joins
     const ws1 = await connectWs(wsUrl);
     const msg1Promise = waitForMessage(ws1);
     sendJoin(ws1, roomCode, "Alice");
     const msg1 = await msg1Promise;
     const playerId1 = (msg1.state as Record<string, unknown>).myPlayerId;
 
-    // Player disconnects
     ws1.close();
     await delay(50);
 
-    // New connection with same displayName but no token
     const ws2 = await connectWs(wsUrl);
     const msg2Promise = waitForMessage(ws2);
     sendJoin(ws2, roomCode, "Alice");
     const msg2 = await msg2Promise;
 
-    // Should get a DIFFERENT playerId (new seat, not recovered)
-    expect((msg2.state as Record<string, unknown>).myPlayerId).not.toBe(playerId1);
+    expect((msg2.state as Record<string, unknown>).myPlayerId).toBe(playerId1);
+    expect(msg2.token).toBeDefined();
 
     ws2.close();
+  });
+
+  it("tokenless join does not recover when multiple in-grace players share the same display name", async () => {
+    const { roomCode } = await createRoom();
+    const sockets: WebSocket[] = [];
+
+    for (const name of ["Alice", "Bob", "Alice"]) {
+      const ws = await connectWs(wsUrl);
+      const joinP = waitForMessage(ws);
+      const broadcastP = sockets.map((s) => waitForMessage(s));
+      sendJoin(ws, roomCode, name);
+      await joinP;
+      await Promise.all(broadcastP);
+      sockets.push(ws);
+    }
+
+    sockets[0].close();
+    sockets[2].close();
+    await delay(50);
+
+    const wsNew = await connectWs(wsUrl);
+    const msgP = waitForMessage(wsNew);
+    sendJoin(wsNew, roomCode, "Alice");
+    const msg = await msgP;
+
+    expect(msg.type).toBe("STATE_UPDATE");
+    expect((msg.state as Record<string, unknown>).myPlayerId).toBe("player-3");
+
+    sockets[1].close();
+    wsNew.close();
   });
 
   it("releases seat after grace period expires", async () => {
@@ -952,6 +1017,74 @@ describe("grace period recovery", () => {
     const players = state2.players as Array<Record<string, unknown>>;
     expect(players).toHaveLength(1);
     expect(players[0]?.displayName).toBe("Bob");
+
+    ws2.close();
+  });
+
+  it("grace expiry seat-release broadcast does not carry PLAYER_RECONNECTING (AC9, T3)", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    await msg1Promise;
+
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Bob");
+    await msg2Promise;
+
+    // Consume PLAYER_JOINED on ws1
+    await waitForMessage(ws1);
+
+    // Consume PLAYER_RECONNECTING on ws1 when ws2 disconnects
+    const reconnectingBroadcast = waitForMessage(ws1);
+    ws2.close();
+    const reconnectingMsg = await reconnectingBroadcast;
+    expect(reconnectingMsg.resolvedAction).toMatchObject({ type: "PLAYER_RECONNECTING" });
+
+    // Seat-release broadcast after grace expires must NOT re-fire PLAYER_RECONNECTING
+    const seatReleaseBroadcast = waitForMessage(ws1);
+    await delay(SHORT_GRACE_MS + 100);
+    const seatReleaseMsg = await seatReleaseBroadcast;
+    expect(seatReleaseMsg.type).toBe("STATE_UPDATE");
+    expect(seatReleaseMsg.resolvedAction).toBeUndefined();
+    const state = seatReleaseMsg.state as Record<string, unknown>;
+    const players = state.players as Array<Record<string, unknown>>;
+    expect(players.find((p) => p.playerId === "player-1")).toBeUndefined();
+
+    ws1.close();
+  });
+
+  it("tokenless join with same displayName AFTER grace expired falls through to new join (T7)", async () => {
+    const { roomCode } = await createRoom();
+
+    const ws1 = await connectWs(wsUrl);
+    const msg1Promise = waitForMessage(ws1);
+    sendJoin(ws1, roomCode, "Alice");
+    await msg1Promise;
+
+    ws1.close();
+    await delay(50);
+
+    // Wait past grace expiry — seat released, graceTimers entry deleted
+    await delay(SHORT_GRACE_MS + 100);
+
+    // Same-name tokenless reconnect after grace — should be a fresh join, NOT a seat recovery
+    const ws2 = await connectWs(wsUrl);
+    const msg2Promise = waitForMessage(ws2);
+    sendJoin(ws2, roomCode, "Alice");
+    const msg2 = await msg2Promise;
+
+    expect(msg2.type).toBe("STATE_UPDATE");
+    const state = msg2.state as Record<string, unknown>;
+    expect(state.myPlayerId).toBe("player-0");
+    const players = state.players as Array<Record<string, unknown>>;
+    expect(players).toHaveLength(1);
+    expect(players[0]?.displayName).toBe("Alice");
+
+    // A fresh token was issued (no recovery from the lost pre-grace token)
+    expect(msg2.token).toBeDefined();
 
     ws2.close();
   });

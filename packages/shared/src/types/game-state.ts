@@ -230,6 +230,11 @@ export interface ActionResult {
 /** Describes what happened after a successful action */
 export type ResolvedAction =
   | { readonly type: "PLAYER_JOINED"; readonly playerId: string; readonly playerName: string }
+  | {
+      readonly type: "PLAYER_RECONNECTING";
+      readonly playerId: string;
+      readonly playerName: string;
+    }
   | { readonly type: "PLAYER_RECONNECTED"; readonly playerId: string; readonly playerName: string }
   | { readonly type: "GAME_STARTED" }
   | {
