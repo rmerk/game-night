@@ -55,6 +55,14 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Roo
     reactionRateTimestamps: new Map(),
     paused: false,
     pausedAt: null,
+    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
+    turnTimerHandle: null,
+    turnTimerStage: null,
+    turnTimerPlayerId: null,
+    consecutiveTurnTimeouts: new Map(),
+    afkVoteState: null,
+    afkVoteCooldownPlayerIds: new Set(),
+    deadSeatPlayerIds: new Set(),
     createdAt: Date.now(),
     logger: createMockLogger(),
   };
@@ -193,6 +201,22 @@ describe("applyGraceExpiryGameActions", () => {
     expect(state.turnPhase).toBe(savedTurnPhase);
     expect(state.currentTurn).toBe(savedCurrentTurn);
     expect(state.lastDiscard).toBe(savedLastDiscard);
+  });
+
+  it("does not mutate consecutiveTurnTimeouts (Story 4B.4 AC9)", () => {
+    const { state, discarderId } = playStateAtDiscard();
+    const players = [
+      createTestPlayer("p1", "east", true),
+      createTestPlayer("p2", "south"),
+      createTestPlayer("p3", "west"),
+      createTestPlayer("p4", "north"),
+    ];
+    const room = createTestRoom(players, state);
+    room.consecutiveTurnTimeouts.set(discarderId, 7);
+
+    applyGraceExpiryGameActions(room, discarderId, room.logger);
+
+    expect(room.consecutiveTurnTimeouts.get(discarderId)).toBe(7);
   });
 
   it("early-returns when room is paused (AC4)", () => {

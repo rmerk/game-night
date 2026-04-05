@@ -11,8 +11,14 @@ import {
 } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
-import { startLifecycleTimer } from "../rooms/room-lifecycle";
+import { cancelLifecycleTimer, startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState } from "./state-broadcaster";
+import {
+  cancelAfkVote,
+  cancelTurnTimer,
+  resetTurnTimerStateOnGameEnd,
+  syncTurnTimer,
+} from "./turn-timer";
 
 function clearSocialOverrideTimer(room: Room): void {
   if (room.socialOverrideTimer) {
@@ -296,6 +302,11 @@ export function handleActionMessage(
     return;
   }
 
+  if (room.gameState && room.deadSeatPlayerIds.has(playerId)) {
+    sendActionError(ws, logger, "DEAD_SEAT", "Dead seat players cannot take actions");
+    return;
+  }
+
   // START_GAME is the only action allowed before gameState exists
   if (!room.gameState) {
     if (actionObj.type === "START_GAME") {
@@ -326,6 +337,22 @@ export function handleActionMessage(
     );
     broadcastGameState(room, room.gameState, result.resolved);
 
+    room.consecutiveTurnTimeouts.delete(playerId);
+
+    const postActionGameState = room.gameState;
+    if (
+      postActionGameState &&
+      (postActionGameState.gamePhase === "scoreboard" ||
+        postActionGameState.gamePhase === "rematch")
+    ) {
+      resetTurnTimerStateOnGameEnd(room, logger);
+    } else {
+      if (room.afkVoteState?.targetPlayerId === playerId) {
+        cancelAfkVote(room, logger, "target_active");
+      }
+      syncTurnTimer(room, logger);
+    }
+
     if (!room.gameState.socialOverrideState) {
       clearSocialOverrideTimer(room);
     } else if (authenticatedAction.type === "SOCIAL_OVERRIDE_REQUEST") {
@@ -337,6 +364,11 @@ export function handleActionMessage(
         const timeoutResult = handleSocialOverrideTimeout(gs);
         if (timeoutResult.accepted) {
           broadcastGameState(room, gs, timeoutResult.resolved);
+          if (gs.gamePhase === "scoreboard" || gs.gamePhase === "rematch") {
+            resetTurnTimerStateOnGameEnd(room, logger);
+          } else {
+            syncTurnTimer(room, logger);
+          }
         }
       }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
     }
@@ -352,6 +384,11 @@ export function handleActionMessage(
         const timeoutResult = handleTableTalkTimeout(gs);
         if (timeoutResult.accepted) {
           broadcastGameState(room, gs, timeoutResult.resolved);
+          if (gs.gamePhase === "scoreboard" || gs.gamePhase === "rematch") {
+            resetTurnTimerStateOnGameEnd(room, logger);
+          } else {
+            syncTurnTimer(room, logger);
+          }
         }
       }, SOCIAL_OVERRIDE_TIMEOUT_SECONDS * 1000);
     }
@@ -425,7 +462,16 @@ function handleStartGameAction(
 
   if (result.accepted) {
     logger.info({ roomCode: room.roomCode, playerId }, "Game started");
+    cancelTurnTimer(room, logger);
+    room.consecutiveTurnTimeouts.clear();
+    if (room.afkVoteState) {
+      cancelLifecycleTimer(room, "afk-vote-timeout");
+      room.afkVoteState = null;
+    }
+    room.afkVoteCooldownPlayerIds.clear();
+    room.deadSeatPlayerIds.clear();
     broadcastGameState(room, room.gameState, result.resolved);
+    syncTurnTimer(room, logger);
   } else {
     // Engine rejected — clean up the lobby state
     room.gameState = null;

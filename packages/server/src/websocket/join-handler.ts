@@ -13,6 +13,7 @@ import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
+import { cancelAfkVote, cancelTurnTimer, syncTurnTimer } from "./turn-timer";
 import { handlePauseTimeout, releaseSeat } from "./pause-handlers";
 import {
   broadcastGameState,
@@ -150,7 +151,8 @@ function attachToExistingSeat(
     playerName: player.displayName,
   });
 
-  if (room.paused && countDisconnectedPlayers(room) === 0) {
+  const resumedFromPause = room.paused && countDisconnectedPlayers(room) === 0;
+  if (resumedFromPause) {
     cancelLifecycleTimer(room, "pause-timeout");
     room.paused = false;
     room.pausedAt = null;
@@ -159,6 +161,16 @@ function attachToExistingSeat(
   }
 
   registerDisconnectHandler(ws, room, playerId, logger, roomManager);
+
+  // Story 4B.4 AC2: only (re-)arm the turn timer if this reconnect changes
+  // who should be on the clock — either a pause just resumed, or the
+  // reconnecter IS the current turn player whose timer was cancelled on their
+  // own disconnect. A reconnect by a non-current player must not give the
+  // current player a fresh full-duration turn (exploitable to dodge AFK
+  // escalation). `syncTurnTimer` is a no-op while paused anyway.
+  if (resumedFromPause || room.gameState?.currentTurn === playerId) {
+    syncTurnTimer(room, logger);
+  }
 }
 
 function handleTokenReconnection(
@@ -239,6 +251,7 @@ function applyCharlestonAutoAction(room: Room, playerId: string, logger: Fastify
   const result = handleAction(room.gameState, autoAction);
   if (result.accepted) {
     broadcastGameState(room, room.gameState, result.resolved);
+    syncTurnTimer(room, logger);
     logger.info(
       { roomCode: room.roomCode, playerId, actionType: autoAction.type },
       "Charleston auto-action applied for disconnected player",
@@ -270,6 +283,17 @@ function registerDisconnectHandler(
     player.connected = false;
     logger.info({ roomCode: room.roomCode, playerId }, "Player disconnected");
 
+    // Story 4B.4 AC9: turn timer must not tick on a disconnected current player.
+    // Grace-expiry owns auto-discard for offline players and does NOT increment
+    // `consecutiveTurnTimeouts`. Cancel the turn timer here so a race where the
+    // timer fires before grace-expiry cannot increment the counter or broadcast
+    // a misleading nudge for an offline player. Grace-expiry's own
+    // `syncTurnTimer` call will re-arm for whoever becomes current after
+    // auto-discard.
+    if (room.turnTimerPlayerId === playerId) {
+      cancelTurnTimer(room, logger);
+    }
+
     if (room.paused) {
       // AC11: dead session entry is intentionally left in room.sessions here —
       // readyState filter in broadcastStateToRoom skips it, and the eventual
@@ -292,6 +316,10 @@ function registerDisconnectHandler(
         clearTimeout(t);
       }
       room.graceTimers.clear();
+      cancelTurnTimer(room, logger);
+      if (room.afkVoteState) {
+        cancelAfkVote(room, logger, "pause");
+      }
       cancelLifecycleTimer(room, "disconnect-timeout");
       room.paused = true;
       room.pausedAt = Date.now();

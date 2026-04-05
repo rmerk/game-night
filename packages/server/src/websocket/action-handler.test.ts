@@ -291,6 +291,54 @@ describe("handleActionMessage", () => {
     for (const p of players) p.ws.close();
   });
 
+  it("clears consecutiveTurnTimeouts for actor on accepted action (4B.4 AC6)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gameState = room.gameState!;
+    const currentTurnPlayerId = gameState.currentTurn;
+    const currentPlayer = players.find((p) => p.playerId === currentTurnPlayerId)!;
+    room.consecutiveTurnTimeouts.set(currentTurnPlayerId, 5);
+    const tileToDiscard = gameState.players[currentTurnPlayerId].rack.at(-1)!;
+
+    const messagePromises = players.map((p) => waitForMessage(p.ws));
+    sendAction(currentPlayer.ws, {
+      type: "DISCARD_TILE",
+      playerId: currentTurnPlayerId,
+      tileId: tileToDiscard.id,
+    });
+    await Promise.all(messagePromises);
+
+    expect(room.consecutiveTurnTimeouts.has(currentTurnPlayerId)).toBe(false);
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("cancels AFK vote when target performs voluntary action (4B.4 AC13)", async () => {
+    const { roomCode, players } = await setupGameInProgress();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gameState = room.gameState!;
+    const currentTurnPlayerId = gameState.currentTurn;
+    const currentPlayer = players.find((p) => p.playerId === currentTurnPlayerId)!;
+    room.afkVoteState = {
+      targetPlayerId: currentTurnPlayerId,
+      startedAt: Date.now(),
+      votes: new Map(),
+    };
+    const tileToDiscard = gameState.players[currentTurnPlayerId].rack.at(-1)!;
+
+    const messagePromises = players.map((p) => waitForMessage(p.ws));
+    sendAction(currentPlayer.ws, {
+      type: "DISCARD_TILE",
+      playerId: currentTurnPlayerId,
+      tileId: tileToDiscard.id,
+    });
+    await Promise.all(messagePromises);
+
+    expect(room.afkVoteState).toBeNull();
+
+    for (const p of players) p.ws.close();
+  });
+
   it("overwrites playerId with authenticated identity (security)", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;

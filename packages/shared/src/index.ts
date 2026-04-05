@@ -97,6 +97,7 @@ export type {
   ActionMessage,
   RequestStateMessage,
   SetJokerRulesMessage,
+  AfkVoteCastMessage,
   ChatMessage,
   ReactionMessage,
   ChatBroadcast,

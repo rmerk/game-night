@@ -17,6 +17,8 @@ import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
 import MahjongButton from "./MahjongButton.vue";
 import InvalidMahjongNotification from "./InvalidMahjongNotification.vue";
+import BaseToast from "../ui/BaseToast.vue";
+import AfkVoteModal from "./AfkVoteModal.vue";
 import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
@@ -87,6 +89,8 @@ const props = withDefaults(
     reactionAnchorForPlayer?: (playerId: string) => "top" | "left" | "right" | "local" | null;
     /** Room paused (simultaneous disconnect) — server rejects game actions */
     paused?: boolean;
+    /** Story 4B.4 — player ids marked dead-seat */
+    deadSeatPlayerIds?: readonly string[];
   }>(),
   {
     opponents: () => ({}),
@@ -111,6 +115,7 @@ const props = withDefaults(
     tableTalkReportCountsByPlayerId: undefined,
     reactionAnchorForPlayer: undefined,
     paused: false,
+    deadSeatPlayerIds: () => [],
   },
 );
 
@@ -132,6 +137,7 @@ const emit = defineEmits<{
   retractCall: [];
   sendChat: [text: string];
   sendReaction: [emoji: string];
+  afkVote: [targetPlayerId: string, vote: "approve" | "deny"];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -533,6 +539,53 @@ const playerNamesById = computed<Record<string, string>>(() => {
   return Object.fromEntries(entries);
 });
 
+const afkVoteOpen = ref<{ targetPlayerId: string; expiresAt: number } | null>(null);
+const nudgeToastVisible = ref(false);
+const nudgeToastText = ref("");
+const autoDiscardToastVisible = ref(false);
+const autoDiscardToastText = ref("");
+
+const afkVoteTargetDisplayName = computed(() => {
+  const o = afkVoteOpen.value;
+  if (!o) return "";
+  return playerNamesById.value[o.targetPlayerId] ?? o.targetPlayerId;
+});
+
+function isDeadSeatPlayer(playerId: string | undefined): boolean {
+  if (!playerId) return false;
+  return props.deadSeatPlayerIds.includes(playerId);
+}
+
+watch(
+  () => props.resolvedAction,
+  (ra) => {
+    if (!ra) return;
+    switch (ra.type) {
+      case "TURN_TIMER_NUDGE": {
+        const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
+        const isLocal = ra.playerId === props.localPlayer?.id;
+        nudgeToastText.value = isLocal ? "It's your turn!" : `${name} is idle`;
+        nudgeToastVisible.value = true;
+        break;
+      }
+      case "TURN_TIMEOUT_AUTO_DISCARD": {
+        const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
+        autoDiscardToastText.value = `${name} auto-discarded`;
+        autoDiscardToastVisible.value = true;
+        break;
+      }
+      case "AFK_VOTE_STARTED":
+        afkVoteOpen.value = { targetPlayerId: ra.targetPlayerId, expiresAt: ra.expiresAt };
+        break;
+      case "AFK_VOTE_RESOLVED":
+        afkVoteOpen.value = null;
+        break;
+      default:
+        break;
+    }
+  },
+);
+
 const playerOrder = computed(() =>
   SEATS.map((seat) => playersBySeat.value[seat]?.id).filter((playerId): playerId is string =>
     Boolean(playerId),
@@ -595,6 +648,39 @@ function onChatEscape() {
         Waiting for players to reconnect…
       </div>
     </div>
+    <div
+      class="pointer-events-none fixed inset-x-0 top-14 z-40 flex flex-col items-center gap-2 px-4"
+      aria-live="polite"
+    >
+      <BaseToast
+        data-testid="turn-timer-nudge-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="nudgeToastVisible"
+        :auto-dismiss-ms="5000"
+        @dismiss="nudgeToastVisible = false"
+      >
+        {{ nudgeToastText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="turn-timeout-auto-discard-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="autoDiscardToastVisible"
+        :auto-dismiss-ms="3000"
+        @dismiss="autoDiscardToastVisible = false"
+      >
+        {{ autoDiscardToastText }}
+      </BaseToast>
+    </div>
+    <AfkVoteModal
+      :open="afkVoteOpen !== null"
+      :target-player-id="afkVoteOpen?.targetPlayerId ?? ''"
+      :target-player-name="afkVoteTargetDisplayName"
+      :is-target-local-player="
+        afkVoteOpen !== null && localPlayer?.id === afkVoteOpen.targetPlayerId
+      "
+      :expires-at="afkVoteOpen?.expiresAt ?? null"
+      @vote="(v) => (afkVoteOpen ? emit('afkVote', afkVoteOpen.targetPlayerId, v) : undefined)"
+    />
     <!-- Desktop / tablet: floating reaction bar (AC7) — clear of right-column toggles via offset -->
     <div
       v-if="showReactionChrome"
@@ -620,6 +706,7 @@ function onChatEscape() {
         :player="topPlayer"
         :is-active-turn="isSeatActive(topPlayer?.seatWind)"
         :score="topPlayer?.score ?? null"
+        :is-dead-seat="isDeadSeatPlayer(topPlayer?.id)"
       />
     </div>
 
@@ -642,6 +729,7 @@ function onChatEscape() {
           :player="leftPlayer"
           :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
           :score="leftPlayer?.score ?? null"
+          :is-dead-seat="isDeadSeatPlayer(leftPlayer?.id)"
         />
       </div>
 
@@ -816,6 +904,7 @@ function onChatEscape() {
           :player="rightPlayer"
           :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
           :score="rightPlayer?.score ?? null"
+          :is-dead-seat="isDeadSeatPlayer(rightPlayer?.id)"
         />
       </div>
     </div>
@@ -851,6 +940,13 @@ function onChatEscape() {
             :class="{ 'ring-2 ring-state-turn-active': isLocalPlayerTurn }"
           >
             <span class="text-interactive">{{ localPlayer.name }}</span>
+            <span
+              v-if="isDeadSeatPlayer(localPlayer.id)"
+              :data-testid="`dead-seat-badge-${localPlayer.id}`"
+              class="text-2.5 text-text-on-felt/60"
+            >
+              Dead Seat
+            </span>
             <BaseBadge
               v-if="isLocalPlayerTurn"
               data-testid="local-player-status"

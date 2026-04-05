@@ -8,10 +8,12 @@ const props = withDefaults(
     player: OpponentPlayer | null;
     isActiveTurn?: boolean;
     score?: number | null;
+    isDeadSeat?: boolean;
   }>(),
   {
     isActiveTurn: false,
     score: null,
+    isDeadSeat: false,
   },
 );
 
@@ -44,6 +46,13 @@ const isDev = import.meta.env.DEV;
       <!-- Player name -->
       <span class="text-text-on-felt text-3 lg:text-3.5 truncate max-w-full text-center">
         {{ player.name }}
+      </span>
+      <span
+        v-if="isDeadSeat"
+        :data-testid="`dead-seat-badge-${player.id}`"
+        class="text-2.5 text-text-on-felt/60"
+      >
+        Dead Seat
       </span>
 
       <p

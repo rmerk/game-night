@@ -574,9 +574,10 @@ describe("GameTable — call buttons integration", () => {
       callWindow: mockCallWindow,
       validCallOptions: ["pung"],
     });
-    const transition = wrapper.findComponent({ name: "Transition" });
-    expect(transition.exists()).toBe(true);
-    expect(transition.find("[data-testid='call-pung']").exists()).toBe(true);
+    const transitions = wrapper.findAllComponents({ name: "Transition" });
+    const callTransition = transitions.find((t) => t.find("[data-testid='call-pung']").exists());
+    expect(callTransition).toBeDefined();
+    expect(callTransition!.find("[data-testid='call-pung']").exists()).toBe(true);
   });
 });
 

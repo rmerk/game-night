@@ -7,85 +7,85 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 10:54am CDT
+# $CMEM mahjong-game 2026-04-05 2:17pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (22,770t read) | 485,603t work | 95% savings
+Stats: 50 obs (27,023t read) | 525,883t work | 95% savings
 
 ### Apr 5, 2026
-722 9:40a ✅ Epic 6A Timeline Document Created
-723 9:41a ✅ Epic 6A Retrospective and Timeline Committed
-724 9:42a 🔵 GDS Create-Story Workflow System
-725 9:50a ✅ Story 4B.1 (Reconnection with Full State Restore) created and Epic 4B initiated
-726 9:59a 🔵 Player State and Session Management Architecture in Mahjong Game
-727 " ✅ Story 4B.1 Specification Refined with Pass 2 Clarifications
-728 10:00a ✅ Refined AC1-AC3 with Explicit Broadcast Architecture and Scope Boundaries
-729 10:01a ⚖️ AC7 Architecture Locked to Build-Send Separation with sendCurrentState Deletion
-730 " ✅ AC8 Tokenless Recovery Tightened with Sanitization Symmetry and Grace-Expiry Edge Case
-731 10:02a ✅ AC14 Testing Strategy Expanded with Dual Grace-Period Handling Options
-732 " ✅ Task 2 Corrected from Additive to Replacement Broadcast Pattern
-733 10:03a ✅ Task 3 Expanded with Full TypeScript Signatures and Explicit Code Migration Patterns
-734 " ✅ Task 4 Restructured with Mandatory Extract-First Pattern and Complete attachToExistingSeat Specification
-735 " ✅ Task 5 Refined with Correct Property Reference and Empty-Seat Branch Handling
-736 10:06a ✅ Sprint task status updated for reconnection feature
-737 " 🟣 Player reconnection event type added to game state
-738 " 🟣 Reconnection state management refactored with centralized message sequencing
-739 10:07a 🟣 Tokenless grace recovery enables reconnection via displayName match
-740 " 🟣 Reconnection status displayed in opponent area UI
-741 " 🔴 Test suite updated to reflect tokenless grace recovery behavior
-742 " ✅ Reconnection test coverage expanded with broadcast and supersession verification
-743 10:08a ✅ Post-state sequence module test suite created and validated
-744 " ✅ Client reconnection test suite created for useRoomConnection composable
-745 " ✅ OpponentArea component tests added for reconnection label display
-746 " ✅ Integration test enhanced with full reconnection event verification
-747 " 🔴 Integration test fixed to consume pending broadcasts before disconnect
-748 10:09a ✅ Full test suite passing with complete reconnection feature coverage
-749 " 🔄 Linting warnings addressed with safer type handling
-750 " ✅ Task 4B-1 status updated to review with completed subtasks marked
-751 " ✅ All task 4B-1 subtasks marked complete and sprint status updated
-752 10:10a ✅ Implementation artifact finalized with comprehensive metadata and file manifest
-S289 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion (Apr 5 at 10:15 AM)
-753 10:16a ✅ Added AC9 and T7 negative test coverage
-754 10:17a ✅ Updated sprint status comment for 4b-1 completion
-755 " ✅ Updated sprint status tracking for story and retro completion
-S290 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion, with additional GameTable.vue prop-flow investigation (Apr 5 at 10:19 AM)
-S291 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion, with detailed GameTable.vue component prop-flow investigation (Apr 5 at 10:20 AM)
-S292 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore), with detailed investigation of REQUEST_STATE handler implementation and test coverage for AC7 (sendPostStateSequence helper) (Apr 5 at 10:21 AM)
-S293 Second-pass verification of Story 4B.1 (Reconnection with Full State Restore) after code review completion - deep dive into component prop-flow, REQUEST_STATE handler, and architectural patterns to identify any remaining issues (Apr 5 at 10:21 AM)
-S294 Captured technical debt items from 4B.1 code review pass 2 as trackable follow-up work (Apr 5 at 10:22 AM)
-756 10:28a 🔵 Retrospective Follow-Through Tracked as First-Class Work Items
-757 10:29a ✅ Code Review Technical Debt Captured for Epic 4B
-S295 Code review of Story 4B.2 phase-specific reconnection fallbacks for multiplayer Mahjong game (Apr 5 at 10:29 AM)
-758 10:32a ✅ Created Story 4B.2 for Phase-Specific Reconnection Fallbacks
-759 10:33a 🔄 Consolidated Broadcast Helpers with Try/Catch Safety
-760 " 🔄 Improved Null Handling in Broadcast Fan-Out
-761 " 🟣 Implemented Phase-Specific Auto-Actions for Disconnected Players
-762 10:34a ✅ Added Tests for Grace Expiry Auto-Actions
-763 10:40a 🔵 GDS Adversarial Code Review Workflow Structure
-764 10:41a 🟣 Phase-Specific Reconnection Fallbacks for Multiplayer Mahjong
-765 " 🔄 Join Handler Refactored for Consolidated Broadcasting and Safe State Building
-766 " ✅ Charleston Test Updated for Play-Phase Auto-Action Coexistence
-S296 Code review completion with automatic fixes for Story 4B.2 phase-specific reconnection fallbacks (Apr 5 at 10:44 AM)
-767 10:47a 🔴 Fixed attachToExistingSeat Incorrect Session Deletion on State Build Failure
-768 " ✅ Added Missing Unit Tests for Grace Expiry No-Op Scenarios
-769 10:48a ✅ Story Change Log Updated with Code Review Fixes
-770 " ✅ Sprint Status Synchronized with Story Completion
-S297 Second pass adversarial code review with deep verification of applied fixes and edge case analysis (Apr 5 at 10:48 AM)
-771 10:53a ✅ Code Review Follow-Up Items Documented in Story File
-S298 Documentation of second-pass verification findings and review follow-up items (Apr 5 at 10:54 AM)
-**Investigated**: Completed comprehensive two-pass adversarial code review. First pass identified and fixed 1 medium issue (AC8 session deletion bug) and 2 low issues (missing AC4/AC5 tests). Second pass conducted deep verification of fixes including supersession close-handler behavior in both grace-reconnect and live-supersession modes, broadcast consolidation semantic preservation across 7 call sites, and phase-branch mutual exclusion verification. Identified 3 additional low-priority observations for future maintenance.
+S298 Documentation of second-pass verification findings and review follow-up items (Apr 5 at 10:53 AM)
+S299 Create Story 4B.3 specification for simultaneous disconnection handling with game pause mechanism (Apr 5 at 10:54 AM)
+S300 Code review of Story 4B.3 simultaneous disconnection pause feature for multiplayer Mahjong game (Apr 5 at 11:45 AM)
+787 11:51a 🔄 T2 Test Refactored to Check Server State Instead of Broadcast Messages
+788 " 🟣 All Story 4B.3 Integration Tests Passing
+789 " 🟣 Action Rejection Test for Paused Room
+790 11:52a 🟣 Simultaneous Disconnection Game Pause Feature Complete
+791 11:53a ✅ Implementation Artifact Documentation Finalized
+792 11:54a 🟣 Expanded WebSocket test coverage for room pause and reconnection scenarios
+793 11:56a ✅ Game Pause Test Coverage Expansion - Pass 2
+794 12:18p 🔵 Code review workflow configured for mahjong-game project
+795 12:19p 🔵 Story 4B.3 simultaneous disconnection pause feature ready for review
+796 12:20p 🔵 Client-side pause banner implementation examined
+797 " 🔵 Pause handlers unit test coverage examined
+798 12:21p 🔵 Comprehensive test coverage verified across pause implementation
+799 12:22p 🔵 Pause auto-end integrates with existing scoreboard idle-timeout mechanism
+S301 Code review Pass 3 for Story 4B.3 (Simultaneous Disconnection & Game Pause) - identify issues, apply fixes, validate with regression gate, and mark story complete (Apr 5 at 12:23 PM)
+800 12:23p 🔵 Story 4B.3 transition scenario test implementations examined in detail
+801 12:24p 🔴 Code review fixes applied: idle-timeout arm, releaseSeat simplification, session cleanup comment
+802 " ✅ Test coverage added for idle-timeout and abandoned-timeout branching logic in handlePauseTimeout
+803 12:25p ✅ Test suite cleanup improved with belt-and-suspenders pause-timeout cancellation in afterEach hook
+804 " ✅ Full regression gate passed after code review fixes applied
+S302 Check git repository status and recent commit history before committing completed Story 4B.3 work (Apr 5 at 12:27 PM)
+S303 Commit Story 4B.3 (Simultaneous Disconnection & Game Pause) implementation to git repository (Apr 5 at 12:28 PM)
+S304 Verify clean working tree after Story 4B.3 commit and confirm all feature files staged properly (Apr 5 at 12:28 PM)
+S305 Create Story 4B.4 specification for turn timeout and AFK escalation feature (Apr 5 at 12:28 PM)
+805 12:29p 🔵 BMad Method Story Creation Workflow System
+806 12:30p 🔵 Simultaneous Disconnection Pause System (Story 4B.3)
+807 12:42p ✅ Story 4B.4 specification created: Turn Timeout & AFK Escalation
+S306 GDS Code Review for Story 4B.4 Turn Timeout & AFK Escalation - Validating Implementation Against 20 Acceptance Criteria (Apr 5 at 12:43 PM)
+808 1:36p 🟣 Turn timeout and AFK escalation event types
+809 " 🟣 Turn timer and AFK vote server infrastructure
+810 " 🟣 AFK vote timeout configuration
+811 1:37p 🟣 Complete turn timer and AFK voting system implementation
+812 " ✅ Turn timer system integration
+813 1:38p ✅ Turn timer event handler integration
+814 " 🔴 Fixed TypeScript errors from turn timer implementation
+815 1:39p 🟣 Client-side AFK vote sending function
+816 " 🟣 AFK vote modal UI component
+817 1:40p 🟣 Turn timer and AFK vote UI integration
+818 " 🟣 GameTable template completion for timer UI
+819 1:41p 🟣 Turn Timer Test Coverage
+820 " ✅ Turn Timeout AFK Escalation Ready for Review
+821 " ✅ Turn Timeout AFK Escalation Feature Documentation Completed
+822 1:45p 🟣 Comprehensive test suite for turn timer and AFK voting system
+823 1:46p 🔴 Fixed timer duration configuration in turn timer tests
+824 1:47p 🔄 Fixed TypeScript linting errors in turn-timer test suite
+825 1:48p 🔵 GDS Code Review Workflow Loaded
+826 1:49p 🔵 Story 4B.4 Turn Timer Implementation Under Review
+827 " 🔵 Turn Timer Test Coverage and Integration Points Validated
+828 1:50p 🔵 Grace Expiry and Turn Timeout Share Auto-Discard Logic
+829 1:54p ✅ Turn Timer Infrastructure Added Across Server and Shared Types
+830 2:13p 🔴 Turn timer cancellation on player disconnect
+831 " 🔴 AFK escalation guards for disconnected players
+832 2:14p 🔴 Reconnection timer reset exploit prevention
+833 " ✅ Documented defensive timer cleanup in pause timeout handler
+834 2:15p ✅ Clarified AFK vote flip test description
+835 " ✅ Added regression tests for AC9 disconnect AFK guards
+836 2:16p ✅ Story 4B.4 marked complete
+S307 Code review and bugfix pass for Story 4B.4 Turn Timeout & AFK Escalation addressing disconnect handling edge cases (Apr 5 at 2:17 PM)
+**Investigated**: Adversarial code review identified seven issues (H1, H2, M1, M2, M3, L1, L3) in the AFK escalation system's interaction with player disconnection, focusing on race conditions where the turn timer could fire for offline players, reconnection exploits that reset timers inappropriately, and defensive guards missing in vote casting paths.
 
-**Learned**: Story documentation follows a structured pattern with Review Follow-ups section for non-blocking findings, Change Log for chronological work history, and Completion Notes for final status summary. The two-pass review approach validates not just that fixes were applied but that they correctly handle edge cases - the attachToExistingSeat fix self-heals in both reconnection scenarios through careful state reversion. Review follow-up items are tracked as unchecked tasks with severity tags, file locations, and actionable recommendations, creating a maintenance backlog without blocking story completion.
+**Learned**: AFK escalation must be strictly separated from disconnect handling: turn timers should cancel immediately when the current player disconnects (H1), timer expiry handlers need connection re-checks for defense-in-depth (H2), and reconnections by non-current players must not reset the stuck player's timer to prevent collusion exploits (M1). Grace-expiry owns all offline player auto-discard paths without incrementing AFK counters, while the turn timer system targets only present-but-inattentive players.
 
-**Completed**: Added "Review Follow-ups (AI)" section with 3 LOW-severity action items: createTestRoom manual Room construction maintenance risk, hot-path broadcast assertion coverage gap, and deep relative import pattern for test helpers. Updated Change Log with second-pass entry documenting supersession verification, broadcast semantics validation, and phase-branch exclusion confirmation. Added Completion Notes entry summarizing two-pass code review outcome. Story remains at Status: done with all gates passing (258/258 tests, typecheck clean, lint 0 errors) and sprint-status.yaml synchronized.
+**Completed**: Applied all HIGH and MEDIUM severity fixes: turn timer cancellation on current-player disconnect (join-handler.ts), connected guard in handleTurnTimerExpiry (turn-timer.ts), conditional syncTurnTimer gating in attachToExistingSeat to resume-from-pause or current-player-only (join-handler.ts), defensive connected check in handleAfkVoteCastMessage (turn-timer.ts), and startAfkVote rejection of disconnected targets (turn-timer.ts). Added two AC9 regression tests validating extended-expiry no-op on disconnect and AFK vote prevention for offline targets. Updated T20 test name for clarity and documented defensive cleanup in handlePauseTimeout. All 300 server tests pass, typecheck clean, lint 0 errors. Story status updated from review to done in both implementation artifact and sprint-status.yaml.
 
-**Next Steps**: Code review workflow fully complete. Story 4B.2 marked done with 3 LOW follow-ups documented for future work. All fixes verified, no blocking issues, ready for human merge approval.
+**Next Steps**: Story 4B.4 complete. Session wrapped up with documentation updates and sprint tracking. Epic 4B (Multiplayer Resilience) continues with 4B.5 (dead-seat turn skip) remaining in backlog.
 
 
-Access 486k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 526k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

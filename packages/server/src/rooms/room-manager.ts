@@ -7,6 +7,7 @@ import { generateUniqueRoomCode } from "./room-code";
 import type { Room } from "./room";
 import { cancelAllLifecycleTimers, startLifecycleTimer } from "./room-lifecycle";
 import { revokeToken } from "./session-manager";
+import { cancelTurnTimer, getDefaultTurnTimerConfig } from "../websocket/turn-timer";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
 
@@ -41,6 +42,14 @@ export class RoomManager {
       reactionRateTimestamps: new Map(),
       paused: false,
       pausedAt: null,
+      turnTimerConfig: getDefaultTurnTimerConfig(),
+      turnTimerHandle: null,
+      turnTimerStage: null,
+      turnTimerPlayerId: null,
+      consecutiveTurnTimeouts: new Map(),
+      afkVoteState: null,
+      afkVoteCooldownPlayerIds: new Set(),
+      deadSeatPlayerIds: new Set(),
       createdAt: Date.now(),
       logger: roomLogger,
     };
@@ -116,6 +125,7 @@ export class RoomManager {
       clearTimeout(room.tableTalkReportTimer);
       room.tableTalkReportTimer = null;
     }
+    cancelTurnTimer(room, room.logger);
 
     room.chatHistory.length = 0;
     room.chatRateTimestamps.clear();

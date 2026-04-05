@@ -34,6 +34,14 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     reactionRateTimestamps: new Map(),
     paused: false,
     pausedAt: null,
+    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
+    turnTimerHandle: null,
+    turnTimerStage: null,
+    turnTimerPlayerId: null,
+    consecutiveTurnTimeouts: new Map(),
+    afkVoteState: null,
+    afkVoteCooldownPlayerIds: new Set(),
+    deadSeatPlayerIds: new Set(),
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
   };
@@ -42,6 +50,9 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     ...overrides,
     socialOverrideTimer: overrides?.socialOverrideTimer ?? null,
     tableTalkReportTimer: overrides?.tableTalkReportTimer ?? null,
+    turnTimerHandle: overrides?.turnTimerHandle ?? null,
+    turnTimerStage: overrides?.turnTimerStage ?? null,
+    turnTimerPlayerId: overrides?.turnTimerPlayerId ?? null,
   };
 }
 

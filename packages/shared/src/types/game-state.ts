@@ -387,4 +387,30 @@ export type ResolvedAction =
     }
   | { readonly type: "GAME_RESUMED" }
   | { readonly type: "GAME_ABANDONED"; readonly reason: "pause-timeout" }
-  | { readonly type: "HAND_SHOWN"; readonly playerId: string };
+  | { readonly type: "HAND_SHOWN"; readonly playerId: string }
+  | {
+      readonly type: "TURN_TIMER_NUDGE";
+      readonly playerId: string;
+      readonly expiresAt: number;
+    }
+  | {
+      readonly type: "TURN_TIMEOUT_AUTO_DISCARD";
+      readonly playerId: string;
+      readonly tileId: string;
+    }
+  | {
+      readonly type: "AFK_VOTE_STARTED";
+      readonly targetPlayerId: string;
+      readonly expiresAt: number;
+    }
+  | {
+      readonly type: "AFK_VOTE_CAST";
+      readonly voterId: string;
+      readonly targetPlayerId: string;
+      readonly vote: "approve" | "deny";
+    }
+  | {
+      readonly type: "AFK_VOTE_RESOLVED";
+      readonly targetPlayerId: string;
+      readonly outcome: "passed" | "failed" | "cancelled";
+    };

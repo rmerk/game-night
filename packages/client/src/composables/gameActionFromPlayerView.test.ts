@@ -46,6 +46,7 @@ function minimalView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
     jokerRulesMode: "standard",
     myDeadHand: false,
     paused: false,
+    deadSeatPlayerIds: [],
   };
   return { ...base, ...overrides };
 }

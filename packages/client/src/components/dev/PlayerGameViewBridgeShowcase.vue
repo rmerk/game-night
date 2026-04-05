@@ -59,6 +59,7 @@ function fixtureView(): PlayerGameView {
     jokerRulesMode: "standard",
     myDeadHand: false,
     paused: false,
+    deadSeatPlayerIds: [],
   };
 }
 

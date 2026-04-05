@@ -2,6 +2,16 @@ import type { FastifyBaseLogger } from "fastify";
 import type { ChatBroadcast, SeatWind, GameState, JokerRulesMode } from "@mahjong-game/shared";
 import type { WebSocket } from "ws";
 
+/** Server-only AFK vote state (Story 4B.4) — not part of shared protocol */
+export interface AfkVoteState {
+  readonly targetPlayerId: string;
+  readonly startedAt: number;
+  /** Mutable vote tally — updated by AFK_VOTE_CAST handler */
+  votes: Map<string, "approve" | "deny">;
+}
+
+export type TurnTimerConfig = { readonly mode: "timed" | "none"; readonly durationMs: number };
+
 export interface PlayerInfo {
   playerId: string;
   displayName: string;
@@ -43,6 +53,16 @@ export interface Room {
   /** Simultaneous-disconnect pause (Epic 4B.3) — orthogonal to engine phase */
   paused: boolean;
   pausedAt: number | null;
+  /** Play-phase turn timer (Story 4B.4) — dedicated handle, not lifecycle timers */
+  turnTimerConfig: TurnTimerConfig;
+  turnTimerHandle: ReturnType<typeof setTimeout> | null;
+  turnTimerStage: "initial" | "extended" | null;
+  turnTimerPlayerId: string | null;
+  /** Consecutive stuck turns (incremented on extended-stage expiry only) */
+  consecutiveTurnTimeouts: Map<string, number>;
+  afkVoteState: AfkVoteState | null;
+  afkVoteCooldownPlayerIds: Set<string>;
+  deadSeatPlayerIds: Set<string>;
   createdAt: number;
   logger: FastifyBaseLogger;
 }

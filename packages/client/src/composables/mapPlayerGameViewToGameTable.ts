@@ -49,6 +49,7 @@ export interface GameTablePropsFromView {
   tableTalkReportCountsByPlayerId: PlayerGameView["tableTalkReportCountsByPlayerId"];
   invalidMahjongMessage: string | null;
   paused: boolean;
+  deadSeatPlayerIds: readonly string[];
 }
 
 function initialFromName(name: string): string {
@@ -256,5 +257,6 @@ export function mapPlayerGameViewToGameTableProps(
     tableTalkReportCountsByPlayerId: view.tableTalkReportCountsByPlayerId,
     invalidMahjongMessage: invalidMahjongMessageFor(view, options?.resolvedAction),
     paused: view.paused ?? false,
+    deadSeatPlayerIds: view.deadSeatPlayerIds ?? [],
   };
 }

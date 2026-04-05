@@ -180,6 +180,7 @@ export function buildPlayerView(
     myDeadHand: playerState?.deadHand ?? false,
     paused: room.paused,
     ...(room.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
+    deadSeatPlayerIds: Array.from(room.deadSeatPlayerIds),
     ...(room.players.get(playerId)?.isHost ? { hostAuditLog: [...gameState.hostAuditLog] } : {}),
   };
 }

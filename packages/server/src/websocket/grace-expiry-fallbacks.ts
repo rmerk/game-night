@@ -1,18 +1,8 @@
 import type { FastifyBaseLogger } from "fastify";
 import { handleAction } from "@mahjong-game/shared";
-import type { Tile } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import { broadcastGameState } from "./state-broadcaster";
-
-function pickAutoDiscardTileId(rack: Tile[]): string | null {
-  for (let i = rack.length - 1; i >= 0; i--) {
-    const t = rack[i];
-    if (t.category !== "joker") {
-      return t.id;
-    }
-  }
-  return null;
-}
+import { pickAutoDiscardTileId, syncTurnTimer } from "./turn-timer";
 
 /**
  * Play-phase grace expiry: auto-pass in call window, or auto-discard on the current player's discard step.
@@ -41,6 +31,7 @@ export function applyGraceExpiryGameActions(
       const result = handleAction(gs, { type: "PASS_CALL", playerId });
       if (result.accepted) {
         broadcastGameState(room, gs, result.resolved);
+        syncTurnTimer(room, logger);
         logger.info(
           { roomCode: room.roomCode, playerId },
           "Grace expiry: auto PASS_CALL for disconnected player",
@@ -69,6 +60,7 @@ export function applyGraceExpiryGameActions(
     const result = handleAction(gs, { type: "DISCARD_TILE", playerId, tileId });
     if (result.accepted) {
       broadcastGameState(room, gs, result.resolved);
+      syncTurnTimer(room, logger);
       logger.info(
         { roomCode: room.roomCode, playerId, tileId },
         "Grace expiry: auto DISCARD_TILE for disconnected player",

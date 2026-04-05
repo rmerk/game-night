@@ -335,12 +335,7 @@ function onJokerRulesChange(ev: Event) {
       class="relative mx-auto max-w-lg px-4 py-8"
       data-testid="lobby-root"
     >
-      <div
-        ref="lobbyFocusReturn"
-        tabindex="-1"
-        class="sr-only"
-        aria-hidden="true"
-      />
+      <div ref="lobbyFocusReturn" tabindex="-1" class="sr-only" aria-hidden="true" />
       <div class="mb-4 flex flex-wrap justify-end gap-2">
         <button
           type="button"
@@ -376,21 +371,27 @@ function onJokerRulesChange(ev: Event) {
         <ReactionBar layout="horizontal" :on-react="(e: string) => conn.sendReaction(e)" />
       </div>
       <div
-        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.top.length > 0"
+        v-if="
+          !slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.top.length > 0
+        "
         class="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2"
         aria-live="polite"
       >
         <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.top" />
       </div>
       <div
-        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.left.length > 0"
+        v-if="
+          !slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.left.length > 0
+        "
         class="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2"
         aria-live="polite"
       >
         <ReactionBubbleStack :items="lobbyReactionBubblesByAnchor.left" />
       </div>
       <div
-        v-if="!slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.right.length > 0"
+        v-if="
+          !slideInPanelStore.isAnySlideInPanelOpen && lobbyReactionBubblesByAnchor.right.length > 0
+        "
         class="pointer-events-none absolute right-2 top-1/2 z-10 -translate-y-1/2"
         aria-live="polite"
       >
@@ -462,6 +463,7 @@ function onJokerRulesChange(ev: Event) {
       @table-talk-vote="onTableTalkVote"
       @confirm-call="onConfirmCall"
       @retract-call="onRetractCall"
+      @afk-vote="(targetId, vote) => conn.sendAfkVote(targetId, vote)"
     />
   </div>
 </template>

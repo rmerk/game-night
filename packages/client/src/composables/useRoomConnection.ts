@@ -176,8 +176,7 @@ export function useRoomConnection() {
     if (trimmed.length === 0) {
       return;
     }
-    const payload =
-      trimmed.length > MAX_CHAT_LENGTH ? trimmed.slice(0, MAX_CHAT_LENGTH) : trimmed;
+    const payload = trimmed.length > MAX_CHAT_LENGTH ? trimmed.slice(0, MAX_CHAT_LENGTH) : trimmed;
     sendRaw({ type: "CHAT", text: payload });
   }
 
@@ -186,6 +185,10 @@ export function useRoomConnection() {
       return;
     }
     sendRaw({ type: "REACTION", emoji });
+  }
+
+  function sendAfkVote(targetPlayerId: string, vote: "approve" | "deny"): void {
+    sendRaw({ type: "AFK_VOTE_CAST", targetPlayerId, vote });
   }
 
   function clearLastError(): void {
@@ -211,6 +214,7 @@ export function useRoomConnection() {
     requestState,
     sendChat,
     sendReaction,
+    sendAfkVote,
     clearLastError,
     /** Clear persisted token for this room (e.g. user leaves intentionally). */
     clearTokenForRoom: (roomCode: string) => {

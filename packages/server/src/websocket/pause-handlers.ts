@@ -3,6 +3,7 @@ import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
 import { startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastStateToRoom } from "./state-broadcaster";
+import { resetTurnTimerStateOnGameEnd } from "./turn-timer";
 
 /**
  * Drop a player from the room maps (tokens, sessions, rate limits). Does not run engine actions.
@@ -63,5 +64,13 @@ export function handlePauseTimeout(
   }
 
   broadcastStateToRoom(room, undefined, { type: "GAME_ABANDONED", reason: "pause-timeout" });
+  // Story 4B.4: defensive cleanup. When pause was triggered by the
+  // simultaneous-disconnect branch in join-handler, `cancelAfkVote(..., "pause")`
+  // already cleared any active vote and `cancelTurnTimer` already cleared the
+  // turn timer — so on entry here `afkVoteState` / `turnTimerHandle` are
+  // typically null. Still call `resetTurnTimerStateOnGameEnd` to clear the
+  // consecutive-timeout counters and to stay robust against future pause
+  // entry paths.
+  resetTurnTimerStateOnGameEnd(room, logger);
   logger.info({ roomCode: room.roomCode }, "Pause timeout fired — game auto-ended");
 }

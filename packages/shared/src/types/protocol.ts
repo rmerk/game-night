@@ -57,6 +57,14 @@ export interface SetJokerRulesMessage {
   jokerRulesMode: JokerRulesMode;
 }
 
+/** Client → Server: vote during an active AFK escalation vote (Story 4B.4) */
+export interface AfkVoteCastMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "AFK_VOTE_CAST";
+  targetPlayerId: string;
+  vote: "approve" | "deny";
+}
+
 /** Client → Server: table chat (orthogonal to game state — Story 6A.1) */
 export interface ChatMessage {
   version: typeof PROTOCOL_VERSION;
@@ -179,6 +187,8 @@ export interface PlayerGameView {
   /** Room-level pause (simultaneous disconnect) — orthogonal to {@link GamePhase} */
   paused: boolean;
   pauseReason?: "simultaneous-disconnect";
+  /** Players marked dead-seat by AFK vote (Story 4B.4) — empty when none */
+  deadSeatPlayerIds: readonly string[];
   /** Host-only audit log (FR88) — omitted for non-host clients */
   hostAuditLog?: string[];
 }
