@@ -181,6 +181,7 @@ export function buildPlayerView(
     paused: room.paused,
     ...(room.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
     deadSeatPlayerIds: Array.from(room.deadSeatPlayerIds),
+    departureVoteState: null,
     ...(room.players.get(playerId)?.isHost ? { hostAuditLog: [...gameState.hostAuditLog] } : {}),
   };
 }

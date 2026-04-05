@@ -98,6 +98,8 @@ export type {
   RequestStateMessage,
   SetJokerRulesMessage,
   AfkVoteCastMessage,
+  LeaveRoomMessage,
+  DepartureVoteCastMessage,
   ChatMessage,
   ReactionMessage,
   ChatBroadcast,

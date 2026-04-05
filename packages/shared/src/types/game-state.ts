@@ -386,7 +386,7 @@ export type ResolvedAction =
       readonly reason: "simultaneous-disconnect";
     }
   | { readonly type: "GAME_RESUMED" }
-  | { readonly type: "GAME_ABANDONED"; readonly reason: "pause-timeout" }
+  | { readonly type: "GAME_ABANDONED"; readonly reason: "pause-timeout" | "player-departure" }
   | { readonly type: "HAND_SHOWN"; readonly playerId: string }
   | {
       readonly type: "TURN_TIMER_NUDGE";
@@ -413,4 +413,28 @@ export type ResolvedAction =
       readonly type: "AFK_VOTE_RESOLVED";
       readonly targetPlayerId: string;
       readonly outcome: "passed" | "failed" | "cancelled";
-    };
+    }
+  | { readonly type: "PLAYER_DEPARTED"; readonly playerId: string; readonly playerName: string }
+  | {
+      readonly type: "DEPARTURE_VOTE_STARTED";
+      readonly targetPlayerId: string;
+      readonly targetPlayerName: string;
+      readonly expiresAt: number;
+    }
+  | {
+      readonly type: "DEPARTURE_VOTE_CAST";
+      readonly voterId: string;
+      readonly targetPlayerId: string;
+      readonly choice: "dead_seat" | "end_game";
+    }
+  | {
+      readonly type: "DEPARTURE_VOTE_RESOLVED";
+      readonly targetPlayerId: string;
+      readonly outcome: "dead_seat" | "end_game" | "cancelled";
+    }
+  | {
+      readonly type: "PLAYER_CONVERTED_TO_DEAD_SEAT";
+      readonly playerId: string;
+      readonly playerName: string;
+    }
+  | { readonly type: "TURN_SKIPPED_DEAD_SEAT"; readonly playerId: string };

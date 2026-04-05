@@ -60,6 +60,7 @@ function fixtureView(): PlayerGameView {
     myDeadHand: false,
     paused: false,
     deadSeatPlayerIds: [],
+    departureVoteState: null,
   };
 }
 

@@ -47,6 +47,7 @@ function minimalView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
     myDeadHand: false,
     paused: false,
     deadSeatPlayerIds: [],
+    departureVoteState: null,
   };
   return { ...base, ...overrides };
 }

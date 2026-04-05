@@ -65,6 +65,20 @@ export interface AfkVoteCastMessage {
   vote: "approve" | "deny";
 }
 
+/** Client → Server: player voluntarily leaves the room mid-game (Story 4B.5) */
+export interface LeaveRoomMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "LEAVE_ROOM";
+}
+
+/** Client → Server: cast a vote in an active departure vote (Story 4B.5) */
+export interface DepartureVoteCastMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "DEPARTURE_VOTE_CAST";
+  targetPlayerId: string;
+  choice: "dead_seat" | "end_game";
+}
+
 /** Client → Server: table chat (orthogonal to game state — Story 6A.1) */
 export interface ChatMessage {
   version: typeof PROTOCOL_VERSION;
@@ -189,6 +203,18 @@ export interface PlayerGameView {
   pauseReason?: "simultaneous-disconnect";
   /** Players marked dead-seat by AFK vote (Story 4B.4) — empty when none */
   deadSeatPlayerIds: readonly string[];
+  /**
+   * Active departure vote targeting a player who left mid-game (Story 4B.5).
+   * Required (never omitted) so mid-vote reconnecters can immediately see and participate.
+   * Asymmetry from AFK vote: AFK vote state is NOT threaded into PlayerGameView (4B.4 precedent),
+   * but departure vote IS — because reconnecters need to cast a departure vote within the window.
+   * Populated by buildPlayerView in Task 7; always null until then.
+   */
+  departureVoteState: {
+    targetPlayerId: string;
+    targetPlayerName: string;
+    expiresAt: number;
+  } | null;
   /** Host-only audit log (FR88) — omitted for non-host clients */
   hostAuditLog?: string[];
 }
