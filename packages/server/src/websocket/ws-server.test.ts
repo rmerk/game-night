@@ -38,9 +38,39 @@ function waitForMessage(client: WebSocket): Promise<string> {
 
 function waitForParsedMessage(client: WebSocket): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
-    client.once("message", (data: RawData) => {
-      resolve(JSON.parse(wsDataToString(data)));
-    });
+    const handler = (data: RawData) => {
+      const msg = JSON.parse(wsDataToString(data)) as Record<string, unknown>;
+      if (msg.type === "CHAT_HISTORY") {
+        return;
+      }
+      client.removeListener("message", handler);
+      resolve(msg);
+    };
+    client.on("message", handler);
+  });
+}
+
+/** Server sends STATE_UPDATE then CHAT_HISTORY; one listener avoids losing CHAT_HISTORY between awaits. */
+function waitForStateUpdateThenChatHistory(client: WebSocket): Promise<{
+  stateUpdate: Record<string, unknown>;
+  chatHistory: Record<string, unknown>;
+}> {
+  return new Promise((resolve) => {
+    let stateUpdate: Record<string, unknown> | undefined;
+    const handler = (data: RawData) => {
+      const msg = JSON.parse(wsDataToString(data)) as Record<string, unknown>;
+      if (msg.type === "CHAT_HISTORY") {
+        if (stateUpdate !== undefined) {
+          client.removeListener("message", handler);
+          resolve({ stateUpdate, chatHistory: msg });
+        }
+        return;
+      }
+      if (msg.type === "STATE_UPDATE") {
+        stateUpdate = msg;
+      }
+    };
+    client.on("message", handler);
   });
 }
 
@@ -267,17 +297,23 @@ describe("REQUEST_STATE", () => {
     const { roomCode } = roomRes.json();
 
     const client = await connectClient();
-    const joinPromise = waitForParsedMessage(client);
+    const joinSeq = waitForStateUpdateThenChatHistory(client);
     client.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: "Alice" }));
-    await joinPromise;
+    const join = await joinSeq;
+    expect(join.stateUpdate.type).toBe("STATE_UPDATE");
+    expect(join.chatHistory.type).toBe("CHAT_HISTORY");
+    expect(Array.isArray(join.chatHistory.messages)).toBe(true);
 
-    const resyncPromise = waitForParsedMessage(client);
+    const resyncSeq = waitForStateUpdateThenChatHistory(client);
     client.send(JSON.stringify({ version: 1, type: "REQUEST_STATE" }));
-    const resync = await resyncPromise;
+    const resync = await resyncSeq;
 
-    expect(resync.type).toBe("STATE_UPDATE");
-    expect((resync.state as Record<string, unknown>).gamePhase).toBe("lobby");
-    expect((resync.state as Record<string, unknown>).myPlayerId).toBeDefined();
+    expect(resync.stateUpdate.type).toBe("STATE_UPDATE");
+    expect((resync.stateUpdate.state as Record<string, unknown>).gamePhase).toBe("lobby");
+    expect((resync.stateUpdate.state as Record<string, unknown>).myPlayerId).toBeDefined();
+
+    expect(resync.chatHistory.type).toBe("CHAT_HISTORY");
+    expect(Array.isArray(resync.chatHistory.messages)).toBe(true);
 
     await closeClient(client);
   });

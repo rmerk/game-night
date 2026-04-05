@@ -30,9 +30,15 @@ function connectWs(url: string): Promise<WebSocket> {
 
 function waitForMessage(ws: WebSocket): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
-    ws.once("message", (data: Buffer) => {
-      resolve(JSON.parse(Buffer.from(data).toString("utf-8")));
-    });
+    const handler = (data: Buffer) => {
+      const msg = JSON.parse(Buffer.from(data).toString("utf-8")) as Record<string, unknown>;
+      if (msg.type === "CHAT_HISTORY") {
+        return;
+      }
+      ws.removeListener("message", handler);
+      resolve(msg);
+    };
+    ws.on("message", handler);
   });
 }
 

@@ -2,6 +2,7 @@ import {
   PROTOCOL_VERSION,
   isAllowedReactionEmoji,
   type ChatBroadcast,
+  type ChatHistoryMessage,
   type LobbyState,
   type PlayerGameView,
   type ReactionBroadcast,
@@ -15,11 +16,34 @@ export type ParsedServerMessage =
   | { kind: "error"; message: ServerErrorMessage }
   | { kind: "system_event"; message: SystemEventMessage }
   | { kind: "chat_broadcast"; message: ChatBroadcast }
+  | { kind: "chat_history"; message: ChatHistoryMessage }
   | { kind: "reaction_broadcast"; message: ReactionBroadcast }
   | { kind: "ignored" };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Same field contract as CHAT_BROADCAST wire parsing (shared with CHAT_HISTORY entries). */
+export function parseChatBroadcastFields(parsed: Record<string, unknown>): ChatBroadcast | null {
+  if (
+    typeof parsed.playerId !== "string" ||
+    typeof parsed.playerName !== "string" ||
+    typeof parsed.text !== "string" ||
+    parsed.text.length === 0 ||
+    typeof parsed.timestamp !== "number" ||
+    !Number.isFinite(parsed.timestamp)
+  ) {
+    return null;
+  }
+  return {
+    version: PROTOCOL_VERSION,
+    type: "CHAT_BROADCAST",
+    playerId: parsed.playerId,
+    playerName: parsed.playerName,
+    text: parsed.text,
+    timestamp: parsed.timestamp,
+  };
 }
 
 export function parseServerMessage(raw: string): ParsedServerMessage | null {
@@ -76,26 +100,36 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
       return { kind: "error", message };
     }
     case "CHAT_BROADCAST": {
-      // Contract: require string playerId, playerName, non-empty text, finite numeric timestamp; else null.
-      if (
-        typeof parsed.playerId !== "string" ||
-        typeof parsed.playerName !== "string" ||
-        typeof parsed.text !== "string" ||
-        parsed.text.length === 0 ||
-        typeof parsed.timestamp !== "number" ||
-        !Number.isFinite(parsed.timestamp)
-      ) {
+      const broadcast = parseChatBroadcastFields(parsed);
+      if (!broadcast) {
         return null;
       }
-      const message: ChatBroadcast = {
+      return { kind: "chat_broadcast", message: broadcast };
+    }
+    case "CHAT_HISTORY": {
+      if (!Array.isArray(parsed.messages)) {
+        return null;
+      }
+      const messages: ChatBroadcast[] = [];
+      for (const el of parsed.messages) {
+        if (!isRecord(el)) {
+          return null;
+        }
+        if (el.type !== "CHAT_BROADCAST") {
+          return null;
+        }
+        const line = parseChatBroadcastFields(el);
+        if (!line) {
+          return null;
+        }
+        messages.push(line);
+      }
+      const message: ChatHistoryMessage = {
         version: PROTOCOL_VERSION,
-        type: "CHAT_BROADCAST",
-        playerId: parsed.playerId,
-        playerName: parsed.playerName,
-        text: parsed.text,
-        timestamp: parsed.timestamp,
+        type: "CHAT_HISTORY",
+        messages,
       };
-      return { kind: "chat_broadcast", message };
+      return { kind: "chat_history", message };
     }
     case "REACTION_BROADCAST": {
       if (

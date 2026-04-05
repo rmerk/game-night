@@ -84,6 +84,13 @@ export interface ChatBroadcast {
   timestamp: number;
 }
 
+/** Server → Client: recent chat lines on join / reconnect / state resync (Story 6A.4). */
+export interface ChatHistoryMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "CHAT_HISTORY";
+  messages: readonly ChatBroadcast[];
+}
+
 /**
  * Server → Client: reaction broadcast (live-only; not stored in history).
  * User-derived fields are plain strings (NFR48). Story 6A.2 must not use `v-html` for emoji.

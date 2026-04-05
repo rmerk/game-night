@@ -1,6 +1,6 @@
 # Story 6A.4: Chat History on Connect/Reconnect
 
-Status: ready-for-dev
+Status: review
 
 <!-- Ultimate context engine — 2026-04-05. Pass 2: fixed payload sizing (UTF-8 bytes), mandated send order, REQUEST_STATE path, SESSION_SUPERSEDED + list-key notes. -->
 
@@ -50,24 +50,29 @@ so that **I don't miss the conversation and can catch up on what friends were sa
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Shared protocol** (AC: 11, 12)
-  - [ ] 1.1 Add `ChatHistoryMessage` interface: `version`, `type: "CHAT_HISTORY"`, `messages: readonly ChatBroadcast[]` (or mutable array type consistent with codebase).
-  - [ ] 1.2 Export from [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts).
+- [x] **Task 1: Shared protocol** (AC: 11, 12)
+  - [x] 1.1 Add `ChatHistoryMessage` interface: `version`, `type: "CHAT_HISTORY"`, `messages: readonly ChatBroadcast[]` (or mutable array type consistent with codebase).
+  - [x] 1.2 Export from [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts).
 
-- [ ] **Task 2: Server — build + send** (AC: 1–5, 12–13)
-  - [ ] 2.1 Add a small module or functions in server (e.g. next to [`chat-handler.ts`](../../packages/server/src/websocket/chat-handler.ts)): build `{ version, type: "CHAT_HISTORY", messages }` from `room.chatHistory`, then truncate from the **oldest** end until `Buffer.byteLength(JSON.stringify(...), "utf8")` ≤ **`WS_MAX_PAYLOAD_BYTES`** (65536). Prefer returning a **final JSON string** from the helper so join/reconnect/request-state paths share one implementation.
-  - [ ] 2.2 Call from [`handleJoinRoom`](../../packages/server/src/websocket/join-handler.ts) **immediately after** the initial `STATE_UPDATE` `ws.send`, and from [`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts) **immediately after** its `STATE_UPDATE` `ws.send`. Wrap send in try/catch; on failure log **warn** (mirror [`trySendJson`](../../packages/server/src/websocket/ws-server.ts)).
-  - [ ] 2.3 After [`sendCurrentState`](../../packages/server/src/websocket/state-broadcaster.ts) in the `REQUEST_STATE` branch of [`ws-server.ts`](../../packages/server/src/websocket/ws-server.ts), call the same `CHAT_HISTORY` send helper (same `ws`).
-  - [ ] 2.4 Unit tests: empty history; N messages; UTF-8-heavy content (emoji in `text`) proves byte-based cap; oversized payload drops oldest; order preserved; optional: `REQUEST_STATE` integration test asserts second message is `CHAT_HISTORY`.
+- [x] **Task 2: Server — build + send** (AC: 1–5, 12–13)
+  - [x] 2.1 Add a small module or functions in server (e.g. next to [`chat-handler.ts`](../../packages/server/src/websocket/chat-handler.ts)): build `{ version, type: "CHAT_HISTORY", messages }` from `room.chatHistory`, then truncate from the **oldest** end until `Buffer.byteLength(JSON.stringify(...), "utf8")` ≤ **`WS_MAX_PAYLOAD_BYTES`** (65536). Prefer returning a **final JSON string** from the helper so join/reconnect/request-state paths share one implementation.
+  - [x] 2.2 Call from [`handleJoinRoom`](../../packages/server/src/websocket/join-handler.ts) **immediately after** the initial `STATE_UPDATE` `ws.send`, and from [`handleTokenReconnection`](../../packages/server/src/websocket/join-handler.ts) **immediately after** its `STATE_UPDATE` `ws.send`. Wrap send in try/catch; on failure log **warn** (mirror [`trySendJson`](../../packages/server/src/websocket/ws-server.ts)).
+  - [x] 2.3 After [`sendCurrentState`](../../packages/server/src/websocket/state-broadcaster.ts) in the `REQUEST_STATE` branch of [`ws-server.ts`](../../packages/server/src/websocket/ws-server.ts), call the same `CHAT_HISTORY` send helper (same `ws`).
+  - [x] 2.4 Unit tests: empty history; N messages; UTF-8-heavy content (emoji in `text`) proves byte-based cap; oversized payload drops oldest; order preserved; optional: `REQUEST_STATE` integration test asserts second message is `CHAT_HISTORY`.
 
-- [ ] **Task 3: Client — parse + route** (AC: 6–9, 12)
-  - [ ] 3.1 Extend `ParsedServerMessage` union and [`parseServerMessage`](../../packages/client/src/composables/parseServerMessage.ts) `switch` for `CHAT_HISTORY`.
-  - [ ] 3.2 [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid payload; empty `messages`; invalid element → `null`.
-  - [ ] 3.3 [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts): on `chat_history`, `useChatStore().setMessages([...])` (copy to plain array if needed for readonly typing).
+- [x] **Task 3: Client — parse + route** (AC: 6–9, 12)
+  - [x] 3.1 Extend `ParsedServerMessage` union and [`parseServerMessage`](../../packages/client/src/composables/parseServerMessage.ts) `switch` for `CHAT_HISTORY`.
+  - [x] 3.2 [`parseServerMessage.test.ts`](../../packages/client/src/composables/parseServerMessage.test.ts): valid payload; empty `messages`; invalid element → `null`.
+  - [x] 3.3 [`useRoomConnection.ts`](../../packages/client/src/composables/useRoomConnection.ts): on `chat_history`, `useChatStore().setMessages([...])` (copy to plain array if needed for readonly typing).
 
-- [ ] **Task 4: Integration / store tests** (AC: 7–10, 12)
-  - [ ] 4.1 [`chat.test.ts`](../../packages/client/src/stores/chat.test.ts): `setMessages` then `appendBroadcast` yields length +1 with expected tail.
-  - [ ] 4.2 Optional: server WebSocket test or join-handler test asserting `CHAT_HISTORY` appears after join (if existing harness allows multi-message capture).
+- [x] **Task 4: Integration / store tests** (AC: 7–10, 12)
+  - [x] 4.1 [`chat.test.ts`](../../packages/client/src/stores/chat.test.ts): `setMessages` then `appendBroadcast` yields length +1 with expected tail.
+  - [x] 4.2 Optional: server WebSocket test or join-handler test asserting `CHAT_HISTORY` appears after join (if existing harness allows multi-message capture).
+
+## Change Log
+
+- **2026-04-05:** Story 6A.4 implemented — `ChatHistoryMessage` in shared; server `chat-history.ts` (`WS_MAX_PAYLOAD_BYTES`, UTF-8 truncation, send after `STATE_UPDATE` on join, token reconnect, `REQUEST_STATE`); client parse + `setMessages`; tests (unit + ws-server REQUEST_STATE pairing + full-game-flow reader skip).
+- **2026-04-05 (pass 2):** `ws-server` `maxPayload` now uses `WS_MAX_PAYLOAD_BYTES` (single source of truth with outbound truncation). Client `CHAT_HISTORY` parsing requires each history element `type === "CHAT_BROADCAST"`; added parser tests for non-array `messages` and wrong element type.
 
 ## Dev Notes
 
@@ -108,6 +113,7 @@ Source: [`6a-3-quick-reactions-system.md`](./6a-3-quick-reactions-system.md).
 
 ### Implementation edge cases
 
+- **SESSION_SUPERSEDED (AC14):** When a second connection supersedes the first, the **old** socket is closed after `SESSION_SUPERSEDED` only — it never receives `CHAT_HISTORY`. The new connection follows normal join/reconnect and receives history as usual.
 - **Vue list keys:** [`ChatPanel.vue`](../../packages/client/src/components/chat/ChatPanel.vue) uses `` :key="\`${m.timestamp}-${m.playerId}-${m.text}\`" ``. Two distinct lines could theoretically collide if a player sends the **same** text twice in the **same** millisecond — rare. If tests or QA surface duplicate-key warnings, add a monotonic **client-side** `id` when hydrating (`setMessages` maps entries) or use array index as last-resort disambiguator; not required for MVP unless observed.
 - **Malformed `CHAT_HISTORY`:** Parser returns `null` → `handleMessage` returns early; chat stays empty until next successful `CHAT_HISTORY` or live `CHAT_BROADCAST` — acceptable; do not crash.
 - **Protocol direction:** `CHAT_HISTORY` is **server → client only**; it never appears in [`handleMessage`](../../packages/server/src/websocket/message-handler.ts) as an inbound `parsed.type` from clients.
@@ -140,16 +146,33 @@ No new dependencies. WebSocket server already `maxPayload: 65_536` ([`ws-server.
 
 ### Agent Model Used
 
-_(filled by dev agent)_
+Cursor agent (gds-dev-story / strategy-cursor)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented `CHAT_HISTORY` end-to-end: shared type, server build/send with `Buffer.byteLength` cap, client `parseChatBroadcastFields` reuse + `chat_history` kind, `useRoomConnection` → `setMessages`.
+- Integration tests: `waitForMessage` / `waitForParsedMessage` skip `CHAT_HISTORY`; `ws-server` REQUEST_STATE test uses paired `STATE_UPDATE`+`CHAT_HISTORY` waiter; `full-game-flow` `nextStateUpdate` skips `CHAT_HISTORY`.
+- Gates: `pnpm test`, `pnpm run typecheck`, `vp lint` passed.
+- Pass 2: aligned inbound `maxPayload` with `WS_MAX_PAYLOAD_BYTES`; stricter history line `type` check + tests.
+
 ### File List
 
-_(filled by dev agent)_
+- `packages/shared/src/types/protocol.ts`
+- `packages/shared/src/index.ts`
+- `packages/server/src/websocket/chat-history.ts`
+- `packages/server/src/websocket/chat-history.test.ts`
+- `packages/server/src/websocket/join-handler.ts`
+- `packages/server/src/websocket/ws-server.ts`
+- `packages/server/src/websocket/join-handler.test.ts`
+- `packages/server/src/websocket/ws-server.test.ts`
+- `packages/server/src/integration/full-game-flow.test.ts`
+- `packages/client/src/composables/parseServerMessage.ts`
+- `packages/client/src/composables/parseServerMessage.test.ts`
+- `packages/client/src/composables/useRoomConnection.ts`
+- `packages/client/src/stores/chat.test.ts`
 
 ## Story completion status
 
-**ready-for-dev** — Pass 2 complete: UTF-8 byte sizing, fixed post–`STATE_UPDATE` send order, `REQUEST_STATE` + `sendCurrentState` path, supersession note, ChatPanel key edge case.
+**review** — Implementation complete; ready for `code-review` workflow.

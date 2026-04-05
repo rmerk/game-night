@@ -129,11 +129,16 @@ function createMessageReader(ws: WebSocket) {
   return {
     next,
     async nextStateUpdate(): Promise<StateUpdateMessage> {
-      const msg = await next();
-      if (!isStateUpdateMessage(msg)) {
+      for (;;) {
+        const msg = await next();
+        if (isStateUpdateMessage(msg)) {
+          return msg;
+        }
+        if (isPlainObject(msg) && msg.type === "CHAT_HISTORY") {
+          continue;
+        }
         throw new Error(`Expected STATE_UPDATE, got: ${JSON.stringify(msg)}`);
       }
-      return msg;
     },
   };
 }
