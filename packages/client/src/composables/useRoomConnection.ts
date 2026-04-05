@@ -77,6 +77,10 @@ export function useRoomConnection() {
       applyStateUpdate(msg.state, msg.resolvedAction, msg.token, roomCode);
       return;
     }
+    if (parsed.kind === "chat_history") {
+      useChatStore().setMessages([...parsed.message.messages]);
+      return;
+    }
     if (parsed.kind === "chat_broadcast") {
       useChatStore().appendBroadcast(parsed.message);
       return;

@@ -131,3 +131,73 @@ test("REACTION_BROADCAST invalid shape returns null", () => {
   });
   expect(parseServerMessage(raw)).toBeNull();
 });
+
+test("parses valid CHAT_HISTORY with empty messages", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "CHAT_HISTORY",
+    messages: [],
+  });
+  const p = parseServerMessage(raw);
+  expect(p?.kind).toBe("chat_history");
+  if (p?.kind !== "chat_history") return;
+  expect(p.message.type).toBe("CHAT_HISTORY");
+  expect(p.message.messages).toEqual([]);
+});
+
+test("parses valid CHAT_HISTORY with chronological lines", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "CHAT_HISTORY",
+    messages: [
+      {
+        version: PROTOCOL_VERSION,
+        type: "CHAT_BROADCAST",
+        playerId: "p0",
+        playerName: "A",
+        text: "old",
+        timestamp: 1,
+      },
+      {
+        version: PROTOCOL_VERSION,
+        type: "CHAT_BROADCAST",
+        playerId: "p1",
+        playerName: "B",
+        text: "new",
+        timestamp: 2,
+      },
+    ],
+  });
+  const p = parseServerMessage(raw);
+  expect(p?.kind).toBe("chat_history");
+  if (p?.kind !== "chat_history") return;
+  expect(p.message.messages).toHaveLength(2);
+  expect(p.message.messages[0]?.text).toBe("old");
+  expect(p.message.messages[1]?.text).toBe("new");
+});
+
+test("CHAT_HISTORY returns null when an element fails CHAT_BROADCAST contract", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "CHAT_HISTORY",
+    messages: [
+      {
+        version: PROTOCOL_VERSION,
+        type: "CHAT_BROADCAST",
+        playerId: "p0",
+        playerName: "A",
+        text: "ok",
+        timestamp: 1,
+      },
+      {
+        version: PROTOCOL_VERSION,
+        type: "CHAT_BROADCAST",
+        playerId: "p1",
+        playerName: "B",
+        text: "",
+        timestamp: 2,
+      },
+    ],
+  });
+  expect(parseServerMessage(raw)).toBeNull();
+});
