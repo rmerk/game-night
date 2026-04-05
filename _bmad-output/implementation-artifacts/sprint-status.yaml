@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-05 # 6a-3 done (main); 6a-4 story ready-for-dev
+# last_updated: 2026-04-05 # 6a-4 review
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 6a-3 done (main); 6a-4 story ready-for-dev
+last_updated: 2026-04-05 # 6a-4 review
 project: mahjong-game
 
 project_key: NOKEY
@@ -130,7 +130,7 @@ development_status:
   6a-1-chat-message-protocol-server-handling: done
   6a-2-chat-panel-ui-slideinpanel: done
   6a-3-quick-reactions-system: done
-  6a-4-chat-history-on-connect-reconnect: ready-for-dev
+  6a-4-chat-history-on-connect-reconnect: review
   epic-6a-retrospective: optional
 
   # Epic 4B: Multiplayer Resilience
