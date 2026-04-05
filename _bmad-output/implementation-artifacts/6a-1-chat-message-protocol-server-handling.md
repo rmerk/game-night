@@ -2,7 +2,12 @@
 
 Status: done
 
-<!-- Second pass: 2026-04-04 — tightened paths, malformed-payload rules, constants, anti-patterns, JSON examples. -->
+| Ticket | Value |
+| ------ | ----- |
+| **Story key** | `6a-1-chat-message-protocol-server-handling` |
+| **Epic** | 6A — Text Chat & Reactions |
+| **Sprint status** | `done` (see [`sprint-status.yaml`](./sprint-status.yaml) → `development_status`) |
+| **Last updated** | 2026-04-05 |
 
 ## Story
 
@@ -48,7 +53,7 @@ Implement as named constants in server (and shared where the allowlist and proto
 | Per-room ring buffer **storage** for chat | **6A.4** **`CHAT_HISTORY`** wire message on join/reconnect, truncation to 64KB for huge payloads — implementer may add a **read accessor** on the room for history to support 6A.4, but **must not** add `CHAT_HISTORY` client handling or join-time send in this story unless needed for tests |
 | `ChatBroadcast` / `ReactionBroadcast` to all sessions | Client `parseServerMessage` wiring for new types (**6A.2**); optional type-only exports are fine |
 
-**Project-context alignment:** [`project-context.md`](../project-context.md) WebSocket section mentions **200** chat messages and names `CHAT` / `REACTION`. **Authoritative for this story:** epics + AC6 (**100** messages). After implementation, update `project-context.md` in the same PR **or** file a follow-up doc task so agents are not misled (200 vs 100).
+**Project-context alignment:** [`project-context.md`](../project-context.md) is aligned with this story: chat history is **100** messages per room (ring buffer; Story 6A.1). Older drafts referenced **200**; do not reintroduce that number without revisiting AC6 / AR30.
 
 ### Malformed client payloads (guardrail)
 
@@ -185,9 +190,10 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 ### Completion Notes List
 
 - Implemented Story **6A.1**: shared `CHAT` / `REACTION` client messages and `CHAT_BROADCAST` / `REACTION_BROADCAST` server messages; `packages/shared/src/chat-constants.ts` for limits and `REACTION_EMOJI_ALLOWLIST` (six emoji) plus `isAllowedReactionEmoji`.
-- Server: `text-sanitize.ts` (`stripControlChars`) shared with join display names; `chat-handler.ts` with sliding-window rate limits, ring buffer (`chatHistory` max 100), silent drops for invalid/overflow; `ws-server` wires `CHAT`/`REACTION` with `NOT_IN_ROOM` when unjoined (same as `ACTION`).
-- Updated mock `Room` fixtures in server tests; `project-context.md` chat history **200 → 100** per AC6.
-- Regression: `pnpm test`, `pnpm run typecheck`, `vp lint` all pass.
+- Server: `text-sanitize.ts` (`stripControlChars`) shared with join display names; `chat-handler.ts` with sliding-window rate limits, ring buffer (`chatHistory` max 100), silent drops for invalid/overflow; `ws-server` wires `CHAT`/`REACTION` with `NOT_IN_ROOM` when unjoined (same as `ACTION`). Unknown message `type` values are **debug**-logged and ignored (Task 3.3).
+- Updated mock `Room` fixtures in server tests; `project-context.md` chat history set to **100** per AC6.
+- **Code review (2026-04-05):** `REACTION_BROADCAST` JSON shape test; second pass added missing-`text` CHAT test, reaction rate-limit window recovery test, and unknown-type debug logging in `ws-server.ts`.
+- Regression: `pnpm test`, `pnpm run typecheck`, `vp lint` all pass (re-run on review fixes).
 
 ### File List
 
@@ -209,12 +215,14 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 
 ### Change Log
 
+- 2026-04-05 (pass 2) — Adversarial re-review: `ws-server` logs unknown `type` at **debug** (Task 3.3); tests for missing `text`, reaction sliding-window recovery after `REACTION_RATE_LIMIT_WINDOW_MS`.
+- 2026-04-05 — GDS code review: added `REACTION_BROADCAST` JSON shape test in `chat-handler.test.ts` (parity with `CHAT_BROADCAST` assertions). Status: review → done; sprint synced.
 - 2026-04-04 — Story 6A.1 implemented: chat/reaction protocol, server sanitization, rate limits, per-room chat ring buffer, tests, project-context alignment.
 - 2026-04-04 — Code review pass 2: clear chat/reaction rate-limit maps on seat release (grace expiry) to match per-player semantics when seat ids are recycled.
 
 ---
 
-**Completion status:** Code review complete (2026-04-04); status **done**.
+**Completion status:** Done (GDS review 2026-04-04; AI ticket pass 2026-04-05).
 
 ### Code review (GDS)
 
@@ -222,3 +230,10 @@ Composer (Cursor agent) — gds-dev-story workflow execution
 - **Second pass (2026-04-04):** Cleared `chatRateTimestamps` / `reactionRateTimestamps` when a seat is released after grace expiry so recycled `player-0..3` ids do not inherit the previous occupant’s rate-limit state (join-handler). Regression test documents expected behavior in `chat-handler.test.ts`.
 - **Regression:** `pnpm test`, `pnpm run typecheck`, `pnpm exec vp lint` passed in review environment.
 - **Note:** Branch may contain additional commits outside this story’s file list; 6A.1 scope verified against listed implementation files only.
+
+### Senior Developer Review (AI)
+
+| Pass | Date | Outcome | Notes |
+| ---- | ---- | ------- | ----- |
+| 1 | 2026-04-05 | **Approve** | Added `REACTION_BROADCAST` JSON assertion (parity with `CHAT_BROADCAST`); story **review → done**; sprint synced. |
+| 2 | 2026-04-05 | **Approve** | No HIGH/MEDIUM findings; unknown `type` → `logger.debug` in `ws-server.ts`; tests for missing `text`, reaction sliding-window recovery. |

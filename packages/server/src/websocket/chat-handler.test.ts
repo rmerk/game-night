@@ -5,6 +5,7 @@ import {
   PROTOCOL_VERSION,
   CHAT_HISTORY_CAPACITY,
   CHAT_RATE_LIMIT_WINDOW_MS,
+  REACTION_RATE_LIMIT_WINDOW_MS,
 } from "@mahjong-game/shared";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSilentTestLogger } from "../testing/silent-logger";
@@ -123,6 +124,39 @@ describe("handleChatReactMessage", () => {
     expect(room.chatHistory[0]).toEqual(expected);
   });
 
+  it("broadcasts REACTION_BROADCAST with required fields to all sessions", () => {
+    const wsA = createMockWs();
+    const wsB = createMockWs();
+    const room = createRoomWithSessions(
+      [createPlayer("a", "Alice"), createPlayer("b", "Bob")],
+      [wsA, wsB],
+    );
+
+    const ts = 1_723_000_000_000;
+    handleChatReactMessage(
+      room,
+      "a",
+      { version: PROTOCOL_VERSION, type: "REACTION", emoji: "👍" } as ParsedMessage,
+      createMockLogger(),
+      ts,
+    );
+
+    const expected = {
+      version: PROTOCOL_VERSION,
+      type: "REACTION_BROADCAST",
+      playerId: "a",
+      playerName: "Alice",
+      emoji: "👍",
+      timestamp: ts,
+    };
+
+    expect(wsA.sent).toHaveLength(1);
+    expect(wsB.sent).toHaveLength(1);
+    expect(JSON.parse(wsA.sent[0])).toEqual(expected);
+    expect(JSON.parse(wsB.sent[0])).toEqual(expected);
+    expect(room.chatHistory).toHaveLength(0);
+  });
+
   it("drops chat when text is not a string (malformed)", () => {
     const ws = createMockWs();
     const room = createRoomWithSessions([createPlayer("a", "Alice")], [ws]);
@@ -131,6 +165,21 @@ describe("handleChatReactMessage", () => {
       room,
       "a",
       { version: PROTOCOL_VERSION, type: "CHAT", text: 123 } as unknown as ParsedMessage,
+      createMockLogger(),
+    );
+
+    expect(ws.sent).toHaveLength(0);
+    expect(room.chatHistory).toHaveLength(0);
+  });
+
+  it("drops chat when text field is missing", () => {
+    const ws = createMockWs();
+    const room = createRoomWithSessions([createPlayer("a", "Alice")], [ws]);
+
+    handleChatReactMessage(
+      room,
+      "a",
+      { version: PROTOCOL_VERSION, type: "CHAT" } as unknown as ParsedMessage,
       createMockLogger(),
     );
 
@@ -222,6 +271,34 @@ describe("handleChatReactMessage", () => {
       base + 5,
     );
     expect(ws.sent).toHaveLength(5);
+  });
+
+  it("allows the next reaction after the sliding window has moved past old timestamps", () => {
+    const ws = createMockWs();
+    const room = createRoomWithSessions([createPlayer("a", "Alice")], [ws]);
+    const base = 6_000_000;
+
+    for (let i = 0; i < 5; i++) {
+      handleChatReactMessage(
+        room,
+        "a",
+        { version: PROTOCOL_VERSION, type: "REACTION", emoji: "👍" } as ParsedMessage,
+        createMockLogger(),
+        base + i,
+      );
+    }
+    expect(ws.sent).toHaveLength(5);
+
+    const afterWindow = base + REACTION_RATE_LIMIT_WINDOW_MS + 1;
+    handleChatReactMessage(
+      room,
+      "a",
+      { version: PROTOCOL_VERSION, type: "REACTION", emoji: "👍" } as ParsedMessage,
+      createMockLogger(),
+      afterWindow,
+    );
+    expect(ws.sent).toHaveLength(6);
+    expect(JSON.parse(ws.sent[5]).timestamp).toBe(afterWindow);
   });
 
   it("retains only the last 100 chat entries in the ring buffer", () => {

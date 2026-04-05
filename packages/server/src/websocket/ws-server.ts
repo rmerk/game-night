@@ -165,6 +165,8 @@ export function setupWebSocketServer(
             return;
           }
           handleChatReactMessage(session.room, session.playerId, parsed, logger);
+        } else {
+          logger.debug({ type: parsed.type }, "Unknown WebSocket message type");
         }
       } catch (error) {
         logger.error({ error }, "Unhandled WebSocket message processing error");
