@@ -72,6 +72,7 @@ so that **I don't miss the conversation and can catch up on what friends were sa
 ## Change Log
 
 - **2026-04-05:** Story 6A.4 implemented — `ChatHistoryMessage` in shared; server `chat-history.ts` (`WS_MAX_PAYLOAD_BYTES`, UTF-8 truncation, send after `STATE_UPDATE` on join, token reconnect, `REQUEST_STATE`); client parse + `setMessages`; tests (unit + ws-server REQUEST_STATE pairing + full-game-flow reader skip).
+- **2026-04-05 (pass 2):** `ws-server` `maxPayload` now uses `WS_MAX_PAYLOAD_BYTES` (single source of truth with outbound truncation). Client `CHAT_HISTORY` parsing requires each history element `type === "CHAT_BROADCAST"`; added parser tests for non-array `messages` and wrong element type.
 
 ## Dev Notes
 
@@ -154,6 +155,7 @@ Cursor agent (gds-dev-story / strategy-cursor)
 - Implemented `CHAT_HISTORY` end-to-end: shared type, server build/send with `Buffer.byteLength` cap, client `parseChatBroadcastFields` reuse + `chat_history` kind, `useRoomConnection` → `setMessages`.
 - Integration tests: `waitForMessage` / `waitForParsedMessage` skip `CHAT_HISTORY`; `ws-server` REQUEST_STATE test uses paired `STATE_UPDATE`+`CHAT_HISTORY` waiter; `full-game-flow` `nextStateUpdate` skips `CHAT_HISTORY`.
 - Gates: `pnpm test`, `pnpm run typecheck`, `vp lint` passed.
+- Pass 2: aligned inbound `maxPayload` with `WS_MAX_PAYLOAD_BYTES`; stricter history line `type` check + tests.
 
 ### File List
 

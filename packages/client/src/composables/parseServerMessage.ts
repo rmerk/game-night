@@ -115,6 +115,9 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
         if (!isRecord(el)) {
           return null;
         }
+        if (el.type !== "CHAT_BROADCAST") {
+          return null;
+        }
         const line = parseChatBroadcastFields(el);
         if (!line) {
           return null;

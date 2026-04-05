@@ -176,6 +176,33 @@ test("parses valid CHAT_HISTORY with chronological lines", () => {
   expect(p.message.messages[1]?.text).toBe("new");
 });
 
+test("CHAT_HISTORY returns null when messages is not an array", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "CHAT_HISTORY",
+    messages: { not: "array" },
+  });
+  expect(parseServerMessage(raw)).toBeNull();
+});
+
+test("CHAT_HISTORY returns null when an element has wrong type field", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "CHAT_HISTORY",
+    messages: [
+      {
+        version: PROTOCOL_VERSION,
+        type: "WRONG",
+        playerId: "p0",
+        playerName: "A",
+        text: "x",
+        timestamp: 1,
+      },
+    ],
+  });
+  expect(parseServerMessage(raw)).toBeNull();
+});
+
 test("CHAT_HISTORY returns null when an element fails CHAT_BROADCAST contract", () => {
   const raw = JSON.stringify({
     version: PROTOCOL_VERSION,

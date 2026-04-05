@@ -9,7 +9,7 @@ import { handleJoinRoom, handleSetJokerRules } from "./join-handler";
 import { handleActionMessage } from "./action-handler";
 import { sendCurrentState } from "./state-broadcaster";
 import { handleChatReactMessage } from "./chat-handler";
-import { sendChatHistoryAfterStateUpdate } from "./chat-history";
+import { sendChatHistoryAfterStateUpdate, WS_MAX_PAYLOAD_BYTES } from "./chat-history";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -52,7 +52,7 @@ export function setupWebSocketServer(
 
   const wss = new WebSocketServer({
     server: fastify.server,
-    maxPayload: 65_536, // 64KB
+    maxPayload: WS_MAX_PAYLOAD_BYTES,
   });
 
   const heartbeatInterval = setInterval(() => {
