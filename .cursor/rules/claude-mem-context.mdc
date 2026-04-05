@@ -7,87 +7,87 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-**GDS workflows (`gds-create-story`, `gds-dev-story`, `code-review`, etc.):** Prefer this injected block as your first source of cross-session memory. Only use claude-mem MCP search tools (`mem-search`, `smart_search`, `timeline`, `get_observations`) when you need detail not present here or the user asks for a deeper dive—avoid redundant searches that duplicate this context.
-
-# $CMEM mahjong-game 2026-04-03 8:48pm CDT
+# $CMEM mahjong-game 2026-04-05 9:40am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (29,013t read) | 552,842t work | 95% savings
+Stats: 50 obs (25,477t read) | 264,729t work | 90% savings
 
 ### Apr 3, 2026
-S147 Complete cross-platform workflow architecture design synthesizing platform detection and review strategy decisions (Apr 3 at 6:09 AM)
-S148 Platform-adaptive dev story workflow design specification creation and refinement (Apr 3 at 6:10 AM)
-S149 Implementation plan creation, commit, and execution approach decision (Apr 3 at 6:11 AM)
-S150 Complete platform-adaptive gds-dev-story workflow refactoring - deployment sync and end-to-end verification (Apr 3 at 6:14 AM)
-S273 Create Story 3B.5: Charleston Disconnect Handling using gds-create-story workflow (Apr 3 at 6:24 AM)
-456 6:30a 🟣 Charleston vote integration and play-phase UI guards
-458 " 🔄 Removed redundant tileSelection reset call
-459 " 🟣 Charleston directional pass animations with accessibility support
-462 6:31a 🟣 Test coverage for CharlestonZone and CharlestonVote components
-464 " 🟣 CourtesyPassUI test coverage with skip and count selection workflows
-466 " 🟣 GameTable Charleston integration tests with component rendering and tile selection flow
-468 6:32a 🔴 Test failures revealed GameTable passing ref objects instead of unwrapped values
-471 " 🔄 Added explicit TypeScript generics to Set constructors in CourtesyPassUI tests
-473 6:33a ✅ Charleston UI task completed and moved to review status
-474 " 🟣 Charleston UI feature fully implemented with all tasks completed
-475 " ✅ Charleston UI implementation artifact finalized with technical details and file manifest
-476 6:34a ✅ Full test suite validation confirms Charleston UI implementation integrity
-477 6:38a 🟣 Charleston Phase UI with Tile Selection Composable
-478 6:40a 🔄 Charleston Components Refactored to Delegate Selection State to Parent
-479 " 🟣 Charleston UI Completed with Rack Animation and Vote Controls Tests
-579 7:54p 🔵 BMad GDS Story Creation Workflow Initialized
-580 " 🔵 Story Creation Workflow Analyzing Epic 3B Context and Project Artifacts
-581 " 🔵 Charleston Disconnect Handling Architecture and Implementation Patterns Extracted
-582 7:55p 🔵 Comprehensive Charleston Disconnect Handling Research Synthesized via Explore Subagent
-583 7:56p 🔵 Final Story Context Loading Complete for Story 3B.5 via Epic and Architecture Deep Dive
-584 7:57p 🔵 Charleston Engine Implementation Deep Dive Confirms Auto-Pass Logic Gap
-S274 Code quality review identified type annotation fix requirement; implementer fixed canonical action types in Charleston auto-pass code (Apr 3 at 8:02 PM)
-585 8:04p 🔵 AI-Orchestrated Game Development Story Workflow System
-586 " 🔵 Mahjong Game Charleston Disconnect Handling Story Preparation
-587 8:05p 🔵 Existing Grace Period and Charleston Reconnection Architecture Analysis
-588 " ✅ Story 3B.5 Status Updated to In-Progress
-589 8:07p ✅ Charleston Auto-Pass Implementation Dependencies Added
-590 " 🟣 Charleston Auto-Pass Helper Functions Implemented
-591 8:08p 🟣 Charleston Auto-Action Wired Into Grace Period Callback
-592 " 🟣 Charleston Auto-Action Implementation Committed
 S275 Story 3B.5 status transition to review after DoD validation pass (Apr 3 at 8:13 PM)
 S276 Adversarial code review of Story 3B.5 Charleston disconnect handling implementation (Apr 3 at 8:31 PM)
-593 8:32p 🔵 GDS Code Review Workflow System Configuration
-594 8:33p 🔵 Code Review Initiated for Story 3B.5 Charleston Disconnect Handling
-595 " 🔵 Charleston Auto-Pass Implementation Verified in Codebase
-596 8:34p 🟣 Charleston Disconnect Auto-Action Test Suite Complete
-597 " 🔵 Tile Type System Validation for Joker Filtering
-598 " 🔵 Charleston Action Types Properly Imported and Typed
 S277 Complete adversarial code review of Story 3B.5 Charleston disconnect handling with automated fixes and status update to done (Apr 3 at 8:35 PM)
-599 8:38p 🔵 Test Infrastructure Access Pattern for Room State Inspection
-600 " 🔵 Test File Setup with FastifyInstance and Session Manager Integration
-601 " 🔴 Reverted Cosmetic Test File Change and Enhanced Test 3.2
-602 " 🔴 Enhanced Test 3.2 with Seat Release Assertion and Verified All Tests Pass
-603 8:39p ✅ Story 3B.5 Code Review Complete and Status Updated to Done
-604 8:42p 🔵 GDS Story Creation Workflow System
-605 " 🔵 Story Quality Validation and Discovery Framework
-606 " 🔵 Story Context Intelligence Gathering for Epic 3C Story Creation
-607 8:43p 🔵 Epic 3C Story 3C.1 Joker Exchange Detailed Requirements Analysis
-608 " 🔵 Codebase Structure Analysis for Joker Exchange Implementation
-609 8:44p 🔵 Comprehensive Story Context Assembly for Joker Exchange Story Creation
-610 8:45p 🔵 Comprehensive Codebase Research via Subagent for Joker Exchange Implementation
-611 8:46p ✅ Sprint Status Updated for Story 3C.1 Ready-for-Dev
-612 " ✅ Epic 3C Transitioned to In-Progress with Story 3C.1 Ready-for-Dev
-613 8:47p 🟣 Story 3C.1 Joker Exchange Mechanic Comprehensive Story File Created
-S278 Create comprehensive story file for Story 3C.1 Joker Exchange Mechanic with complete developer implementation context (Apr 3 at 8:48 PM)
-**Investigated**: GDS create-story workflow executed exhaustive context intelligence gathering analyzing epics, architecture documents, GDD game rules, project-context with 85 critical rules, previous story patterns from Epic 3B Charleston completion, and deployed 110-second research subagent analyzing 31 codebase locations to extract action handler patterns, type systems, existing joker validation infrastructure from story 2-4, exposed group structures, turn state management, server-side integration points, and test conventions
+S278 Create comprehensive story file for Story 3C.1 Joker Exchange Mechanic with complete developer implementation context (Apr 3 at 8:39 PM)
+S279 Run retrospective for Epic 6A (Text Chat & Reactions) - status verification and decision point reached (Apr 3 at 8:48 PM)
+### Apr 4, 2026
+673 4:02a 🟣 Table-talk report timer implementation and test fixture updates
+674 " ✅ State broadcaster test fixtures updated for table-talk fields
+675 " 🟣 Table-talk report UI in SocialOverridePanel component
+676 " 🟣 GameTable integration and comprehensive test suite for table-talk reports
+677 4:27a ✅ Vue skills prerequisite added to gds-dev-story workflow
+678 " ✅ Strategy files updated to enforce Vue skills loading mechanism
+679 4:47a ✅ Epic 3B Charleston Retrospective Completed
+680 4:55a ✅ Epic 3B Retrospective Action Items Executed
+681 " 🟣 Client Integration Bridge: PlayerGameView to GameTable Props
+682 5:02a ✅ Branch pushed to remote for Epic 3B retrospective follow-through
+683 " 🟣 PlayerGameView bridge implemented with Epic 3B retrospective and Epic 3C planning
+684 5:04a ✅ Story 3C.6 specification created for wall-end and last-tile rules
+685 5:07a ✅ Story 3C.6 specification refined with git context and streamlined acceptance criteria
+686 5:09a ✅ gds-create-story workflow integrated with claude-mem cross-session intelligence
+687 5:11a 🟣 Story 3C.7 — Concealed Hand Validation at Mahjong
+688 5:15a 🟣 Wall-end and last-tile rule tests for NMJL Mahjong
+689 " 🔴 Fixed wall-end test failures by using Jokers for Pung calls
+690 6:21a 🟣 Exposure source tracking for mahjong melds
+691 6:22a 🟣 Concealed hand validation respects exposure source
+692 6:28a ✅ Task 3c-7 Concealed Hand Validation Marked Complete
+693 6:30a ✅ Story 3C.8 WebSocket client STATE_UPDATE integration created
+694 " ✅ Story 3C.8 task breakdown refined with implementation details
+695 6:31a ✅ Story 3C.8 enhanced with technical guardrails and anti-patterns
+696 6:32a 🟣 WebSocket client infrastructure for mahjong game
+697 6:33a 🟣 Game action builder and WebSocket connection composable
+698 " 🟣 Server state reconciliation and game table prop mapping
+699 " 🟣 RoomView component and online room creation flow
+700 6:34a 🟣 Room creation API integration and join flow
+701 " 🔴 TypeScript narrowing error in call type validation
+702 6:42a ✅ Story 3C.9 specification created for call confirmation tile selection refactor
+703 6:46a 🟣 Call confirmation flow with tile selection validation
+704 6:47a 🟣 Call confirmation UI toolbar with confirm/retract buttons
+705 " ✅ Comprehensive unit tests for call confirmation validation logic
+706 " ✅ Component tests for call confirmation UI behavior and interactions
+707 6:58a ✅ Epic 3C Advanced Rules Retrospective Completed
+708 7:00a ⚖️ Epic Completion Criteria Defined
+709 " ⚖️ Epic 3C Risk Register and Future Epic Dependencies Documented
+710 7:03a 🟣 Chat and Reaction Protocol Specification (Story 6A.1)
+711 7:04a ✅ Story 6A.1 Enhanced with Implementation Guardrails
+712 7:06a 🟣 Chat and Reaction System Foundation
+713 " 🟣 Chat and Reaction Server-Side Handler Implementation
+714 " ✅ Chat and Reaction Test Suite
+### Apr 5, 2026
+715 6:35a ✅ Chat reaction broadcast test coverage completed
+716 6:44a 🔵 GDS Retrospective Workflow Configuration
+S280 Epic 6A retrospective session: completing Text Chat & Reactions feature set and preparing for Epic 4B (Apr 5 at 6:44 AM)
+717 7:06a ✅ Sprint status updated for Epic 6A retrospective
+718 7:07a ✅ Epic 6A completed: Text Chat & Reactions feature set delivered
+S281 Retrospective analysis of Epic 6A completion and readiness assessment for Epic 4B transition (Apr 5 at 7:08 AM)
+S282 Epic 6A retrospective: document completion of text chat & reactions, establish process improvements for Epic 4B (Apr 5 at 8:15 AM)
+719 8:35a ⚖️ Epic 6A retrospective completed: Text chat & reactions shipped with protocol-first architecture
+S283 Wrap-up check after completing Epic 6A retrospective and sprint status updates (Apr 5 at 8:35 AM)
+720 9:36a 🔵 Epic 6A Memory Timeline Analysis
+721 " ✅ Epic 6A Archival Data Collection
+722 9:40a ✅ Epic 6A Timeline Document Created
+S284 Create comprehensive Epic 6A timeline document synthesizing memory observations, git history, and story files (Apr 5 at 9:40 AM)
+**Investigated**: Claude-mem timeline data (51KB), memory API observations (#710-719, 9 entries), git commit history (29 commits from April 4-6), and story file specifications for 6A.1 through 6A.4
 
-**Learned**: JOKER_EXCHANGE action type does not exist requiring greenfield implementation across 6 files, but validateJokerExchange helper function already exists in joker-eligibility.ts from story 2-4 enabling reuse for tile-identity matching. Action handlers follow strict validate-then-mutate pattern with early rejection returns before atomic mutations. ExposedGroup type contains immutable GroupIdentity established at exposure time per FR55 with jokerGroupId using {playerId}-group-{index} convention parsed at runtime avoiding type system changes. Multiple exchanges per turn achieved by keeping turnPhase at discard state throughout exchange sequence. Tile swap mutation must preserve visual position by replacing at same array index. Story 3B.5 confirmed tile category filtering pattern and canonical shared action type usage
+**Learned**: Epic 6A exhibited uniform five-phase development rhythm (story creation, spec refinement, implementation, pass-1 review, pass-2 fix) across all four stories; pass-2 reviews consistently caught state-transition bugs (seat recycle, phase transitions, lobby↔game, parse boundaries) missed by pass-1 happy-path testing; claude-mem coverage sparse for Cursor-based development but git log and story Change Log sections provide rich implementation detail; epic shipped without schema changes, client rollbacks, or debugging sagas
 
-**Completed**: Created comprehensive story file 3c-1-joker-exchange-mechanic.md with 12 detailed acceptance criteria covering basic exchange, identity matching, rejection scenarios, multiple exchanges per turn, and broadcast requirements. Six hierarchical tasks defined spanning type additions, handleJokerExchange handler creation, game engine registration, server parsing, 14 comprehensive tests, and validation gate. Dev Notes section provides jokerGroupId parsing implementation, tile swap mutation sequence, validateJokerExchange delegation pattern, turn phase management, key types reference, test setup pattern using createPlayState fixture, files to create/modify breakdown, scope boundaries excluding client UI and related stories, previous story context from 3B.5, cross-session intelligence integration, and 11 source document references with specific line numbers. Sprint status updated with Epic 3C transitioned to in-progress and story 3c-1 marked ready-for-dev following automatic epic progression workflow convention
+**Completed**: epic-6a-timeline.md created in _bmad-output/implementation-artifacts/ as 20,000+ word narrative document; timeline synthesizes three data sources into chronological narrative covering April 3-5 development period; includes day-by-day story progression, key breakthroughs (6A.1 guardrails, SlideInPanel contract exercise, UTF-8 byte length spec catch), statistics table, meta-observations section with four process lessons, and explicit data-density caveat about source transparency
 
-**Next Steps**: Story file ready for developer review and implementation via dev-story workflow execution, followed by code-review workflow when implementation complete to validate against comprehensive acceptance criteria and architectural patterns
+**Next Steps**: Timeline document ready for review and commit alongside Epic 6A retrospective and sprint-status.yaml; three archival artifacts complete for Epic 6A documentation set
 
 
-Access 553k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 265k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*
