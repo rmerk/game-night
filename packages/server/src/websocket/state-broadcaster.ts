@@ -11,6 +11,41 @@ import type {
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { PlayerInfo, Room } from "../rooms/room";
 
+function trySendStatePayload(ws: WebSocket, payload: string, room: Room, context: string): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  try {
+    ws.send(payload);
+  } catch (err) {
+    room.logger.warn(
+      {
+        err,
+        errMsg: err instanceof Error ? err.message : String(err),
+        context,
+        roomCode: room.roomCode,
+      },
+      "websocket send failed during state broadcast",
+    );
+  }
+}
+
+/**
+ * Fan-out a {@link StateUpdateMessage} to every connected session (optionally excluding one player).
+ * Shared by lobby broadcasts and per-view game broadcasts.
+ */
+function broadcastStateToSessions(
+  room: Room,
+  excludePlayerId: string | undefined,
+  buildMessage: (viewerId: string) => StateUpdateMessage | null,
+): void {
+  for (const session of room.sessions.values()) {
+    if (excludePlayerId !== undefined && session.player.playerId === excludePlayerId) continue;
+    if (session.ws.readyState !== WebSocket.OPEN) continue;
+    const message = buildMessage(session.player.playerId);
+    if (!message) continue;
+    trySendStatePayload(session.ws, JSON.stringify(message), room, "state-fanout");
+  }
+}
+
 /**
  * Per UX-DR35, dead-hand sanctions must not identify the affected player to other clients.
  * Omit resolvedAction for viewers who are not the subject of these payloads.
@@ -194,19 +229,15 @@ export function broadcastGameState(
   gameState: GameState,
   resolvedAction?: ResolvedAction,
 ): void {
-  for (const session of room.sessions.values()) {
-    if (session.ws.readyState !== WebSocket.OPEN) continue;
-
-    const viewerId = session.player.playerId;
+  broadcastStateToSessions(room, undefined, (viewerId) => {
     const view = buildPlayerView(room, gameState, viewerId);
-    const message: StateUpdateMessage = {
+    return {
       version: PROTOCOL_VERSION,
       type: "STATE_UPDATE",
       state: view,
       resolvedAction: resolvedActionForViewer(resolvedAction, viewerId),
     };
-    session.ws.send(JSON.stringify(message));
-  }
+  });
 }
 
 /**
@@ -236,4 +267,20 @@ export function buildCurrentStateMessage(room: Room, playerId: string): StateUpd
     type: "STATE_UPDATE",
     state,
   };
+}
+
+/**
+ * Broadcast lobby or in-game room state from {@link buildCurrentStateMessage} to all sessions,
+ * optionally excluding one player (e.g. the subject of PLAYER_JOINED).
+ */
+export function broadcastStateToRoom(
+  room: Room,
+  excludePlayerId?: string,
+  resolvedAction?: StateUpdateMessage["resolvedAction"],
+): void {
+  broadcastStateToSessions(room, excludePlayerId, (viewerId) => {
+    const base = buildCurrentStateMessage(room, viewerId);
+    if (!base) return null;
+    return { ...base, resolvedAction };
+  });
 }

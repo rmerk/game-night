@@ -2,8 +2,6 @@ import { WebSocket } from "ws";
 import type { FastifyBaseLogger } from "fastify";
 import type { RoomManager } from "../rooms/room-manager";
 import type {
-  PlayerPublicInfo,
-  LobbyState,
   StateUpdateMessage,
   Tile,
   CharlestonPassAction,
@@ -15,9 +13,14 @@ import { assignNextSeat } from "../rooms/seat-assignment";
 import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
 import { createSessionToken, resolveToken, getGracePeriodMs } from "../rooms/session-manager";
 import { startLifecycleTimer, cancelLifecycleTimer } from "../rooms/room-lifecycle";
-import { buildPlayerView, broadcastGameState, buildCurrentStateMessage } from "./state-broadcaster";
+import {
+  broadcastGameState,
+  buildCurrentStateMessage,
+  broadcastStateToRoom,
+} from "./state-broadcaster";
 import { sendPostStateSequence } from "./post-state-sequence";
 import { stripControlChars } from "./text-sanitize";
+import { applyGraceExpiryGameActions } from "./grace-expiry-fallbacks";
 
 const MAX_DISPLAY_NAME_LENGTH = 30;
 
@@ -30,51 +33,6 @@ function sendError(ws: WebSocket, code: string, message: string): void {
       message,
     }),
   );
-}
-
-function buildLobbyState(room: Room, myPlayerId: string): LobbyState {
-  const players: PlayerPublicInfo[] = Array.from(room.players.values()).map((p) => ({
-    playerId: p.playerId,
-    displayName: p.displayName,
-    wind: p.wind,
-    isHost: p.isHost,
-    connected: p.connected,
-  }));
-
-  return {
-    roomId: room.roomId,
-    roomCode: room.roomCode,
-    gamePhase: "lobby",
-    players,
-    myPlayerId,
-    jokerRulesMode: room.jokerRulesMode,
-  };
-}
-
-function stateViewForPlayer(room: Room, playerId: string): StateUpdateMessage["state"] {
-  return room.gameState
-    ? buildPlayerView(room, room.gameState, playerId)
-    : buildLobbyState(room, playerId);
-}
-
-function broadcastStateToRoom(
-  room: Room,
-  excludePlayerId?: string,
-  resolvedAction?: StateUpdateMessage["resolvedAction"],
-): void {
-  for (const session of room.sessions.values()) {
-    if (session.player.playerId === excludePlayerId) continue;
-    if (session.ws.readyState !== WebSocket.OPEN) continue;
-
-    const state = stateViewForPlayer(room, session.player.playerId);
-    const message: StateUpdateMessage = {
-      version: PROTOCOL_VERSION,
-      type: "STATE_UPDATE",
-      state,
-      resolvedAction,
-    };
-    session.ws.send(JSON.stringify(message));
-  }
 }
 
 /** Host-only: set Joker rules for the next game while the room is in lobby (no active match). */
@@ -105,16 +63,7 @@ export function handleSetJokerRules(
   }
   room.jokerRulesMode = rawMode;
   logger.info({ roomCode: room.roomCode, jokerRulesMode: rawMode }, "Joker rules mode updated");
-  for (const session of room.sessions.values()) {
-    if (session.ws.readyState !== WebSocket.OPEN) continue;
-    const state = buildLobbyState(room, session.player.playerId);
-    const message: StateUpdateMessage = {
-      version: PROTOCOL_VERSION,
-      type: "STATE_UPDATE",
-      state,
-    };
-    session.ws.send(JSON.stringify(message));
-  }
+  broadcastStateToRoom(room);
 }
 
 function sanitizeDisplayName(displayName: unknown): string | null {
@@ -159,22 +108,30 @@ function attachToExistingSeat(
 
   cancelLifecycleTimer(room, "disconnect-timeout");
 
+  const savedConnected = player.connected;
+  const savedConnectedAt = player.connectedAt;
+
   player.connected = true;
   player.connectedAt = Date.now();
 
-  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
-  room.sessions.set(playerId, session);
-
-  logger.info({ roomCode: room.roomCode, playerId }, "Session reattached to existing seat");
-
   const base = buildCurrentStateMessage(room, playerId);
   if (!base) {
+    // AC8: build failed — revert connected flag and do NOT install the new session
+    // or send frames. The old (superseded) session entry, if any, is left alone;
+    // its own close handler will clean up via the normal disconnect path.
+    player.connected = savedConnected;
+    player.connectedAt = savedConnectedAt;
     logger.warn(
       { roomCode: room.roomCode, playerId },
       "attachToExistingSeat: could not build state",
     );
     return;
   }
+
+  const session: PlayerSession = { player, roomCode: room.roomCode, ws };
+  room.sessions.set(playerId, session);
+
+  logger.info({ roomCode: room.roomCode, playerId }, "Session reattached to existing seat");
 
   const stateMessage: StateUpdateMessage = {
     ...base,
@@ -296,6 +253,8 @@ function registerDisconnectHandler(
     // Start grace period
     const timer = setTimeout(() => {
       room.graceTimers.delete(playerId);
+
+      applyGraceExpiryGameActions(room, playerId, logger);
 
       // Auto-submit Charleston action before releasing the seat so the engine
       // still finds the player in gameState.players (AC9)

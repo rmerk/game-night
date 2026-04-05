@@ -7,37 +7,19 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 10:29am CDT
+# $CMEM mahjong-game 2026-04-05 10:54am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (23,592t read) | 522,178t work | 95% savings
+Stats: 50 obs (22,770t read) | 485,603t work | 95% savings
 
-### Apr 4, 2026
-708 7:00a ⚖️ Epic Completion Criteria Defined
-709 " ⚖️ Epic 3C Risk Register and Future Epic Dependencies Documented
-710 7:03a 🟣 Chat and Reaction Protocol Specification (Story 6A.1)
-711 7:04a ✅ Story 6A.1 Enhanced with Implementation Guardrails
-712 7:06a 🟣 Chat and Reaction System Foundation
-713 " 🟣 Chat and Reaction Server-Side Handler Implementation
-714 " ✅ Chat and Reaction Test Suite
 ### Apr 5, 2026
-715 6:35a ✅ Chat reaction broadcast test coverage completed
-716 6:44a 🔵 GDS Retrospective Workflow Configuration
-717 7:06a ✅ Sprint status updated for Epic 6A retrospective
-718 7:07a ✅ Epic 6A completed: Text Chat & Reactions feature set delivered
-719 8:35a ⚖️ Epic 6A retrospective completed: Text chat & reactions shipped with protocol-first architecture
-720 9:36a 🔵 Epic 6A Memory Timeline Analysis
-721 " ✅ Epic 6A Archival Data Collection
 722 9:40a ✅ Epic 6A Timeline Document Created
-S285 Commit Epic 6A retrospective documentation and archive timeline with sprint status updates (Apr 5 at 9:40 AM)
 723 9:41a ✅ Epic 6A Retrospective and Timeline Committed
-S286 Create Story 4B.1: Reconnection with Full State Restore (first story in Epic 4B: Multiplayer Resilience) (Apr 5 at 9:41 AM)
 724 9:42a 🔵 GDS Create-Story Workflow System
 725 9:50a ✅ Story 4B.1 (Reconnection with Full State Restore) created and Epic 4B initiated
-S287 Pass 2 review and refinement of Story 4B.1: Reconnection with Full State Restore specification to eliminate implementation ambiguities and prevent bugs (Apr 5 at 9:50 AM)
 726 9:59a 🔵 Player State and Session Management Architecture in Mahjong Game
 727 " ✅ Story 4B.1 Specification Refined with Pass 2 Clarifications
 728 10:00a ✅ Refined AC1-AC3 with Explicit Broadcast Architecture and Scope Boundaries
@@ -48,7 +30,6 @@ S287 Pass 2 review and refinement of Story 4B.1: Reconnection with Full State Re
 733 10:03a ✅ Task 3 Expanded with Full TypeScript Signatures and Explicit Code Migration Patterns
 734 " ✅ Task 4 Restructured with Mandatory Extract-First Pattern and Complete attachToExistingSeat Specification
 735 " ✅ Task 5 Refined with Correct Property Reference and Empty-Seat Branch Handling
-S288 Code review of story 4B.1 (Reconnection with Full State Restore) - comprehensive adversarial validation of 14 acceptance criteria and 14 transition scenarios (Apr 5 at 10:05 AM)
 736 10:06a ✅ Sprint task status updated for reconnection feature
 737 " 🟣 Player reconnection event type added to game state
 738 " 🟣 Reconnection state management refactored with centralized message sequencing
@@ -74,19 +55,37 @@ S290 Final verification and status update for Story 4B.1 (Reconnection with Full
 S291 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore) after code review completion, with detailed GameTable.vue component prop-flow investigation (Apr 5 at 10:20 AM)
 S292 Final verification and status update for Story 4B.1 (Reconnection with Full State Restore), with detailed investigation of REQUEST_STATE handler implementation and test coverage for AC7 (sendPostStateSequence helper) (Apr 5 at 10:21 AM)
 S293 Second-pass verification of Story 4B.1 (Reconnection with Full State Restore) after code review completion - deep dive into component prop-flow, REQUEST_STATE handler, and architectural patterns to identify any remaining issues (Apr 5 at 10:21 AM)
+S294 Captured technical debt items from 4B.1 code review pass 2 as trackable follow-up work (Apr 5 at 10:22 AM)
 756 10:28a 🔵 Retrospective Follow-Through Tracked as First-Class Work Items
 757 10:29a ✅ Code Review Technical Debt Captured for Epic 4B
-S294 Captured technical debt items from 4B.1 code review pass 2 as trackable follow-up work (Apr 5 at 10:29 AM)
-**Investigated**: Sprint-status.yaml retro_follow_through section structure and existing pattern of tracking code review findings as first-class work items across epics 5A, 3B, and 6A
+S295 Code review of Story 4B.2 phase-specific reconnection fallbacks for multiplayer Mahjong game (Apr 5 at 10:29 AM)
+758 10:32a ✅ Created Story 4B.2 for Phase-Specific Reconnection Fallbacks
+759 10:33a 🔄 Consolidated Broadcast Helpers with Try/Catch Safety
+760 " 🔄 Improved Null Handling in Broadcast Fan-Out
+761 " 🟣 Implemented Phase-Specific Auto-Actions for Disconnected Players
+762 10:34a ✅ Added Tests for Grace Expiry Auto-Actions
+763 10:40a 🔵 GDS Adversarial Code Review Workflow Structure
+764 10:41a 🟣 Phase-Specific Reconnection Fallbacks for Multiplayer Mahjong
+765 " 🔄 Join Handler Refactored for Consolidated Broadcasting and Safe State Building
+766 " ✅ Charleston Test Updated for Play-Phase Auto-Action Coexistence
+S296 Code review completion with automatic fixes for Story 4B.2 phase-specific reconnection fallbacks (Apr 5 at 10:44 AM)
+767 10:47a 🔴 Fixed attachToExistingSeat Incorrect Session Deletion on State Build Failure
+768 " ✅ Added Missing Unit Tests for Grace Expiry No-Op Scenarios
+769 10:48a ✅ Story Change Log Updated with Code Review Fixes
+770 " ✅ Sprint Status Synchronized with Story Completion
+S297 Second pass adversarial code review with deep verification of applied fixes and edge case analysis (Apr 5 at 10:48 AM)
+771 10:53a ✅ Code Review Follow-Up Items Documented in Story File
+S298 Documentation of second-pass verification findings and review follow-up items (Apr 5 at 10:54 AM)
+**Investigated**: Completed comprehensive two-pass adversarial code review. First pass identified and fixed 1 medium issue (AC8 session deletion bug) and 2 low issues (missing AC4/AC5 tests). Second pass conducted deep verification of fixes including supersession close-handler behavior in both grace-reconnect and live-supersession modes, broadcast consolidation semantic preservation across 7 call sites, and phase-branch mutual exclusion verification. Identified 3 additional low-priority observations for future maintenance.
 
-**Learned**: Code review findings are captured with detailed technical context including affected files, functions, rationale, and suggested implementation timing. Pre-existing debt that current work rides on but doesn't worsen is formally tracked rather than ignored, keeping the review trail honest
+**Learned**: Story documentation follows a structured pattern with Review Follow-ups section for non-blocking findings, Change Log for chronological work history, and Completion Notes for final status summary. The two-pass review approach validates not just that fixes were applied but that they correctly handle edge cases - the attachToExistingSeat fix self-heals in both reconnection scenarios through careful state reversion. Review follow-up items are tracked as unchecked tasks with severity tags, file locations, and actionable recommendations, creating a maintenance backlog without blocking story completion.
 
-**Completed**: Added epic-4b section to retro_follow_through with three pending items: 4b1-review-1-broadcast-fanout-try-catch (missing error handling in broadcast loops), 4b1-review-2-consolidate-broadcast-helpers (duplicate fan-out code in join-handler.ts and state-broadcaster.ts), and 4b1-review-3-attach-seat-build-before-mutate (state mutation order issue in attachToExistingSeat). Updated last_updated timestamp to reflect capture of these items
+**Completed**: Added "Review Follow-ups (AI)" section with 3 LOW-severity action items: createTestRoom manual Room construction maintenance risk, hot-path broadcast assertion coverage gap, and deep relative import pattern for test helpers. Updated Change Log with second-pass entry documenting supersession verification, broadcast semantics validation, and phase-branch exclusion confirmation. Added Completion Notes entry summarizing two-pass code review outcome. Story remains at Status: done with all gates passing (258/258 tests, typecheck clean, lint 0 errors) and sprint-status.yaml synchronized.
 
-**Next Steps**: Technical debt items are now tracked in sprint-status.yaml and positioned for future implementation, with 4b1-review-1 identified as natural fit for Story 4B.2 which will add more room-state broadcasts requiring the same error handling pattern
+**Next Steps**: Code review workflow fully complete. Story 4B.2 marked done with 3 LOW follow-ups documented for future work. All fixes verified, no blocking issues, ready for human merge approval.
 
 
-Access 522k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 486k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

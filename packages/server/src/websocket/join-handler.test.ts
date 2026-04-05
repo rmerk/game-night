@@ -1514,13 +1514,17 @@ describe("charleston disconnect auto-action", () => {
     for (const ws of clients.slice(1)) ws.close();
   });
 
-  it("3.8 grace expiry during non-charleston game phase — no auto-action, seat released normally (AC7)", async () => {
+  it("3.8 grace expiry during non-charleston game phase — no play-phase auto-action when not their turn, seat released normally", async () => {
     const { roomCode, clients, playerIds } = await setupCharlestonRoom();
 
     // Force the game into play phase (non-charleston)
     const room = app.roomManager.getRoom(roomCode)!;
     room.gameState!.gamePhase = "play";
     room.gameState!.charleston = null;
+    // 4B.2: avoid auto-discard / call-window pass for player-0 — use another player's turn
+    room.gameState!.callWindow = null;
+    room.gameState!.currentTurn = playerIds[1];
+    room.gameState!.turnPhase = "draw";
 
     const disconnectBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
     clients[0].close();
@@ -1533,7 +1537,7 @@ describe("charleston disconnect auto-action", () => {
 
     const seatReleaseMessages = await Promise.all(seatReleaseBroadcasts);
 
-    // AC7: No auto-action, but seat should be released normally
+    // Seat release broadcast: player-0 removed from room (no play-phase fallback for this setup)
     for (const broadcast of seatReleaseMessages) {
       expect(broadcast.type).toBe("STATE_UPDATE");
       const state = broadcast.state as Record<string, unknown>;

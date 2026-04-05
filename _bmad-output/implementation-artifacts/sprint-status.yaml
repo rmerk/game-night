@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-05 # epic-6a retrospective
+# last_updated: 2026-04-05 # 4b-2 in progress
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 4b-1 → done (code review passed); 6a-retro-1/2/3 → done; 4b1-review-1/2/3 captured
+last_updated: 2026-04-05 # 4b-2 done (code review); 4b-1 done; 4b1-review-1/2/3 pending
 project: mahjong-game
 
 project_key: NOKEY
@@ -136,7 +136,7 @@ development_status:
   # Epic 4B: Multiplayer Resilience
   epic-4b: in-progress
   4b-1-reconnection-with-full-state-restore: done
-  4b-2-phase-specific-reconnection-fallbacks: backlog
+  4b-2-phase-specific-reconnection-fallbacks: done
   4b-3-simultaneous-disconnection-game-pause: backlog
   4b-4-turn-timeout-afk-escalation: backlog
   4b-5-player-departure-dead-seat: backlog
@@ -215,15 +215,15 @@ retro_follow_through:
     # peers miss the broadcast. 4B.1 uses this helper for PLAYER_RECONNECTING / PLAYER_RECONNECTED. Apply
     # the trySendJson pattern (warn-on-failure, keep iterating) inside the loop. Natural fit for 4B.2 since
     # that story adds more room-state broadcasts (phase fallbacks).
-    4b1-review-1-broadcast-fanout-try-catch: pending
+    4b1-review-1-broadcast-fanout-try-catch: done
     # join-handler.ts:broadcastStateToRoom and state-broadcaster.ts:broadcastGameState are two near-identical
     # fan-out iterators over room.sessions that build per-viewer StateUpdateMessages. The former carries
     # room-level resolvedActions (PLAYER_JOINED, PLAYER_RECONNECTING, PLAYER_RECONNECTED, seat release), the
     # latter carries game-action resolutions. 4B.1 widens the gap by adding another call site to the former.
     # Consolidate into one helper in state-broadcaster.ts.
-    4b1-review-2-consolidate-broadcast-helpers: pending
+    4b1-review-2-consolidate-broadcast-helpers: done
     # attachToExistingSeat mutates session state (player.connected, graceTimers, room.sessions) BEFORE
     # calling buildCurrentStateMessage. The defensive `if (!base) return` at join-handler.ts:171 is
     # unreachable today but would leave the server half-attached with no STATE_UPDATE delivered if it ever
     # fired. Reshape to "build first, mutate on success" so the invariant matches buildCurrentStateMessage.
-    4b1-review-3-attach-seat-build-before-mutate: pending
+    4b1-review-3-attach-seat-build-before-mutate: done
