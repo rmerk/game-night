@@ -11,6 +11,8 @@ export interface ReactionBubbleRecord {
   id: string;
   playerId: string;
   emoji: string;
+  /** Server `ReactionBroadcast.timestamp` — used for dedupe (do not parse from `id`). */
+  serverTimestamp: number;
   expiresAt: number;
 }
 
@@ -55,7 +57,7 @@ export const useReactionsStore = defineStore("reactions", () => {
       last &&
       last.playerId === b.playerId &&
       last.emoji === b.emoji &&
-      Number(last.id.split("-")[0]) === b.timestamp
+      last.serverTimestamp === b.timestamp
     ) {
       return;
     }
@@ -68,6 +70,7 @@ export const useReactionsStore = defineStore("reactions", () => {
       id,
       playerId: b.playerId,
       emoji: b.emoji,
+      serverTimestamp: b.timestamp,
       expiresAt: now + REACTION_BUBBLE_MS,
     };
 

@@ -83,6 +83,7 @@ export function useRoomConnection() {
     }
     if (parsed.kind === "reaction_broadcast") {
       useReactionsStore().pushBroadcast(parsed.message);
+      return;
     }
   }
 
