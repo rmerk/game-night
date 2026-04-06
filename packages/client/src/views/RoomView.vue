@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from "vue";
 import { animate } from "motion-v";
 import { useRoute, useRouter } from "vue-router";
 import type { CallType, SessionGameHistoryEntry } from "@mahjong-game/shared";
@@ -131,19 +131,51 @@ const roomViewRoot = useTemplateRef<HTMLElement>("roomViewRoot");
  */
 const displayedMoodClass = ref(moodClass.value);
 
+/** Cubic-bezier matching `--ease-expressive` design token. */
+const TIMING_EXPRESSIVE_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+/** Returns true when the user has requested reduced motion at the OS level. */
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+/** Tracks the in-flight crossfade so rapid mood changes cancel the previous animation. */
+let currentCrossfadeAnimation: { stop(): void } | null = null;
+
+/** Guard set to false on unmount — prevents DOM writes after the component is gone. */
+let isMounted = true;
+
+onUnmounted(() => {
+  isMounted = false;
+  currentCrossfadeAnimation?.stop();
+});
+
 watch(moodClass, async (newMood) => {
   const el = roomViewRoot.value;
   if (!el || newMood === displayedMoodClass.value) return;
 
-  // Fade out — motion-v respects prefers-reduced-motion natively (instant when active)
-  await animate(el, { opacity: 0 }, { duration: 0.4, ease: [0.16, 1, 0.3, 1] }).finished;
+  const reducedMotion = prefersReducedMotion();
 
-  // Update the applied class while invisible
+  if (!reducedMotion) {
+    // Cancel any in-flight animation before starting a new one
+    currentCrossfadeAnimation?.stop();
+
+    const fadeOut = animate(el, { opacity: 0 }, { duration: 0.4, ease: TIMING_EXPRESSIVE_EASE });
+    currentCrossfadeAnimation = fadeOut;
+    await fadeOut.finished;
+
+    // Bail if unmounted or superseded by a newer transition
+    if (!isMounted || currentCrossfadeAnimation !== fadeOut) return;
+  }
+
   displayedMoodClass.value = newMood;
   await nextTick();
 
-  // Fade back in
-  await animate(el, { opacity: 1 }, { duration: 1.0, ease: [0.16, 1, 0.3, 1] }).finished;
+  if (!reducedMotion && isMounted) {
+    const fadeIn = animate(el, { opacity: 1 }, { duration: 1.0, ease: TIMING_EXPRESSIVE_EASE });
+    currentCrossfadeAnimation = fadeIn;
+    await fadeIn.finished;
+  }
 });
 
 const localPlayerId = computed(

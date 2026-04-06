@@ -541,11 +541,16 @@ describe("RoomView crossfade transitions (Task 4)", () => {
     setTimeoutSpy.mockRestore();
   });
 
-  it("4.5: mood class changes immediately when prefers-reduced-motion is active", async () => {
+  it("4.5: skips motion-v animate() calls when prefers-reduced-motion is active", async () => {
     vi.stubGlobal("matchMedia", (query: string) => ({
       matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      onchange: null,
     }));
 
     const playerGameView = ref<null | {
@@ -569,6 +574,7 @@ describe("RoomView crossfade transitions (Task 4)", () => {
 
     // Verify initial state
     expect(wrapper.find('[data-testid="room-view-root"]').classes()).toContain("mood-arriving");
+    mockAnimate.mockClear();
 
     // Transition to play mood
     lobbyState.value = null;
@@ -579,13 +585,13 @@ describe("RoomView crossfade transitions (Task 4)", () => {
       myRack: [],
       settings: {} as never,
     };
-
-    // With motion-v handling reduced-motion natively (resolves synchronously),
-    // the class should update after flushing microtasks
     await flushPromises();
 
+    // With reduced-motion active, the class should update without any animate() calls
     expect(wrapper.find('[data-testid="room-view-root"]').classes()).toContain("mood-playing");
+    expect(mockAnimate).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();
+    mockAnimate.mockClear();
   });
 });
