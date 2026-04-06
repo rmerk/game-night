@@ -57,7 +57,7 @@ async function runDimSequence(): Promise<void> {
   // Animate each non-winner seat to ~22% opacity
   // We animate them together by targeting each element; Motion for Vue handles
   // individual element animation objects.
-  const dimAnimation = animate(nonWinnerEls, { opacity: 0.22 }, { duration: 0.6 });
+  const dimAnimation = animate(nonWinnerEls, { opacity: 0.22 }, { duration: 0.12 });
   currentAnimation = dimAnimation;
 
   await dimAnimation.finished;
