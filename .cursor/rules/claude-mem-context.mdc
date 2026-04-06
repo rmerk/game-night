@@ -7,41 +7,30 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 6:36pm CDT
+# $CMEM mahjong-game 2026-04-05 7:47pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (23,255t read) | 403,084t work | 94% savings
+Stats: 50 obs (24,182t read) | 430,510t work | 94% savings
 
 ### Apr 5, 2026
-S307 Code review and bugfix pass for Story 4B.4 Turn Timeout & AFK Escalation addressing disconnect handling edge cases (Apr 5 at 1:54 PM)
-S308 Commit turn timeout and AFK escalation feature implementation (Story 4B.4) (Apr 5 at 2:17 PM)
-S309 Create Story 4B.5: Player Departure & Dead Seat for Multiplayer Resilience Epic (Apr 5 at 2:36 PM)
-S310 Create Story 4B.6 specification: Host Migration for multiplayer resilience (Apr 5 at 2:51 PM)
-S311 GDS code review initiated - Story 4B.6 Host Migration identified as candidate based on git status (Apr 5 at 4:19 PM)
-856 4:27p 🟣 Implemented host migration system for multiplayer game rooms
-857 " 🔄 Optimized host migration candidate lookup
-858 " ✅ Added comprehensive test suite for host migration
+858 4:27p ✅ Added comprehensive test suite for host migration
 859 4:28p 🟣 Integrated host promotion for players joining hostless rooms
 860 " 🟣 Wired host migration to disconnect handler and event broadcasting
 861 " ✅ Added HOST_PROMOTED broadcast for attachToExistingSeat hostless scenario
 862 " 🟣 Integrated host migration into leave and dead seat handlers
 863 4:29p 🟣 Integrated host migration into turn timeout auto-departure
 864 4:35p 🔵 GDS Code Review Workflow System
-S312 Code review of Story 4B.6 Host Migration implementation for multiplayer Mahjong game (Apr 5 at 4:35 PM)
 865 4:41p 🔵 Host Migration System for Multiplayer Mahjong Game
 866 4:42p 🟣 Host Migration Integration Across Server Handlers
 867 " 🟣 Client-Side Phase-Conditional Host Promotion Toast
 868 " ✅ Host Migration Test Suite Validation Complete
 869 4:43p ✅ Type Safety and Lint Validation Passed
-S313 Code review and completion of Story 4B.6 Host Migration for multiplayer Mahjong game (Apr 5 at 4:43 PM)
 870 4:44p ✅ Code Review Findings Documented in Story Spec
 871 " ✅ Story 4B.6 Marked as Done After Code Review
-S314 Story 4B.7 specification created for host settings panel, 5th player handling, and REMATCH validation (Apr 5 at 4:45 PM)
 872 4:59p 🟣 Story 4B.7 Created: Host Settings, 5th Player Handling, and REMATCH Validation
-S315 Adversarial code review of Story 4B.7 (Host Settings & 5th Player Handling) implementation using gds-code-review workflow (Apr 5 at 5:00 PM)
 873 5:02p 🟣 Host-configurable room settings with type-safe schema
 874 " 🟣 Protocol and server integration for room settings
 875 " 🔴 Fixed TypeScript compilation errors for mandatory settings field
@@ -75,17 +64,28 @@ S315 Adversarial code review of Story 4B.7 (Host Settings & 5th Player Handling)
 903 " ✅ All tests and typecheck pass after implementation changes
 904 6:36p ✅ Updated implementation artifacts with code review fixes changelog
 905 " ✅ Updated File List to include SpectatorPlaceholderView test file
-S316 Code review fixes applied to Story 4B.7 (Host Settings & 5th Player Handling) - UI visibility improvement, test coverage additions, and bugfixes (Apr 5 at 6:36 PM)
-**Investigated**: Five issues identified during code review: room settings panel visibility restricted to host-only (AC6 violation), missing error handling test coverage for table-full edge cases, missing settings persistence test assertions, double-counting bug in rematch missing-seats calculation, and missing test for spectator placeholder component.
+S317 Retrospective for Epic 4B: Multiplayer Resilience - Epic Discovery and Configuration Loading (Apr 5 at 6:36 PM)
+906 6:38p 🔵 GDS Retrospective Workflow Skill Loaded
+S318 GDS Retrospective for Epic 4B: Multiplayer Resilience - Post-Epic Team Discussion and Analysis (Apr 5 at 6:38 PM)
+S319 Epic 4B Retrospective - Team Discussion of Wins and Concerns with Detailed Technical Analysis (Apr 5 at 6:42 PM)
+S320 Epic 4B Retrospective - Extended Team Discussion with Technical Debt and Testing Infrastructure Analysis (Apr 5 at 6:43 PM)
+S321 Epic 4B Retrospective - Overall Assessment and Transition to Action Item Formulation Phase (Apr 5 at 6:44 PM)
+S322 Epic 4B Retrospective - Action Item Formulation and Epic 5B Preparation Planning (Apr 5 at 6:45 PM)
+S323 Epic 5B sprint planning validation and Epic 4B readiness check (Apr 5 at 6:46 PM)
+S324 Epic 4B codebase health assessment and retro closure readiness check (Apr 5 at 7:42 PM)
+S325 Epic 4B retrospective completion and action item tracking in sprint-status.yaml (Apr 5 at 7:43 PM)
+907 7:46p ⚖️ Epic 4B Retrospective: Multiplayer Resilience Complete
+S326 Epic 4B retrospective session completion and readiness confirmation for Epic 5B transition (Apr 5 at 7:47 PM)
+**Investigated**: Epic 4B retrospective documentation, sprint status tracking system, and action item management workflow for ensuring retro follow-through
 
-**Learned**: RoomSettingsPanel visibility was incorrectly scoped inside v-if="isHost" conditional, preventing non-hosts from viewing settings in lobby despite :can-edit prop controlling editability. Missing seats calculation in handleRematch used arithmetic on set sizes (deadSeatPlayerIds + departedPlayerIds) which double-counts players in both sets; correct approach filters room.players for eligible seats (connected AND not dead AND not departed). WebSocket mocks in Vitest require ES6 class constructor pattern, not vi.fn().mockImplementation() pattern.
+**Learned**: Epic 4B delivered complete multiplayer resilience infrastructure with 7/7 stories, 669 new tests (86% growth to 1,449 total), and zero regressions. Transition scenario tables proved to be the highest-ROI quality practice adopted by the team, with every bug caught in code review traceable to transition scenario rows. Retro follow-through tracking in sprint-status.yaml demonstrated 57% effective completion rate when items are tracked as first-class work entries rather than prose-only notes. Client toast wiring emerged with two patterns (composable vs component) requiring consolidation before Epic 5B starts. Room type grew to 20+ fields requiring extraction into concern-specific sub-objects.
 
-**Completed**: H1: Moved RoomSettingsPanel outside host conditional in RoomView.vue lobby section. M1: Added T13 (ROOM_FULL race guard), T15 (404 error), T16 (network error) tests to RoomView.test.ts. M2: Enhanced rematch-handler.test.ts T18 with AC11 settings persistence assertions. L1: Fixed handleRematch missingSeats formula in action-handler.ts to use eligible player count. L2: Created SpectatorPlaceholderView.test.ts. Fixed T13 WebSocket mock constructor error by converting to ES6 class. All tests passing (1449), typecheck clean, lint 0 errors. Updated implementation artifacts with gds-code-review changelog entry and corrected file list.
+**Completed**: Epic 4B retrospective document created at _bmad-output/implementation-artifacts/epic-4b-retro-2026-04-05.md documenting all 7 stories, successes, challenges, key insights, and action items. Sprint-status.yaml updated with epic-4b-retrospective marked as done and four retro action items added to retro_follow_through section with pending status and priority levels. Toast consolidation identified as critical path before 5B.1, Room type extraction designated for parallel execution, and two low-priority items deferred appropriately.
 
-**Next Steps**: Code review session complete. Story 4B.7 marked done with all fixes applied and validated. Epic 4B complete per sprint-status.yaml. No additional work planned for this story.
+**Next Steps**: Epic 5B preparation work begins with toast consolidation as critical pre-work before story creation. Team is positioned to start Epic 5B (Remaining UI) with awareness of domain-shift learning curve from server-heavy 4B back to client-heavy UI work.
 
 
-Access 403k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 431k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

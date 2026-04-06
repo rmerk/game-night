@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # 4b-7 done — Epic 4B complete
+last_updated: 2026-04-05 # Epic 4B retrospective complete
 project: mahjong-game
 
 project_key: NOKEY
@@ -142,7 +142,7 @@ development_status:
   4b-5-player-departure-dead-seat: done
   4b-6-host-migration: done
   4b-7-host-settings-5th-player-handling: done
-  epic-4b-retrospective: optional
+  epic-4b-retrospective: done
 
   # Epic 5B: Remaining UI
   epic-5b: backlog
@@ -229,3 +229,14 @@ retro_follow_through:
     # unreachable today but would leave the server half-attached with no STATE_UPDATE delivered if it ever
     # fired. Reshape to "build first, mutate on success" so the invariant matches buildCurrentStateMessage.
     4b1-review-3-attach-seat-build-before-mutate: done
+    # Epic 4B retrospective action items (2026-04-05)
+    # Critical: consolidate client toast wiring to one pattern (composable vs component watcher)
+    # before 5B starts. Two patterns emerged in 4B.5/4B.6/4B.7 — pick one, migrate, document in CLAUDE.md.
+    4b-retro-1-consolidate-toast-pattern: pending
+    # MEDIUM: Extract concern-specific sub-objects from Room type (TurnTimerState, VoteState, SeatStatus)
+    # to reduce 20+ top-level fields. Create createTestRoom(overrides) builder. Parallel with early 5B.
+    4b-retro-2-room-type-extraction: pending
+    # LOW: Fill 4B.4 deferred integration test gaps (Tasks 10.2, 10.4, 10.6).
+    4b-retro-3-fill-4b4-integration-test-gaps: pending
+    # LOW: Tokenless reconnect during pause known gap (4B.3 T11). Defer unless real issue surfaces.
+    4b-retro-4-tokenless-reconnect-during-pause: pending
