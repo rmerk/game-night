@@ -243,10 +243,10 @@ retro_follow_through:
     # LOW: Fill 4B.4 deferred integration test gaps (Tasks 10.2, 10.4, 10.6).
     4b-retro-3-fill-4b4-integration-test-gaps: done # pre6b-debt-cleanup Part B
     # LOW: Tokenless reconnect during pause known gap (4B.3 T11). Defer unless real issue surfaces.
-    4b-retro-4-tokenless-reconnect-during-pause: pending
+    4b-retro-4-tokenless-reconnect-during-pause: done # f5758eb — grace recovery also matches during pause
   epic-5b:
     # Process: one commit per story, File List audit as code review gate — starting 6B
-    5b-retro-1-one-commit-per-story: pending
+    5b-retro-1-one-commit-per-story: done # applied starting with pre6b-debt-cleanup (e079dd7)
     5b-retro-2-file-list-audit-in-code-review: done # applied in pre6b-debt-cleanup code review
     # Debt cleanup before 6B (carried from 4B retro, now 2 epics old)
     5b-retro-3-room-type-extraction: done # pre6b-debt-cleanup Part A

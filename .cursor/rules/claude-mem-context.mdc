@@ -7,52 +7,21 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 8:13am CDT
+# $CMEM mahjong-game 2026-04-06 9:15am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (22,798t read) | 256,581t work | 91% savings
+Stats: 50 obs (25,883t read) | 415,075t work | 94% savings
 
 ### Apr 6, 2026
-S341 Create comprehensive story file for Story 5B.5 "Show Hands & Post-Game Social" using BMad Method GDS workflow (Apr 6 at 5:22 AM)
-S342 Adversarial code review of Story 5B.5 "Show Hands & Post-Game Social" implementation with AC validation, task audit, and quality assessment (Apr 6 at 5:33 AM)
-S343 Code review and completion of Story 5B.5 (Show Hands & Post-Game Social feature) (Apr 6 at 5:51 AM)
-S344 Execute gds-create-story workflow for Story 5B.6: Settings Panel & Dealing Style Options in mahjong-game project (Apr 6 at 6:13 AM)
-S345 Adversarial code review of Story 5B.6 Settings Panel & Dealing Style Options implementation (Apr 6 at 6:20 AM)
-1036 6:21a 🟣 Implemented BaseNumberStepper component for numeric settings
-1037 " 🔄 Migrated to Vue useId for unique element identifiers
-1038 " 🔴 Fixed BaseToggle knob positioning and animation
-1039 6:22a ✅ Enhanced test assertions for BaseToggle keyboard interaction
-1040 " 🟣 Integrated settings panel into slide-in panel system
-1041 " 🔄 Migrated room settings from inline overlay to slide-in panel
-1042 " 🔴 Fixed partial module mock for @vueuse/core in tests
-1043 " 🔄 Redesigned RoomSettingsPanel with toggle and stepper components
-1044 6:23a ✅ Updated RoomSettingsPanel tests for toggle/stepper UI
-1045 " 🟣 Added embedded mode to RoomSettingsPanel for context-aware rendering
-1046 " ✅ Updated dealing style display text for consistency
-1047 6:24a 🟣 Implemented traditional dealing animation sequence
-1048 " 🟣 Added test suite for DealingAnimation component
-1049 " 🔴 Fixed vi.hoisted import dependency in DealingAnimation tests
-1050 6:25a 🟣 Integrated dealing animation into game table flow
-1051 6:28a 🔄 Accessibility improvements for form controls in BaseToggle and BaseNumberStepper
-1052 6:29a 🔴 Fixed RoomSettingsPanel test broken by aria-label removal
-1053 " ✅ Documented accessibility pass in implementation artifacts
-1054 6:30a 🔵 GDS Code Review Workflow Structure
-1055 " 🔵 Story 5B.6 Code Review Initialization
-1056 6:31a 🔵 AST Parser Limitations with Vue SFC Files
-1057 " 🔵 Settings Panel Implementation Validation Complete
-1058 6:32a 🔵 Comprehensive Test Coverage Validation
-1059 6:33a 🔵 GameTable Phase-Conditional Rendering Logic
-1060 " 🔵 Desktop Settings Toggle Integration
+1060 6:33a 🔵 Desktop Settings Toggle Integration
 1061 6:34a 🔵 Test Suite Passes Successfully
 1062 " 🔵 TypeScript Type Checking Passes
-S346 Code review for Story 5B.6 Settings Panel accessibility improvements and test coverage (Apr 6 at 6:35 AM)
 1063 6:44a 🟣 Added toggle switch tests for RoomSettingsPanel
 1064 " 🔴 Fixed ARIA label association for BaseNumberStepper spinbutton
 1065 6:45a ✅ Code review validation completed for accessibility improvements
-S347 Adversarial code review of Story 5B.7 (Recent Activity Indicator/Ticker) for mahjong game implementation (Apr 6 at 6:45 AM)
 1066 6:48a 🔵 GDS Story Creation Workflow System
 1067 " 🔵 GDS Story Creation System Configuration and Supporting Artifacts
 1068 6:52a 🟣 Story 5B.7 Created - Recent Activity Indicator Ticker
@@ -72,20 +41,51 @@ S347 Adversarial code review of Story 5B.7 (Recent Activity Indicator/Ticker) fo
 1082 7:03a 🔵 Story 5B.7 Ready for Code Review
 1083 " 🔵 Code Changes Include Undocumented Features Beyond Story Scope
 1084 7:04a 🔵 Activity Ticker Implementation Quality Assessment
-S348 Complete adversarial code review of Story 5B.7 (Recent Activity Indicator/Ticker) and update status based on findings (Apr 6 at 7:06 AM)
 1085 7:06a ✅ Story 5B.7 Status Updated to Done After Clean Code Review
-S349 Retrospective workflow initiated - Epic 5B (Remaining UI) identified for review (Apr 6 at 7:07 AM)
-S350 Epic 5B Retrospective - Complete UI Epic Analysis and Team Discussion Initiation (Apr 6 at 8:13 AM)
-**Investigated**: All 7 Epic 5B story files analyzed (5B.1 NMJL Card Panel through 5B.7 Activity Ticker); Epic 4B retrospective reviewed for action item follow-through; cross-session timeline queried showing development from April 5-6, 2026; detailed observations retrieved including quality assessments and scope bundling issues; sprint status confirmed all 7 stories marked done; Epic 6B (next epic, marked "CUT LINE") previewed for dependencies and preparation needs
+S359 Epic 5B Retrospective Final Closure and Key Takeaways Synthesis (Apr 6 at 8:26 AM)
+S360 Epic 5B Retrospective Complete - Comprehensive Analysis, Documentation, and Action Item Tracking (Apr 6 at 8:27 AM)
+1097 8:29a ✅ Epic 5B Retrospective Document Generated
+1098 " ✅ Sprint Status Updated for Epic 5B Retrospective Completion
+S361 Create story: Pre-6B Debt Cleanup (Room Type Extraction & 4B.4 Integration Test Gaps) (Apr 6 at 8:30 AM)
+S362 GDS Code Review of Pre-6B Debt Cleanup Story - Room Type Refactoring and 4B.4 Integration Tests (Apr 6 at 8:38 AM)
+1099 8:38a 🔄 Room state structure reorganized into logical nested interfaces
+1100 8:40a 🟣 Test utility infrastructure created for nested room state structure
+1101 8:43a 🟣 Type-safe partial overrides added for nested room state in test utilities
+1102 8:44a ✅ Room state refactoring completed - all tests migrated to nested structure
+1103 8:47a 🟣 Integration tests added for turn timer and AFK vote WebSocket flows
+1104 8:57a 🔄 Extracted shared WebSocket testing utilities to eliminate duplication
+1105 8:58a 🔄 Completed migration to shared WebSocket testing utilities across all test files
+1106 8:59a 🔵 GDS Code Review Workflow Structure
+1107 " 🔵 Pre-6B Debt Cleanup Story Under Review
+1108 9:00a 🔵 Room Type Sub-Object Architecture Validated
+1109 " 🔵 Room Sub-Object Field Groupings Verified
+1110 " 🔵 Shared Test Builder Pattern Implementation
+1111 9:01a 🔵 Test File Migration Strategy Validated
+1112 " 🔵 Part B Integration Tests Validated
+1114 9:02a 🔵 Test Suite Validation and Field Migration Verification
+1116 " 🔵 Field Path Migration Breadth Confirmed
+S363 GDS Code Review Completion with Auto-Fix and Retrospective Item Closure (Apr 6 at 9:03 AM)
+1121 9:03a ✅ Code Review Auto-Fix Applied - File List Expanded and Story Marked Done
+S364 Code Review Completion with Retrospective Closure Discussion (Apr 6 at 9:04 AM)
+1122 9:07a ✅ Retrospective Follow-Through Items Closed
+S365 Single Commit Enforcement Discussion for Pre-6B Story (Apr 6 at 9:08 AM)
+S366 Single Atomic Commit Created for Pre-6B Debt Cleanup Story (Apr 6 at 9:08 AM)
+1123 9:09a 🔵 Git Commit Message Convention Discovery
+1124 " ✅ Pre-6B Debt Cleanup Files Staged for Commit
+S367 Final Retrospective Item Review - Tokenless Reconnect Deferred Gap (Apr 6 at 9:10 AM)
+1127 9:12a 🔵 Tokenless Reconnect During Pause Technical Gap Identified
+1128 9:13a 🔴 Tokenless Reconnect During Pause Fixed
+S368 Commit tokenless reconnect during pause bugfix and close Epic 4B retrospective follow-through tracking (Apr 6 at 9:15 AM)
+**Investigated**: The primary session validated the tokenless reconnect fix by running the full test suite (373 tests across 25 files), confirming all tests passed including the new T11 integration test. They then reviewed git status showing the modified files ready for commit: join-handler.ts (one-line fix), join-handler.test.ts (new T11 test), and sprint-status.yaml (tracking update).
 
-**Learned**: Epic 5B delivered complete UI layer in 7 stories over ~12 hours with 112 new tests and zero regressions. Domain was client-heavy (Vue/UnoCSS/Pinia) after server-heavy Epic 4B. Toast consolidation and transition scenario tables (critical action items from previous retro) were completed successfully. Cross-session observations revealed scope bundling issue in Story 5B.7 where dealing animation and settings panel refactor shipped alongside activity ticker. Epic 6B represents MVP cut line - game is fully playable without WebRTC voice/video.
+**Learned**: The fix works by adding `|| room.pause.paused` as a fallback to the grace recovery predicate at join-handler.ts:519. This allows tokenless (displayName-based) reconnection to succeed even when the graceTimers map has been cleared by simultaneous-disconnect pause. The edge case occurs because pause entry calls `room.graceTimers.clear()` which removes the timer handles that the tokenless recovery predicate was checking for. The disjunction pattern (check timer OR check pause state) closes this gap cleanly without changing pause semantics.
 
-**Completed**: Retrospective initialization complete: epic completion verified (7/7 stories done), all story records analyzed, previous retro action items assessed (2/5 completed - the two critical ones), epic summary prepared showing 100% delivery with comprehensive test coverage, next epic (6B Voice & Video WebRTC) previewed as cut line boundary
+**Completed**: 1. Committed tokenless reconnect fix as commit f5758eb with 2 files changed (35 insertions, 1 deletion). 2. Updated sprint-status.yaml to mark 4b-retro-4-tokenless-reconnect-during-pause as done with commit reference. 3. All Epic 4B retrospective follow-through items (4b-retro-1 through 4b-retro-4) are now closed. 4. The pre6b-debt-cleanup gate is fully complete with all deferred items resolved.
 
-**Next Steps**: Team discussion phase beginning - Bob (Scrum Master) just presented epic summary and previous retro follow-through results, now waiting for Rchoi (Project Lead) to engage in retrospective discussion covering: what went well in Epic 5B, challenges encountered, lessons learned, action items for future work, and preparation needs for Epic 6B (if proceeding past MVP cut line)
+**Next Steps**: With all Epic 4B and 5B retrospective follow-through completed and pre6b-debt-cleanup gate closed, the path is clear for Epic 6B (WebRTC voice/video) work to begin. The primary session has not indicated next specific action yet - likely awaiting user direction on whether to start Epic 6B planning or address other priorities.
 
 
-Access 257k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 415k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*
