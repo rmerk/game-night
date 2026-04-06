@@ -31,6 +31,10 @@ export const useSlideInPanelStore = defineStore("slideInPanel", () => {
     activePanel.value = activePanel.value === "chat" ? null : "chat";
   }
 
+  function toggleNmjl() {
+    activePanel.value = activePanel.value === "nmjl" ? null : "nmjl";
+  }
+
   function resetForRoomLeave() {
     activePanel.value = null;
   }
@@ -42,6 +46,7 @@ export const useSlideInPanelStore = defineStore("slideInPanel", () => {
     openNmjl,
     close,
     toggleChat,
+    toggleNmjl,
     resetForRoomLeave,
   };
 });

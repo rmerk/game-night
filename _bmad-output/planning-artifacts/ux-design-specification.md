@@ -595,7 +595,7 @@ Defined as CSS custom properties, consumed by Motion for Vue AND any CSS transit
 └──────────────────────────┘
 ```
 
-- **NMJL Card:** Full-screen overlay on mobile (toggle from bottom bar). Sidebar (~260-300px) on desktop, always visible by default but collapsible to gain table space.
+- **NMJL Card:** Partial-height slide-up sheet on mobile (toggle from bottom bar), with backdrop and scrollable content — preserves table context; Charleston uses a top-anchored split sheet so the rack stays visible. Sidebar (~260-300px) from the `md` breakpoint up (~768px+), collapsible via toggle.
 - **Chat:** Slide-up panel on mobile (toggle from bottom bar). Docked panel on desktop.
 - **Rack scrolling:** On phone viewports where 13-14 tiles would shrink below `tile-min-width`, the rack scrolls horizontally. Tiles never shrink below minimum — scrolling is the phone adaptation, not shrinking.
 
@@ -852,7 +852,7 @@ Four layout directions were explored through an interactive HTML showcase (`plan
 
 | Element | Desktop (>1024px) | iPad Landscape (~1024px) | Mobile (<1024px) |
 |---|---|---|---|
-| **NMJL Card** | Slide-in panel from right (~280px), overlays felt, tap to toggle | Same as desktop | Full-screen overlay |
+| **NMJL Card** | Slide-in from right (~280px), `md` breakpoint (~768px) and up | Same as desktop (implementation uses `md`, not 1024px) | Partial-height slide-up sheet (`<768px`); Charleston: top-anchored split (card top, rack bottom) |
 | **Chat** | Slide-in panel from right (mutually exclusive with NMJL) | Slide-up panel from bottom, partial height, rack visible | Slide-up panel from bottom |
 | **Reactions** | Floating vertical stack, right edge, always visible | Same as desktop | Horizontal row above rack, always visible |
 | **Video frames** | ~140x96px at cardinal seat positions | ~120x80px at cardinal seat positions | Small avatars (~40px) with speaking indicators |
@@ -1277,8 +1277,8 @@ flowchart TD
 
 **Purpose:** Displays NMJL card hand patterns for reference during play.
 **Content:** All hand patterns with notation, point values, concealed/exposed markers. Achievable hands highlighted via hand guidance.
-**States:** Open (slide-in panel on desktop, overlay on mobile), Closed, Charleston mode (positioned to keep rack visible)
-**Variants:** Slide-in panel (desktop/iPad, ~280px from right), Full-screen overlay (phone), Split-view (mobile during Charleston — card top, rack bottom)
+**States:** Open (slide-in panel ≥`md`, partial-height sheet on narrow mobile), Closed, Charleston mode (top split, rack visible)
+**Variants:** Slide-in panel (≥`md`, ~280px from right), Partial-height mobile sheet (phone, bottom-anchored; scrollable), Split-view (mobile Charleston — card top, rack bottom)
 **Interaction:** Toggle open/close. Scroll through patterns. Tap a pattern for enlarged detail view.
 
 #### CharlestonZone
@@ -1416,18 +1416,18 @@ All game state changes are visually explained to all players:
 ### Overlay & Panel Patterns
 
 **SlideInPanel (NMJL card and chat):**
-- **Desktop/iPad:** Slides in from right edge, ~280px wide, overlays the felt
-- **Mobile:** NMJL slides up as full-screen overlay; chat slides up as partial-height panel (rack visible)
+- **Desktop/tablet (≥`md`, 768px+):** Slides in from right edge, ~280px wide, overlays the felt
+- **Mobile (`<768px`):** NMJL slides up as a **partial-height** sheet (capped max height, scrollable); chat slides up as partial-height panel (rack visible). Charleston NMJL uses top-anchored split height so the rack remains visible.
 - **Mutual exclusivity:** Opening one closes the other. No stacking.
 - **Reactions hide** when any panel is open (play mode vs. reference mode)
 - **Animation:** `timing-tactile` (120ms), `ease-tactile` for open/close
 - **Backdrop:** Semi-transparent on mobile overlays so table context is preserved
 
-**Full-screen overlays (celebration, NMJL on phone):**
-- **Celebration:** Not dismissable — plays for all four players. Voice chat stays active.
-- **NMJL on phone:** Dismissable via tap outside, back gesture, or close button. During Charleston: split-view (card top, rack bottom).
+**Full-screen vs sheet overlays:**
+- **Celebration:** Full-screen, not dismissable — plays for all four players. Voice chat stays active.
+- **NMJL on phone:** **Partial-height sheet** (not edge-to-edge full viewport) — dismissable via tap outside, close button, or Escape from panel content; optional OS back gesture is polish, not MVP. During Charleston: split-view (card top, rack bottom).
 
-**No modals.** Mahjong Night does not use modal dialogs for any gameplay interaction. Confirmations are inline (discard confirm in the fixed action zone, call confirm via tile selection). The only modal-like elements are the celebration overlay (not dismissable) and the full-screen NMJL card on phone (dismissable). Modals interrupt rhythm (P2).
+**No modals.** Mahjong Night does not use modal dialogs for any gameplay interaction. Confirmations are inline (discard confirm in the fixed action zone, call confirm via tile selection). The only full-screen takeover is the celebration sequence (not dismissable). NMJL on phone uses a dismissable sheet overlay. Modals interrupt rhythm (P2).
 
 ### Turn State Communication
 
@@ -1583,7 +1583,7 @@ Mahjong Night is designed for iPad landscape (1024px) as the primary target, ada
 
 **Phone Portrait (375-430px) — Most Constrained:**
 - Full progressive disclosure — everything non-essential is one tap away
-- NMJL card: full-screen overlay
+- NMJL card: partial-height slide-up sheet (scrollable reference content)
 - Chat: slide-up partial panel
 - Rack scrolls horizontally — tiles never shrink below 30px (`tile-min-width`)
 - Bottom bar for all toggles (NMJL, chat, A/V)
@@ -1601,7 +1601,7 @@ Mahjong Night is designed for iPad landscape (1024px) as the primary target, ada
 |---|---|---|---|
 | **Desktop** | ≥1024px | Full immersive table | Slide-in panels from right, floating reactions, large video frames, hover states |
 | **Tablet** | 768px–1023px | Adapted table | NMJL as overlay, smaller video, bottom bar appears, no hover states |
-| **Phone** | <768px | Progressive disclosure | Full-screen NMJL overlay, slide-up chat, horizontal rack scroll, stacked call buttons, avatar-only seats |
+| **Phone** | <768px | Progressive disclosure | Partial-height NMJL sheet, slide-up chat, horizontal rack scroll, stacked call buttons, avatar-only seats |
 
 **Implementation approach:**
 - CSS custom properties + UnoCSS responsive utilities (`md:`, `lg:` prefixes)
@@ -1660,7 +1660,7 @@ For this audience (women 40-70+), accessibility requirements ARE the core design
 |---|---|---|
 | **iPad (landscape)** | Critical | Primary layout — all elements fit, tiles readable, video at seats, action zone positioned |
 | **iPad (portrait)** | High | NMJL shifts to overlay, bottom bar appears, video shrinks, rack still fits |
-| **iPhone SE (375px)** | High | Minimum viable viewport — rack scrolls, tiles ≥30px, call buttons stack, NMJL full-screen |
+| **iPhone SE (375px)** | High | Minimum viable viewport — rack scrolls, tiles ≥30px, call buttons stack, NMJL partial-height sheet |
 | **iPhone 14/15 (390-430px)** | High | Common phone viewport — same as SE but slightly more room |
 | **Desktop (1440px)** | Medium | Extra space used well, not wasted. Hover states work. |
 | **Desktop (1920px)** | Low | Ultra-wide doesn't break. Max-width container prevents absurd stretching. |

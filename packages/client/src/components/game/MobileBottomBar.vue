@@ -100,7 +100,7 @@ onMounted(() => {
       aria-label="Show NMJL card"
       :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
       :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
-      @click="slideInPanelStore.openNmjl()"
+      @click="slideInPanelStore.toggleNmjl()"
     >
       <span class="text-5">🀄</span>
       <span>Card</span>

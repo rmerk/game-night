@@ -30,4 +30,12 @@ describe("useSlideInPanelStore", () => {
     s.resetForRoomLeave();
     expect(s.activePanel).toBeNull();
   });
+
+  it("toggleNmjl opens when closed and closes when open", () => {
+    const s = useSlideInPanelStore();
+    s.toggleNmjl();
+    expect(s.activePanel).toBe("nmjl");
+    s.toggleNmjl();
+    expect(s.activePanel).toBeNull();
+  });
 });

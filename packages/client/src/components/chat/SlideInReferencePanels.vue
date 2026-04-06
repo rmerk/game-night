@@ -1,15 +1,32 @@
 <script setup lang="ts">
+import { useBreakpoints } from "@vueuse/core";
+import { computed } from "vue";
 import SlideInPanel from "../ui/SlideInPanel.vue";
 import ChatPanel from "./ChatPanel.vue";
+import NMJLCardPanel from "../nmjl/NMJLCardPanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "./slideInPanelIds";
 
-defineProps<{
-  sendChat: (text: string) => void;
-  onEscapeFocusTarget?: () => void;
-}>();
+const props = withDefaults(
+  defineProps<{
+    sendChat: (text: string) => void;
+    onEscapeFocusTarget?: () => void;
+    /** Mobile Charleston: anchor NMJL panel to top so the rack stays visible below. */
+    nmjlCharlestonMobileSplit?: boolean;
+  }>(),
+  {
+    nmjlCharlestonMobileSplit: false,
+  },
+);
 
 const slideInPanelStore = useSlideInPanelStore();
+
+const breakpoints = useBreakpoints({ md: 768 });
+const isMobile = breakpoints.smaller("md");
+
+const nmjlMobilePlacement = computed(() =>
+  props.nmjlCharlestonMobileSplit && isMobile.value ? "top" : "bottom",
+);
 </script>
 
 <template>
@@ -38,19 +55,12 @@ const slideInPanelStore = useSlideInPanelStore();
     :open="slideInPanelStore.activePanel === 'nmjl'"
     label="NMJL card"
     :content-id="SLIDE_IN_NMJL_PANEL_ROOT_ID"
+    :mobile-placement="nmjlMobilePlacement"
     @close="slideInPanelStore.close()"
   >
-    <div class="flex min-h-0 flex-1 flex-col p-4 md:min-h-0">
-      <p class="text-body text-3.5 text-text-secondary">
-        NMJL card reference (Epic 5B). Placeholder panel for mutual exclusivity with chat.
-      </p>
-      <button
-        type="button"
-        class="mt-4 self-start rounded-md border border-chrome-border px-3 py-2 text-3 text-text-primary"
-        @click="slideInPanelStore.close()"
-      >
-        Close
-      </button>
-    </div>
+    <NMJLCardPanel
+      :on-escape-focus-target="onEscapeFocusTarget"
+      @close="slideInPanelStore.close()"
+    />
   </SlideInPanel>
 </template>

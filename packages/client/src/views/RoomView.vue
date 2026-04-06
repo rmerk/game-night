@@ -535,7 +535,7 @@ function goSpectatePlaceholder() {
           class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-chrome"
           :aria-expanded="slideInPanelStore.activePanel === 'nmjl'"
           :aria-controls="SLIDE_IN_NMJL_PANEL_ROOT_ID"
-          @click="slideInPanelStore.openNmjl()"
+          @click="slideInPanelStore.toggleNmjl()"
         >
           Card
         </button>
