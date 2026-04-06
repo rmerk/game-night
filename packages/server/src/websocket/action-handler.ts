@@ -11,6 +11,10 @@ import {
 } from "@mahjong-game/shared";
 import type { Room } from "../rooms/room";
 import type { RoomManager } from "../rooms/room-manager";
+import {
+  mergeCompletedGameIntoSession,
+  rotateDealerPlayerIdsForRematch,
+} from "../rooms/session-scoring";
 import { cancelLifecycleTimer, startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState, broadcastStateToRoom } from "./state-broadcaster";
 import {
@@ -404,7 +408,6 @@ export function handleActionMessage(
         roomManager.cleanupRoom(room.roomCode, "idle_timeout");
       });
     }
-    // Future: cancel idle-timeout when a REMATCH (or similar) GameAction is added to the shared type.
   } else {
     logger.info(
       {
@@ -423,6 +426,51 @@ export function handleActionMessage(
  * Host-only rematch gate after scoreboard/rematch phase (Story 4B.7).
  * Four eligible connected seats with no dead-seat / departed flags → same path as START_GAME.
  */
+/**
+ * Host ends the room session from scoreboard — snapshot totals, return to lobby (Story 5B.4).
+ */
+export function handleEndSession(
+  ws: WebSocket,
+  room: Room,
+  playerId: string,
+  logger: FastifyBaseLogger,
+): void {
+  const player = room.players.get(playerId);
+  if (!player?.isHost) {
+    logger.info({ roomCode: room.roomCode, playerId }, "END_SESSION rejected: not host");
+    sendActionError(ws, logger, "NOT_HOST", "Only the host can end the session");
+    return;
+  }
+  if (room.gameState === null) {
+    sendActionError(ws, logger, "NO_ACTIVE_GAME", "No game in progress");
+    return;
+  }
+  const phase = room.gameState.gamePhase;
+  if (phase !== "scoreboard" && phase !== "rematch") {
+    sendActionError(
+      ws,
+      logger,
+      "NOT_BETWEEN_GAMES",
+      "End session is only available after a game ends",
+    );
+    return;
+  }
+  const gs = room.gameState;
+  mergeCompletedGameIntoSession(room, gs);
+  const sessionTotals = { ...room.sessionScoresFromPriorGames };
+  const sessionGameHistory = [...room.sessionGameHistory];
+  room.sessionScoresFromPriorGames = {};
+  room.sessionGameHistory = [];
+  room.gameState = null;
+  cancelLifecycleTimer(room, "idle-timeout");
+  logger.info({ roomCode: room.roomCode, playerId }, "Session ended by host");
+  broadcastStateToRoom(room, undefined, {
+    type: "SESSION_ENDED",
+    sessionTotals,
+    sessionGameHistory,
+  });
+}
+
 export function handleRematch(
   ws: WebSocket,
   room: Room,
@@ -528,8 +576,21 @@ function handleStartGameAction(
     return;
   }
 
-  // 3. Build playerIds in seat order (player-0 through player-3)
-  const playerIds = Array.from(room.players.keys()).sort();
+  // 3. Build playerIds: rematch rotates dealer CCW; cold start uses sorted order (Story 5B.4)
+  const preGame = room.gameState;
+  let playerIds: string[];
+  if (
+    preGame &&
+    Object.keys(preGame.players).length === 4 &&
+    (preGame.gamePhase === "scoreboard" || preGame.gamePhase === "rematch")
+  ) {
+    mergeCompletedGameIntoSession(room, preGame);
+    cancelLifecycleTimer(room, "idle-timeout");
+    const rotated = rotateDealerPlayerIdsForRematch(preGame);
+    playerIds = rotated ?? Array.from(room.players.keys()).sort();
+  } else {
+    playerIds = Array.from(room.players.keys()).sort();
+  }
 
   // 4. Initialize lobby state and dispatch to engine
   room.gameState = createLobbyState();

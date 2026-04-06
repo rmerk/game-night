@@ -53,6 +53,8 @@ function createMockRoom(overrides?: Partial<Room>): Room {
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
   return { ...base, ...overrides };
 }

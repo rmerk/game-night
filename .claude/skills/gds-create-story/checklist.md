@@ -76,7 +76,7 @@ You will systematically re-do the entire story creation process, but with a crit
 
 #### **2.1 Epics and Stories Analysis**
 
-- Load `{epics_file}` (or sharded equivalents)
+- Use `smart_outline` on `{epics_file}` (or sharded equivalents) to identify Epic {{epic_num}} structure. Only do full reads of sections where the outline doesn't surface acceptance criteria and requirements verbatim.
 - Extract **COMPLETE Epic {{epic_num}} context**:
   - Epic objectives and business value
   - ALL stories in this epic (for cross-story context)
@@ -86,8 +86,10 @@ You will systematically re-do the entire story creation process, but with a crit
 
 #### **2.2 Architecture Deep-Dive**
 
-- Load `{architecture_file}` (single or sharded)
-- **Systematically scan for ANYTHING relevant to this story:**
+- Use `smart_outline` on `{architecture_file}` to get structural overview of sections and headings
+- Use `smart_search` for story-specific terms (component names, patterns, technologies) within architecture files
+- Only fall back to full file reads for sections where the structural view is insufficient (exact schemas, API contracts, verbatim config)
+- **Extract ANYTHING relevant to this story:**
   - Technical stack with versions (languages, frameworks, libraries)
   - Code structure and organization patterns
   - API design patterns and contracts
@@ -100,7 +102,7 @@ You will systematically re-do the entire story creation process, but with a crit
 
 #### **2.3 Previous Story Intelligence (if applicable)**
 
-- If `story_num > 1`, load the previous story file
+- If `story_num > 1`, use `smart_search` to locate the previous story file in `{implementation_artifacts}`. Use `smart_outline` to get its structure before committing to a full read — only load fully if the outline doesn't surface dev notes and learnings.
 - Extract **actionable intelligence**:
   - Dev notes and learnings
   - Review feedback and corrections needed

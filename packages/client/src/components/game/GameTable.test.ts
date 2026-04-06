@@ -455,6 +455,41 @@ describe("GameTable — accessibility", () => {
     expect(wrapper.find("[data-testid='wall-counter']").exists()).toBe(false);
     expect(wrapper.find("[data-testid='rack-area']").exists()).toBe(false);
   });
+
+  it("applies mood-lingering to the table root during scoreboard phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+    });
+    expect(wrapper.get("[data-testid='game-table']").classes()).toContain("mood-lingering");
+  });
+
+  it("applies mood-lingering to the table root during rematch phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "rematch",
+      localPlayer,
+      gameResult: mockGameResult,
+    });
+    expect(wrapper.get("[data-testid='game-table']").classes()).toContain("mood-lingering");
+  });
+
+  it("shows cumulative session totals (prior games + current scores) on the scoreboard", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+      sessionScoresFromPriorGames: { "player-south": 100 },
+      scoresByPlayerId: {
+        "player-south": 25,
+        "player-east": -10,
+        "player-west": -5,
+        "player-north": -10,
+      },
+    });
+
+    expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("+125");
+  });
 });
 
 describe("GameTable — discard pools", () => {

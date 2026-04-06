@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { GameResult, MahjongGameResult } from "@mahjong-game/shared";
+import type { GameResult, MahjongGameResult, SessionGameHistoryEntry } from "@mahjong-game/shared";
 import BasePanel from "../ui/BasePanel.vue";
+import BaseButton from "../ui/BaseButton.vue";
 import SessionScores from "./SessionScores.vue";
 import { formatSignedNumber } from "./format-signed-number";
 
@@ -10,6 +11,13 @@ const props = defineProps<{
   playerNamesById: Record<string, string>;
   playerOrder: string[];
   sessionScores: Record<string, number>;
+  sessionGameHistory?: readonly SessionGameHistoryEntry[];
+  viewerIsHost?: boolean;
+}>();
+
+const emit = defineEmits<{
+  playAgain: [];
+  endSession: [];
 }>();
 
 function isMahjong(result: GameResult | null): result is MahjongGameResult {
@@ -33,6 +41,17 @@ const paymentEntries = computed(() => {
     amount: mahjongResult.value?.payments[playerId] ?? 0,
   }));
 });
+
+const history = computed(() => props.sessionGameHistory ?? []);
+
+function gameSummary(entry: SessionGameHistoryEntry): string {
+  const gr = entry.gameResult;
+  if (gr && gr.winnerId !== null) {
+    const w = props.playerNamesById[gr.winnerId] ?? gr.winnerId;
+    return `${w} — ${gr.patternName} (${gr.points} pts)`;
+  }
+  return "Wall game — no winner";
+}
 </script>
 
 <template>
@@ -59,7 +78,7 @@ const paymentEntries = computed(() => {
     </header>
 
     <section class="flex flex-col gap-2">
-      <h3 class="text-4 font-semibold">Payments</h3>
+      <h3 class="text-4 font-semibold">This game — payments</h3>
       <ul class="grid gap-2 md:grid-cols-2">
         <BasePanel
           v-for="entry in paymentEntries"
@@ -74,10 +93,60 @@ const paymentEntries = computed(() => {
       </ul>
     </section>
 
+    <section v-if="history.length > 0" class="flex flex-col gap-2">
+      <h3 class="text-4 font-semibold">Earlier games</h3>
+      <ul class="flex flex-col gap-2">
+        <BasePanel
+          v-for="entry in history"
+          :key="entry.gameNumber"
+          tag="li"
+          variant="dark-muted"
+          class="rounded-lg px-3 py-2 text-3.5 text-text-on-felt/90"
+        >
+          <span class="font-medium text-text-on-felt">Game {{ entry.gameNumber }}</span>
+          <span class="ml-2">{{ gameSummary(entry) }}</span>
+        </BasePanel>
+      </ul>
+    </section>
+
     <SessionScores
       :player-names-by-id="props.playerNamesById"
       :player-order="props.playerOrder"
       :session-scores="props.sessionScores"
     />
+
+    <footer
+      v-if="viewerIsHost"
+      class="flex flex-col gap-3 border-t border-chrome-border/40 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4"
+    >
+      <BaseButton
+        data-testid="scoreboard-play-again"
+        type="button"
+        variant="primary"
+        class="!min-h-11 max-w-md self-center shadow-sm"
+        @click="emit('playAgain')"
+      >
+        Play again
+      </BaseButton>
+      <BaseButton
+        data-testid="scoreboard-end-session"
+        type="button"
+        variant="secondary"
+        class="!min-h-11 max-w-md self-center"
+        @click="emit('endSession')"
+      >
+        End session
+      </BaseButton>
+      <p class="text-center text-3 text-text-on-felt/70 sm:w-full">
+        Next game rotates the dealer counterclockwise. End session shows a final summary for
+        everyone.
+      </p>
+    </footer>
+    <p
+      v-else
+      class="border-t border-chrome-border/40 pt-4 text-center text-3.5 text-text-on-felt/75"
+    >
+      Waiting for the host to start the next game or end the session.
+    </p>
   </BasePanel>
 </template>

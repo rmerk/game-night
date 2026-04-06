@@ -6,7 +6,7 @@ import type { RoomManager } from "../rooms/room-manager";
 import { ConnectionTracker } from "./connection-tracker";
 import { handleMessage } from "./message-handler";
 import { handleJoinRoom, handleSetJokerRules, handleSetRoomSettings } from "./join-handler";
-import { handleActionMessage, handleRematch } from "./action-handler";
+import { handleActionMessage, handleEndSession, handleRematch } from "./action-handler";
 import { handleAfkVoteCastMessage } from "./turn-timer";
 import { handleDepartureVoteCastMessage, handleLeaveRoomMessage } from "./leave-handler";
 import { buildCurrentStateMessage } from "./state-broadcaster";
@@ -150,6 +150,23 @@ export function setupWebSocketServer(
             return;
           }
           handleRematch(ws, session.room, session.playerId, logger, roomManager);
+        } else if (parsed.type === "END_SESSION") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before ending a session",
+              },
+              logger,
+              "end-session-not-in-room",
+            );
+            return;
+          }
+          handleEndSession(ws, session.room, session.playerId, logger);
         } else if (parsed.type === "ACTION") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

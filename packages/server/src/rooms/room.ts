@@ -5,6 +5,7 @@ import type {
   GameState,
   JokerRulesMode,
   RoomSettings,
+  SessionGameHistoryEntry,
 } from "@mahjong-game/shared";
 import type { WebSocket } from "ws";
 
@@ -88,4 +89,8 @@ export interface Room {
   departureVoteState: DepartureVoteState | null;
   createdAt: number;
   logger: FastifyBaseLogger;
+  /** Cumulative scores from completed games this room session (Story 5B.4) */
+  sessionScoresFromPriorGames: Record<string, number>;
+  /** Completed games — appended when merging at rematch / end session (Story 5B.4) */
+  sessionGameHistory: SessionGameHistoryEntry[];
 }

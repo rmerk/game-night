@@ -50,6 +50,7 @@ export type {
   ChallengeState,
   SocialOverrideState,
   TableTalkReportState,
+  SessionGameHistoryEntry,
 } from "./types/game-state";
 
 export {

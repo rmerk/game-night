@@ -40,6 +40,8 @@ function minimalRoom(overrides: Partial<Room> = {}): Room {
     departureVoteState: null,
     createdAt: 0,
     logger: createSilentTestLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
   return { ...base, ...overrides };
 }

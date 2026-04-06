@@ -52,6 +52,8 @@ function fixtureView(): PlayerGameView {
     turnPhase: "discard",
     callWindow: null,
     scores: { pE: 10, pS: 25, pW: -5, pN: -30 },
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
     lastDiscard: null,
     gameResult: null,
     pendingMahjong: null,

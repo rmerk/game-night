@@ -232,7 +232,8 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <note>Available content: {epics_content}, {gdd_content}, {architecture_content}, {ux_content},
   {project_context}</note>
 
-  <!-- Analyze epics file for story foundation -->
+  <!-- Analyze epics file for story foundation — prefer smart_outline first -->
+  <action>Use `smart_outline` on the epics content to identify Epic {{epic_num}} structure and locate our story's section. Only do a full read of the epic section if the outline doesn't surface acceptance criteria and technical requirements verbatim.</action>
   <action>From {epics_content}, extract Epic {{epic_num}} complete context:</action> **EPIC ANALYSIS:** - Epic
   objectives and business value - ALL stories in this epic for cross-story context - Our specific story's requirements, user story
   statement, acceptance criteria - Technical requirements and constraints - Dependencies on other stories/epics - Source hints pointing to
@@ -241,8 +242,8 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   (As a, I want, so that) - Detailed acceptance criteria (already BDD formatted) - Technical requirements specific to this story -
   Business context and value - Success criteria <!-- Previous story analysis for context continuity -->
   <check if="story_num > 1">
-    <action>Find {{previous_story_num}}: scan {implementation_artifacts} for the story file in epic {{epic_num}} with the highest story number less than {{story_num}}</action>
-    <action>Load previous story file: {implementation_artifacts}/{{epic_num}}-{{previous_story_num}}-*.md</action> **PREVIOUS STORY INTELLIGENCE:** -
+    <action>Find {{previous_story_num}}: use `smart_search` scoped to {implementation_artifacts} to locate the story file in epic {{epic_num}} with the highest story number less than {{story_num}}. Fall back to glob scan only if smart_search returns no results.</action>
+    <action>Use `smart_outline` on the previous story file to extract structural context (sections, headings, dev notes). Only do a full file read if the outline is insufficient for extracting actionable learnings.</action> **PREVIOUS STORY INTELLIGENCE:** -
   Dev notes and learnings from previous story - Review feedback and corrections needed - Files that were created/modified and their
   patterns - Testing approaches that worked/didn't work - Problems encountered and solutions found - Code patterns established <action>Extract
   all learnings that could impact current story implementation</action>
@@ -280,13 +281,11 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <critical>🏗️ ARCHITECTURE INTELLIGENCE - Extract everything the developer MUST follow!</critical> **ARCHITECTURE DOCUMENT ANALYSIS:** <action>Systematically
   analyze architecture content for story-relevant requirements:</action>
 
-  <!-- Load architecture - single file or sharded -->
-  <check if="architecture file is single file">
-    <action>Load complete {architecture_content}</action>
-  </check>
-  <check if="architecture is sharded to folder">
-    <action>Load architecture index and scan all architecture files</action>
-  </check> **CRITICAL ARCHITECTURE EXTRACTION:** <action>For
+  <!-- Load architecture — claude-mem first, full read as fallback -->
+  <action>Use `smart_outline` on architecture content to get structural overview (sections, subsections, key headings). This identifies which sections are relevant to this story without consuming tokens on irrelevant sections.</action>
+  <action>Use `smart_search` for story-specific terms (e.g., component names, patterns, technologies) within architecture files to find precisely relevant passages.</action>
+  <action>Only fall back to full file reads for sections where the structural view is insufficient (e.g., you need exact schema definitions, specific API contracts, or verbatim configuration).</action>
+  **CRITICAL ARCHITECTURE EXTRACTION:** <action>For
   each architecture section, determine if relevant to this story:</action> - **Technical Stack:** Languages, frameworks, libraries with
   versions - **Code Structure:** Folder organization, naming conventions, file patterns - **API Patterns:** Service structure, endpoint
   patterns, data contracts - **Database Schemas:** Tables, relationships, constraints relevant to story - **Security Requirements:**

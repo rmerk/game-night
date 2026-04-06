@@ -43,6 +43,7 @@ import {
   type ResolvedAction,
   type RoomSettings,
   type SeatWind,
+  type SessionGameHistoryEntry,
   type SocialOverrideState,
   type TableTalkReportState,
 } from "@mahjong-game/shared";
@@ -118,6 +119,11 @@ const props = withDefaults(
     roomSettings?: RoomSettings | null;
     /** Host may edit between games (lobby handled in RoomView) */
     canEditRoomSettings?: boolean;
+    /** Story 5B.4 — per-player scores from PlayerGameView.scores */
+    scoresByPlayerId?: Record<string, number>;
+    sessionScoresFromPriorGames?: Record<string, number>;
+    sessionGameHistory?: readonly SessionGameHistoryEntry[];
+    viewerIsHost?: boolean;
   }>(),
   {
     opponents: () => ({}),
@@ -147,6 +153,10 @@ const props = withDefaults(
     departureVoteState: null,
     roomSettings: null,
     canEditRoomSettings: false,
+    scoresByPlayerId: () => ({}),
+    sessionScoresFromPriorGames: () => ({}),
+    sessionGameHistory: () => [],
+    viewerIsHost: false,
   },
 );
 
@@ -172,6 +182,8 @@ const emit = defineEmits<{
   departureVote: [targetPlayerId: string, choice: "dead_seat" | "end_game"];
   leaveGame: [];
   roomSettingsChange: [patch: Partial<RoomSettings>];
+  rematch: [];
+  endSession: [];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -717,10 +729,20 @@ const playerOrder = computed(() =>
   ),
 );
 
-const sessionScores = computed<Record<string, number>>(() => {
-  const entries = Object.values(playersBySeat.value).map((player) => [player.id, player.score]);
-  return Object.fromEntries(entries);
+/** Prior completed games + current game `scores` (Story 5B.4) */
+const sessionCumulativeScores = computed<Record<string, number>>(() => {
+  const prior = props.sessionScoresFromPriorGames ?? {};
+  const cur = props.scoresByPlayerId ?? {};
+  const out: Record<string, number> = {};
+  for (const id of playerOrder.value) {
+    out[id] = (prior[id] ?? 0) + (cur[id] ?? 0);
+  }
+  return out;
 });
+
+const sessionGameHistoryList = computed(() => props.sessionGameHistory ?? []);
+
+const isViewerHost = computed(() => props.viewerIsHost ?? false);
 
 const nmjlGuidanceActive = computed(() => {
   if (!props.roomSettings?.handGuidanceEnabled) return false;
@@ -783,7 +805,12 @@ function onChatEscape() {
   <div
     id="gameplay-region"
     data-testid="game-table"
-    class="game-table relative bg-felt-teal min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
+    class="game-table relative min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
+    :class="
+      isScoreboardPhase || gamePhase === 'rematch'
+        ? 'mood-lingering bg-gradient-to-b from-[#3d2e26]/55 via-felt-teal to-felt-teal'
+        : 'bg-felt-teal'
+    "
   >
     <div
       v-if="paused"
@@ -1005,7 +1032,11 @@ function onChatEscape() {
             :game-result="gameResult"
             :player-names-by-id="playerNamesById"
             :player-order="playerOrder"
-            :session-scores="sessionScores"
+            :session-scores="sessionCumulativeScores"
+            :session-game-history="sessionGameHistoryList"
+            :viewer-is-host="isViewerHost"
+            @play-again="emit('rematch')"
+            @end-session="emit('endSession')"
           />
           <div
             ref="scoreboardChatFocusReturn"

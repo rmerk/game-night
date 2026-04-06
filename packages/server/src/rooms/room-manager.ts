@@ -58,6 +58,8 @@ export class RoomManager {
       departureVoteState: null,
       createdAt: Date.now(),
       logger: roomLogger,
+      sessionScoresFromPriorGames: {},
+      sessionGameHistory: [],
     };
 
     this.rooms.set(roomCode, room);

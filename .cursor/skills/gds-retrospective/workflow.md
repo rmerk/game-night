@@ -11,6 +11,8 @@ description: 'Post-epic review to extract lessons and assess success. Use when t
 - No time estimates — NEVER mention hours, days, weeks, months, or ANY time-based predictions. AI has fundamentally changed development speed.
 - Communicate all responses in {communication_language} and language MUST be tailored to {game_dev_experience}
 - Generate all documents in {document_output_language}
+- Use smart_search for cross-session memory queries (finding past decisions, patterns, debugging context) — prefer over raw search for structural results
+- Do NOT use the Agent tool with Explore subagent for code or memory navigation — use smart_search and search directly
 - Document output: Retrospective analysis. Concise insights, lessons learned, action items. Game dev experience ({game_dev_experience}) affects conversation style ONLY, not retrospective content.
 - Facilitation notes:
   - Psychological safety is paramount - NO BLAME
@@ -122,7 +124,7 @@ Bob (Scrum Master): "I'm having trouble detecting the completed epic from {sprin
 <check if="{{epic_number}} still not determined">
   <action>PRIORITY 3: Fallback to stories folder</action>
 
-<action>Scan {implementation_artifacts} for highest numbered story files</action>
+<action>Use `smart_search` scoped to {implementation_artifacts} for story file patterns to identify the highest numbered epic. Fall back to glob scan only if smart_search returns no results.</action>
 <action>Extract epic numbers from story filenames (pattern: epic-X-Y-story-name.md)</action>
 <action>Set {{detected_epic}} = highest epic number found</action>
 
@@ -200,7 +202,7 @@ Bob (Scrum Master): "Perfect. Epic {{epic_number}} is complete and ready for ret
 </step>
 
 <step n="0.5" goal="Discover and load project documents">
-  <action>Load input files according to the Input Files table in INITIALIZATION. For SELECTIVE_LOAD inputs, load only the epic matching {{epic_number}}. For FULL_LOAD inputs, load the complete document. For INDEX_GUIDED inputs, check the index first and load relevant sections. After discovery, these content variables are available: {epics_content} (selective load for this epic), {architecture_content}, {gdd_content}, {narrative_content}, {document_project_content}</action>
+  <action>Use `smart_search` and `smart_outline` to discover and assess input files from the Input Files table. For each input group, get structural outlines first to determine relevance. Only do full file reads when the structural view is insufficient (e.g., you need verbatim requirements or exact story details). For SELECTIVE_LOAD inputs, scope to epic {{epic_number}}. For FULL_LOAD inputs, prefer smart_outline overview first. For INDEX_GUIDED inputs, check the index first and load relevant sections.</action>
   <note>After discovery, these content variables are available: {epics_content} (selective load for this epic), {architecture_content}, {gdd_content}, {narrative_content}, {document_project_content}</note>
 </step>
 
@@ -212,7 +214,20 @@ Bob (Scrum Master): "Before we start the team discussion, let me review all the 
 Charlie (Senior Dev): "Good idea - those dev notes always have gold in them."
 </output>
 
-<action>For each story in epic {{epic_number}}, read the complete story file from {implementation_artifacts}/{{epic_number}}-{{story_num}}-*.md</action>
+<!-- Cross-session memory integration -->
+<action>Use claude-mem timeline to generate the full development history for Epic {{epic_number}}:
+  - Query timeline scoped to project for the epic's development period
+  - Pull observations covering decisions, discoveries, debugging sessions, and design changes
+  - Use get_observations on high-value entries for detailed context
+</action>
+<action>Store timeline findings as {{cross_session_timeline}} — this provides richer context than story files alone:
+  - Decisions and their rationale that may not be captured in story docs
+  - Debugging struggles and breakthroughs across sessions
+  - Design pivots and course corrections with original reasoning
+  - Cross-session patterns invisible from reading story files in isolation
+</action>
+
+<action>For each story in epic {{epic_number}}, use `smart_outline` on the story file at {implementation_artifacts}/{{epic_number}}-{{story_num}}-*.md to get structural overview (sections, dev notes headings, review sections). Only do full reads of sections where the outline doesn't surface the detail needed (e.g., specific dev struggles, review feedback verbatim).</action>
 
 <action>Extract and analyze from each story:</action>
 
@@ -303,14 +318,14 @@ Bob (Scrum Master): "We'll get to all of it. But first, let me load the previous
 <action>Calculate previous epic number: {{prev_epic_num}} = {{epic_number}} - 1</action>
 
 <check if="{{prev_epic_num}} >= 1">
-  <action>Search for previous retrospectives using pattern: {implementation_artifacts}/epic-{{prev_epic_num}}-retro-*.md</action>
+  <action>Use `smart_search` scoped to {implementation_artifacts} for "epic-{{prev_epic_num}}-retro" to locate previous retrospectives. Fall back to glob pattern {implementation_artifacts}/epic-{{prev_epic_num}}-retro-*.md only if smart_search returns no results.</action>
 
   <check if="previous retrospectives found">
     <output>
 Bob (Scrum Master): "I found our retrospectives from Epic {{prev_epic_num}}. Let me see what we committed to back then..."
     </output>
 
-    <action>Read the previous retrospectives</action>
+    <action>Use `smart_outline` on the previous retrospective to get structural overview of action items, lessons, and process improvements. Only do a full read if the outline doesn't surface the detail needed for cross-referencing.</action>
 
     <action>Extract key elements:</action>
     - **Action items committed**: What did the team agree to improve?
@@ -321,6 +336,11 @@ Bob (Scrum Master): "I found our retrospectives from Epic {{prev_epic_num}}. Let
     - **Preparation tasks**: What was needed for this epic?
 
     <action>Cross-reference with current epic execution:</action>
+
+    <action>Use smart_search to find evidence of action item follow-through beyond story files:
+      - Search for observations about process changes, technical debt resolution, and team agreements
+      - Look for debugging sessions or decisions that relate to previous retro commitments
+    </action>
 
     **Action Item Follow-Through:**
     - For each action item from Epic {{prev_epic_num}} retro, check if it was completed
@@ -1096,6 +1116,11 @@ Bob (Scrum Master): "I mean truly production-ready, stakeholders happy, no loose
 
 Bob (Scrum Master): "{user_name}, let's walk through this together."
 </output>
+
+<action>Use smart_search to surface cross-session observations about codebase stability, unresolved issues, and technical concerns from Epic {{epic_number}} development:
+  - Search for debugging struggles, workarounds, or fragility observations
+  - Look for technical debt observations that weren't captured in story files
+</action>
 
 <action>Explore testing and quality state through natural conversation</action>
 

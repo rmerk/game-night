@@ -15,6 +15,7 @@ import type {
   ChallengeState,
   SocialOverrideState,
   TableTalkReportState,
+  SessionGameHistoryEntry,
 } from "./game-state";
 import type { Tile } from "./tiles";
 import type { GameAction } from "./actions";
@@ -204,6 +205,10 @@ export interface PlayerGameView {
   turnPhase: TurnPhase;
   callWindow: CallWindowState | null;
   scores: Record<string, number>;
+  /** Cumulative scores from games already completed this room session (Story 5B.4) */
+  sessionScoresFromPriorGames: Record<string, number>;
+  /** Completed games this session (Story 5B.4) */
+  sessionGameHistory: readonly SessionGameHistoryEntry[];
   lastDiscard: { tile: Tile; discarderId: string } | null;
   gameResult: GameResult | null;
   pendingMahjong: PendingMahjongState | null;

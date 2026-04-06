@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import type { CallType } from "@mahjong-game/shared";
+import type { CallType, SessionGameHistoryEntry } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
 import RoomSettingsPanel from "../components/game/RoomSettingsPanel.vue";
 import BaseToast from "../components/ui/BaseToast.vue";
+import BasePanel from "../components/ui/BasePanel.vue";
 import SlideInReferencePanels from "../components/chat/SlideInReferencePanels.vue";
 import ReactionBar from "../components/reactions/ReactionBar.vue";
 import ReactionBubbleStack from "../components/reactions/ReactionBubbleStack.vue";
@@ -139,6 +140,24 @@ const roomSettingsLobbyToastVisible = ref(false);
 const roomSettingsLobbyToastText = ref("");
 const rematchWaitingLobbyVisible = ref(false);
 const rematchWaitingLobbyText = ref("");
+
+/** Story 5B.4 — final session summary after host ends session */
+const sessionEndedSnapshot = ref<{
+  sessionTotals: Record<string, number>;
+  sessionGameHistory: readonly SessionGameHistoryEntry[];
+} | null>(null);
+
+watch(
+  () => resolvedAction.value,
+  (ra) => {
+    if (ra?.type === "SESSION_ENDED") {
+      sessionEndedSnapshot.value = {
+        sessionTotals: ra.sessionTotals,
+        sessionGameHistory: ra.sessionGameHistory,
+      };
+    }
+  },
+);
 
 /** Lobby-only toasts from `resolvedAction` — same copy helpers as GameTable (`resolvedActionToastCopy`). */
 watch(
@@ -653,6 +672,66 @@ function goSpectatePlaceholder() {
       @afk-vote="(targetId, vote) => conn.sendAfkVote(targetId, vote)"
       @departure-vote="(targetId, choice) => conn.sendDepartureVote(targetId, choice)"
       @leave-game="conn.sendLeaveRoom()"
+      @rematch="conn.sendRematch()"
+      @end-session="conn.sendEndSession()"
     />
+
+    <div
+      v-if="sessionEndedSnapshot && lobbyState"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+      data-testid="session-ended-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="session-ended-title"
+    >
+      <BasePanel
+        tag="div"
+        variant="dark-raised"
+        class="max-h-[85dvh] w-full max-w-lg overflow-y-auto p-6"
+      >
+        <h2 id="session-ended-title" class="mb-4 text-5 font-semibold text-text-on-felt">
+          Session ended
+        </h2>
+        <p class="mb-3 text-3.5 text-text-on-felt/85">Final session totals</p>
+        <ul class="mb-6 space-y-2">
+          <li
+            v-for="p in lobbyState.players"
+            :key="p.playerId"
+            class="flex justify-between rounded-md border border-chrome-border/50 px-3 py-2 text-3.5 text-text-on-felt"
+          >
+            <span>{{ p.displayName }}</span>
+            <span class="font-semibold">{{
+              sessionEndedSnapshot.sessionTotals[p.playerId] ?? 0
+            }}</span>
+          </li>
+        </ul>
+        <p
+          v-if="sessionEndedSnapshot.sessionGameHistory.length > 0"
+          class="mb-2 text-3.5 font-medium text-text-on-felt"
+        >
+          Games played
+        </p>
+        <ul
+          v-if="sessionEndedSnapshot.sessionGameHistory.length > 0"
+          class="mb-6 space-y-1 text-3 text-text-on-felt/80"
+        >
+          <li v-for="g in sessionEndedSnapshot.sessionGameHistory" :key="g.gameNumber">
+            Game {{ g.gameNumber }} —
+            <template v-if="g.gameResult && g.gameResult.winnerId !== null">
+              {{ g.gameResult.patternName }} ({{ g.gameResult.points }} pts)
+            </template>
+            <template v-else>Wall game</template>
+          </li>
+        </ul>
+        <button
+          type="button"
+          data-testid="session-ended-dismiss"
+          class="rounded-md bg-gold-accent px-4 py-2 text-3.5 font-medium text-text-primary"
+          @click="sessionEndedSnapshot = null"
+        >
+          Close
+        </button>
+      </BasePanel>
+    </div>
   </div>
 </template>

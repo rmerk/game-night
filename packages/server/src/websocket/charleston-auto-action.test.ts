@@ -60,6 +60,8 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState): Room {
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
   for (let i = 0; i < players.length; i++) {
     const player = players[i];

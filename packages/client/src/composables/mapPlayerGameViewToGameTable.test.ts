@@ -4,6 +4,7 @@ import {
   PROTOCOL_VERSION,
   type ExposedGroup,
   type PlayerGameView,
+  type SessionGameHistoryEntry,
   type SuitedTile,
   type Tile,
   type TileValue,
@@ -74,6 +75,8 @@ function minimalPlayerView(overrides: Partial<PlayerGameView> = {}): PlayerGameV
     turnPhase: "discard",
     callWindow: null,
     scores: { pE: 0, pS: 0, pW: 0, pN: 0 },
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
     lastDiscard: null,
     gameResult: null,
     pendingMahjong: null,
@@ -100,6 +103,24 @@ test("maps south-local opponents to top=north, left=east, right=west", () => {
   expect(m.opponents.top?.seatWind).toBe("north");
   expect(m.opponents.left?.seatWind).toBe("east");
   expect(m.opponents.right?.seatWind).toBe("west");
+});
+
+test("maps sessionScoresFromPriorGames and sessionGameHistory onto GameTable props", () => {
+  const history: readonly SessionGameHistoryEntry[] = [
+    {
+      gameNumber: 1,
+      finalScores: { pE: 0, pS: 0, pW: 0, pN: 0 },
+      gameResult: { winnerId: null, points: 0 },
+    },
+  ];
+  const m = mapPlayerGameViewToGameTableProps(
+    minimalPlayerView({
+      sessionScoresFromPriorGames: { pE: 12, pS: -4, pW: -4, pN: -4 },
+      sessionGameHistory: history,
+    }),
+  );
+  expect(m.sessionScoresFromPriorGames).toEqual({ pE: 12, pS: -4, pW: -4, pN: -4 });
+  expect(m.sessionGameHistory).toEqual(history);
 });
 
 test("maps myExposedGroups from exposedGroups[myPlayerId]", () => {

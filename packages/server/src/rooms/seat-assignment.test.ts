@@ -37,6 +37,8 @@ function createTestRoom(playerIds: string[] = []): Room {
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createSilentTestLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
 
   for (const id of playerIds) {

@@ -148,10 +148,8 @@ If a task touches only `packages/shared` or `packages/server` with no `packages/
 
     <!-- Non-sprint story discovery -->
     <check if="{{sprint_status}} file does NOT exist">
-      <action>Search {implementation_artifacts} for stories directly</action>
-      <action>Find stories with "ready-for-dev" status in files</action>
-      <action>Look for story files matching pattern: *-*-*.md</action>
-      <action>Read each candidate story file to check Status section</action>
+      <action>Use `smart_search` scoped to {implementation_artifacts} for "ready-for-dev" to find story files with that status — this avoids reading every candidate file fully</action>
+      <action>If smart_search returns no results, fall back to glob for *-*-*.md pattern and use `smart_outline` on each candidate to check Status section before full reads</action>
 
       <check if="no ready-for-dev stories found in story files">
         <output>No ready-for-dev stories found

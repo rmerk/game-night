@@ -54,6 +54,10 @@ export interface GameTablePropsFromView {
   paused: boolean;
   deadSeatPlayerIds: readonly string[];
   departureVoteState: PlayerGameView["departureVoteState"];
+  scoresByPlayerId: Record<string, number>;
+  sessionScoresFromPriorGames: Record<string, number>;
+  sessionGameHistory: PlayerGameView["sessionGameHistory"];
+  viewerIsHost: boolean;
 }
 
 function initialFromName(name: string): string {
@@ -264,5 +268,9 @@ export function mapPlayerGameViewToGameTableProps(
     paused: view.paused ?? false,
     deadSeatPlayerIds: view.deadSeatPlayerIds ?? [],
     departureVoteState: view.departureVoteState ?? null,
+    scoresByPlayerId: view.scores,
+    sessionScoresFromPriorGames: view.sessionScoresFromPriorGames,
+    sessionGameHistory: view.sessionGameHistory,
+    viewerIsHost: view.players.find((p) => p.playerId === myId)?.isHost ?? false,
   };
 }

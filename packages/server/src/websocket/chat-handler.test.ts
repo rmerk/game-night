@@ -75,6 +75,8 @@ function createRoomWithSessions(
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
 
   for (let i = 0; i < players.length; i++) {

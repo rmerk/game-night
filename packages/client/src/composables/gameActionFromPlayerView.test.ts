@@ -41,6 +41,8 @@ function minimalView(overrides: Partial<PlayerGameView> = {}): PlayerGameView {
     turnPhase: "callWindow",
     callWindow: null,
     scores: {},
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
     lastDiscard: null,
     gameResult: null,
     pendingMahjong: null,

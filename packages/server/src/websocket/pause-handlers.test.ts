@@ -69,6 +69,8 @@ function createTestRoom(players: PlayerInfo[], gameState: GameState | null, paus
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
 
   for (let i = 0; i < players.length; i++) {

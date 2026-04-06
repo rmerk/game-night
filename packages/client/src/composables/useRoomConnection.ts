@@ -184,6 +184,10 @@ export function useRoomConnection() {
     sendRaw({ type: "REMATCH" });
   }
 
+  function sendEndSession(): void {
+    sendRaw({ type: "END_SESSION" });
+  }
+
   function requestState(): void {
     sendRaw({ type: "REQUEST_STATE" });
   }
@@ -251,6 +255,7 @@ export function useRoomConnection() {
     sendSetJokerRules,
     sendSetRoomSettings,
     sendRematch,
+    sendEndSession,
     requestState,
     sendChat,
     sendReaction,

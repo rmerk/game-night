@@ -1,12 +1,13 @@
 /**
  * Integration tests for `handleRematch` (Story 4B.7) — REMATCH gates, waiting-for-players fallback,
- * and HTTP status phase after lobby reset.
+ * idle-timeout cancellation on successful rematch (5B.4), and `handleEndSession` (5B.4).
  */
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import WsClient from "ws";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
+import { hasLifecycleTimer, startLifecycleTimer } from "../rooms/room-lifecycle";
 
 type WebSocket = WsClient;
 
@@ -172,6 +173,10 @@ function sendRematch(ws: WebSocket): void {
   ws.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "REMATCH" }));
 }
 
+function sendEndSession(ws: WebSocket): void {
+  ws.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "END_SESSION" }));
+}
+
 function sendLeaveRoom(ws: WebSocket): void {
   ws.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "LEAVE_ROOM" }));
 }
@@ -216,10 +221,14 @@ describe("handleRematch (4B.7)", () => {
 
     const jokerBefore = room.settings.jokerRulesMode;
 
+    startLifecycleTimer(room, "idle-timeout", () => {});
+    expect(hasLifecycleTimer(room, "idle-timeout")).toBe(true);
+
     const rematchPromises = players.map((p) => waitForMessage(p.ws));
     sendRematch(hostWs);
     await Promise.all(rematchPromises);
 
+    expect(hasLifecycleTimer(room, "idle-timeout")).toBe(false);
     expect(room.gameState?.gamePhase).toBe("charleston");
     expect(room.settings.jokerRulesMode).toBe(jokerBefore);
     expect(room.jokerRulesMode).toBe(jokerBefore);
@@ -331,6 +340,67 @@ describe("handleRematch (4B.7)", () => {
     sendRematch(players[0].ws);
     const err = await errP;
     expect(err.code).toBe("NOT_BETWEEN_GAMES");
+
+    for (const p of players) p.ws.close();
+  });
+});
+
+describe("handleEndSession (5B.4)", () => {
+  it("host END_SESSION from scoreboard — SESSION_ENDED with session totals and history, lobby", async () => {
+    const { roomCode, players } = await setupLobbyWithPlayers(4);
+    const room = app.roomManager.getRoom(roomCode)!;
+    const hostWs = players[0].ws;
+
+    const startPromises = players.map((p) => waitForMessage(p.ws));
+    sendStartGame(hostWs);
+    await Promise.all(startPromises);
+
+    const gs = room.gameState!;
+    gs.gamePhase = "scoreboard";
+    gs.gameResult = { winnerId: null, points: 0 };
+    const ids = Object.keys(gs.players).sort();
+    gs.scores = {
+      [ids[0]]: 12,
+      [ids[1]]: -4,
+      [ids[2]]: -4,
+      [ids[3]]: -4,
+    };
+
+    const wait = waitForResolvedAction(hostWs, "SESSION_ENDED");
+    sendEndSession(hostWs);
+    const msg = await wait;
+    const ra = msg.resolvedAction as Record<string, unknown>;
+    expect(ra.type).toBe("SESSION_ENDED");
+    expect(ra.sessionTotals).toEqual(gs.scores);
+    const hist = ra.sessionGameHistory as Array<{ gameNumber: number }>;
+    expect(hist).toHaveLength(1);
+    expect(hist[0]?.gameNumber).toBe(1);
+
+    expect(room.gameState).toBeNull();
+    expect(room.sessionScoresFromPriorGames).toEqual({});
+    expect(room.sessionGameHistory).toEqual([]);
+
+    const status = app.roomManager.getRoomStatus(roomCode);
+    expect(status?.phase).toBe("lobby");
+
+    for (const p of players) p.ws.close();
+  });
+
+  it("non-host END_SESSION — NOT_HOST", async () => {
+    const { roomCode, players } = await setupLobbyWithPlayers(4);
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    const startPromises = players.map((p) => waitForMessage(p.ws));
+    sendStartGame(players[0].ws);
+    await Promise.all(startPromises);
+
+    room.gameState!.gamePhase = "scoreboard";
+    room.gameState!.gameResult = { winnerId: null, points: 0 };
+
+    const errP = waitForError(players[1].ws);
+    sendEndSession(players[1].ws);
+    const err = await errP;
+    expect(err.code).toBe("NOT_HOST");
 
     for (const p of players) p.ws.close();
   });

@@ -221,6 +221,13 @@ export interface GameState {
   jokerRulesMode: JokerRulesMode;
 }
 
+/** One completed game in a room session (Story 5B.4) — server merges on rematch / end session */
+export interface SessionGameHistoryEntry {
+  readonly gameNumber: number;
+  readonly finalScores: Record<string, number>;
+  readonly gameResult: GameResult | null;
+}
+
 /** Result of processing a game action */
 export interface ActionResult {
   readonly accepted: boolean;
@@ -456,4 +463,9 @@ export type ResolvedAction =
   | {
       readonly type: "REMATCH_WAITING_FOR_PLAYERS";
       readonly missingSeats: number;
+    }
+  | {
+      readonly type: "SESSION_ENDED";
+      readonly sessionTotals: Record<string, number>;
+      readonly sessionGameHistory: readonly SessionGameHistoryEntry[];
     };

@@ -84,6 +84,8 @@ function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
     departureVoteState: null,
     createdAt: Date.now(),
     logger: createMockLogger(),
+    sessionScoresFromPriorGames: {},
+    sessionGameHistory: [],
   };
 
   for (let i = 0; i < players.length; i++) {

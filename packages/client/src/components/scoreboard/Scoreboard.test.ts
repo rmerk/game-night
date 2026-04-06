@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import Scoreboard from "./Scoreboard.vue";
-import type { GameResult } from "@mahjong-game/shared";
+import BaseButton from "../ui/BaseButton.vue";
+import type { GameResult, SessionGameHistoryEntry } from "@mahjong-game/shared";
 
 const playerNamesById = {
   p1: "Alice",
@@ -76,6 +77,17 @@ describe("Scoreboard", () => {
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Session totals");
   });
 
+  it("shows host actions when viewerIsHost is true", () => {
+    const wrapper = mountScoreboard({ viewerIsHost: true });
+    expect(wrapper.find('[data-testid="scoreboard-play-again"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="scoreboard-end-session"]').exists()).toBe(true);
+  });
+
+  it("does not show host actions when viewerIsHost is false", () => {
+    const wrapper = mountScoreboard({ viewerIsHost: false });
+    expect(wrapper.find('[data-testid="scoreboard-play-again"]').exists()).toBe(false);
+  });
+
   it("renders a zeroed payment breakdown for wall games", () => {
     const wrapper = mountScoreboard({
       gameResult: wallGameResult,
@@ -87,11 +99,64 @@ describe("Scoreboard", () => {
       },
     });
 
-    expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Payments");
+    expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("This game");
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Alice");
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Bob");
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Carol");
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("Dana");
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("0");
+  });
+
+  it("renders earlier games from sessionGameHistory with Mahjong and wall summaries", () => {
+    const sessionGameHistory: SessionGameHistoryEntry[] = [
+      {
+        gameNumber: 1,
+        finalScores: { p1: 10, p2: -3, p3: -3, p4: -4 },
+        gameResult: {
+          winnerId: "p2",
+          patternId: "pung",
+          patternName: "Pung Hand",
+          points: 25,
+          selfDrawn: true,
+          payments: { p1: 0, p2: 0, p3: 0, p4: 0 },
+        },
+      },
+      {
+        gameNumber: 2,
+        finalScores: { p1: 0, p2: 0, p3: 0, p4: 0 },
+        gameResult: { winnerId: null, points: 0 },
+      },
+    ];
+    const wrapper = mountScoreboard({ sessionGameHistory });
+
+    const text = wrapper.get("[data-testid='scoreboard']").text();
+    expect(text).toContain("Earlier games");
+    expect(text).toContain("Game 1");
+    expect(text).toContain("Bob — Pung Hand (25 pts)");
+    expect(text).toContain("Game 2");
+    expect(text).toContain("Wall game — no winner");
+  });
+
+  it("emits playAgain and endSession when host clicks actions", async () => {
+    const wrapper = mountScoreboard({ viewerIsHost: true });
+
+    await wrapper.get('[data-testid="scoreboard-play-again"]').trigger("click");
+    await wrapper.get('[data-testid="scoreboard-end-session"]').trigger("click");
+
+    expect(wrapper.emitted("playAgain")?.length).toBe(1);
+    expect(wrapper.emitted("endSession")?.length).toBe(1);
+  });
+
+  it("uses primary variant for Play again and secondary for End session", () => {
+    const wrapper = mountScoreboard({ viewerIsHost: true });
+
+    const buttons = wrapper.findAllComponents(BaseButton);
+    const playAgain = buttons.find((b) => b.attributes("data-testid") === "scoreboard-play-again");
+    const endSession = buttons.find(
+      (b) => b.attributes("data-testid") === "scoreboard-end-session",
+    );
+
+    expect(playAgain?.props("variant")).toBe("primary");
+    expect(endSession?.props("variant")).toBe("secondary");
   });
 });

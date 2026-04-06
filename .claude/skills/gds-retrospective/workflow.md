@@ -124,7 +124,7 @@ Bob (Scrum Master): "I'm having trouble detecting the completed epic from {sprin
 <check if="{{epic_number}} still not determined">
   <action>PRIORITY 3: Fallback to stories folder</action>
 
-<action>Scan {implementation_artifacts} for highest numbered story files</action>
+<action>Use `smart_search` scoped to {implementation_artifacts} for story file patterns to identify the highest numbered epic. Fall back to glob scan only if smart_search returns no results.</action>
 <action>Extract epic numbers from story filenames (pattern: epic-X-Y-story-name.md)</action>
 <action>Set {{detected_epic}} = highest epic number found</action>
 
@@ -202,7 +202,7 @@ Bob (Scrum Master): "Perfect. Epic {{epic_number}} is complete and ready for ret
 </step>
 
 <step n="0.5" goal="Discover and load project documents">
-  <action>Load input files according to the Input Files table in INITIALIZATION. For SELECTIVE_LOAD inputs, load only the epic matching {{epic_number}}. For FULL_LOAD inputs, load the complete document. For INDEX_GUIDED inputs, check the index first and load relevant sections. After discovery, these content variables are available: {epics_content} (selective load for this epic), {architecture_content}, {gdd_content}, {narrative_content}, {document_project_content}</action>
+  <action>Use `smart_search` and `smart_outline` to discover and assess input files from the Input Files table. For each input group, get structural outlines first to determine relevance. Only do full file reads when the structural view is insufficient (e.g., you need verbatim requirements or exact story details). For SELECTIVE_LOAD inputs, scope to epic {{epic_number}}. For FULL_LOAD inputs, prefer smart_outline overview first. For INDEX_GUIDED inputs, check the index first and load relevant sections.</action>
   <note>After discovery, these content variables are available: {epics_content} (selective load for this epic), {architecture_content}, {gdd_content}, {narrative_content}, {document_project_content}</note>
 </step>
 
@@ -227,7 +227,7 @@ Charlie (Senior Dev): "Good idea - those dev notes always have gold in them."
   - Cross-session patterns invisible from reading story files in isolation
 </action>
 
-<action>For each story in epic {{epic_number}}, read the complete story file from {implementation_artifacts}/{{epic_number}}-{{story_num}}-*.md</action>
+<action>For each story in epic {{epic_number}}, use `smart_outline` on the story file at {implementation_artifacts}/{{epic_number}}-{{story_num}}-*.md to get structural overview (sections, dev notes headings, review sections). Only do full reads of sections where the outline doesn't surface the detail needed (e.g., specific dev struggles, review feedback verbatim).</action>
 
 <action>Extract and analyze from each story:</action>
 
@@ -318,14 +318,14 @@ Bob (Scrum Master): "We'll get to all of it. But first, let me load the previous
 <action>Calculate previous epic number: {{prev_epic_num}} = {{epic_number}} - 1</action>
 
 <check if="{{prev_epic_num}} >= 1">
-  <action>Search for previous retrospectives using pattern: {implementation_artifacts}/epic-{{prev_epic_num}}-retro-*.md</action>
+  <action>Use `smart_search` scoped to {implementation_artifacts} for "epic-{{prev_epic_num}}-retro" to locate previous retrospectives. Fall back to glob pattern {implementation_artifacts}/epic-{{prev_epic_num}}-retro-*.md only if smart_search returns no results.</action>
 
   <check if="previous retrospectives found">
     <output>
 Bob (Scrum Master): "I found our retrospectives from Epic {{prev_epic_num}}. Let me see what we committed to back then..."
     </output>
 
-    <action>Read the previous retrospectives</action>
+    <action>Use `smart_outline` on the previous retrospective to get structural overview of action items, lessons, and process improvements. Only do a full read if the outline doesn't surface the detail needed for cross-referencing.</action>
 
     <action>Extract key elements:</action>
     - **Action items committed**: What did the team agree to improve?

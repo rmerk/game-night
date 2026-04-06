@@ -1,12 +1,13 @@
 import { WebSocket } from "ws";
 import type {
   GameState,
-  ResolvedAction,
+  LobbyState,
   PlayerGameView,
   PublicCharlestonView,
+  ResolvedAction,
+  SeatWind,
   SpectatorGameView,
   StateUpdateMessage,
-  LobbyState,
 } from "@mahjong-game/shared";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import type { RoomSettings } from "@mahjong-game/shared";
@@ -82,6 +83,21 @@ function mapRoomPlayersPublic(room: Room): RoomPlayerPublic[] {
   }));
 }
 
+/** Use engine seat winds when in an active game so dealer rotation (rematch) matches layout (Story 5B.4). */
+function mapRoomPlayersPublicForGame(room: Room, gameState: GameState): RoomPlayerPublic[] {
+  return Array.from(room.players.values()).map((p) => {
+    const gs = gameState.players[p.playerId];
+    const wind: SeatWind = gs?.seatWind ?? p.wind;
+    return {
+      playerId: p.playerId,
+      displayName: p.displayName,
+      wind,
+      isHost: p.isHost,
+      connected: p.connected,
+    };
+  });
+}
+
 function publicCharlestonFromState(
   charleston: NonNullable<GameState["charleston"]>,
 ): PublicCharlestonView {
@@ -116,7 +132,7 @@ export function buildPlayerView(
   gameState: GameState,
   playerId: string,
 ): PlayerGameView {
-  const players = mapRoomPlayersPublic(room);
+  const players = mapRoomPlayersPublicForGame(room, gameState);
 
   const playerState = gameState.players[playerId];
   if (!playerState) {
@@ -168,6 +184,8 @@ export function buildPlayerView(
     turnPhase: gameState.turnPhase,
     callWindow: gameState.callWindow,
     scores: gameState.scores,
+    sessionScoresFromPriorGames: { ...room.sessionScoresFromPriorGames },
+    sessionGameHistory: [...room.sessionGameHistory],
     lastDiscard: gameState.lastDiscard,
     gameResult: gameState.gameResult,
     pendingMahjong: gameState.pendingMahjong,
@@ -198,7 +216,7 @@ export function buildPlayerView(
  * Build a spectator view with public information only — no player racks.
  */
 export function buildSpectatorView(room: Room, gameState: GameState): SpectatorGameView {
-  const players = mapRoomPlayersPublic(room);
+  const players = mapRoomPlayersPublicForGame(room, gameState);
 
   const exposedGroups: Record<string, (typeof gameState.players)[string]["exposedGroups"]> = {};
   const discardPools: Record<string, (typeof gameState.players)[string]["discardPool"]> = {};
