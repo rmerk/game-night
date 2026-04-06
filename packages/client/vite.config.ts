@@ -12,6 +12,10 @@ function ghPagesBase(): string {
 
 export default defineConfig({
   base: ghPagesBase(),
+  /** Bind IPv4 loopback so `http://localhost:5173` works when OS resolves localhost → 127.0.0.1 */
+  server: {
+    host: "127.0.0.1",
+  },
   lint: {
     plugins: ["typescript", "import", "vue"],
     options: {
