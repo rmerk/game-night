@@ -56,8 +56,8 @@ function countLivingEligibleVoters(room: Room, targetPlayerId: string): number {
   let n = 0;
   for (const p of room.players.values()) {
     if (!p.connected) continue;
-    if (room.departedPlayerIds.has(p.playerId)) continue;
-    if (room.deadSeatPlayerIds.has(p.playerId)) continue;
+    if (room.seatStatus.departedPlayerIds.has(p.playerId)) continue;
+    if (room.seatStatus.deadSeatPlayerIds.has(p.playerId)) continue;
     if (p.playerId === targetPlayerId) continue;
     n++;
   }
@@ -68,8 +68,8 @@ function countLivingPlayersForAutoEnd(room: Room): number {
   let n = 0;
   for (const p of room.players.values()) {
     if (!p.connected) continue;
-    if (room.departedPlayerIds.has(p.playerId)) continue;
-    if (room.deadSeatPlayerIds.has(p.playerId)) continue;
+    if (room.seatStatus.departedPlayerIds.has(p.playerId)) continue;
+    if (room.seatStatus.deadSeatPlayerIds.has(p.playerId)) continue;
     n++;
   }
   return n;
@@ -80,7 +80,7 @@ function stripAfkVoteFromDepartingPlayer(
   departingPlayerId: string,
   logger: FastifyBaseLogger,
 ): void {
-  const vs = room.afkVoteState;
+  const vs = room.votes.afk;
   if (!vs) return;
   if (vs.targetPlayerId === departingPlayerId) {
     cancelAfkVote(room, logger, "target_active");
@@ -99,11 +99,11 @@ export function cancelDepartureVote(
   logger: FastifyBaseLogger,
   reason: "multi_departure" | "pause" | "game_ended",
 ): void {
-  const state = room.departureVoteState;
+  const state = room.votes.departure;
   if (!state) return;
   const target = state.targetPlayerId;
   cancelLifecycleTimer(room, "departure-vote-timeout");
-  room.departureVoteState = null;
+  room.votes.departure = null;
   broadcastStateToRoom(room, undefined, {
     type: "DEPARTURE_VOTE_RESOLVED",
     targetPlayerId: target,
@@ -123,7 +123,7 @@ export function handleLeaveRoomMessage(
   roomManager: RoomManager,
 ): void {
   const playerId = session.player.playerId;
-  if (room.departedPlayerIds.has(playerId)) {
+  if (room.seatStatus.departedPlayerIds.has(playerId)) {
     logger.warn(
       { roomCode: room.roomCode, playerId },
       "LEAVE_ROOM ignored — player already departed",
@@ -180,7 +180,7 @@ export function markPlayerDeparted(
     return;
   }
 
-  room.departedPlayerIds.add(playerId);
+  room.seatStatus.departedPlayerIds.add(playerId);
   player.connected = false;
 
   const graceTimer = room.graceTimers.get(playerId);
@@ -189,7 +189,7 @@ export function markPlayerDeparted(
     room.graceTimers.delete(playerId);
   }
 
-  if (room.turnTimerPlayerId === playerId) {
+  if (room.turnTimer.playerId === playerId) {
     cancelTurnTimer(room, logger);
   }
 
@@ -202,7 +202,7 @@ export function markPlayerDeparted(
     playerName,
   });
 
-  if (room.departedPlayerIds.size >= 2) {
+  if (room.seatStatus.departedPlayerIds.size >= 2) {
     cancelDepartureVote(room, logger, "multi_departure");
     autoEndGameOnDeparture(room, logger, roomManager);
     return;
@@ -224,11 +224,11 @@ export function startDepartureVote(
   logger: FastifyBaseLogger,
   roomManager: RoomManager,
 ): void {
-  if (room.departureVoteState !== null) return;
+  if (room.votes.departure !== null) return;
 
   const expiresMs = getDepartureVoteTimeoutMs();
   const expiresAt = Date.now() + expiresMs;
-  room.departureVoteState = {
+  room.votes.departure = {
     targetPlayerId,
     targetPlayerName,
     startedAt: Date.now(),
@@ -254,8 +254,8 @@ export function handleDepartureVoteTimeoutExpiry(
   logger: FastifyBaseLogger,
   roomManager: RoomManager,
 ): void {
-  if (!room.departureVoteState) return;
-  if (room.paused) {
+  if (!room.votes.departure) return;
+  if (room.pause.paused) {
     cancelDepartureVote(room, logger, "pause");
     return;
   }
@@ -268,7 +268,7 @@ export function resolveDepartureVote(
   roomManager: RoomManager,
   trigger: "vote" | "timeout",
 ): void {
-  const state = room.departureVoteState;
+  const state = room.votes.departure;
   if (!state) return;
 
   const target = state.targetPlayerId;
@@ -296,7 +296,7 @@ export function resolveDepartureVote(
   if (!outcome) return;
 
   cancelLifecycleTimer(room, "departure-vote-timeout");
-  room.departureVoteState = null;
+  room.votes.departure = null;
 
   broadcastStateToRoom(room, undefined, {
     type: "DEPARTURE_VOTE_RESOLVED",
@@ -327,7 +327,7 @@ export function handleDepartureVoteCastMessage(
   }
 
   const voterId = session.player.playerId;
-  const vs = room.departureVoteState;
+  const vs = room.votes.departure;
   if (!vs) {
     sendProtocolError(ws, logger, "NO_ACTIVE_DEPARTURE_VOTE", "No active departure vote");
     return;
@@ -345,7 +345,10 @@ export function handleDepartureVoteCastMessage(
     sendProtocolError(ws, logger, "CANNOT_VOTE_ON_DEPARTED", "Cannot vote on departed player");
     return;
   }
-  if (room.deadSeatPlayerIds.has(voterId) || room.departedPlayerIds.has(voterId)) {
+  if (
+    room.seatStatus.deadSeatPlayerIds.has(voterId) ||
+    room.seatStatus.departedPlayerIds.has(voterId)
+  ) {
     sendProtocolError(ws, logger, "INVALID_ACTION", "Cannot cast departure vote");
     return;
   }
@@ -374,8 +377,8 @@ export function convertToDeadSeat(
   const wasHost = subject?.isHost ?? false;
   const playerName = subject?.displayName ?? "";
 
-  room.departedPlayerIds.delete(playerId);
-  room.deadSeatPlayerIds.add(playerId);
+  room.seatStatus.departedPlayerIds.delete(playerId);
+  room.seatStatus.deadSeatPlayerIds.add(playerId);
   room.sessions.delete(playerId);
 
   broadcastStateToRoom(room, undefined, {
@@ -416,14 +419,14 @@ export function resumeDepartureVoteIfNeeded(
   ) {
     return;
   }
-  if (room.departureVoteState) return;
+  if (room.votes.departure) return;
 
-  if (room.departedPlayerIds.size >= 2) {
+  if (room.seatStatus.departedPlayerIds.size >= 2) {
     autoEndGameOnDeparture(room, logger, roomManager);
     return;
   }
 
-  const [firstId] = room.departedPlayerIds;
+  const [firstId] = room.seatStatus.departedPlayerIds;
   if (!firstId) return;
   const name = room.players.get(firstId)?.displayName ?? "";
   startDepartureVote(room, firstId, name, logger, roomManager);

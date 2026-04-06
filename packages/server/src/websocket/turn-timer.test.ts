@@ -8,7 +8,7 @@ import {
 } from "@mahjong-game/shared";
 import { handleAction } from "@mahjong-game/shared";
 import type { RoomManager } from "../rooms/room-manager";
-import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
+import type { Room, PlayerInfo } from "../rooms/room";
 import {
   DEFAULT_TURN_TIMER_CONFIG,
   advancePastDeadSeats,
@@ -30,6 +30,7 @@ import {
 import * as stateBroadcaster from "./state-broadcaster";
 import { createTestState, getPlayerBySeat } from "../../../shared/src/testing/helpers";
 import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoomWithSessions } from "../testing";
 
 function createMockLogger() {
   return {
@@ -67,54 +68,11 @@ function wsSendMock(ws: WebSocket): ReturnType<typeof vi.fn> {
 
 function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Room {
   const wsList = players.map(() => createMockWs());
-  const room: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
+  return createTestRoomWithSessions(players, wsList, {
     gameState,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
     logger: createMockLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    room.players.set(player.playerId, player);
-    const session: PlayerSession = {
-      player,
-      roomCode: room.roomCode,
-      ws: wsList[i],
-    };
-    room.sessions.set(player.playerId, session);
-  }
-
-  return room;
+  });
 }
 
 function playStateAtDiscard(seed = 42): GameState {
@@ -162,24 +120,32 @@ describe("turn-timer helpers", () => {
   it("syncTurnTimer no-ops when room has no game state", () => {
     const logger = createSilentTestLogger();
     const room = {
-      turnTimerConfig: getDefaultTurnTimerConfig(),
-      turnTimerHandle: null,
-      turnTimerStage: null,
-      turnTimerPlayerId: null,
-      consecutiveTurnTimeouts: new Map(),
-      afkVoteState: null,
-      afkVoteCooldownPlayerIds: new Set(),
-      deadSeatPlayerIds: new Set(),
-      departedPlayerIds: new Set(),
-      departureVoteState: null,
-      paused: false,
+      turnTimer: {
+        config: getDefaultTurnTimerConfig(),
+        handle: null,
+        stage: null,
+        playerId: null,
+        consecutiveTimeouts: new Map(),
+        afkVoteCooldownPlayerIds: new Set(),
+      },
+      votes: {
+        afk: null,
+        departure: null,
+        socialOverrideTimer: null,
+        tableTalkReportTimer: null,
+      },
+      seatStatus: {
+        deadSeatPlayerIds: new Set(),
+        departedPlayerIds: new Set(),
+      },
+      pause: { paused: false, pausedAt: null },
       gameState: null,
       players: new Map(),
       roomCode: "X",
       logger,
     } as unknown as Room;
     syncTurnTimer(room, logger);
-    expect(room.turnTimerHandle).toBeNull();
+    expect(room.turnTimer.handle).toBeNull();
   });
 });
 
@@ -221,10 +187,10 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     ];
   }
 
-  /** `syncTurnTimer` reads duration from `room.turnTimerConfig`, not the module default. */
+  /** `syncTurnTimer` reads duration from `room.turnTimer.config`, not the module default. */
   function shortTimedRoom(gs: GameState): Room {
     const room = createTestRoom(fourPlayers(), gs);
-    room.turnTimerConfig = { mode: "timed", durationMs: 50 };
+    room.turnTimer.config = { mode: "timed", durationMs: 50 };
     return room;
   }
 
@@ -233,7 +199,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const room = shortTimedRoom(gs);
     const east = getPlayerBySeat(gs, "east");
     syncTurnTimer(room, room.logger);
-    expect(room.turnTimerStage).toBe("initial");
+    expect(room.turnTimer.stage).toBe("initial");
     vi.advanceTimersByTime(50);
     const nudge = broadcastRoomActions.find(
       (a) =>
@@ -241,8 +207,8 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     ) as { type: string; playerId: string } | undefined;
     expect(nudge?.type).toBe("TURN_TIMER_NUDGE");
     expect(nudge?.playerId).toBe(east);
-    expect(room.consecutiveTurnTimeouts.get(east)).toBeUndefined();
-    expect(room.turnTimerStage).toBe("extended");
+    expect(room.turnTimer.consecutiveTimeouts.get(east)).toBeUndefined();
+    expect(room.turnTimer.stage).toBe("extended");
   });
 
   it("T3: extended expiry increments counter, auto-discards, advances turn", () => {
@@ -253,7 +219,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     vi.advanceTimersByTime(50);
     broadcastRoomActions.length = 0;
     vi.advanceTimersByTime(50);
-    expect(room.consecutiveTurnTimeouts.get(east)).toBe(1);
+    expect(room.turnTimer.consecutiveTimeouts.get(east)).toBe(1);
     expect(
       broadcastRoomActions.some(
         (a) =>
@@ -270,7 +236,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
     const east = getPlayerBySeat(gs, "east");
-    room.consecutiveTurnTimeouts.set(east, 2);
+    room.turnTimer.consecutiveTimeouts.set(east, 2);
     syncTurnTimer(room, room.logger);
     vi.advanceTimersByTime(50);
     vi.advanceTimersByTime(50);
@@ -282,16 +248,16 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
           (a as { type: string }).type === "AFK_VOTE_STARTED",
       ),
     ).toBe(true);
-    expect(room.consecutiveTurnTimeouts.get(east)).toBe(3);
-    expect(room.afkVoteState?.targetPlayerId).toBe(east);
+    expect(room.turnTimer.consecutiveTimeouts.get(east)).toBe(3);
+    expect(room.votes.afk?.targetPlayerId).toBe(east);
   });
 
   it("T10: mode none never arms timer", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
-    room.turnTimerConfig = { mode: "none", durationMs: 50 };
+    room.turnTimer.config = { mode: "none", durationMs: 50 };
     syncTurnTimer(room, room.logger);
-    expect(room.turnTimerHandle).toBeNull();
+    expect(room.turnTimer.handle).toBeNull();
     vi.advanceTimersByTime(10_000);
     expect(
       broadcastRoomActions.filter((a) => (a as { type: string }).type === "TURN_TIMER_NUDGE"),
@@ -302,7 +268,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
     const east = getPlayerBySeat(gs, "east");
-    room.deadSeatPlayerIds.add(east);
+    room.seatStatus.deadSeatPlayerIds.add(east);
     syncTurnTimer(room, room.logger);
     expect(
       broadcastRoomActions.some(
@@ -320,7 +286,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     startLifecycleTimer(room, "afk-vote-timeout", () => {
       handleAfkVoteTimeoutExpiry(room, room.logger);
     });
@@ -340,8 +306,8 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
       { targetPlayerId: east, vote: "approve" },
       room.logger,
     );
-    expect(room.deadSeatPlayerIds.has(east)).toBe(true);
-    expect(room.afkVoteState).toBeNull();
+    expect(room.seatStatus.deadSeatPlayerIds.has(east)).toBe(true);
+    expect(room.votes.afk).toBeNull();
     expect(
       broadcastRoomActions.some(
         (a) =>
@@ -357,21 +323,21 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     startLifecycleTimer(room, "afk-vote-timeout", () => {});
     const p2 = room.sessions.get("p2")!;
     const p3 = room.sessions.get("p3")!;
     handleAfkVoteCastMessage(p2.ws, p2, room, { targetPlayerId: east, vote: "deny" }, room.logger);
     handleAfkVoteCastMessage(p3.ws, p3, room, { targetPlayerId: east, vote: "deny" }, room.logger);
-    expect(room.afkVoteCooldownPlayerIds.has(east)).toBe(true);
-    expect(room.deadSeatPlayerIds.has(east)).toBe(false);
+    expect(room.turnTimer.afkVoteCooldownPlayerIds.has(east)).toBe(true);
+    expect(room.seatStatus.deadSeatPlayerIds.has(east)).toBe(false);
   });
 
   it("T7: vote times out with no quorum → failed", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     startLifecycleTimer(room, "afk-vote-timeout", () => {
       handleAfkVoteTimeoutExpiry(room, room.logger);
     });
@@ -384,26 +350,26 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
       room.logger,
     );
     vi.advanceTimersByTime(100);
-    expect(room.afkVoteState).toBeNull();
-    expect(room.afkVoteCooldownPlayerIds.has(east)).toBe(true);
+    expect(room.votes.afk).toBeNull();
+    expect(room.turnTimer.afkVoteCooldownPlayerIds.has(east)).toBe(true);
   });
 
   it("T8: cancelAfkVote target_active clears vote without cooldown", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     startLifecycleTimer(room, "afk-vote-timeout", () => {});
     cancelAfkVote(room, room.logger, "target_active");
-    expect(room.afkVoteState).toBeNull();
-    expect(room.afkVoteCooldownPlayerIds.has(east)).toBe(false);
+    expect(room.votes.afk).toBeNull();
+    expect(room.turnTimer.afkVoteCooldownPlayerIds.has(east)).toBe(false);
   });
 
   it("T16: CANNOT_VOTE_ON_SELF", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     const eastSession = room.sessions.get(east)!;
     handleAfkVoteCastMessage(
       eastSession.ws,
@@ -442,7 +408,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     const p2 = room.sessions.get("p2")!;
     handleAfkVoteCastMessage(
       p2.ws,
@@ -461,7 +427,7 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     const east = getPlayerBySeat(gs, "east");
-    room.afkVoteState = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
+    room.votes.afk = { targetPlayerId: east, startedAt: Date.now(), votes: new Map() };
     startLifecycleTimer(room, "afk-vote-timeout", () => {});
     broadcastRoomActions.length = 0;
     const p2 = room.sessions.get("p2")!;
@@ -478,16 +444,16 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
         typeof a === "object" && a !== null && (a as { type: string }).type === "AFK_VOTE_CAST",
     );
     expect(casts.length).toBe(2);
-    expect(room.afkVoteState).not.toBeNull();
+    expect(room.votes.afk).not.toBeNull();
   });
 
   it("cancelTurnTimer clears handle", () => {
     const gs = playStateAtDiscard();
     const room = createTestRoom(fourPlayers(), gs);
     syncTurnTimer(room, room.logger);
-    expect(room.turnTimerHandle).not.toBeNull();
+    expect(room.turnTimer.handle).not.toBeNull();
     cancelTurnTimer(room, room.logger);
-    expect(room.turnTimerHandle).toBeNull();
+    expect(room.turnTimer.handle).toBeNull();
   });
 
   // Regression for H2 (post-review fix): the extended-stage expiry must not
@@ -500,14 +466,14 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     syncTurnTimer(room, room.logger);
     // initial stage armed; advance past initial to set up extended stage.
     vi.advanceTimersByTime(50);
-    expect(room.turnTimerStage).toBe("extended");
+    expect(room.turnTimer.stage).toBe("extended");
     // Simulate disconnect without going through close handler — timer is still
     // armed from before the disconnect.
     const eastPlayer = room.players.get(east)!;
     eastPlayer.connected = false;
     broadcastRoomActions.length = 0;
     vi.advanceTimersByTime(50);
-    expect(room.consecutiveTurnTimeouts.get(east)).toBeUndefined();
+    expect(room.turnTimer.consecutiveTimeouts.get(east)).toBeUndefined();
     expect(
       broadcastRoomActions.some(
         (a) =>
@@ -523,13 +489,13 @@ describe("Story 4B.4 — turn timer & AFK (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
     const east = getPlayerBySeat(gs, "east");
-    room.consecutiveTurnTimeouts.set(east, 2);
+    room.turnTimer.consecutiveTimeouts.set(east, 2);
     // Arm the timer while connected, then mark disconnected before expiry.
     syncTurnTimer(room, room.logger);
     room.players.get(east)!.connected = false;
     vi.advanceTimersByTime(50);
     vi.advanceTimersByTime(50);
-    expect(room.afkVoteState).toBeNull();
+    expect(room.votes.afk).toBeNull();
   });
 });
 
@@ -571,7 +537,7 @@ describe("Story 4B.5 — dead-seat helpers (fake timers)", () => {
 
   function shortTimedRoom(gs: GameState): Room {
     const room = createTestRoom(fourPlayers(), gs);
-    room.turnTimerConfig = { mode: "timed", durationMs: 50 };
+    room.turnTimer.config = { mode: "timed", durationMs: 50 };
     return room;
   }
 
@@ -581,8 +547,8 @@ describe("Story 4B.5 — dead-seat helpers (fake timers)", () => {
     const south = getPlayerBySeat(gs, "south");
     const west = getPlayerBySeat(gs, "west");
     const room = shortTimedRoom(gs);
-    room.deadSeatPlayerIds.add(east);
-    room.deadSeatPlayerIds.add(south);
+    room.seatStatus.deadSeatPlayerIds.add(east);
+    room.seatStatus.deadSeatPlayerIds.add(south);
     syncTurnTimer(room, room.logger);
     const skips = broadcastRoomActions.filter(
       (a) =>
@@ -605,7 +571,7 @@ describe("Story 4B.5 — dead-seat helpers (fake timers)", () => {
     expect(gs.turnPhase).toBe("callWindow");
 
     const room = shortTimedRoom(gs);
-    room.deadSeatPlayerIds.add(south);
+    room.seatStatus.deadSeatPlayerIds.add(south);
     broadcastGameCalls = 0;
     const progressed = autoPassCallWindowForDeadSeats(room, room.logger);
     expect(progressed).toBe(true);
@@ -617,7 +583,7 @@ describe("Story 4B.5 — dead-seat helpers (fake timers)", () => {
     const gs = playStateAtDiscard();
     const room = shortTimedRoom(gs);
     for (const id of Object.keys(gs.players)) {
-      room.deadSeatPlayerIds.add(id);
+      room.seatStatus.deadSeatPlayerIds.add(id);
     }
     const roomManager = { cleanupRoom: vi.fn() } as unknown as RoomManager;
     advancePastDeadSeats(room, room.logger, roomManager);

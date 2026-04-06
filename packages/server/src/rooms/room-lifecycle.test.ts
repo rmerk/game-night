@@ -13,53 +13,10 @@ import {
 } from "./room-lifecycle";
 import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { Room } from "./room";
-import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoom, type CreateTestRoomOverrides } from "../testing";
 
-function createMockRoom(overrides?: Partial<Room>): Room {
-  const base: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
-    settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
-    logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-  return {
-    ...base,
-    ...overrides,
-    socialOverrideTimer: overrides?.socialOverrideTimer ?? null,
-    tableTalkReportTimer: overrides?.tableTalkReportTimer ?? null,
-    turnTimerHandle: overrides?.turnTimerHandle ?? null,
-    turnTimerStage: overrides?.turnTimerStage ?? null,
-    turnTimerPlayerId: overrides?.turnTimerPlayerId ?? null,
-  };
+function createMockRoom(overrides?: CreateTestRoomOverrides): Room {
+  return createTestRoom(overrides);
 }
 
 describe("room-lifecycle", () => {

@@ -91,14 +91,14 @@ function handleChat(
     return;
   }
 
-  const prior = room.chatRateTimestamps.get(playerId) ?? [];
+  const prior = room.rateLimits.chatRateTimestamps.get(playerId) ?? [];
   const chatGate = slidingWindowAccept(
     prior,
     now,
     CHAT_RATE_LIMIT_WINDOW_MS,
     CHAT_RATE_LIMIT_COUNT,
   );
-  room.chatRateTimestamps.set(playerId, chatGate.next);
+  room.rateLimits.chatRateTimestamps.set(playerId, chatGate.next);
   if (!chatGate.allowed) {
     return;
   }
@@ -140,14 +140,14 @@ function handleReaction(
     return;
   }
 
-  const prior = room.reactionRateTimestamps.get(playerId) ?? [];
+  const prior = room.rateLimits.reactionRateTimestamps.get(playerId) ?? [];
   const reactionGate = slidingWindowAccept(
     prior,
     now,
     REACTION_RATE_LIMIT_WINDOW_MS,
     REACTION_RATE_LIMIT_COUNT,
   );
-  room.reactionRateTimestamps.set(playerId, reactionGate.next);
+  room.rateLimits.reactionRateTimestamps.set(playerId, reactionGate.next);
   if (!reactionGate.allowed) {
     return;
   }

@@ -2,44 +2,14 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_ROOM_SETTINGS, type SeatWind } from "@mahjong-game/shared";
 import { assignNextSeat } from "./seat-assignment";
 import type { Room } from "./room";
-import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoom as makeTestRoom } from "../testing";
 
 function createTestRoom(playerIds: string[] = []): Room {
-  const room: Room = {
-    roomId: "test-room-id",
+  const room = makeTestRoom({
     roomCode: "TEST01",
     hostToken: "test-host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
-    logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
+  });
 
   for (const id of playerIds) {
     room.players.set(id, {

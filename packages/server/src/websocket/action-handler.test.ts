@@ -209,7 +209,7 @@ describe("handleActionMessage", () => {
   it("rejects game actions when room is paused (AC3)", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;
-    room.paused = true;
+    room.pause.paused = true;
 
     const tileId = room.gameState!.players[players[0].playerId].rack[0].id;
 
@@ -219,16 +219,16 @@ describe("handleActionMessage", () => {
     expect(discardMsg.type).toBe("ERROR");
     expect(discardMsg.code).toBe("ROOM_PAUSED");
 
-    room.paused = false;
+    room.pause.paused = false;
     room.gameState = null;
-    room.paused = true;
+    room.pause.paused = true;
     const startPromise = waitForMessage(players[0].ws);
     sendAction(players[0].ws, { type: "START_GAME", playerIds: [] });
     const startMsg = await startPromise;
     expect(startMsg.type).toBe("ERROR");
     expect(startMsg.code).toBe("ROOM_PAUSED");
 
-    room.paused = true;
+    room.pause.paused = true;
     const charlestonPassPromise = waitForMessage(players[0].ws);
     sendAction(players[0].ws, {
       type: "CHARLESTON_PASS",
@@ -239,7 +239,7 @@ describe("handleActionMessage", () => {
     expect(charlestonPassMsg.type).toBe("ERROR");
     expect(charlestonPassMsg.code).toBe("ROOM_PAUSED");
 
-    room.paused = true;
+    room.pause.paused = true;
     const callPungPromise = waitForMessage(players[0].ws);
     sendAction(players[0].ws, {
       type: "CALL_PUNG",
@@ -250,7 +250,7 @@ describe("handleActionMessage", () => {
     expect(callPungMsg.type).toBe("ERROR");
     expect(callPungMsg.code).toBe("ROOM_PAUSED");
 
-    room.paused = false;
+    room.pause.paused = false;
     for (const p of players) p.ws.close();
   });
 
@@ -298,7 +298,7 @@ describe("handleActionMessage", () => {
     const gameState = room.gameState!;
     const currentTurnPlayerId = gameState.currentTurn;
     const currentPlayer = players.find((p) => p.playerId === currentTurnPlayerId)!;
-    room.consecutiveTurnTimeouts.set(currentTurnPlayerId, 5);
+    room.turnTimer.consecutiveTimeouts.set(currentTurnPlayerId, 5);
     const tileToDiscard = gameState.players[currentTurnPlayerId].rack.at(-1)!;
 
     const messagePromises = players.map((p) => waitForMessage(p.ws));
@@ -309,7 +309,7 @@ describe("handleActionMessage", () => {
     });
     await Promise.all(messagePromises);
 
-    expect(room.consecutiveTurnTimeouts.has(currentTurnPlayerId)).toBe(false);
+    expect(room.turnTimer.consecutiveTimeouts.has(currentTurnPlayerId)).toBe(false);
 
     for (const p of players) p.ws.close();
   });
@@ -320,7 +320,7 @@ describe("handleActionMessage", () => {
     const gameState = room.gameState!;
     const currentTurnPlayerId = gameState.currentTurn;
     const currentPlayer = players.find((p) => p.playerId === currentTurnPlayerId)!;
-    room.afkVoteState = {
+    room.votes.afk = {
       targetPlayerId: currentTurnPlayerId,
       startedAt: Date.now(),
       votes: new Map(),
@@ -335,7 +335,7 @@ describe("handleActionMessage", () => {
     });
     await Promise.all(messagePromises);
 
-    expect(room.afkVoteState).toBeNull();
+    expect(room.votes.afk).toBeNull();
 
     for (const p of players) p.ws.close();
   });
@@ -811,9 +811,9 @@ describe("handleActionMessage", () => {
       const { roomCode, players } = await setupGameRoom();
       const host = players[0];
       const room = app.roomManager.getRoom(roomCode)!;
-      room.departedPlayerIds.add(players[1].playerId);
-      room.deadSeatPlayerIds.add(players[2].playerId);
-      room.departureVoteState = {
+      room.seatStatus.departedPlayerIds.add(players[1].playerId);
+      room.seatStatus.deadSeatPlayerIds.add(players[2].playerId);
+      room.votes.departure = {
         targetPlayerId: players[1].playerId,
         targetPlayerName: "x",
         startedAt: Date.now(),
@@ -825,9 +825,9 @@ describe("handleActionMessage", () => {
       sendAction(host.ws, { type: "START_GAME" });
       await Promise.all(startPromises);
 
-      expect(room.departedPlayerIds.size).toBe(0);
-      expect(room.deadSeatPlayerIds.size).toBe(0);
-      expect(room.departureVoteState).toBeNull();
+      expect(room.seatStatus.departedPlayerIds.size).toBe(0);
+      expect(room.seatStatus.deadSeatPlayerIds.size).toBe(0);
+      expect(room.votes.departure).toBeNull();
 
       for (const p of players) p.ws.close();
     });
@@ -1074,7 +1074,7 @@ describe("handleActionMessage", () => {
   it("T16: rejects actions from departed players (PLAYER_DEPARTED)", async () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;
-    room.departedPlayerIds.add(players[0].playerId);
+    room.seatStatus.departedPlayerIds.add(players[0].playerId);
 
     const msgPromise = waitForMessage(players[0].ws);
     sendAction(players[0].ws, { type: "DRAW_TILE", playerId: players[0].playerId });

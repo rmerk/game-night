@@ -200,7 +200,7 @@ function attachToExistingSeat(
     return;
   }
 
-  if (room.departedPlayerIds.has(playerId)) {
+  if (room.seatStatus.departedPlayerIds.has(playerId)) {
     sendError(ws, "PLAYER_DEPARTED", "Departed players cannot rejoin this game");
     ws.close(4000, "PLAYER_DEPARTED");
     return;
@@ -278,11 +278,11 @@ function attachToExistingSeat(
     playerName: player.displayName,
   });
 
-  const resumedFromPause = room.paused && countDisconnectedPlayers(room) === 0;
+  const resumedFromPause = room.pause.paused && countDisconnectedPlayers(room) === 0;
   if (resumedFromPause) {
     cancelLifecycleTimer(room, "pause-timeout");
-    room.paused = false;
-    room.pausedAt = null;
+    room.pause.paused = false;
+    room.pause.pausedAt = null;
     logger.info({ roomCode: room.roomCode }, "Room resumed — all players reconnected");
     broadcastStateToRoom(room, undefined, { type: "GAME_RESUMED" });
     if (roomManager) {
@@ -331,7 +331,7 @@ function allPlayersDisconnected(room: Room): boolean {
 function countDisconnectedPlayers(room: Room): number {
   let n = 0;
   for (const p of room.players.values()) {
-    if (room.departedPlayerIds.has(p.playerId)) continue;
+    if (room.seatStatus.departedPlayerIds.has(p.playerId)) continue;
     if (!p.connected) n++;
   }
   return n;
@@ -353,7 +353,7 @@ function registerDisconnectHandler(
     const session = room.sessions.get(playerId);
     if (!session || session.ws !== ws) return;
 
-    if (room.departedPlayerIds.has(playerId)) {
+    if (room.seatStatus.departedPlayerIds.has(playerId)) {
       return;
     }
 
@@ -367,11 +367,11 @@ function registerDisconnectHandler(
     // a misleading nudge for an offline player. Grace-expiry's own
     // `syncTurnTimer` call will re-arm for whoever becomes current after
     // auto-discard.
-    if (room.turnTimerPlayerId === playerId) {
+    if (room.turnTimer.playerId === playerId) {
       cancelTurnTimer(room, logger);
     }
 
-    if (room.paused) {
+    if (room.pause.paused) {
       // AC11: dead session entry is intentionally left in room.sessions here —
       // readyState filter in broadcastStateToRoom skips it, and the eventual
       // release happens via handlePauseTimeout (AC7) or the post-resume grace path.
@@ -394,13 +394,13 @@ function registerDisconnectHandler(
       }
       room.graceTimers.clear();
       cancelTurnTimer(room, logger);
-      if (room.afkVoteState) {
+      if (room.votes.afk) {
         cancelAfkVote(room, logger, "pause");
       }
       cancelDepartureVote(room, logger, "pause");
       cancelLifecycleTimer(room, "disconnect-timeout");
-      room.paused = true;
-      room.pausedAt = Date.now();
+      room.pause.paused = true;
+      room.pause.pausedAt = Date.now();
       startLifecycleTimer(room, "pause-timeout", () => {
         handlePauseTimeout(room, roomManager, logger);
       });

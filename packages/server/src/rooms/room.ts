@@ -30,6 +30,54 @@ export interface DepartureVoteState {
 
 export type TurnTimerConfig = { readonly mode: "timed" | "none"; readonly durationMs: number };
 
+/** Play-phase turn timer + AFK cooldown tracking (Story 4B.4) */
+export interface TurnTimerState {
+  /** Canonical config — keep in sync with room.settings timer fields (Story 4B.7) */
+  config: TurnTimerConfig;
+  handle: ReturnType<typeof setTimeout> | null;
+  stage: "initial" | "extended" | null;
+  playerId: string | null;
+  /** Consecutive stuck turns (incremented on extended-stage expiry only) */
+  consecutiveTimeouts: Map<string, number>;
+  afkVoteCooldownPlayerIds: Set<string>;
+}
+
+/** Server-side vote timers and AFK / departure votes */
+export interface VoteState {
+  afk: AfkVoteState | null;
+  departure: DepartureVoteState | null;
+  /** Single scheduled social-override vote expiry (Story 3C.4) */
+  socialOverrideTimer: ReturnType<typeof setTimeout> | null;
+  /** Single scheduled table-talk vote expiry (Story 3C.5) */
+  tableTalkReportTimer: ReturnType<typeof setTimeout> | null;
+}
+
+export interface SeatStatus {
+  deadSeatPlayerIds: Set<string>;
+  /** Players who sent LEAVE_ROOM and whose seats have not yet been cleaned up (Story 4B.5) */
+  departedPlayerIds: Set<string>;
+}
+
+/** Simultaneous-disconnect pause (Epic 4B.3) — orthogonal to engine phase */
+export interface PauseState {
+  paused: boolean;
+  pausedAt: number | null;
+}
+
+export interface SessionHistory {
+  /** Cumulative scores from completed games this room session (Story 5B.4) */
+  scoresFromPriorGames: Record<string, number>;
+  /** Completed games — appended when merging at rematch / end session (Story 5B.4) */
+  gameHistory: SessionGameHistoryEntry[];
+}
+
+export interface RateLimits {
+  /** Per-player sliding-window timestamps for chat rate limit */
+  chatRateTimestamps: Map<string, number[]>;
+  /** Per-player sliding-window timestamps for reaction rate limit */
+  reactionRateTimestamps: Map<string, number[]>;
+}
+
 export interface PlayerInfo {
   playerId: string;
   displayName: string;
@@ -55,42 +103,19 @@ export interface Room {
   playerTokens: Map<string, string>; // playerId → token
   graceTimers: Map<string, ReturnType<typeof setTimeout>>; // playerId → grace period timer
   lifecycleTimers: Map<string, ReturnType<typeof setTimeout>>; // lifecycle timer type → timer
-  /** Single scheduled social-override vote expiry (Story 3C.4) */
-  socialOverrideTimer: ReturnType<typeof setTimeout> | null;
-  /** Single scheduled table-talk vote expiry (Story 3C.5) */
-  tableTalkReportTimer: ReturnType<typeof setTimeout> | null;
   gameState: GameState | null;
-  /** Canonical host settings — keep jokerRulesMode and turnTimerConfig in sync (Story 4B.7) */
+  /** Canonical host settings — keep jokerRulesMode in sync with room.jokerRulesMode */
   settings: RoomSettings;
   /** Host-selected Joker rules for the next game (authoritative for START_GAME) */
   jokerRulesMode: JokerRulesMode;
   /** Last chat lines for future CHAT_HISTORY / 6A.4 — reactions not stored */
   chatHistory: ChatBroadcast[];
-  /** Per-player sliding-window timestamps for chat rate limit */
-  chatRateTimestamps: Map<string, number[]>;
-  /** Per-player sliding-window timestamps for reaction rate limit */
-  reactionRateTimestamps: Map<string, number[]>;
-  /** Simultaneous-disconnect pause (Epic 4B.3) — orthogonal to engine phase */
-  paused: boolean;
-  pausedAt: number | null;
-  /** Play-phase turn timer (Story 4B.4) — dedicated handle, not lifecycle timers */
-  turnTimerConfig: TurnTimerConfig;
-  turnTimerHandle: ReturnType<typeof setTimeout> | null;
-  turnTimerStage: "initial" | "extended" | null;
-  turnTimerPlayerId: string | null;
-  /** Consecutive stuck turns (incremented on extended-stage expiry only) */
-  consecutiveTurnTimeouts: Map<string, number>;
-  afkVoteState: AfkVoteState | null;
-  afkVoteCooldownPlayerIds: Set<string>;
-  deadSeatPlayerIds: Set<string>;
-  /** Players who sent LEAVE_ROOM and whose seats have not yet been cleaned up (Story 4B.5) */
-  departedPlayerIds: Set<string>;
-  /** Active departure vote (Story 4B.5) — at most one per room at a time */
-  departureVoteState: DepartureVoteState | null;
+  turnTimer: TurnTimerState;
+  votes: VoteState;
+  seatStatus: SeatStatus;
+  pause: PauseState;
+  sessionHistory: SessionHistory;
+  rateLimits: RateLimits;
   createdAt: number;
   logger: FastifyBaseLogger;
-  /** Cumulative scores from completed games this room session (Story 5B.4) */
-  sessionScoresFromPriorGames: Record<string, number>;
-  /** Completed games — appended when merging at rematch / end session (Story 5B.4) */
-  sessionGameHistory: SessionGameHistoryEntry[];
 }

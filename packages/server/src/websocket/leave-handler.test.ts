@@ -10,6 +10,7 @@ import {
   setDepartureVoteTimeoutMs,
 } from "../rooms/room-lifecycle";
 import { resetTurnTimerStateOnGameEnd } from "./turn-timer";
+import { waitForStateUpdateResolvedAction as waitForResolvedAction } from "../testing/ws-integration-messages";
 
 type WebSocket = WsClient;
 
@@ -160,38 +161,6 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Wait until a STATE_UPDATE carries the given resolvedAction.type (skips CHAT_HISTORY). */
-async function waitForResolvedAction(
-  ws: WebSocket,
-  actionType: string,
-): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      ws.removeListener("message", onMessage);
-      reject(new Error(`timeout waiting for resolvedAction ${actionType}`));
-    }, 15_000);
-
-    function onMessage(data: Buffer) {
-      let msg: Record<string, unknown>;
-      try {
-        msg = parseWsJsonMessage(data);
-      } catch {
-        return;
-      }
-      if (msg.type === "CHAT_HISTORY") return;
-      if (msg.type === "STATE_UPDATE") {
-        const ra = msg.resolvedAction;
-        if (isPlainObject(ra) && ra.type === actionType) {
-          clearTimeout(timer);
-          ws.removeListener("message", onMessage);
-          resolve(msg);
-        }
-      }
-    }
-    ws.on("message", onMessage);
-  });
-}
-
 async function waitForError(ws: WebSocket): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -245,7 +214,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
 
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.players.size).toBe(1);
-    expect(room.departureVoteState).toBeNull();
+    expect(room.votes.departure).toBeNull();
   });
 
   it("T2: mid-game LEAVE_ROOM starts departure vote", async () => {
@@ -272,8 +241,8 @@ describe("leave-handler integration (Story 4B.5)", () => {
     await waitForResolvedAction(players[3].ws, "DEPARTURE_VOTE_RESOLVED");
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.deadSeatPlayerIds.has(targetId)).toBe(true);
-    expect(room.departureVoteState).toBeNull();
+    expect(room.seatStatus.deadSeatPlayerIds.has(targetId)).toBe(true);
+    expect(room.votes.departure).toBeNull();
   });
 
   it("T4: two end_game votes auto-end", async () => {
@@ -308,7 +277,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
 
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.gameState?.gamePhase).toBe("scoreboard");
-    expect(room.departureVoteState).toBeNull();
+    expect(room.votes.departure).toBeNull();
   });
 
   it("T6: conflicting votes stay open until timeout", async () => {
@@ -324,7 +293,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
     await waitForResolvedAction(players[3].ws, "DEPARTURE_VOTE_CAST");
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.departureVoteState).not.toBeNull();
+    expect(room.votes.departure).not.toBeNull();
 
     await delay(200);
     const roomAfter = app.roomManager.getRoom(roomCode)!;
@@ -403,7 +372,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
     const after = app.roomManager.getRoom(roomCode)!;
     expect(after.players.size).toBe(3);
     expect(after.players.get(players[1].playerId)?.isHost).toBe(true);
-    expect(after.departureVoteState).toBeNull();
+    expect(after.votes.departure).toBeNull();
     for (const p of players) p.ws.close();
   });
 
@@ -454,7 +423,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
     const { roomCode, players } = await setupGameInProgress();
     const room = app.roomManager.getRoom(roomCode)!;
     const targetId = players[0].playerId;
-    room.departureVoteState = {
+    room.votes.departure = {
       targetPlayerId: targetId,
       targetPlayerName: "Alice",
       startedAt: Date.now(),
@@ -511,7 +480,7 @@ describe("leave-handler integration (Story 4B.5)", () => {
     await promoted;
     await departedPromise;
 
-    expect(room.departureVoteState).toBeNull();
+    expect(room.votes.departure).toBeNull();
     expect(room.players.size).toBe(3);
     expect(room.players.get(players[1].playerId)?.isHost).toBe(true);
 
@@ -527,8 +496,8 @@ describe("leave-handler integration (Story 4B.5)", () => {
     const room = app.roomManager.getRoom(roomCode)!;
     const deadId = players[0].playerId;
 
-    room.deadSeatPlayerIds.add(deadId);
-    room.departureVoteState = {
+    room.seatStatus.deadSeatPlayerIds.add(deadId);
+    room.votes.departure = {
       targetPlayerId: players[2].playerId,
       targetPlayerName: "P2",
       startedAt: Date.now(),
@@ -542,8 +511,8 @@ describe("leave-handler integration (Story 4B.5)", () => {
     const ra = msg.resolvedAction as Record<string, unknown>;
     expect(ra.outcome).toBe("cancelled");
 
-    expect(room.departureVoteState).toBeNull();
-    expect(room.deadSeatPlayerIds.has(deadId)).toBe(true);
+    expect(room.votes.departure).toBeNull();
+    expect(room.seatStatus.deadSeatPlayerIds.has(deadId)).toBe(true);
 
     for (const p of players) p.ws.close();
   });
@@ -572,8 +541,8 @@ describe("leave-handler integration (Story 4B.5)", () => {
     expect(hpRa.newHostId).toBe(p1.playerId);
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.deadSeatPlayerIds.has(targetId)).toBe(true);
-    expect(room.departedPlayerIds.size).toBe(0);
+    expect(room.seatStatus.deadSeatPlayerIds.has(targetId)).toBe(true);
+    expect(room.seatStatus.departedPlayerIds.size).toBe(0);
 
     sendLeaveRoom(p1.ws);
     const voteMsg = await waitForResolvedAction(p2.ws, "DEPARTURE_VOTE_STARTED");

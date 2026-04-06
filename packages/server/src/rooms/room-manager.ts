@@ -33,33 +33,45 @@ export class RoomManager {
       playerTokens: new Map(),
       graceTimers: new Map(),
       lifecycleTimers: new Map(),
-      socialOverrideTimer: null,
-      tableTalkReportTimer: null,
       gameState: null,
       settings: { ...DEFAULT_ROOM_SETTINGS },
       jokerRulesMode: DEFAULT_ROOM_SETTINGS.jokerRulesMode,
       chatHistory: [],
-      chatRateTimestamps: new Map(),
-      reactionRateTimestamps: new Map(),
-      paused: false,
-      pausedAt: null,
-      turnTimerConfig: {
-        mode: DEFAULT_ROOM_SETTINGS.timerMode,
-        durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
+      turnTimer: {
+        config: {
+          mode: DEFAULT_ROOM_SETTINGS.timerMode,
+          durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
+        },
+        handle: null,
+        stage: null,
+        playerId: null,
+        consecutiveTimeouts: new Map(),
+        afkVoteCooldownPlayerIds: new Set(),
       },
-      turnTimerHandle: null,
-      turnTimerStage: null,
-      turnTimerPlayerId: null,
-      consecutiveTurnTimeouts: new Map(),
-      afkVoteState: null,
-      afkVoteCooldownPlayerIds: new Set(),
-      deadSeatPlayerIds: new Set(),
-      departedPlayerIds: new Set(),
-      departureVoteState: null,
+      votes: {
+        afk: null,
+        departure: null,
+        socialOverrideTimer: null,
+        tableTalkReportTimer: null,
+      },
+      seatStatus: {
+        deadSeatPlayerIds: new Set(),
+        departedPlayerIds: new Set(),
+      },
+      pause: {
+        paused: false,
+        pausedAt: null,
+      },
+      sessionHistory: {
+        scoresFromPriorGames: {},
+        gameHistory: [],
+      },
+      rateLimits: {
+        chatRateTimestamps: new Map(),
+        reactionRateTimestamps: new Map(),
+      },
       createdAt: Date.now(),
       logger: roomLogger,
-      sessionScoresFromPriorGames: {},
-      sessionGameHistory: [],
     };
 
     this.rooms.set(roomCode, room);
@@ -125,19 +137,19 @@ export class RoomManager {
     }
     room.graceTimers.clear();
     cancelAllLifecycleTimers(room);
-    if (room.socialOverrideTimer) {
-      clearTimeout(room.socialOverrideTimer);
-      room.socialOverrideTimer = null;
+    if (room.votes.socialOverrideTimer) {
+      clearTimeout(room.votes.socialOverrideTimer);
+      room.votes.socialOverrideTimer = null;
     }
-    if (room.tableTalkReportTimer) {
-      clearTimeout(room.tableTalkReportTimer);
-      room.tableTalkReportTimer = null;
+    if (room.votes.tableTalkReportTimer) {
+      clearTimeout(room.votes.tableTalkReportTimer);
+      room.votes.tableTalkReportTimer = null;
     }
     cancelTurnTimer(room, room.logger);
 
     room.chatHistory.length = 0;
-    room.chatRateTimestamps.clear();
-    room.reactionRateTimestamps.clear();
+    room.rateLimits.chatRateTimestamps.clear();
+    room.rateLimits.reactionRateTimestamps.clear();
 
     // 2. Snapshot sessions and clear map — prevents stale close handlers
     //    from creating orphaned timers on the dead room

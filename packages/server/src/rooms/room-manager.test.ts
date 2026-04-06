@@ -86,7 +86,7 @@ describe("RoomManager", () => {
       expect(room).toBeDefined();
       expect(room!.settings).toEqual(DEFAULT_ROOM_SETTINGS);
       expect(room!.jokerRulesMode).toBe(DEFAULT_ROOM_SETTINGS.jokerRulesMode);
-      expect(room!.turnTimerConfig).toEqual({
+      expect(room!.turnTimer.config).toEqual({
         mode: DEFAULT_ROOM_SETTINGS.timerMode,
         durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
       });

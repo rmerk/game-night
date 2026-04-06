@@ -7,7 +7,7 @@ import type { Room } from "./room";
  * Call when leaving scoreboard for REMATCH or END_SESSION — not while still on scoreboard.
  */
 export function mergeCompletedGameIntoSession(room: Room, gameState: GameState): void {
-  const prior = room.sessionScoresFromPriorGames;
+  const prior = room.sessionHistory.scoresFromPriorGames;
   const nextPrior: Record<string, number> = { ...prior };
 
   for (const pid of Object.keys(gameState.players)) {
@@ -15,7 +15,7 @@ export function mergeCompletedGameIntoSession(room: Room, gameState: GameState):
     nextPrior[pid] = (nextPrior[pid] ?? 0) + s;
   }
 
-  const gameNumber = room.sessionGameHistory.length + 1;
+  const gameNumber = room.sessionHistory.gameHistory.length + 1;
   const finalScores: Record<string, number> = {};
   for (const pid of Object.keys(gameState.players)) {
     finalScores[pid] = gameState.scores[pid] ?? 0;
@@ -27,8 +27,8 @@ export function mergeCompletedGameIntoSession(room: Room, gameState: GameState):
     gameResult: gameState.gameResult,
   };
 
-  room.sessionScoresFromPriorGames = nextPrior;
-  room.sessionGameHistory = [...room.sessionGameHistory, entry];
+  room.sessionHistory.scoresFromPriorGames = nextPrior;
+  room.sessionHistory.gameHistory = [...room.sessionHistory.gameHistory, entry];
 }
 
 /**

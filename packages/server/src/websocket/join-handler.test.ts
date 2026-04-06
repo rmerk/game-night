@@ -9,10 +9,24 @@ import { setGracePeriodMs, DEFAULT_GRACE_PERIOD_MS } from "../rooms/session-mana
 import {
   setPauseTimeoutMs,
   DEFAULT_PAUSE_TIMEOUT_MS,
+  setAfkVoteTimeoutMs,
+  DEFAULT_AFK_VOTE_TIMEOUT_MS,
   cancelLifecycleTimer,
   hasLifecycleTimer,
+  startLifecycleTimer,
 } from "../rooms/room-lifecycle";
+import { createLobbyState, handleAction } from "@mahjong-game/shared";
+import {
+  setDefaultTurnTimerConfig,
+  DEFAULT_TURN_TIMER_CONFIG,
+  syncTurnTimer,
+  resetTurnTimerStateOnGameEnd,
+} from "./turn-timer";
 import * as stateBroadcaster from "./state-broadcaster";
+import {
+  waitForJsonMessageSkipChatHistory as waitForMessage,
+  waitForStateUpdateResolvedAction as waitForResolvedActionType,
+} from "../testing/ws-integration-messages";
 
 type WebSocket = WsClient;
 
@@ -33,20 +47,6 @@ function connectWs(url: string): Promise<WebSocket> {
     const ws = new WsClient(url);
     ws.on("open", () => resolve(ws));
     ws.on("error", reject);
-  });
-}
-
-function waitForMessage(ws: WebSocket): Promise<Record<string, unknown>> {
-  return new Promise((resolve) => {
-    const handler = (data: Buffer) => {
-      const msg = JSON.parse(Buffer.from(data).toString("utf-8")) as Record<string, unknown>;
-      if (msg.type === "CHAT_HISTORY") {
-        return;
-      }
-      ws.removeListener("message", handler);
-      resolve(msg);
-    };
-    ws.on("message", handler);
   });
 }
 
@@ -82,42 +82,6 @@ function waitForClose(ws: WebSocket): Promise<{ code: number; reason: string }> 
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** Skip CHAT_HISTORY; resolve on first STATE_UPDATE whose resolvedAction.type matches. */
-function waitForResolvedActionType(
-  ws: WebSocket,
-  actionType: string,
-): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      ws.removeListener("message", onMessage);
-      reject(new Error(`timeout waiting for resolvedAction ${actionType}`));
-    }, 15_000);
-
-    function onMessage(data: Buffer) {
-      let msg: Record<string, unknown>;
-      try {
-        msg = JSON.parse(Buffer.from(data).toString("utf-8")) as Record<string, unknown>;
-      } catch {
-        return;
-      }
-      if (msg.type === "CHAT_HISTORY") return;
-      if (msg.type === "STATE_UPDATE") {
-        const ra = msg.resolvedAction;
-        if (isPlainObject(ra) && ra.type === actionType) {
-          clearTimeout(timer);
-          ws.removeListener("message", onMessage);
-          resolve(msg);
-        }
-      }
-    }
-    ws.on("message", onMessage);
-  });
 }
 
 beforeEach(async () => {
@@ -1778,7 +1742,7 @@ describe("SET_ROOM_SETTINGS (4B.7)", () => {
     expect(mb.type).toBe("STATE_UPDATE");
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.settings.timerMode).toBe("none");
-    expect(room.turnTimerConfig.mode).toBe("none");
+    expect(room.turnTimer.config.mode).toBe("none");
 
     hostWs.close();
     bobWs.close();
@@ -1795,7 +1759,7 @@ describe("SET_ROOM_SETTINGS (4B.7)", () => {
     await up;
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.settings.turnDurationMs).toBe(25_000);
-    expect(room.turnTimerConfig.durationMs).toBe(25_000);
+    expect(room.turnTimer.config.durationMs).toBe(25_000);
     hostWs.close();
   });
 
@@ -1915,13 +1879,13 @@ describe("SET_ROOM_SETTINGS (4B.7)", () => {
     room.gameState!.gamePhase = "scoreboard";
     room.gameState!.gameResult = { winnerId: null, points: 0 };
     room.settings = { ...room.settings, timerMode: "none" };
-    room.turnTimerConfig = { mode: "none", durationMs: room.settings.turnDurationMs };
+    room.turnTimer.config = { mode: "none", durationMs: room.settings.turnDurationMs };
 
     const up = waitForResolvedActionType(hostWs, "ROOM_SETTINGS_CHANGED");
     hostWs.send(JSON.stringify({ version: 1, type: "SET_ROOM_SETTINGS", timerMode: "timed" }));
     await up;
     expect(room.settings.timerMode).toBe("timed");
-    expect(room.turnTimerConfig.mode).toBe("timed");
+    expect(room.turnTimer.config.mode).toBe("timed");
 
     for (const ws of clients) ws.close();
   });
@@ -2013,14 +1977,14 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
 
     let room = app.roomManager.getRoom(roomCode)!;
     expect(room.graceTimers.size).toBe(1);
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
 
     const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
     clients[1].close();
     const msgs = await Promise.all(secondDc);
 
     room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(true);
+    expect(room.pause.paused).toBe(true);
     expect(room.graceTimers.size).toBe(0);
 
     for (const m of msgs) {
@@ -2055,8 +2019,8 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await waitForMessage(r1);
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(false);
-    expect(room.pausedAt).toBeNull();
+    expect(room.pause.paused).toBe(false);
+    expect(room.pause.pausedAt).toBeNull();
     expect(hasLifecycleTimer(room, "pause-timeout")).toBe(false);
 
     r0.close();
@@ -2084,7 +2048,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.gameState?.gamePhase).toBe("scoreboard");
     expect(room.gameState?.gameResult).toEqual({ winnerId: null, points: 0 });
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
     expect(cleanupSpy).not.toHaveBeenCalled();
     cleanupSpy.mockRestore();
 
@@ -2109,7 +2073,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await Promise.all(thirdDc);
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(true);
+    expect(room.pause.paused).toBe(true);
     expect(room.graceTimers.size).toBe(0);
 
     clients[3].close();
@@ -2138,7 +2102,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await delay(50);
 
     const room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
     expect(room.gameState).toBeNull();
   });
 
@@ -2184,7 +2148,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await waitForMessage(r2);
     expect(gameResumedCount()).toBe(1);
 
-    expect(app.roomManager.getRoom(roomCode)!.paused).toBe(false);
+    expect(app.roomManager.getRoom(roomCode)!.pause.paused).toBe(false);
 
     broadcastSpy.mockRestore();
     r0.close();
@@ -2204,7 +2168,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await Promise.all(firstDc);
 
     const r1 = app.roomManager.getRoom(roomCode)!;
-    expect(r1.paused).toBe(false);
+    expect(r1.pause.paused).toBe(false);
     expect(r1.graceTimers.size).toBe(1);
 
     const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
@@ -2212,7 +2176,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await Promise.all(secondDc);
 
     const r2 = app.roomManager.getRoom(roomCode)!;
-    expect(r2.paused).toBe(false);
+    expect(r2.pause.paused).toBe(false);
     expect(r2.graceTimers.size).toBe(2);
 
     for (const t of r2.graceTimers.values()) {
@@ -2245,14 +2209,14 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     await waitForMessage(r1);
 
     let room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
     expect(room.graceTimers.size).toBe(0);
 
     clients[2].close();
     await delay(100);
 
     room = app.roomManager.getRoom(roomCode)!;
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
     expect(room.graceTimers.size).toBe(1);
     expect(room.graceTimers.has("player-2")).toBe(true);
 
@@ -2297,7 +2261,7 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
 
     const room = app.roomManager.getRoom(roomCode)!;
     expect(room.players.get("player-0")?.connected).toBe(true);
-    expect(room.paused).toBe(true);
+    expect(room.pause.paused).toBe(true);
 
     cancelLifecycleTimer(room, "pause-timeout");
     wsB.close();
@@ -2336,6 +2300,179 @@ describe("Story 4B.3 — simultaneous disconnect pause", () => {
     expect(msg.code).toBe("INVALID_DISPLAY_NAME");
 
     ws.close();
+    clients[2].close();
+    clients[3].close();
+  });
+});
+
+describe("Story 4B.4 / pre6b — turn timer + AFK WebSocket integration", () => {
+  const SHORT_GRACE_MS = 80;
+
+  async function setupFourPlayersPlayPhase(): Promise<{
+    roomCode: string;
+    clients: WebSocket[];
+    playerIds: string[];
+  }> {
+    const { roomCode } = await createRoom();
+    const clients: WebSocket[] = [];
+    const playerIds: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const broadcastPromises = clients.map((ws) => waitForMessage(ws));
+      const ws = await connectWs(wsUrl);
+      const msgPromise = waitForMessage(ws);
+      sendJoin(ws, roomCode, `Integ${i}`);
+      const msg = await msgPromise;
+      clients.push(ws);
+      playerIds.push((msg.state as Record<string, unknown>).myPlayerId as string);
+      await Promise.all(broadcastPromises);
+    }
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gs = createLobbyState();
+    const started = handleAction(gs, { type: "START_GAME", playerIds, seed: 42 });
+    expect(started.accepted).toBe(true);
+    gs.gamePhase = "play";
+    gs.charleston = null;
+    gs.callWindow = null;
+    gs.currentTurn = playerIds[0];
+    gs.turnPhase = "draw";
+    room.gameState = gs;
+
+    return { roomCode, clients, playerIds };
+  }
+
+  beforeEach(() => {
+    setDefaultTurnTimerConfig({ mode: "timed", durationMs: 50 });
+    setAfkVoteTimeoutMs(100);
+    setGracePeriodMs(SHORT_GRACE_MS);
+  });
+
+  afterEach(() => {
+    setDefaultTurnTimerConfig(DEFAULT_TURN_TIMER_CONFIG);
+    setAfkVoteTimeoutMs(DEFAULT_AFK_VOTE_TIMEOUT_MS);
+    setGracePeriodMs(DEFAULT_GRACE_PERIOD_MS);
+  });
+
+  it("T1: voluntary DRAW_TILE clears initial timer without incrementing consecutiveTimeouts", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    syncTurnTimer(room, room.logger);
+    expect(room.turnTimer.handle).not.toBeNull();
+
+    const drawPromises = clients.map((ws) => waitForMessage(ws));
+    clients[0].send(
+      JSON.stringify({
+        version: 1,
+        type: "ACTION",
+        action: { type: "DRAW_TILE", playerId: playerIds[0] },
+      }),
+    );
+    await Promise.all(drawPromises);
+
+    expect(room.turnTimer.consecutiveTimeouts.get(playerIds[0])).toBeUndefined();
+
+    for (const c of clients) c.close();
+  });
+
+  it("T11: current player disconnect → grace auto-discard does not increment consecutiveTimeouts", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    syncTurnTimer(room, room.logger);
+    expect(room.turnTimer.handle).not.toBeNull();
+
+    const dcBroadcasts = clients.slice(1).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(dcBroadcasts);
+
+    expect(room.turnTimer.handle).toBeNull();
+
+    const afterGrace = clients.slice(1).map((ws) => waitForMessage(ws));
+    await delay(SHORT_GRACE_MS + 50);
+    await Promise.all(afterGrace);
+
+    expect(room.turnTimer.consecutiveTimeouts.get(playerIds[0])).toBeUndefined();
+
+    for (const c of clients.slice(1)) c.close();
+  });
+
+  it("T14: call window — syncTurnTimer cancels active handle", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gs = room.gameState!;
+
+    syncTurnTimer(room, room.logger);
+    expect(room.turnTimer.handle).not.toBeNull();
+
+    const tile = gs.players[playerIds[0]].rack[0];
+    gs.turnPhase = "callWindow";
+    gs.callWindow = {
+      status: "open",
+      discardedTile: tile,
+      discarderId: playerIds[0],
+      passes: [playerIds[0]],
+      calls: [],
+      openedAt: Date.now(),
+      confirmingPlayerId: null,
+      confirmationExpiresAt: null,
+      remainingCallers: [],
+      winningCall: null,
+    };
+
+    syncTurnTimer(room, room.logger);
+    expect(room.turnTimer.handle).toBeNull();
+
+    for (const c of clients) c.close();
+  });
+
+  it("T15: resetTurnTimerStateOnGameEnd clears timer handle + consecutiveTimeouts (scoreboard path)", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    syncTurnTimer(room, room.logger);
+    room.turnTimer.consecutiveTimeouts.set(playerIds[0], 2);
+
+    resetTurnTimerStateOnGameEnd(room, room.logger);
+
+    expect(room.turnTimer.handle).toBeNull();
+    expect(room.turnTimer.consecutiveTimeouts.size).toBe(0);
+
+    for (const c of clients) c.close();
+  });
+
+  it("T13 (WS integration): simultaneous-disconnect pause cancels AFK vote + turn timer", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+    const targetId = playerIds[3];
+
+    room.votes.afk = {
+      targetPlayerId: targetId,
+      startedAt: Date.now(),
+      votes: new Map(),
+    };
+    startLifecycleTimer(room, "afk-vote-timeout", () => {});
+    syncTurnTimer(room, room.logger);
+
+    expect(room.votes.afk).not.toBeNull();
+    expect(room.turnTimer.handle).not.toBeNull();
+    expect(hasLifecycleTimer(room, "afk-vote-timeout")).toBe(true);
+
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    expect(room.pause.paused).toBe(true);
+    expect(room.votes.afk).toBeNull();
+    expect(room.turnTimer.handle).toBeNull();
+    expect(hasLifecycleTimer(room, "afk-vote-timeout")).toBe(false);
+
+    cancelLifecycleTimer(room, "pause-timeout");
     clients[2].close();
     clients[3].close();
   });

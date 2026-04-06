@@ -121,7 +121,7 @@ export function drainCharlestonForDeadSeats(
     if (room.gameState?.gamePhase !== "charleston") break;
 
     let progressed = false;
-    for (const pid of room.deadSeatPlayerIds) {
+    for (const pid of room.seatStatus.deadSeatPlayerIds) {
       if (!charlestonPlayerNeedsAutoAdvance(room, pid)) continue;
       applyCharlestonAutoAction(room, pid, logger, roomManager, "dead_seat");
       progressed = true;

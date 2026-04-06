@@ -35,8 +35,8 @@ export function migrateHost(
     if (!player) continue;
     if (currentHost && player.playerId === currentHost.playerId) continue;
     if (!player.connected) continue;
-    if (room.deadSeatPlayerIds.has(player.playerId)) continue;
-    if (room.departedPlayerIds.has(player.playerId)) continue;
+    if (room.seatStatus.deadSeatPlayerIds.has(player.playerId)) continue;
+    if (room.seatStatus.departedPlayerIds.has(player.playerId)) continue;
     if (exclude.has(player.playerId)) continue;
     candidate = player;
     break;

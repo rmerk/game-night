@@ -25,16 +25,16 @@ import {
 } from "./turn-timer";
 
 function clearSocialOverrideTimer(room: Room): void {
-  if (room.socialOverrideTimer) {
-    clearTimeout(room.socialOverrideTimer);
-    room.socialOverrideTimer = null;
+  if (room.votes.socialOverrideTimer) {
+    clearTimeout(room.votes.socialOverrideTimer);
+    room.votes.socialOverrideTimer = null;
   }
 }
 
 function clearTableTalkReportTimer(room: Room): void {
-  if (room.tableTalkReportTimer) {
-    clearTimeout(room.tableTalkReportTimer);
-    room.tableTalkReportTimer = null;
+  if (room.votes.tableTalkReportTimer) {
+    clearTimeout(room.votes.tableTalkReportTimer);
+    room.votes.tableTalkReportTimer = null;
   }
 }
 
@@ -301,17 +301,17 @@ export function handleActionMessage(
     return;
   }
 
-  if (room.paused) {
+  if (room.pause.paused) {
     sendActionError(ws, logger, "ROOM_PAUSED", "Room is paused waiting for players to reconnect");
     return;
   }
 
-  if (room.gameState && room.deadSeatPlayerIds.has(playerId)) {
+  if (room.gameState && room.seatStatus.deadSeatPlayerIds.has(playerId)) {
     sendActionError(ws, logger, "DEAD_SEAT", "Dead seat players cannot take actions");
     return;
   }
 
-  if (room.departedPlayerIds.has(playerId)) {
+  if (room.seatStatus.departedPlayerIds.has(playerId)) {
     sendActionError(ws, logger, "PLAYER_DEPARTED", "Departed players cannot take actions");
     return;
   }
@@ -346,7 +346,7 @@ export function handleActionMessage(
     );
     broadcastGameState(room, room.gameState, result.resolved);
 
-    room.consecutiveTurnTimeouts.delete(playerId);
+    room.turnTimer.consecutiveTimeouts.delete(playerId);
 
     const postActionGameState = room.gameState;
     if (
@@ -356,7 +356,7 @@ export function handleActionMessage(
     ) {
       resetTurnTimerStateOnGameEnd(room, logger);
     } else {
-      if (room.afkVoteState?.targetPlayerId === playerId) {
+      if (room.votes.afk?.targetPlayerId === playerId) {
         cancelAfkVote(room, logger, "target_active");
       }
       syncTurnTimer(room, logger, 0, roomManager);
@@ -366,8 +366,8 @@ export function handleActionMessage(
       clearSocialOverrideTimer(room);
     } else if (authenticatedAction.type === "SOCIAL_OVERRIDE_REQUEST") {
       clearSocialOverrideTimer(room);
-      room.socialOverrideTimer = setTimeout(() => {
-        room.socialOverrideTimer = null;
+      room.votes.socialOverrideTimer = setTimeout(() => {
+        room.votes.socialOverrideTimer = null;
         const gs = room.gameState;
         if (!gs?.socialOverrideState) return;
         const timeoutResult = handleSocialOverrideTimeout(gs);
@@ -386,8 +386,8 @@ export function handleActionMessage(
       clearTableTalkReportTimer(room);
     } else if (authenticatedAction.type === "TABLE_TALK_REPORT") {
       clearTableTalkReportTimer(room);
-      room.tableTalkReportTimer = setTimeout(() => {
-        room.tableTalkReportTimer = null;
+      room.votes.tableTalkReportTimer = setTimeout(() => {
+        room.votes.tableTalkReportTimer = null;
         const gs = room.gameState;
         if (!gs?.tableTalkReportState) return;
         const timeoutResult = handleTableTalkTimeout(gs);
@@ -457,10 +457,10 @@ export function handleEndSession(
   }
   const gs = room.gameState;
   mergeCompletedGameIntoSession(room, gs);
-  const sessionTotals = { ...room.sessionScoresFromPriorGames };
-  const sessionGameHistory = [...room.sessionGameHistory];
-  room.sessionScoresFromPriorGames = {};
-  room.sessionGameHistory = [];
+  const sessionTotals = { ...room.sessionHistory.scoresFromPriorGames };
+  const sessionGameHistory = [...room.sessionHistory.gameHistory];
+  room.sessionHistory.scoresFromPriorGames = {};
+  room.sessionHistory.gameHistory = [];
   room.gameState = null;
   cancelLifecycleTimer(room, "idle-timeout");
   logger.info({ roomCode: room.roomCode, playerId }, "Session ended by host");
@@ -496,7 +496,9 @@ export function handleRematch(
 
   const connectedCount = [...room.players.values()].filter((p) => p.connected).length;
   const canRematch =
-    connectedCount === 4 && room.deadSeatPlayerIds.size === 0 && room.departedPlayerIds.size === 0;
+    connectedCount === 4 &&
+    room.seatStatus.deadSeatPlayerIds.size === 0 &&
+    room.seatStatus.departedPlayerIds.size === 0;
 
   if (!canRematch) {
     // Eligible = connected AND not dead-seat AND not departed (departed may still be tracked
@@ -504,23 +506,23 @@ export function handleRematch(
     const eligible = [...room.players.values()].filter(
       (p) =>
         p.connected &&
-        !room.deadSeatPlayerIds.has(p.playerId) &&
-        !room.departedPlayerIds.has(p.playerId),
+        !room.seatStatus.deadSeatPlayerIds.has(p.playerId) &&
+        !room.seatStatus.departedPlayerIds.has(p.playerId),
     ).length;
     const missingSeats = Math.max(1, 4 - eligible);
 
     cancelTurnTimer(room, logger);
-    room.consecutiveTurnTimeouts.clear();
-    if (room.afkVoteState) {
+    room.turnTimer.consecutiveTimeouts.clear();
+    if (room.votes.afk) {
       cancelLifecycleTimer(room, "afk-vote-timeout");
-      room.afkVoteState = null;
+      room.votes.afk = null;
     }
-    room.afkVoteCooldownPlayerIds.clear();
-    room.deadSeatPlayerIds.clear();
-    room.departedPlayerIds.clear();
-    if (room.departureVoteState) {
+    room.turnTimer.afkVoteCooldownPlayerIds.clear();
+    room.seatStatus.deadSeatPlayerIds.clear();
+    room.seatStatus.departedPlayerIds.clear();
+    if (room.votes.departure) {
       cancelLifecycleTimer(room, "departure-vote-timeout");
-      room.departureVoteState = null;
+      room.votes.departure = null;
     }
     clearSocialOverrideTimer(room);
     clearTableTalkReportTimer(room);
@@ -603,17 +605,17 @@ function handleStartGameAction(
   if (result.accepted) {
     logger.info({ roomCode: room.roomCode, playerId }, "Game started");
     cancelTurnTimer(room, logger);
-    room.consecutiveTurnTimeouts.clear();
-    if (room.afkVoteState) {
+    room.turnTimer.consecutiveTimeouts.clear();
+    if (room.votes.afk) {
       cancelLifecycleTimer(room, "afk-vote-timeout");
-      room.afkVoteState = null;
+      room.votes.afk = null;
     }
-    room.afkVoteCooldownPlayerIds.clear();
-    room.deadSeatPlayerIds.clear();
-    room.departedPlayerIds.clear();
-    if (room.departureVoteState) {
+    room.turnTimer.afkVoteCooldownPlayerIds.clear();
+    room.seatStatus.deadSeatPlayerIds.clear();
+    room.seatStatus.departedPlayerIds.clear();
+    if (room.votes.departure) {
       cancelLifecycleTimer(room, "departure-vote-timeout");
-      room.departureVoteState = null;
+      room.votes.departure = null;
     }
     broadcastGameState(room, room.gameState, result.resolved);
     syncTurnTimer(room, logger, 0, roomManager);

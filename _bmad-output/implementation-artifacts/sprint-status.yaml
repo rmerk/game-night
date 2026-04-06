@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-06 # 5B.7 → done
+# last_updated: 2026-04-06 # 5B retro → done
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # 5B.7 → done
+last_updated: 2026-04-06 # pre6b-debt-cleanup → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -146,7 +146,7 @@ development_status:
   epic-4b-retrospective: done
 
   # Epic 5B: Remaining UI
-  epic-5b: in-progress
+  epic-5b: done
   5b-1-nmjl-card-panel-slideinpanel-full-screen-overlay: done
   5b-2-hand-guidance-engine-card-highlighting: done
   5b-3-wall-counter-states-tension-styling: done
@@ -154,7 +154,10 @@ development_status:
   5b-5-show-hands-post-game-social: done
   5b-6-settings-panel-dealing-style-options: done
   5b-7-recent-activity-indicator-ticker: done
-  epic-5b-retrospective: optional
+  epic-5b-retrospective: done
+
+  # Pre-6B Debt Cleanup (retro follow-through gate)
+  pre6b-debt-cleanup: done
 
   # Epic 6B: Voice & Video (WebRTC) — CUT LINE
   epic-6b: backlog
@@ -236,8 +239,15 @@ retro_follow_through:
     4b-retro-1-consolidate-toast-pattern: done
     # MEDIUM: Extract concern-specific sub-objects from Room type (TurnTimerState, VoteState, SeatStatus)
     # to reduce 20+ top-level fields. Create createTestRoom(overrides) builder. Parallel with early 5B.
-    4b-retro-2-room-type-extraction: pending
+    4b-retro-2-room-type-extraction: done # pre6b-debt-cleanup Part A
     # LOW: Fill 4B.4 deferred integration test gaps (Tasks 10.2, 10.4, 10.6).
-    4b-retro-3-fill-4b4-integration-test-gaps: pending
+    4b-retro-3-fill-4b4-integration-test-gaps: done # pre6b-debt-cleanup Part B
     # LOW: Tokenless reconnect during pause known gap (4B.3 T11). Defer unless real issue surfaces.
     4b-retro-4-tokenless-reconnect-during-pause: pending
+  epic-5b:
+    # Process: one commit per story, File List audit as code review gate — starting 6B
+    5b-retro-1-one-commit-per-story: pending
+    5b-retro-2-file-list-audit-in-code-review: done # applied in pre6b-debt-cleanup code review
+    # Debt cleanup before 6B (carried from 4B retro, now 2 epics old)
+    5b-retro-3-room-type-extraction: done # pre6b-debt-cleanup Part A
+    5b-retro-4-fill-4b4-integration-test-gaps: done # pre6b-debt-cleanup Part B

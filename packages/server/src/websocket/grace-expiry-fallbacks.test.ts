@@ -6,9 +6,10 @@ import {
   type GameState,
   type SeatWind,
 } from "@mahjong-game/shared";
-import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
+import type { Room, PlayerInfo } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { createTestState, getPlayerBySeat } from "../../../shared/src/testing/helpers";
+import { createTestRoomWithSessions } from "../testing";
 import { applyGraceExpiryGameActions } from "./grace-expiry-fallbacks";
 
 function createMockLogger(): FastifyBaseLogger {
@@ -41,54 +42,11 @@ function createMockWs(): WebSocket {
 
 function createTestRoom(players: PlayerInfo[], gameState: GameState | null): Room {
   const wsList = players.map(() => createMockWs());
-  const room: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
+  return createTestRoomWithSessions(players, wsList, {
     gameState,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
     logger: createMockLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    room.players.set(player.playerId, player);
-    const session: PlayerSession = {
-      player,
-      roomCode: room.roomCode,
-      ws: wsList[i],
-    };
-    room.sessions.set(player.playerId, session);
-  }
-
-  return room;
+  });
 }
 
 function playStateAtDiscard(seed = 42): { state: GameState; discarderId: string; tileId: string } {
@@ -222,11 +180,11 @@ describe("applyGraceExpiryGameActions", () => {
       createTestPlayer("p4", "north"),
     ];
     const room = createTestRoom(players, state);
-    room.consecutiveTurnTimeouts.set(discarderId, 7);
+    room.turnTimer.consecutiveTimeouts.set(discarderId, 7);
 
     applyGraceExpiryGameActions(room, discarderId, room.logger);
 
-    expect(room.consecutiveTurnTimeouts.get(discarderId)).toBe(7);
+    expect(room.turnTimer.consecutiveTimeouts.get(discarderId)).toBe(7);
   });
 
   it("early-returns when room is paused (AC4)", () => {
@@ -239,7 +197,7 @@ describe("applyGraceExpiryGameActions", () => {
       createTestPlayer("p4", "north"),
     ];
     const room = createTestRoom(players, state);
-    room.paused = true;
+    room.pause.paused = true;
 
     applyGraceExpiryGameActions(room, discarderId, room.logger);
 

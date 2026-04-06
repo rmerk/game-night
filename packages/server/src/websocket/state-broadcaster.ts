@@ -184,8 +184,8 @@ export function buildPlayerView(
     turnPhase: gameState.turnPhase,
     callWindow: gameState.callWindow,
     scores: gameState.scores,
-    sessionScoresFromPriorGames: { ...room.sessionScoresFromPriorGames },
-    sessionGameHistory: [...room.sessionGameHistory],
+    sessionScoresFromPriorGames: { ...room.sessionHistory.scoresFromPriorGames },
+    sessionGameHistory: [...room.sessionHistory.gameHistory],
     lastDiscard: gameState.lastDiscard,
     gameResult: gameState.gameResult,
     pendingMahjong: gameState.pendingMahjong,
@@ -198,14 +198,14 @@ export function buildPlayerView(
     jokerRulesMode: room.settings.jokerRulesMode,
     settings: { ...room.settings } satisfies RoomSettings,
     myDeadHand: playerState?.deadHand ?? false,
-    paused: room.paused,
-    ...(room.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
-    deadSeatPlayerIds: Array.from(room.deadSeatPlayerIds),
-    departureVoteState: room.departureVoteState
+    paused: room.pause.paused,
+    ...(room.pause.paused ? { pauseReason: "simultaneous-disconnect" as const } : {}),
+    deadSeatPlayerIds: Array.from(room.seatStatus.deadSeatPlayerIds),
+    departureVoteState: room.votes.departure
       ? {
-          targetPlayerId: room.departureVoteState.targetPlayerId,
-          targetPlayerName: room.departureVoteState.targetPlayerName,
-          expiresAt: room.departureVoteState.expiresAt,
+          targetPlayerId: room.votes.departure.targetPlayerId,
+          targetPlayerName: room.votes.departure.targetPlayerName,
+          expiresAt: room.votes.departure.expiresAt,
         }
       : null,
     ...(room.players.get(playerId)?.isHost ? { hostAuditLog: [...gameState.hostAuditLog] } : {}),

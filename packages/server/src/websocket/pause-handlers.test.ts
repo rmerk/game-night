@@ -1,9 +1,16 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { WebSocket } from "ws";
 import { DEFAULT_ROOM_SETTINGS, handleAction, type GameState } from "@mahjong-game/shared";
-import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
+import type { Room, PlayerInfo } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { createTestState, getPlayerBySeat } from "../../../shared/src/testing/helpers";
+import { createTestRoomWithSessions } from "../testing";
+import {
+  startLifecycleTimer,
+  hasLifecycleTimer,
+  cancelLifecycleTimer,
+} from "../rooms/room-lifecycle";
+import { cancelTurnTimer, cancelAfkVote, syncTurnTimer } from "./turn-timer";
 import { handlePauseTimeout, releaseSeat } from "./pause-handlers";
 import * as stateBroadcaster from "./state-broadcaster";
 
@@ -37,54 +44,12 @@ function createTestPlayer(id: string, wind: PlayerInfo["wind"], connected: boole
 
 function createTestRoom(players: PlayerInfo[], gameState: GameState | null, paused: boolean): Room {
   const wsList = players.map(() => createMockWs());
-  const room: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
+  return createTestRoomWithSessions(players, wsList, {
     gameState,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused,
-    pausedAt: paused ? Date.now() : null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
+    pause: { paused, pausedAt: paused ? Date.now() : null },
     logger: createMockLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    room.players.set(player.playerId, player);
-    const session: PlayerSession = {
-      player,
-      roomCode: room.roomCode,
-      ws: wsList[i],
-    };
-    room.sessions.set(player.playerId, session);
-  }
-
-  return room;
+  });
 }
 
 describe("releaseSeat", () => {
@@ -129,7 +94,7 @@ describe("handlePauseTimeout", () => {
 
     expect(gs.gamePhase).toBe("scoreboard");
     expect(gs.gameResult).toEqual({ winnerId: null, points: 0 });
-    expect(room.paused).toBe(false);
+    expect(room.pause.paused).toBe(false);
     expect(room.players.has("p2")).toBe(false);
     expect(room.players.has("p3")).toBe(false);
     expect(broadcastSpy).toHaveBeenCalledWith(
@@ -242,5 +207,42 @@ describe("handlePauseTimeout", () => {
 
     expect(broadcastSpy).not.toHaveBeenCalled();
     broadcastSpy.mockRestore();
+  });
+});
+
+describe("4B.4 T13 (unit) — pause path clears turn timer + AFK vote (pre6b)", () => {
+  it("T13 (unit): cancelTurnTimer + cancelAfkVote clears handles (mirrors simultaneous-disconnect pause cleanup)", () => {
+    const gs = createTestState(undefined, 42);
+    const east = getPlayerBySeat(gs, "east");
+    if (gs.turnPhase === "draw") {
+      handleAction(gs, { type: "DRAW_TILE", playerId: east });
+    }
+    expect(gs.gamePhase).toBe("play");
+
+    const players = [
+      createTestPlayer("p1", "east", true),
+      createTestPlayer("p2", "south", true),
+      createTestPlayer("p3", "west", true),
+      createTestPlayer("p4", "north", true),
+    ];
+    const room = createTestRoom(players, gs, false);
+
+    room.votes.afk = {
+      targetPlayerId: "p1",
+      startedAt: Date.now(),
+      votes: new Map(),
+    };
+    startLifecycleTimer(room, "afk-vote-timeout", () => {});
+    syncTurnTimer(room, room.logger);
+    cancelTurnTimer(room, room.logger);
+    cancelAfkVote(room, room.logger, "pause");
+
+    expect(room.turnTimer.handle).toBeNull();
+    expect(room.votes.afk).toBeNull();
+    expect(hasLifecycleTimer(room, "afk-vote-timeout")).toBe(false);
+
+    for (const t of room.lifecycleTimers.values()) clearTimeout(t);
+    room.lifecycleTimers.clear();
+    cancelLifecycleTimer(room, "afk-vote-timeout");
   });
 });

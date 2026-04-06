@@ -16,7 +16,7 @@ export function handlePauseTimeout(
   roomManager: RoomManager | undefined,
   logger: FastifyBaseLogger,
 ): void {
-  if (!room.paused) {
+  if (!room.pause.paused) {
     return;
   }
 
@@ -26,8 +26,8 @@ export function handlePauseTimeout(
     gs.gameResult = { winnerId: null, points: 0 };
   }
 
-  room.paused = false;
-  room.pausedAt = null;
+  room.pause.paused = false;
+  room.pause.pausedAt = null;
 
   const toRelease = [...room.players.values()].filter((p) => !p.connected).map((p) => p.playerId);
   for (const pid of toRelease) {

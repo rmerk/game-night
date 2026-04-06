@@ -267,8 +267,8 @@ describe("handleRematch (4B.7)", () => {
     expect(room.settings.timerMode).toBe("timed");
     expect(room.settings.turnDurationMs).toBe(20_000);
     expect(room.jokerRulesMode).toBe(room.settings.jokerRulesMode);
-    expect(room.turnTimerConfig.mode).toBe(room.settings.timerMode);
-    expect(room.turnTimerConfig.durationMs).toBe(room.settings.turnDurationMs);
+    expect(room.turnTimer.config.mode).toBe(room.settings.timerMode);
+    expect(room.turnTimer.config.durationMs).toBe(room.settings.turnDurationMs);
 
     const status = app.roomManager.getRoomStatus(roomCode);
     expect(status?.phase).toBe("lobby");
@@ -287,7 +287,7 @@ describe("handleRematch (4B.7)", () => {
 
     room.gameState!.gamePhase = "scoreboard";
     room.gameState!.gameResult = { winnerId: null, points: 0 };
-    room.deadSeatPlayerIds.add(players[3].playerId);
+    room.seatStatus.deadSeatPlayerIds.add(players[3].playerId);
 
     const wait = waitForResolvedAction(hostWs, "REMATCH_WAITING_FOR_PLAYERS");
     sendRematch(hostWs);
@@ -377,8 +377,8 @@ describe("handleEndSession (5B.4)", () => {
     expect(hist[0]?.gameNumber).toBe(1);
 
     expect(room.gameState).toBeNull();
-    expect(room.sessionScoresFromPriorGames).toEqual({});
-    expect(room.sessionGameHistory).toEqual([]);
+    expect(room.sessionHistory.scoresFromPriorGames).toEqual({});
+    expect(room.sessionHistory.gameHistory).toEqual([]);
 
     const status = app.roomManager.getRoomStatus(roomCode);
     expect(status?.phase).toBe("lobby");

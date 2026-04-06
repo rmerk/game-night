@@ -136,17 +136,17 @@ export function applyRoomSettingsUpdate(
 
   if (previous.timerMode === "timed" && next.timerMode === "none") {
     cancelTurnTimer(room, logger);
-    room.consecutiveTurnTimeouts.clear();
-    room.afkVoteCooldownPlayerIds.clear();
-    if (room.afkVoteState !== null) {
+    room.turnTimer.consecutiveTimeouts.clear();
+    room.turnTimer.afkVoteCooldownPlayerIds.clear();
+    if (room.votes.afk !== null) {
       cancelLifecycleTimer(room, "afk-vote-timeout");
-      room.afkVoteState = null;
+      room.votes.afk = null;
     }
   }
 
   room.settings = next;
   room.jokerRulesMode = next.jokerRulesMode;
-  room.turnTimerConfig = { mode: next.timerMode, durationMs: next.turnDurationMs };
+  room.turnTimer.config = { mode: next.timerMode, durationMs: next.turnDurationMs };
 
   return { ok: true, previous, next, changedKeys };
 }

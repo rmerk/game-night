@@ -3,47 +3,17 @@ import { createLobbyState, DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { Room } from "./room";
 import { applyRoomSettingsUpdate, isBetweenGames } from "./room-settings";
 import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoom, type CreateTestRoomOverrides } from "../testing";
 
-function minimalRoom(overrides: Partial<Room> = {}): Room {
-  const base: Room = {
+function minimalRoom(overrides: CreateTestRoomOverrides = {}): Room {
+  return createTestRoom({
     roomId: "r",
     roomCode: "TEST",
     hostToken: "h",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
-    settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: DEFAULT_ROOM_SETTINGS.jokerRulesMode,
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: {
-      mode: DEFAULT_ROOM_SETTINGS.timerMode,
-      durationMs: DEFAULT_ROOM_SETTINGS.turnDurationMs,
-    },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
     createdAt: 0,
-    logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-  return { ...base, ...overrides };
+    settings: { ...DEFAULT_ROOM_SETTINGS },
+    ...overrides,
+  });
 }
 
 describe("isBetweenGames", () => {
@@ -92,7 +62,7 @@ describe("applyRoomSettingsUpdate", () => {
     expect(r.ok).toBe(true);
     if (r.ok === true) {
       expect(room.settings.turnDurationMs).toBe(25_000);
-      expect(room.turnTimerConfig.durationMs).toBe(25_000);
+      expect(room.turnTimer.config.durationMs).toBe(25_000);
       expect(room.jokerRulesMode).toBe(room.settings.jokerRulesMode);
     }
   });
@@ -103,16 +73,18 @@ describe("applyRoomSettingsUpdate", () => {
     gs.gamePhase = "play";
     const room = minimalRoom({
       gameState: gs,
-      afkVoteState: {
-        targetPlayerId: "p1",
-        startedAt: 0,
-        votes: new Map(),
+      votes: {
+        afk: {
+          targetPlayerId: "p1",
+          startedAt: 0,
+          votes: new Map(),
+        },
       },
     });
     const logger = createSilentTestLogger();
     const r = applyRoomSettingsUpdate(room, { timerMode: "none" }, logger);
     expect(r.ok).toBe(true);
-    expect(room.afkVoteState).toBeNull();
+    expect(room.votes.afk).toBeNull();
     expect(room.settings.timerMode).toBe("none");
   });
 });

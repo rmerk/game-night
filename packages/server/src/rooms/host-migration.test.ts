@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { DEFAULT_ROOM_SETTINGS, type SeatWind } from "@mahjong-game/shared";
 import { migrateHost } from "./host-migration";
 import type { PlayerInfo, Room } from "./room";
-import { createSilentTestLogger } from "../testing/silent-logger";
+import { createSilentTestLogger, createTestRoom, type CreateTestRoomOverrides } from "../testing";
 
 function player(
   id: string,
@@ -20,43 +20,8 @@ function player(
   };
 }
 
-function createMockRoom(overrides?: Partial<Room>): Room {
-  const base: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
-    settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
-    logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-  return { ...base, ...overrides };
+function createMockRoom(overrides?: CreateTestRoomOverrides): Room {
+  return createTestRoom(overrides);
 }
 
 describe("migrateHost", () => {
@@ -98,8 +63,10 @@ describe("migrateHost", () => {
         [w.playerId, w],
         [n.playerId, n],
       ]),
-      deadSeatPlayerIds: new Set(["s"]),
-      departedPlayerIds: new Set(["w"]),
+      seatStatus: {
+        deadSeatPlayerIds: new Set(["s"]),
+        departedPlayerIds: new Set(["w"]),
+      },
     });
     const result = migrateHost(room, createSilentTestLogger());
     expect(result.newHostId).toBe("n");

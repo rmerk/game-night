@@ -7,8 +7,9 @@ import {
   type GameState,
   type SeatWind,
 } from "@mahjong-game/shared";
-import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
+import type { PlayerInfo, Room } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
+import { createTestRoomWithSessions, createTestPlayer } from "../testing";
 import { buildPlayerView, buildSpectatorView, broadcastGameState } from "./state-broadcaster";
 
 /** Extract the mock send function from a mock WebSocket */
@@ -33,17 +34,6 @@ function createMockLogger(): FastifyBaseLogger {
   } as unknown as FastifyBaseLogger;
 }
 
-function createTestPlayer(id: string, wind: SeatWind, isHost = false): PlayerInfo {
-  return {
-    playerId: id,
-    displayName: `Player ${id}`,
-    wind,
-    isHost,
-    connected: true,
-    connectedAt: Date.now(),
-  };
-}
-
 function createMockWs(readyState: number = WebSocket.OPEN): WebSocket {
   return {
     readyState,
@@ -51,55 +41,8 @@ function createMockWs(readyState: number = WebSocket.OPEN): WebSocket {
   } as unknown as WebSocket;
 }
 
-function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]): Room {
-  const room: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
-    settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
-    logger: createMockLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    room.players.set(player.playerId, player);
-    const session: PlayerSession = {
-      player,
-      roomCode: room.roomCode,
-      ws: wsList[i],
-    };
-    room.sessions.set(player.playerId, session);
-  }
-
-  return room;
+function createTestRoom(players: PlayerInfo[], wsList: WebSocket[]) {
+  return createTestRoomWithSessions(players, wsList, { logger: createMockLogger() });
 }
 
 function createTestGameState(): GameState {
@@ -302,7 +245,7 @@ describe("buildPlayerView", () => {
         },
       },
     };
-    room.deadSeatPlayerIds.add("player-0");
+    room.seatStatus.deadSeatPlayerIds.add("player-0");
 
     const view = buildPlayerView(room, gameState, "player-1");
 
@@ -673,8 +616,8 @@ describe("buildPlayerView", () => {
     ];
     const wsList = [createMockWs(), createMockWs()];
     const room = createTestRoom(players, wsList);
-    room.paused = true;
-    room.pausedAt = Date.now();
+    room.pause.paused = true;
+    room.pause.pausedAt = Date.now();
     const gameState = createTestGameState();
 
     const view = buildPlayerView(room, gameState, "player-0");

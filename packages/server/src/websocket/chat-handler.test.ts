@@ -8,8 +8,8 @@ import {
   CHAT_RATE_LIMIT_WINDOW_MS,
   REACTION_RATE_LIMIT_WINDOW_MS,
 } from "@mahjong-game/shared";
-import type { Room, PlayerInfo, PlayerSession } from "../rooms/room";
-import { createSilentTestLogger } from "../testing/silent-logger";
+import type { Room, PlayerInfo } from "../rooms/room";
+import { createSilentTestLogger, createTestRoomWithSessions } from "../testing";
 import { handleChatReactMessage, sanitizeChatText } from "./chat-handler";
 import type { ParsedMessage } from "./message-handler";
 
@@ -43,51 +43,13 @@ function createRoomWithSessions(
   players: PlayerInfo[],
   sockets: (WebSocket & { sent: string[] })[],
 ): Room {
-  const room: Room = {
+  return createTestRoomWithSessions(players, sockets, {
     roomId: "room-1",
     roomCode: "TEST01",
     hostToken: "ht",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "timed", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
     logger: createMockLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-
-  for (let i = 0; i < players.length; i++) {
-    const p = players[i];
-    const ws = sockets[i];
-    room.players.set(p.playerId, p);
-    const session: PlayerSession = { player: p, roomCode: room.roomCode, ws };
-    room.sessions.set(p.playerId, session);
-  }
-
-  return room;
+  });
 }
 
 describe("sanitizeChatText", () => {
@@ -381,7 +343,7 @@ describe("handleChatReactMessage", () => {
     );
     expect(ws.sent).toHaveLength(10);
 
-    room.chatRateTimestamps.delete("a");
+    room.rateLimits.chatRateTimestamps.delete("a");
     handleChatReactMessage(
       room,
       "a",

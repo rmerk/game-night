@@ -4,6 +4,7 @@ import { createGame, DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { GameState } from "@mahjong-game/shared";
 import type { Room, PlayerInfo } from "../rooms/room";
 import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoomWithSessions } from "../testing";
 import * as stateBroadcaster from "./state-broadcaster";
 import {
   applyCharlestonAutoAction,
@@ -28,51 +29,12 @@ function createTestPlayer(id: string, wind: "east" | "south" | "west" | "north")
 
 function createTestRoom(players: PlayerInfo[], gameState: GameState): Room {
   const wsList = players.map(() => createMockWs());
-  const room: Room = {
-    roomId: "test-room-id",
-    roomCode: "TEST01",
-    hostToken: "host-token",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
+  return createTestRoomWithSessions(players, wsList, {
     gameState,
     settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "none", durationMs: 20_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
-    createdAt: Date.now(),
+    turnTimer: { config: { mode: "none", durationMs: 20_000 } },
     logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    room.players.set(player.playerId, player);
-    room.sessions.set(player.playerId, {
-      player,
-      roomCode: room.roomCode,
-      ws: wsList[i],
-    });
-  }
-  return room;
+  });
 }
 
 describe("charleston-auto-action (Story 4B.5 dead seat)", () => {
@@ -105,7 +67,7 @@ describe("charleston-auto-action (Story 4B.5 dead seat)", () => {
       createTestPlayer("p4", "north"),
     ];
     const room = createTestRoom(players, gs);
-    room.deadSeatPlayerIds.add("p1");
+    room.seatStatus.deadSeatPlayerIds.add("p1");
     applyCharlestonAutoAction(room, "p1", room.logger, undefined, "dead_seat");
     expect(gs.charleston?.submittedPlayerIds).toContain("p1");
   });
@@ -119,8 +81,8 @@ describe("charleston-auto-action (Story 4B.5 dead seat)", () => {
       createTestPlayer("p4", "north"),
     ];
     const room = createTestRoom(players, gs);
-    room.deadSeatPlayerIds.add("p1");
-    room.deadSeatPlayerIds.add("p2");
+    room.seatStatus.deadSeatPlayerIds.add("p1");
+    room.seatStatus.deadSeatPlayerIds.add("p2");
     drainCharlestonForDeadSeats(room, room.logger, undefined);
     expect(gs.charleston?.submittedPlayerIds).toContain("p1");
     expect(gs.charleston?.submittedPlayerIds).toContain("p2");

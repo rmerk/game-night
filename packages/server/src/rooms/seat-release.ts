@@ -12,6 +12,6 @@ export function releaseSeat(room: Room, playerId: string): void {
   }
   room.players.delete(playerId);
   room.sessions.delete(playerId);
-  room.chatRateTimestamps.delete(playerId);
-  room.reactionRateTimestamps.delete(playerId);
+  room.rateLimits.chatRateTimestamps.delete(playerId);
+  room.rateLimits.reactionRateTimestamps.delete(playerId);
 }

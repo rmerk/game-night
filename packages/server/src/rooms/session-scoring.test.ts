@@ -2,44 +2,17 @@ import { describe, expect, it } from "vite-plus/test";
 import { createGame, DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { Room } from "./room";
 import { mergeCompletedGameIntoSession, rotateDealerPlayerIdsForRematch } from "./session-scoring";
-import { createSilentTestLogger } from "../testing/silent-logger";
+import { createTestRoom } from "../testing";
 
 function minimalRoom(): Room {
-  return {
+  return createTestRoom({
     roomId: "r",
     roomCode: "T",
     hostToken: "h",
-    players: new Map(),
-    sessions: new Map(),
-    tokenMap: new Map(),
-    playerTokens: new Map(),
-    graceTimers: new Map(),
-    lifecycleTimers: new Map(),
-    socialOverrideTimer: null,
-    tableTalkReportTimer: null,
-    gameState: null,
-    settings: { ...DEFAULT_ROOM_SETTINGS },
-    jokerRulesMode: "standard",
-    chatHistory: [],
-    chatRateTimestamps: new Map(),
-    reactionRateTimestamps: new Map(),
-    paused: false,
-    pausedAt: null,
-    turnTimerConfig: { mode: "none", durationMs: 25_000 },
-    turnTimerHandle: null,
-    turnTimerStage: null,
-    turnTimerPlayerId: null,
-    consecutiveTurnTimeouts: new Map(),
-    afkVoteState: null,
-    afkVoteCooldownPlayerIds: new Set(),
-    deadSeatPlayerIds: new Set(),
-    departedPlayerIds: new Set(),
-    departureVoteState: null,
     createdAt: 0,
-    logger: createSilentTestLogger(),
-    sessionScoresFromPriorGames: {},
-    sessionGameHistory: [],
-  };
+    settings: { ...DEFAULT_ROOM_SETTINGS },
+    turnTimer: { config: { mode: "none", durationMs: 25_000 } },
+  });
 }
 
 describe("rotateDealerPlayerIdsForRematch", () => {
@@ -60,8 +33,8 @@ describe("mergeCompletedGameIntoSession", () => {
 
     mergeCompletedGameIntoSession(room, gs);
 
-    expect(room.sessionScoresFromPriorGames.pa).toBe(10);
-    expect(room.sessionGameHistory).toHaveLength(1);
-    expect(room.sessionGameHistory[0]?.gameNumber).toBe(1);
+    expect(room.sessionHistory.scoresFromPriorGames.pa).toBe(10);
+    expect(room.sessionHistory.gameHistory).toHaveLength(1);
+    expect(room.sessionHistory.gameHistory[0]?.gameNumber).toBe(1);
   });
 });

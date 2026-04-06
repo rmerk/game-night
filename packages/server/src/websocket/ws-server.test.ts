@@ -4,6 +4,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket, type RawData } from "ws";
 import { createApp } from "../index";
 import type { FastifyInstance } from "fastify";
+import { createLobbyState, handleAction } from "@mahjong-game/shared";
+import {
+  setAfkVoteTimeoutMs,
+  DEFAULT_AFK_VOTE_TIMEOUT_MS,
+  startLifecycleTimer,
+  cancelLifecycleTimer,
+  hasLifecycleTimer,
+} from "../rooms/room-lifecycle";
+import {
+  setDefaultTurnTimerConfig,
+  DEFAULT_TURN_TIMER_CONFIG,
+  cancelTurnTimer,
+} from "./turn-timer";
+import {
+  waitForJsonMessageSkipChatHistory as waitForParsedMessage,
+  waitForStateUpdateResolvedAction,
+} from "../testing/ws-integration-messages";
 
 function wsDataToString(data: RawData): string {
   if (Buffer.isBuffer(data)) return data.toString("utf-8");
@@ -33,20 +50,6 @@ function waitForMessage(client: WebSocket): Promise<string> {
     client.once("message", (data: RawData) => {
       resolve(wsDataToString(data));
     });
-  });
-}
-
-function waitForParsedMessage(client: WebSocket): Promise<Record<string, unknown>> {
-  return new Promise((resolve) => {
-    const handler = (data: RawData) => {
-      const msg = JSON.parse(wsDataToString(data)) as Record<string, unknown>;
-      if (msg.type === "CHAT_HISTORY") {
-        return;
-      }
-      client.removeListener("message", handler);
-      resolve(msg);
-    };
-    client.on("message", handler);
   });
 }
 
@@ -454,5 +457,181 @@ describe("WebSocket Heartbeat", () => {
 
     await closePromise;
     expect(client.readyState).toBe(WebSocket.CLOSED);
+  });
+});
+
+describe("AFK_VOTE_CAST WebSocket dispatch (4B.4 T5 / T6 / T8)", () => {
+  beforeEach(async () => {
+    setDefaultTurnTimerConfig({ mode: "timed", durationMs: 50 });
+    setAfkVoteTimeoutMs(100);
+    await startServer();
+  });
+
+  afterEach(async () => {
+    for (const code of app.roomManager.getActiveRoomCodes()) {
+      const r = app.roomManager.getRoom(code);
+      if (r) cancelLifecycleTimer(r, "afk-vote-timeout");
+    }
+    setDefaultTurnTimerConfig(DEFAULT_TURN_TIMER_CONFIG);
+    setAfkVoteTimeoutMs(DEFAULT_AFK_VOTE_TIMEOUT_MS);
+    await app.close();
+  });
+
+  async function joinFourInRoom(
+    roomCode: string,
+  ): Promise<Array<{ ws: WebSocket; playerId: string }>> {
+    const players: Array<{ ws: WebSocket; playerId: string }> = [];
+    for (const name of ["A", "B", "C", "D"]) {
+      const ws = await connectClient();
+      const broadcastPromises = players.map((p) => waitForParsedMessage(p.ws));
+      const joinPromise = waitForParsedMessage(ws);
+      ws.send(JSON.stringify({ version: 1, type: "JOIN_ROOM", roomCode, displayName: name }));
+      const msg = await joinPromise;
+      players.push({
+        ws,
+        playerId: (msg.state as Record<string, unknown>).myPlayerId as string,
+      });
+      await Promise.all(broadcastPromises);
+    }
+    return players;
+  }
+
+  async function setupPlayWithAfkVote(): Promise<{
+    roomCode: string;
+    players: Array<{ ws: WebSocket; playerId: string }>;
+    targetId: string;
+  }> {
+    const roomRes = await app.inject({
+      method: "POST",
+      url: "/api/rooms",
+      payload: { hostName: "Host" },
+    });
+    const { roomCode } = roomRes.json();
+    const players = await joinFourInRoom(roomCode);
+
+    const startPromises = players.map((p) => waitForParsedMessage(p.ws));
+    players[0].ws.send(
+      JSON.stringify({ version: 1, type: "ACTION", action: { type: "START_GAME" } }),
+    );
+    await Promise.all(startPromises);
+
+    const room = app.roomManager.getRoom(roomCode)!;
+    const gs = createLobbyState();
+    const playerIds = players.map((p) => p.playerId);
+    const started = handleAction(gs, { type: "START_GAME", playerIds, seed: 42 });
+    expect(started.accepted).toBe(true);
+    gs.gamePhase = "play";
+    gs.charleston = null;
+    gs.callWindow = null;
+    gs.currentTurn = playerIds[0];
+    gs.turnPhase = "draw";
+    room.gameState = gs;
+
+    const targetId = playerIds[0];
+    room.votes.afk = {
+      targetPlayerId: targetId,
+      startedAt: Date.now(),
+      votes: new Map(),
+    };
+    startLifecycleTimer(room, "afk-vote-timeout", () => {});
+    // Avoid racing turn-timer nudges (50ms) with AFK_VOTE_CAST assertions
+    cancelTurnTimer(room, room.logger);
+
+    return { roomCode, players, targetId };
+  }
+
+  it("T5: two AFK_VOTE_CAST approve messages → dead seat + vote cleared", async () => {
+    const { players, targetId, roomCode } = await setupPlayWithAfkVote();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    const v1 = waitForStateUpdateResolvedAction(players[1].ws, "AFK_VOTE_CAST", {
+      predicate: (ra) => (ra as { voterId?: string }).voterId === players[1].playerId,
+    });
+    players[1].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "AFK_VOTE_CAST",
+        targetPlayerId: targetId,
+        vote: "approve",
+      }),
+    );
+    await v1;
+    expect(room.votes.afk?.votes.size).toBe(1);
+
+    const v2 = waitForStateUpdateResolvedAction(players[2].ws, "AFK_VOTE_CAST", {
+      predicate: (ra) => (ra as { voterId?: string }).voterId === players[2].playerId,
+    });
+    players[2].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "AFK_VOTE_CAST",
+        targetPlayerId: targetId,
+        vote: "approve",
+      }),
+    );
+    await v2;
+
+    expect(room.votes.afk).toBeNull();
+    expect(room.seatStatus.deadSeatPlayerIds.has(targetId)).toBe(true);
+    expect(hasLifecycleTimer(room, "afk-vote-timeout")).toBe(false);
+
+    for (const p of players) await closeClient(p.ws);
+  });
+
+  it("T6: two AFK_VOTE_CAST deny messages → cooldown, no dead seat", async () => {
+    const { players, targetId, roomCode } = await setupPlayWithAfkVote();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    const v1 = waitForStateUpdateResolvedAction(players[1].ws, "AFK_VOTE_CAST", {
+      predicate: (ra) => (ra as { voterId?: string }).voterId === players[1].playerId,
+    });
+    players[1].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "AFK_VOTE_CAST",
+        targetPlayerId: targetId,
+        vote: "deny",
+      }),
+    );
+    await v1;
+
+    const v2 = waitForStateUpdateResolvedAction(players[2].ws, "AFK_VOTE_CAST", {
+      predicate: (ra) => (ra as { voterId?: string }).voterId === players[2].playerId,
+    });
+    players[2].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "AFK_VOTE_CAST",
+        targetPlayerId: targetId,
+        vote: "deny",
+      }),
+    );
+    await v2;
+
+    expect(room.turnTimer.afkVoteCooldownPlayerIds.has(targetId)).toBe(true);
+    expect(room.seatStatus.deadSeatPlayerIds.has(targetId)).toBe(false);
+    expect(room.votes.afk).toBeNull();
+
+    for (const p of players) await closeClient(p.ws);
+  });
+
+  it("T8: target voluntary DRAW_TILE cancels AFK vote without cooldown", async () => {
+    const { players, targetId, roomCode } = await setupPlayWithAfkVote();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    const drawPromise = waitForParsedMessage(players[0].ws);
+    players[0].ws.send(
+      JSON.stringify({
+        version: 1,
+        type: "ACTION",
+        action: { type: "DRAW_TILE", playerId: targetId },
+      }),
+    );
+    await drawPromise;
+
+    expect(room.votes.afk).toBeNull();
+    expect(room.turnTimer.afkVoteCooldownPlayerIds.has(targetId)).toBe(false);
+
+    for (const p of players) await closeClient(p.ws);
   });
 });

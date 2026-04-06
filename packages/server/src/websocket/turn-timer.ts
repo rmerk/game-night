@@ -3,11 +3,11 @@
  * Story 4B.5: dead-seat turn-skip + call-window auto-pass (`advancePastDeadSeats` / `autoPassCallWindowForDeadSeats`).
  * See `leave-handler.ts` for intentional departure / departure vote lifecycle.
  *
- * The turn timer uses a dedicated `room.turnTimerHandle` (stateful stages). The AFK vote expiry uses
+ * The turn timer uses a dedicated `room.turnTimer.handle` (stateful stages). The AFK vote expiry uses
  * the lifecycle framework (`"afk-vote-timeout"`).
  *
  * **Disconnected players:** grace-expiry owns auto-discard for `connected === false`; the turn timer
- * never arms in that case and grace-expiry does not increment `consecutiveTurnTimeouts` (AFK is for
+ * never arms in that case and grace-expiry does not increment `turnTimer.consecutiveTimeouts` (AFK is for
  * present-but-inattentive players only).
  */
 import type { WebSocket } from "ws";
@@ -52,12 +52,12 @@ export function pickAutoDiscardTileId(rack: Tile[]): string | null {
 }
 
 export function cancelTurnTimer(room: Room, logger: FastifyBaseLogger): void {
-  if (room.turnTimerHandle) {
-    clearTimeout(room.turnTimerHandle);
+  if (room.turnTimer.handle) {
+    clearTimeout(room.turnTimer.handle);
   }
-  room.turnTimerHandle = null;
-  room.turnTimerStage = null;
-  room.turnTimerPlayerId = null;
+  room.turnTimer.handle = null;
+  room.turnTimer.stage = null;
+  room.turnTimer.playerId = null;
   logger.debug({ roomCode: room.roomCode }, "Turn timer cancelled");
 }
 
@@ -66,15 +66,15 @@ export function cancelTurnTimer(room: Room, logger: FastifyBaseLogger): void {
  */
 export function resetTurnTimerStateOnGameEnd(room: Room, logger: FastifyBaseLogger): void {
   cancelTurnTimer(room, logger);
-  room.consecutiveTurnTimeouts.clear();
-  if (room.afkVoteState) {
+  room.turnTimer.consecutiveTimeouts.clear();
+  if (room.votes.afk) {
     cancelLifecycleTimer(room, "afk-vote-timeout");
-    room.afkVoteState = null;
+    room.votes.afk = null;
   }
-  if (room.departureVoteState) {
+  if (room.votes.departure) {
     cancelLifecycleTimer(room, "departure-vote-timeout");
-    const target = room.departureVoteState.targetPlayerId;
-    room.departureVoteState = null;
+    const target = room.votes.departure.targetPlayerId;
+    room.votes.departure = null;
     broadcastStateToRoom(room, undefined, {
       type: "DEPARTURE_VOTE_RESOLVED",
       targetPlayerId: target,
@@ -95,16 +95,16 @@ export function autoEndGameOnDeparture(
     gs.gameResult = { winnerId: null, points: 0 };
   }
 
-  const departed = [...room.departedPlayerIds];
+  const departed = [...room.seatStatus.departedPlayerIds];
   const departedHostId = departed.find((pid) => room.players.get(pid)?.isHost === true) ?? null;
   for (const pid of departed) {
     releaseSeat(room, pid);
   }
-  room.departedPlayerIds.clear();
+  room.seatStatus.departedPlayerIds.clear();
 
-  if (room.departureVoteState) {
+  if (room.votes.departure) {
     cancelLifecycleTimer(room, "departure-vote-timeout");
-    room.departureVoteState = null;
+    room.votes.departure = null;
   }
 
   resetTurnTimerStateOnGameEnd(room, logger);
@@ -167,15 +167,15 @@ function sendProtocolError(
 }
 
 function shouldArmPlayPhaseTimer(room: Room): boolean {
-  if (room.turnTimerConfig.mode !== "timed") return false;
-  if (room.paused) return false;
+  if (room.turnTimer.config.mode !== "timed") return false;
+  if (room.pause.paused) return false;
   const gs = room.gameState;
   if (!gs || gs.gamePhase !== "play") return false;
   if (gs.turnPhase !== "draw" && gs.turnPhase !== "discard") return false;
   const cur = gs.currentTurn;
   const p = room.players.get(cur);
   if (!p?.connected) return false;
-  if (room.deadSeatPlayerIds.has(cur)) return false;
+  if (room.seatStatus.deadSeatPlayerIds.has(cur)) return false;
   return true;
 }
 
@@ -218,12 +218,12 @@ export function performTurnTimeoutAutoDiscard(
 }
 
 function startAfkVote(room: Room, targetPlayerId: string, logger: FastifyBaseLogger): void {
-  if (room.afkVoteState !== null) return;
-  if (room.afkVoteCooldownPlayerIds.has(targetPlayerId)) return;
+  if (room.votes.afk !== null) return;
+  if (room.turnTimer.afkVoteCooldownPlayerIds.has(targetPlayerId)) return;
   // AC9: never open a vote against an offline player — they cannot cancel it.
   if (room.players.get(targetPlayerId)?.connected !== true) return;
 
-  room.afkVoteState = {
+  room.votes.afk = {
     targetPlayerId,
     startedAt: Date.now(),
     votes: new Map(),
@@ -246,7 +246,7 @@ export function handleAfkVoteTimeoutExpiry(room: Room, logger: FastifyBaseLogger
 }
 
 function resolveAfkVote(room: Room, logger: FastifyBaseLogger, trigger: "vote" | "timeout"): void {
-  const state = room.afkVoteState;
+  const state = room.votes.afk;
   if (!state) return;
 
   let approves = 0;
@@ -260,8 +260,8 @@ function resolveAfkVote(room: Room, logger: FastifyBaseLogger, trigger: "vote" |
 
   if (approves >= 2) {
     cancelLifecycleTimer(room, "afk-vote-timeout");
-    room.afkVoteState = null;
-    room.deadSeatPlayerIds.add(target);
+    room.votes.afk = null;
+    room.seatStatus.deadSeatPlayerIds.add(target);
     broadcastStateToRoom(room, undefined, {
       type: "AFK_VOTE_RESOLVED",
       targetPlayerId: target,
@@ -274,8 +274,8 @@ function resolveAfkVote(room: Room, logger: FastifyBaseLogger, trigger: "vote" |
 
   if (denies >= 2) {
     cancelLifecycleTimer(room, "afk-vote-timeout");
-    room.afkVoteState = null;
-    room.afkVoteCooldownPlayerIds.add(target);
+    room.votes.afk = null;
+    room.turnTimer.afkVoteCooldownPlayerIds.add(target);
     broadcastStateToRoom(room, undefined, {
       type: "AFK_VOTE_RESOLVED",
       targetPlayerId: target,
@@ -288,8 +288,8 @@ function resolveAfkVote(room: Room, logger: FastifyBaseLogger, trigger: "vote" |
 
   if (trigger === "timeout") {
     cancelLifecycleTimer(room, "afk-vote-timeout");
-    room.afkVoteState = null;
-    room.afkVoteCooldownPlayerIds.add(target);
+    room.votes.afk = null;
+    room.turnTimer.afkVoteCooldownPlayerIds.add(target);
     broadcastStateToRoom(room, undefined, {
       type: "AFK_VOTE_RESOLVED",
       targetPlayerId: target,
@@ -305,10 +305,10 @@ export function cancelAfkVote(
   logger: FastifyBaseLogger,
   reason: "target_active" | "pause" | "game_ended",
 ): void {
-  if (!room.afkVoteState) return;
-  const target = room.afkVoteState.targetPlayerId;
+  if (!room.votes.afk) return;
+  const target = room.votes.afk.targetPlayerId;
   cancelLifecycleTimer(room, "afk-vote-timeout");
-  room.afkVoteState = null;
+  room.votes.afk = null;
   if (reason !== "game_ended") {
     broadcastStateToRoom(room, undefined, {
       type: "AFK_VOTE_RESOLVED",
@@ -334,11 +334,11 @@ export function handleAfkVoteCastMessage(
   }
 
   const voterId = session.player.playerId;
-  if (!room.afkVoteState) {
+  if (!room.votes.afk) {
     sendProtocolError(ws, logger, "NO_ACTIVE_VOTE", "No active AFK vote");
     return;
   }
-  if (room.afkVoteState.targetPlayerId !== targetPlayerId) {
+  if (room.votes.afk.targetPlayerId !== targetPlayerId) {
     sendProtocolError(ws, logger, "INVALID_VOTE_TARGET", "Vote target does not match active vote");
     return;
   }
@@ -346,7 +346,7 @@ export function handleAfkVoteCastMessage(
     sendProtocolError(ws, logger, "CANNOT_VOTE_ON_SELF", "Cannot vote on yourself");
     return;
   }
-  if (room.deadSeatPlayerIds.has(voterId)) {
+  if (room.seatStatus.deadSeatPlayerIds.has(voterId)) {
     sendProtocolError(ws, logger, "INVALID_ACTION", "Dead seat players cannot vote");
     return;
   }
@@ -356,7 +356,7 @@ export function handleAfkVoteCastMessage(
     return;
   }
 
-  room.afkVoteState.votes.set(voterId, vote);
+  room.votes.afk.votes.set(voterId, vote);
   broadcastStateToRoom(room, undefined, {
     type: "AFK_VOTE_CAST",
     voterId,
@@ -367,28 +367,28 @@ export function handleAfkVoteCastMessage(
 }
 
 export function handleTurnTimerExpiry(room: Room, logger: FastifyBaseLogger): void {
-  room.turnTimerHandle = null;
+  room.turnTimer.handle = null;
 
-  const P = room.turnTimerPlayerId;
-  const stage = room.turnTimerStage;
-  room.turnTimerPlayerId = null;
-  room.turnTimerStage = null;
+  const P = room.turnTimer.playerId;
+  const stage = room.turnTimer.stage;
+  room.turnTimer.playerId = null;
+  room.turnTimer.stage = null;
 
   if (!P || !stage) return;
 
   const gs = room.gameState;
   if (!gs || gs.gamePhase !== "play" || gs.currentTurn !== P) return;
-  if (room.paused) return;
+  if (room.pause.paused) return;
   // AC9: AFK escalation targets present-but-inattentive players only.
   // Grace-expiry owns disconnected players; bail out if the current player
   // dropped after the timer was armed.
   if (room.players.get(P)?.connected !== true) return;
 
   if (stage === "initial") {
-    const D = room.turnTimerConfig.durationMs;
-    room.turnTimerPlayerId = P;
-    room.turnTimerStage = "extended";
-    room.turnTimerHandle = setTimeout(() => {
+    const D = room.turnTimer.config.durationMs;
+    room.turnTimer.playerId = P;
+    room.turnTimer.stage = "extended";
+    room.turnTimer.handle = setTimeout(() => {
       handleTurnTimerExpiry(room, logger);
     }, D);
     broadcastStateToRoom(room, undefined, {
@@ -404,11 +404,11 @@ export function handleTurnTimerExpiry(room: Room, logger: FastifyBaseLogger): vo
   }
 
   if (stage === "extended") {
-    const prev = room.consecutiveTurnTimeouts.get(P) ?? 0;
+    const prev = room.turnTimer.consecutiveTimeouts.get(P) ?? 0;
     const next = prev + 1;
-    room.consecutiveTurnTimeouts.set(P, next);
+    room.turnTimer.consecutiveTimeouts.set(P, next);
 
-    if (next >= 3 && !room.afkVoteCooldownPlayerIds.has(P) && room.afkVoteState === null) {
+    if (next >= 3 && !room.turnTimer.afkVoteCooldownPlayerIds.has(P) && room.votes.afk === null) {
       startAfkVote(room, P, logger);
     }
 
@@ -441,7 +441,11 @@ export function advancePastDeadSeats(
   if (!gs || gs.gamePhase !== "play") return false;
 
   const allIds = Object.keys(gs.players);
-  if (allIds.length > 0 && allIds.every((id) => room.deadSeatPlayerIds.has(id)) && roomManager) {
+  if (
+    allIds.length > 0 &&
+    allIds.every((id) => room.seatStatus.deadSeatPlayerIds.has(id)) &&
+    roomManager
+  ) {
     logger.error({ roomCode: room.roomCode }, "All seats dead-seat — auto-ending game");
     autoEndGameOnDeparture(room, logger, roomManager);
     return true;
@@ -450,7 +454,7 @@ export function advancePastDeadSeats(
   let any = false;
   for (let i = 0; i < 4; i++) {
     const cur = gs.currentTurn;
-    if (!room.deadSeatPlayerIds.has(cur)) break;
+    if (!room.seatStatus.deadSeatPlayerIds.has(cur)) break;
     if (gs.turnPhase !== "draw" && gs.turnPhase !== "discard") break;
 
     const nextId = getNextPlayerId(gs, cur);
@@ -459,7 +463,7 @@ export function advancePastDeadSeats(
     any = true;
     broadcastStateToRoom(room, undefined, { type: "TURN_SKIPPED_DEAD_SEAT", playerId: cur });
 
-    if (!room.deadSeatPlayerIds.has(nextId)) break;
+    if (!room.seatStatus.deadSeatPlayerIds.has(nextId)) break;
   }
 
   return any;
@@ -467,14 +471,14 @@ export function advancePastDeadSeats(
 
 /** Auto-pass call window for dead-seat players (Story 4B.5 AC9). */
 export function autoPassCallWindowForDeadSeats(room: Room, _logger: FastifyBaseLogger): boolean {
-  if (room.paused) return false;
+  if (room.pause.paused) return false;
   const gs = room.gameState;
   if (!gs || gs.gamePhase !== "play" || gs.turnPhase !== "callWindow" || !gs.callWindow) {
     return false;
   }
   const cw = gs.callWindow;
   let any = false;
-  for (const pid of room.deadSeatPlayerIds) {
+  for (const pid of room.seatStatus.deadSeatPlayerIds) {
     if (cw.discarderId === pid) continue;
     if (cw.passes.includes(pid)) continue;
     const result = handleAction(gs, { type: "PASS_CALL", playerId: pid });
@@ -510,7 +514,7 @@ export function syncTurnTimer(
   const gs = room.gameState;
   if (!gs || gs.gamePhase !== "play") return;
 
-  if (deadSeatDepth < MAX_DEAD_SEAT_SYNC_DEPTH && !room.paused) {
+  if (deadSeatDepth < MAX_DEAD_SEAT_SYNC_DEPTH && !room.pause.paused) {
     if (advanceDeadSeatState(room, logger, roomManager)) {
       syncTurnTimer(room, logger, deadSeatDepth + 1, roomManager);
       return;
@@ -519,11 +523,11 @@ export function syncTurnTimer(
 
   if (!shouldArmPlayPhaseTimer(room)) return;
 
-  const D = room.turnTimerConfig.durationMs;
+  const D = room.turnTimer.config.durationMs;
   const pid = gs.currentTurn;
-  room.turnTimerPlayerId = pid;
-  room.turnTimerStage = "initial";
-  room.turnTimerHandle = setTimeout(() => {
+  room.turnTimer.playerId = pid;
+  room.turnTimer.stage = "initial";
+  room.turnTimer.handle = setTimeout(() => {
     handleTurnTimerExpiry(room, logger);
   }, D);
 }
