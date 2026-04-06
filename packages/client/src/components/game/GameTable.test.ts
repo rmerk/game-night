@@ -172,6 +172,39 @@ describe("GameTable — leave game (4B.5)", () => {
   });
 });
 
+describe("GameTable — felt grain overlay (AC 1)", () => {
+  it("renders felt-grain-overlay element with aria-hidden during playing phase", () => {
+    const wrapper = mountTable({ gamePhase: "play" });
+    const overlay = wrapper.find("[data-testid='felt-grain-overlay']");
+    expect(overlay.exists()).toBe(true);
+    expect(overlay.attributes("aria-hidden")).toBe("true");
+  });
+
+  it("does not render felt-grain-overlay during scoreboard phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+    });
+    expect(wrapper.find("[data-testid='felt-grain-overlay']").exists()).toBe(false);
+  });
+
+  it("does not render felt-grain-overlay during rematch phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "rematch",
+      localPlayer,
+      gameResult: mockGameResult,
+    });
+    expect(wrapper.find("[data-testid='felt-grain-overlay']").exists()).toBe(false);
+  });
+
+  it("felt-grain-overlay has pointer-events-none class", () => {
+    const wrapper = mountTable({ gamePhase: "play" });
+    const overlay = wrapper.find("[data-testid='felt-grain-overlay']");
+    expect(overlay.classes()).toContain("pointer-events-none");
+  });
+});
+
 describe("GameTable — layout structure", () => {
   it("renders the game table container", () => {
     const wrapper = mountTable();
