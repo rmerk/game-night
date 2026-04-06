@@ -12,6 +12,8 @@ Multiplayer mahjong in a **pnpm** monorepo: shared game logic, a Vue 3 client, a
 
 Both client and server depend on `@mahjong-game/shared` via `workspace:*`.
 
+Voice and video (WebRTC) use [LiveKit](https://livekit.io/) alongside the game WebSocket; see [docs/livekit-deployment.md](docs/livekit-deployment.md) for environment variables, TURN/STUN, and production deployment.
+
 ## Prerequisites
 
 - **Node.js 22** (see [`.nvmrc`](.nvmrc))

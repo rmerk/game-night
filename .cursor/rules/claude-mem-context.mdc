@@ -7,43 +7,19 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 9:15am CDT
+# $CMEM mahjong-game 2026-04-06 9:54am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,883t read) | 415,075t work | 94% savings
+Stats: 50 obs (26,898t read) | 472,968t work | 94% savings
 
 ### Apr 6, 2026
-1060 6:33a 🔵 Desktop Settings Toggle Integration
-1061 6:34a 🔵 Test Suite Passes Successfully
-1062 " 🔵 TypeScript Type Checking Passes
-1063 6:44a 🟣 Added toggle switch tests for RoomSettingsPanel
-1064 " 🔴 Fixed ARIA label association for BaseNumberStepper spinbutton
-1065 6:45a ✅ Code review validation completed for accessibility improvements
-1066 6:48a 🔵 GDS Story Creation Workflow System
-1067 " 🔵 GDS Story Creation System Configuration and Supporting Artifacts
-1068 6:52a 🟣 Story 5B.7 Created - Recent Activity Indicator Ticker
-1069 6:55a 🟣 Activity Ticker Store with Auto-Expiring Notifications
-1070 6:56a 🟣 Activity Ticker Message Formatting Utilities
-1071 " 🟣 Unit Tests for Activity Ticker Copy Generator
-1072 " 🟣 ActivityTicker Vue Component
-1073 6:57a 🟣 Unit Tests for ActivityTicker Component
-1074 " 🟣 Activity Ticker Integration into Game Flow
-1075 " 🟣 Integration Tests for Activity Ticker in GameTable
-1076 " ✅ Activity Ticker Feature Marked for Review
-1077 6:58a ✅ All Implementation Tasks Marked Complete
-1078 " ✅ Implementation Documentation Finalized
-1079 7:01a ✅ Added Vue Component Tests for ActivityTicker and GameTable
-1080 " ✅ Updated Implementation Artifact Documentation for Activity Ticker
-1081 7:02a 🔵 GDS Code Review Workflow System
 1082 7:03a 🔵 Story 5B.7 Ready for Code Review
 1083 " 🔵 Code Changes Include Undocumented Features Beyond Story Scope
 1084 7:04a 🔵 Activity Ticker Implementation Quality Assessment
 1085 7:06a ✅ Story 5B.7 Status Updated to Done After Clean Code Review
-S359 Epic 5B Retrospective Final Closure and Key Takeaways Synthesis (Apr 6 at 8:26 AM)
-S360 Epic 5B Retrospective Complete - Comprehensive Analysis, Documentation, and Action Item Tracking (Apr 6 at 8:27 AM)
 1097 8:29a ✅ Epic 5B Retrospective Document Generated
 1098 " ✅ Sprint Status Updated for Epic 5B Retrospective Completion
 S361 Create story: Pre-6B Debt Cleanup (Room Type Extraction & 4B.4 Integration Test Gaps) (Apr 6 at 8:30 AM)
@@ -73,19 +49,43 @@ S366 Single Atomic Commit Created for Pre-6B Debt Cleanup Story (Apr 6 at 9:08 A
 1123 9:09a 🔵 Git Commit Message Convention Discovery
 1124 " ✅ Pre-6B Debt Cleanup Files Staged for Commit
 S367 Final Retrospective Item Review - Tokenless Reconnect Deferred Gap (Apr 6 at 9:10 AM)
+S368 Commit tokenless reconnect during pause bugfix and close Epic 4B retrospective follow-through tracking (Apr 6 at 9:12 AM)
 1127 9:12a 🔵 Tokenless Reconnect During Pause Technical Gap Identified
 1128 9:13a 🔴 Tokenless Reconnect During Pause Fixed
-S368 Commit tokenless reconnect during pause bugfix and close Epic 4B retrospective follow-through tracking (Apr 6 at 9:15 AM)
-**Investigated**: The primary session validated the tokenless reconnect fix by running the full test suite (373 tests across 25 files), confirming all tests passed including the new T11 integration test. They then reviewed git status showing the modified files ready for commit: join-handler.ts (one-line fix), join-handler.test.ts (new T11 test), and sprint-status.yaml (tracking update).
+S369 Create Story 6B.1: LiveKit SDK Integration & Connection Setup using gds-create-story workflow (Apr 6 at 9:15 AM)
+1129 9:22a 🔵 GDS Story Creation Workflow Structure
+1130 9:23a 🔵 Story Creation Workflow Initialization
+1133 9:24a 🔵 Epic 6B Story Context Analysis for LiveKit WebRTC Integration
+1135 9:35a 🟣 Added LiveKit SDK for real-time communication
+1136 " ✅ Configured LiveKit environment variables with security separation
+1137 9:36a 🟣 Created LiveKit configuration module with environment-aware validation
+1138 " 🟣 Implemented LiveKit token request protocol
+1139 " 🟣 Implemented server-side LiveKit token generation handler
+1140 9:37a 🔄 Separated LiveKit startup validation from runtime handling
+1141 " 🟣 Created Pinia store for LiveKit connection state management
+1142 9:38a 🟣 Created useLiveKit composable for WebRTC connection management
+1143 " 🟣 Integrated LiveKit token flow into WebSocket room lifecycle
+1144 9:39a 🔴 Fixed TypeScript declaration emit errors for LiveKit types
+1145 " ✅ Added unit tests for LiveKit token request handler
+1146 " 🔴 Fixed LiveKit handler test mocking and environment setup
+1147 9:40a ✅ Added unit tests for LiveKit client composable and store
+1148 " ✅ Added LiveKit deployment documentation
+1149 9:42a ✅ Marked LiveKit SDK integration artifact as complete
+1150 " ✅ Updated implementation artifact with session notes and file manifest
+1151 9:44a 🔴 Build failed due to manualChunks object format incompatibility
+1152 9:45a 🔴 Fixed manualChunks configuration for rolldown bundler compatibility
+1153 9:47a ✅ LiveKit Integration Story Follow-up Pass Complete
+S370 Adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - examining implementation against acceptance criteria and task claims (Apr 6 at 9:54 AM)
+**Investigated**: The primary session performed a comprehensive code review of the LiveKit SDK integration story. The reviewer systematically examined: git changes vs story File List, all server-side components (livekit-handler.ts, config/livekit.ts, token generation, ws-server.ts routing), client-side implementation (useLiveKit composable, liveKit store, parseServerMessage, useRoomConnection integration), shared protocol types, test coverage for both client and server, Vite bundle configuration, environment variable documentation, and TURN/STUN deployment documentation.
 
-**Learned**: The fix works by adding `|| room.pause.paused` as a fallback to the grace recovery predicate at join-handler.ts:519. This allows tokenless (displayName-based) reconnection to succeed even when the graceTimers map has been cleared by simultaneous-disconnect pause. The edge case occurs because pause entry calls `room.graceTimers.clear()` which removes the timer handles that the tokenless recovery predicate was checking for. The disjunction pattern (check timer OR check pause state) closes this gap cleanly without changing pause semantics.
+**Learned**: The LiveKit integration follows the established WebSocket handler pattern with token-based authentication. The server generates JWTs using livekit-server-sdk when seated players request tokens, and the client connects via a separate composable that treats A/V failures as non-fatal. The implementation correctly separates the LiveKit bundle, implements graceful degradation on connection failure, documents deployment requirements, and integrates cleanup into the existing resetSocialUiForSession pattern. However, the review discovered test gaps (missing connect-failure test case), dead code (unused getLiveKitUrl composable and VITE_LIVEKIT_URL env var), and duplicated utility functions (trySendJson copied rather than shared).
 
-**Completed**: 1. Committed tokenless reconnect fix as commit f5758eb with 2 files changed (35 insertions, 1 deletion). 2. Updated sprint-status.yaml to mark 4b-retro-4-tokenless-reconnect-during-pause as done with commit reference. 3. All Epic 4B retrospective follow-through items (4b-retro-1 through 4b-retro-4) are now closed. 4. The pre6b-debt-cleanup gate is fully complete with all deferred items resolved.
+**Completed**: Code review completed with findings documented: 1 High issue (Task 11.3 test missing - connect with invalid token case has no coverage), 2 Medium issues (getLiveKitUrl dead code, duplicated trySendJson utility), 1 Low issue (cleanup function untested). All 5 acceptance criteria verified as implemented correctly. The review confirmed proper security (API secrets server-only), bundle separation, fallback behavior, protocol integration, and comprehensive documentation.
 
-**Next Steps**: With all Epic 4B and 5B retrospective follow-through completed and pre6b-debt-cleanup gate closed, the path is clear for Epic 6B (WebRTC voice/video) work to begin. The primary session has not indicated next specific action yet - likely awaiting user direction on whether to start Epic 6B planning or address other priorities.
+**Next Steps**: The primary session is awaiting user decision on how to handle the 4 identified issues: option 1 (fix automatically), option 2 (create action items in story), or option 3 (examine specific issues in detail). The reviewer has presented the findings to Rchoi and is waiting for direction before proceeding with remediation or action item creation.
 
 
-Access 415k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 473k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

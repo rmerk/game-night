@@ -111,6 +111,22 @@ export interface ReactionMessage {
   emoji: string;
 }
 
+/** Client → Server: request a LiveKit JWT for voice/video (WebRTC) */
+export interface RequestLiveKitTokenMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "REQUEST_LIVEKIT_TOKEN";
+}
+
+/**
+ * Server → Client: LiveKit access token and URL for {@link RequestLiveKitTokenMessage}.
+ */
+export interface LiveKitTokenMessage {
+  version: typeof PROTOCOL_VERSION;
+  type: "LIVEKIT_TOKEN";
+  token: string;
+  url: string;
+}
+
 /**
  * Server → Client: sanitized chat line broadcast to the room.
  * User-derived fields are plain strings (NFR48). Story 6A.2 UI must render with `{{ }}` only — never `v-html` for message body.

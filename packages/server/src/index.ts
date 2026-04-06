@@ -1,6 +1,7 @@
 import fastify, { type FastifyInstance } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { RoomManager } from "./rooms/room-manager";
+import { validateLiveKitEnvOnBoot } from "./config/livekit";
 import { roomRoutes } from "./http/routes";
 import { setupWebSocketServer, type WsServerContext } from "./websocket/ws-server";
 
@@ -25,6 +26,7 @@ export function createApp(): FastifyInstance {
   app.register(roomRoutes, { roomManager });
 
   app.addHook("onReady", async () => {
+    validateLiveKitEnvOnBoot(app.log);
     app.wsContext = setupWebSocketServer(app, roomManager);
   });
 

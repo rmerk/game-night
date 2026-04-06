@@ -228,3 +228,51 @@ test("CHAT_HISTORY returns null when an element fails CHAT_BROADCAST contract", 
   });
   expect(parseServerMessage(raw)).toBeNull();
 });
+
+test("parses valid LIVEKIT_TOKEN into livekit_token", () => {
+  const raw = JSON.stringify({
+    version: PROTOCOL_VERSION,
+    type: "LIVEKIT_TOKEN",
+    token: "jwt-here",
+    url: "wss://example.livekit.cloud",
+  });
+  const p = parseServerMessage(raw);
+  expect(p?.kind).toBe("livekit_token");
+  if (p?.kind !== "livekit_token") {
+    return;
+  }
+  expect(p.message.type).toBe("LIVEKIT_TOKEN");
+  expect(p.message.token).toBe("jwt-here");
+  expect(p.message.url).toBe("wss://example.livekit.cloud");
+});
+
+test("LIVEKIT_TOKEN returns null when token or url is missing or wrong type", () => {
+  expect(
+    parseServerMessage(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "LIVEKIT_TOKEN",
+        url: "wss://x",
+      }),
+    ),
+  ).toBeNull();
+  expect(
+    parseServerMessage(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "LIVEKIT_TOKEN",
+        token: "t",
+      }),
+    ),
+  ).toBeNull();
+  expect(
+    parseServerMessage(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "LIVEKIT_TOKEN",
+        token: 1,
+        url: "wss://x",
+      }),
+    ),
+  ).toBeNull();
+});

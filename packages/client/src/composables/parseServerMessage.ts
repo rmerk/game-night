@@ -6,6 +6,7 @@ import {
   type LobbyState,
   type PlayerGameView,
   type ReactionBroadcast,
+  type LiveKitTokenMessage,
   type ServerErrorMessage,
   type StateUpdateMessage,
   type SystemEventMessage,
@@ -18,6 +19,7 @@ export type ParsedServerMessage =
   | { kind: "chat_broadcast"; message: ChatBroadcast }
   | { kind: "chat_history"; message: ChatHistoryMessage }
   | { kind: "reaction_broadcast"; message: ReactionBroadcast }
+  | { kind: "livekit_token"; message: LiveKitTokenMessage }
   | { kind: "ignored" };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -178,6 +180,18 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
         reason,
       };
       return { kind: "system_event", message };
+    }
+    case "LIVEKIT_TOKEN": {
+      if (typeof parsed.token !== "string" || typeof parsed.url !== "string") {
+        return null;
+      }
+      const message: LiveKitTokenMessage = {
+        version: PROTOCOL_VERSION,
+        type: "LIVEKIT_TOKEN",
+        token: parsed.token,
+        url: parsed.url,
+      };
+      return { kind: "livekit_token", message };
     }
     default:
       return { kind: "ignored" };

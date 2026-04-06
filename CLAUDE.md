@@ -20,6 +20,8 @@ Shared is consumed by both client and server via `workspace:*`.
 | Tooling | Vite+ (`vp`), pnpm 10, TypeScript 5.9 |
 | Testing | Vitest (via `vite-plus/test`), Vue Test Utils, happy-dom |
 
+Voice / video uses [LiveKit](https://livekit.io/) alongside the game WebSocket. See [docs/livekit-deployment.md](docs/livekit-deployment.md) for production deployment, TURN/STUN, and environment variables.
+
 ## Commands
 
 See AGENTS.md for full Vite+ workflow. Quick reference:

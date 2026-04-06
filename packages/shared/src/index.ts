@@ -112,6 +112,8 @@ export type {
   DepartureVoteCastMessage,
   ChatMessage,
   ReactionMessage,
+  RequestLiveKitTokenMessage,
+  LiveKitTokenMessage,
   ChatBroadcast,
   ChatHistoryMessage,
   ReactionBroadcast,

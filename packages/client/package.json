@@ -15,6 +15,7 @@
     "@mahjong-game/shared": "workspace:*",
     "@vue-dnd-kit/core": "^2.0.0",
     "@vueuse/core": "^14.2.0",
+    "livekit-client": "^2.18.0",
     "motion-v": "^2.0.0",
     "pinia": "^3.0.0",
     "vue": "^3.5.0",

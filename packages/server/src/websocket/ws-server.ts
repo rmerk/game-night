@@ -11,8 +11,10 @@ import { handleAfkVoteCastMessage } from "./turn-timer";
 import { handleDepartureVoteCastMessage, handleLeaveRoomMessage } from "./leave-handler";
 import { buildCurrentStateMessage } from "./state-broadcaster";
 import { handleChatReactMessage } from "./chat-handler";
+import { handleLiveKitTokenRequest } from "./livekit-handler";
 import { sendPostStateSequence } from "./post-state-sequence";
 import { WS_MAX_PAYLOAD_BYTES } from "./chat-history";
+import { trySendJson } from "./ws-utils";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -26,24 +28,6 @@ declare module "ws" {
 export interface WsServerContext {
   wss: WebSocketServer;
   connectionTracker: ConnectionTracker;
-}
-
-function trySendJson(
-  ws: WebSocket,
-  payload: Record<string, unknown>,
-  logger: FastifyBaseLogger,
-  context: string,
-): void {
-  if (ws.readyState !== WebSocket.OPEN) {
-    logger.debug({ context, readyState: ws.readyState }, "Skipping send on non-open WebSocket");
-    return;
-  }
-
-  try {
-    ws.send(JSON.stringify(payload));
-  } catch (error) {
-    logger.warn({ error, context }, "Failed to send WebSocket message");
-  }
 }
 
 export function setupWebSocketServer(
@@ -307,6 +291,23 @@ export function setupWebSocketServer(
           if (stateMessage) {
             sendPostStateSequence(ws, stateMessage, session.room, logger, "request-state");
           }
+        } else if (parsed.type === "REQUEST_LIVEKIT_TOKEN") {
+          const session = roomManager.findSessionByWs(ws);
+          if (!session) {
+            trySendJson(
+              ws,
+              {
+                version: PROTOCOL_VERSION,
+                type: "ERROR",
+                code: "NOT_IN_ROOM",
+                message: "You must join a room before requesting a voice/video token",
+              },
+              logger,
+              "livekit-token-not-in-room",
+            );
+            return;
+          }
+          void handleLiveKitTokenRequest(ws, parsed, session.room, session.playerId, logger);
         } else if (parsed.type === "CHAT" || parsed.type === "REACTION") {
           const session = roomManager.findSessionByWs(ws);
           if (!session) {

@@ -9,16 +9,21 @@ import type {
 } from "@mahjong-game/shared";
 import { isAllowedReactionEmoji, MAX_CHAT_LENGTH, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { parseServerMessage, isLobbyState } from "./parseServerMessage";
+import { useLiveKit } from "./useLiveKit";
 import { getWebSocketUrl } from "./wsUrl";
 import { clearSessionToken, readSessionToken, writeSessionToken } from "./sessionTokenStorage";
 import { useChatStore } from "../stores/chat";
 import { useReactionsStore } from "../stores/reactions";
 import { useActivityTickerStore } from "../stores/activityTicker";
+import { useLiveKitStore } from "../stores/liveKit";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
 
 export type RoomConnectionStatus = "idle" | "connecting" | "open" | "closed";
 
 export function useRoomConnection() {
+  const liveKit = useLiveKit();
+  let liveKitTokenRequested = false;
+
   const status = ref<RoomConnectionStatus>("idle");
   const lastErrorMessage = ref<string | null>(null);
   const lobbyState = shallowRef<LobbyState | null>(null);
@@ -31,6 +36,8 @@ export function useRoomConnection() {
   let ws: WebSocket | null = null;
 
   function resetSocialUiForSession(): void {
+    void liveKit.disconnect();
+    useLiveKitStore().resetForRoomLeave();
     useChatStore().clear();
     useReactionsStore().resetForRoomLeave();
     useActivityTickerStore().resetForRoomLeave();
@@ -70,7 +77,14 @@ export function useRoomConnection() {
         disconnect();
         return;
       }
-      lastErrorMessage.value = `${parsed.message.code}: ${parsed.message.message}`;
+      const code = parsed.message.code;
+      const silentLiveKitError =
+        code === "LIVEKIT_UNAVAILABLE" ||
+        code === "LIVEKIT_NOT_ELIGIBLE" ||
+        code === "LIVEKIT_TOKEN_FAILED";
+      if (!silentLiveKitError) {
+        lastErrorMessage.value = `${parsed.message.code}: ${parsed.message.message}`;
+      }
       return;
     }
     if (parsed.kind === "system_event") {
@@ -85,6 +99,15 @@ export function useRoomConnection() {
       lastErrorMessage.value = null;
       const msg = parsed.message;
       applyStateUpdate(msg.state, msg.resolvedAction, msg.token, roomCode);
+      if (!liveKitTokenRequested && ws && ws.readyState === WebSocket.OPEN) {
+        liveKitTokenRequested = true;
+        sendRaw({ type: "REQUEST_LIVEKIT_TOKEN" });
+      }
+      return;
+    }
+    if (parsed.kind === "livekit_token") {
+      const { token, url } = parsed.message;
+      void liveKit.connect(token, url);
       return;
     }
     if (parsed.kind === "chat_history") {
@@ -112,6 +135,7 @@ export function useRoomConnection() {
 
   function connect(roomCode: string, displayName: string): void {
     disconnect();
+    liveKitTokenRequested = false;
     lastErrorMessage.value = null;
     systemNotice.value = null;
     roomFullError.value = false;

@@ -20,6 +20,18 @@ export default defineConfig({
     },
   },
   plugins: [vue(), UnoCSS()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes("livekit-client")) {
+            return "livekit";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: "happy-dom",
     include: ["src/**/*.test.ts"],
