@@ -2476,4 +2476,38 @@ describe("Story 4B.4 / pre6b — turn timer + AFK WebSocket integration", () => 
     clients[2].close();
     clients[3].close();
   });
+
+  it("4B.3 T11: tokenless reconnect during pause recovers seat via displayName", async () => {
+    const { roomCode, clients, playerIds } = await setupFourPlayersPlayPhase();
+    const room = app.roomManager.getRoom(roomCode)!;
+
+    // Disconnect 2 players to trigger pause
+    const firstDc = clients.slice(1, 4).map((ws) => waitForMessage(ws));
+    clients[0].close();
+    await Promise.all(firstDc);
+
+    const secondDc = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    clients[1].close();
+    await Promise.all(secondDc);
+
+    expect(room.pause.paused).toBe(true);
+    expect(room.graceTimers.size).toBe(0); // grace timers cleared on pause
+
+    // Tokenless reconnect: same displayName, no token
+    const reconnectBroadcasts = clients.slice(2, 4).map((ws) => waitForMessage(ws));
+    const ws = await connectWs(wsUrl);
+    const msgPromise = waitForMessage(ws);
+    sendJoin(ws, roomCode, "Integ0"); // same name as player 0
+    const msg = await msgPromise;
+    await Promise.all(reconnectBroadcasts);
+
+    // Should recover the original seat, not get a new one
+    expect((msg.state as Record<string, unknown>).myPlayerId).toBe(playerIds[0]);
+    expect(msg.token).toBeDefined();
+
+    cancelLifecycleTimer(room, "pause-timeout");
+    ws.close();
+    clients[2].close();
+    clients[3].close();
+  });
 });

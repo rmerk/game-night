@@ -516,7 +516,7 @@ export function handleJoinRoom(
   for (const p of room.players.values()) {
     if (
       !p.connected &&
-      room.graceTimers.has(p.playerId) &&
+      (room.graceTimers.has(p.playerId) || room.pause.paused) &&
       p.displayName.toLowerCase() === sanitizedName.toLowerCase()
     ) {
       graceRecoveryMatches.push(p);
