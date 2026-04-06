@@ -33,9 +33,9 @@ const stubs = {
 describe("RoomView (4B.7)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    // Restore real implementations so existing tests that stub WebSocket/fetch still work
-    vi.mocked(useRoomConnection).mockRestore();
-    vi.mocked(useAvReconnectUi).mockRestore();
+    // Clear any mockReturnValue overrides from mood tests while keeping the vi.fn() wrapper intact
+    vi.mocked(useRoomConnection).mockReset();
+    vi.mocked(useAvReconnectUi).mockReset();
   });
 
   it("shows table-full when status returns full: true and does not open WebSocket", async () => {
@@ -411,6 +411,23 @@ describe("RoomView mood classes (Task 2.5)", () => {
       playerGameView: ref({
         myPlayerId: "p1",
         gamePhase: "scoreboard",
+        players: [],
+        myRack: [],
+        settings: {} as never,
+      } as never),
+    });
+    const wrapper = await mountRoomView(conn);
+    const rootDiv = wrapper.find('[data-testid="room-view-root"]');
+    expect(rootDiv.exists()).toBe(true);
+    expect(rootDiv.classes()).toContain("mood-lingering");
+  });
+
+  it("applies mood-lingering class during rematch phase", async () => {
+    const conn = makeRoomConnection({
+      lobbyState: ref(null),
+      playerGameView: ref({
+        myPlayerId: "p1",
+        gamePhase: "rematch",
         players: [],
         myRack: [],
         settings: {} as never,
