@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # Story 6B.2 → done (code review)
+last_updated: 2026-04-06 # Story 6B.3 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -163,7 +163,7 @@ development_status:
   epic-6b: in-progress
   6b-1-livekit-sdk-integration-connection-setup: done
   6b-2-video-thumbnails-at-seat-positions: done
-  6b-3-audio-video-controls-permission-handling: backlog
+  6b-3-audio-video-controls-permission-handling: done
   6b-4-speaking-indicator-avatar-fallback: backlog
   6b-5-av-reconnection-graceful-degradation: backlog
   epic-6b-retrospective: optional

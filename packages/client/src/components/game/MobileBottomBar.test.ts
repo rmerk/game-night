@@ -1,9 +1,33 @@
-import { describe, it, expect } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import MobileBottomBar from "./MobileBottomBar.vue";
 
+const liveKitMock = vi.hoisted(() => {
+  const { ref, computed } = require("vue") as typeof import("vue");
+  return {
+    connectionStatus: ref("connected"),
+    localMicEnabled: ref(true),
+    localCameraEnabled: ref(true),
+    avPermissionState: computed(() => "granted" as const),
+    toggleMic: vi.fn(),
+    toggleCamera: vi.fn(),
+    requestPermissions: vi.fn(),
+  };
+});
+
+vi.mock("../../composables/useLiveKit", () => ({
+  useLiveKit: () => liveKitMock,
+}));
+
 describe("MobileBottomBar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    liveKitMock.connectionStatus.value = "connected";
+    liveKitMock.localMicEnabled.value = true;
+    liveKitMock.localCameraEnabled.value = true;
+  });
+
   function mountBar(options?: Parameters<typeof mount>[1]) {
     setActivePinia(createPinia());
     return mount(MobileBottomBar, options);
@@ -35,22 +59,22 @@ describe("MobileBottomBar", () => {
     expect(btn.text()).toContain("Settings");
   });
 
-  it("renders A/V controls button", () => {
+  it("renders AVControls for mic and camera", () => {
     const wrapper = mountBar();
-    const btn = wrapper.find("[aria-label='Audio video controls']");
-    expect(btn.exists()).toBe(true);
-    expect(btn.text()).toContain("A/V");
+    expect(wrapper.find("[data-testid='av-controls']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='av-toggle-mic']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='av-toggle-camera']").exists()).toBe(true);
   });
 
-  it("only the disabled placeholder uses aria-disabled so Card/Chat/Settings stay activatable", () => {
+  it("Card, Chat, and Settings stay activatable without aria-disabled", () => {
     const wrapper = mountBar();
-    const buttons = wrapper.findAll("button");
-    expect(buttons.length).toBe(4);
-    expect(buttons[0]?.attributes("aria-disabled")).toBeUndefined();
-    expect(buttons[1]?.attributes("aria-disabled")).toBeUndefined();
-    expect(buttons[2]?.attributes("aria-disabled")).toBeUndefined();
-    expect(buttons[3]?.attributes("aria-disabled")).toBe("true");
-    for (const btn of buttons) {
+    const card = wrapper.find("[aria-label='Show NMJL card']");
+    const chat = wrapper.find("[data-testid='chat-toggle-mobile']");
+    const settings = wrapper.find("[data-testid='settings-toggle-mobile']");
+    expect(card.attributes("aria-disabled")).toBeUndefined();
+    expect(chat.attributes("aria-disabled")).toBeUndefined();
+    expect(settings.attributes("aria-disabled")).toBeUndefined();
+    for (const btn of [card, chat, settings]) {
       expect(btn.attributes("disabled")).toBeUndefined();
       expect(btn.attributes("type")).toBe("button");
     }
@@ -78,6 +102,7 @@ describe("MobileBottomBar", () => {
     expect(buttons[1]?.attributes("tabindex")).toBe("-1");
     expect(buttons[2]?.attributes("tabindex")).toBe("-1");
     expect(buttons[3]?.attributes("tabindex")).toBe("-1");
+    expect(buttons[4]?.attributes("tabindex")).toBe("-1");
   });
 
   it("moves focus between controls with arrow keys", async () => {
@@ -86,7 +111,8 @@ describe("MobileBottomBar", () => {
     const cardButton = buttons[0];
     const chatButton = buttons[1];
     const settingsButton = buttons[2];
-    const avButton = buttons[3];
+    const micButton = buttons[3];
+    const cameraButton = buttons[4];
 
     (cardButton.element as HTMLElement).focus();
     await cardButton.trigger("keydown", { key: "ArrowRight" });
@@ -99,9 +125,15 @@ describe("MobileBottomBar", () => {
     expect(document.activeElement).toBe(settingsButton.element);
 
     await settingsButton.trigger("keydown", { key: "ArrowRight" });
-    expect(document.activeElement).toBe(avButton.element);
+    expect(document.activeElement).toBe(micButton.element);
 
-    await avButton.trigger("keydown", { key: "ArrowLeft" });
+    await micButton.trigger("keydown", { key: "ArrowRight" });
+    expect(document.activeElement).toBe(cameraButton.element);
+
+    await cameraButton.trigger("keydown", { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(micButton.element);
+
+    await micButton.trigger("keydown", { key: "ArrowLeft" });
     expect(document.activeElement).toBe(settingsButton.element);
 
     await settingsButton.trigger("keydown", { key: "ArrowLeft" });

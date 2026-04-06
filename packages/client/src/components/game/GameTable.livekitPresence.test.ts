@@ -15,7 +15,7 @@ const liveKitTestState = vi.hoisted(() => {
 });
 
 vi.mock("../../composables/useLiveKit", () => {
-  const { ref } = require("vue") as typeof import("vue");
+  const { ref, computed } = require("vue") as typeof import("vue");
   return {
     useLiveKit: () => ({
       connectionStatus: ref("idle"),
@@ -27,6 +27,12 @@ vi.mock("../../composables/useLiveKit", () => {
       connect: vi.fn(),
       disconnect: vi.fn(),
       cleanup: vi.fn(),
+      localMicEnabled: ref(false),
+      localCameraEnabled: ref(false),
+      avPermissionState: computed(() => "granted" as const),
+      toggleMic: vi.fn(),
+      toggleCamera: vi.fn(),
+      requestPermissions: vi.fn(),
     }),
   };
 });
@@ -102,5 +108,24 @@ describe("GameTable — LiveKit presence (6B.2)", () => {
     });
     await flushPromises();
     expect(wrapper.findAll('[data-testid="video-thumbnail"]').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders desktop A/V controls shell when LiveKit mock is active", async () => {
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "play",
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="desktop-av-controls"]').exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="desktop-av-controls"] [data-testid="av-controls"]').exists(),
+    ).toBe(true);
   });
 });

@@ -101,11 +101,37 @@ const frameClass = computed(() => {
       @click.stop="onFrameClick"
     >
       <div class="flex h-full w-full items-center justify-center">
-        <div class="h-10 w-10 overflow-hidden rounded-lg md:h-full md:w-full md:rounded-lg">
-          <VideoThumbnail v-if="showVideo" :video-track="videoTrack" />
-          <AvatarFallback v-else :initial="initial" :label="`Avatar for ${displayName}`" />
+        <div
+          class="relative h-10 w-10 overflow-hidden rounded-lg md:h-full md:w-full md:rounded-lg"
+        >
+          <Transition name="presence-media" mode="out-in">
+            <VideoThumbnail
+              v-if="showVideo"
+              key="video"
+              class="absolute inset-0 h-full w-full"
+              :video-track="videoTrack"
+            />
+            <AvatarFallback
+              v-else
+              key="avatar"
+              class="absolute inset-0 h-full w-full"
+              :initial="initial"
+              :label="`Avatar for ${displayName}`"
+            />
+          </Transition>
         </div>
       </div>
     </button>
   </div>
 </template>
+
+<style scoped>
+.presence-media-enter-active,
+.presence-media-leave-active {
+  transition: opacity 0.15s ease;
+}
+.presence-media-enter-from,
+.presence-media-leave-to {
+  opacity: 0;
+}
+</style>

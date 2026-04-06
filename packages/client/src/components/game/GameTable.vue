@@ -10,6 +10,7 @@ import TurnIndicator from "./TurnIndicator.vue";
 import ActivityTicker from "./ActivityTicker.vue";
 import WallCounter from "./WallCounter.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
+import AVControls from "./AVControls.vue";
 import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
 import ReactionBar from "../reactions/ReactionBar.vue";
 import ReactionBubbleStack from "../reactions/ReactionBubbleStack.vue";
@@ -520,6 +521,15 @@ const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
 
 const liveKit = useLiveKit();
+const {
+  connectionStatus,
+  localMicEnabled,
+  localCameraEnabled,
+  avPermissionState,
+  toggleMic,
+  toggleCamera,
+  requestPermissions,
+} = liveKit;
 
 function presenceForPlayer(playerId: string | undefined): ParticipantVideoState {
   if (!playerId) {
@@ -1591,7 +1601,22 @@ function onChatEscape() {
     <div data-testid="chat-shell-anchor" class="order-5 sr-only" aria-hidden="true" />
 
     <div data-testid="controls-zone-shell" class="order-6 flex justify-center">
-      <div data-testid="controls-zone-entry" class="w-full max-w-sm">
+      <div
+        class="hidden w-full max-w-sm flex-col items-center justify-center md:flex"
+        data-testid="desktop-av-controls"
+      >
+        <AVControls
+          :is-mic-enabled="localMicEnabled"
+          :is-camera-enabled="localCameraEnabled"
+          :connection-status="connectionStatus"
+          :permission-state="avPermissionState"
+          surface="felt"
+          @toggle-mic="toggleMic"
+          @toggle-camera="toggleCamera"
+          @request-av="requestPermissions"
+        />
+      </div>
+      <div data-testid="controls-zone-entry" class="w-full max-w-sm md:hidden">
         <MobileBottomBar />
       </div>
     </div>

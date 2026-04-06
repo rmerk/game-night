@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, shallowRef, useTemplateRef } from "vue";
 import BasePanel from "../ui/BasePanel.vue";
+import AVControls from "./AVControls.vue";
+import { useLiveKit } from "../../composables/useLiveKit";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import {
   SLIDE_IN_CHAT_PANEL_ROOT_ID,
@@ -9,6 +11,16 @@ import {
 } from "../chat/slideInPanelIds";
 
 const slideInPanelStore = useSlideInPanelStore();
+
+const {
+  connectionStatus,
+  localMicEnabled,
+  localCameraEnabled,
+  avPermissionState,
+  toggleMic,
+  toggleCamera,
+  requestPermissions,
+} = useLiveKit();
 
 const controlsRef = useTemplateRef<HTMLElement>("controls");
 const activeButtonIndex = shallowRef(0);
@@ -136,14 +148,20 @@ onMounted(() => {
       <span>Settings</span>
     </button>
 
-    <button
-      type="button"
-      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/65 focus-visible:focus-ring-on-chrome"
-      aria-label="Audio video controls"
-      aria-disabled="true"
+    <div
+      class="min-tap flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1 focus-within:focus-ring-on-chrome rounded-md"
+      aria-label="Audio and video controls"
     >
-      <span class="text-5">🎤</span>
-      <span>A/V</span>
-    </button>
+      <AVControls
+        :is-mic-enabled="localMicEnabled"
+        :is-camera-enabled="localCameraEnabled"
+        :connection-status="connectionStatus"
+        :permission-state="avPermissionState"
+        surface="chrome"
+        @toggle-mic="toggleMic"
+        @toggle-camera="toggleCamera"
+        @request-av="requestPermissions"
+      />
+    </div>
   </BasePanel>
 </template>
