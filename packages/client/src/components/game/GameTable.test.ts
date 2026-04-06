@@ -10,6 +10,7 @@ import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import {
   DEFAULT_ROOM_SETTINGS,
   PROTOCOL_VERSION,
+  WALL_WARNING_THRESHOLD,
   type SuitedTile,
   type Tile,
   type TileValue,
@@ -415,16 +416,18 @@ describe("GameTable — accessibility", () => {
 
   it("replaces the wall placeholder with the real wall counter component", () => {
     const wrapper = mountTable({
-      wallRemaining: 20,
+      wallRemaining: WALL_WARNING_THRESHOLD,
     });
 
-    expect(wrapper.get("[data-testid='wall-counter']").text()).toContain("Wall: 20");
+    expect(wrapper.get("[data-testid='wall-counter']").text()).toContain(
+      `Wall: ${WALL_WARNING_THRESHOLD}`,
+    );
     expect(wrapper.get("[data-testid='wall-counter']").classes()).toContain("border-wall-warning");
   });
 
   it("positions the wall counter above the discard pools in the center area", () => {
     const wrapper = mountTable({
-      wallRemaining: 20,
+      wallRemaining: WALL_WARNING_THRESHOLD,
     });
     const center = wrapper.get("[data-testid='table-center']").element;
     const wallCounter = center.querySelector("[data-testid='wall-counter']");

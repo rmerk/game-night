@@ -7,59 +7,15 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-05 7:54pm CDT
+# $CMEM mahjong-game 2026-04-06 4:20am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (27,476t read) | 482,627t work | 94% savings
+Stats: 50 obs (22,990t read) | 216,645t work | 89% savings
 
 ### Apr 5, 2026
-864 4:35p 🔵 GDS Code Review Workflow System
-865 4:41p 🔵 Host Migration System for Multiplayer Mahjong Game
-866 4:42p 🟣 Host Migration Integration Across Server Handlers
-867 " 🟣 Client-Side Phase-Conditional Host Promotion Toast
-868 " ✅ Host Migration Test Suite Validation Complete
-869 4:43p ✅ Type Safety and Lint Validation Passed
-870 4:44p ✅ Code Review Findings Documented in Story Spec
-871 " ✅ Story 4B.6 Marked as Done After Code Review
-872 4:59p 🟣 Story 4B.7 Created: Host Settings, 5th Player Handling, and REMATCH Validation
-873 5:02p 🟣 Host-configurable room settings with type-safe schema
-874 " 🟣 Protocol and server integration for room settings
-875 " 🔴 Fixed TypeScript compilation errors for mandatory settings field
-876 5:03p 🔴 Added settings field to 10 additional Room test mocks
-877 " 🔴 Fixed final TypeScript error in Vue showcase component
-878 " 🟣 Added unit tests for RoomSettings defaults and constants
-879 5:04p 🟣 Room settings validation, merge, and sync engine
-880 " 🟣 Protocol handlers for SET_ROOM_SETTINGS and refactored SET_JOKER_RULES
-881 5:05p 🟣 REMATCH protocol handler with lobby fallback
-882 " 🟣 WebSocket protocol routing for SET_ROOM_SETTINGS and REMATCH
-883 " 🟣 Unit tests for room settings validation and synchronization
-884 5:33p ✅ gds-dev-story validation pass documented for 5th player handling
-885 5:34p 🔵 GDS Code Review Workflow System
-886 5:35p 🔵 Story 4B.7 Room Settings and Rematch Implementation
-887 " 🔵 Server-Side Room Settings Handlers Implementation
-888 5:36p 🔵 Client-Side Room Settings UI and Table-Full Flow
-889 " 🔵 Test Coverage and Protocol Integration Points
-890 5:37p 🔵 Complete Stack Integration and Exhaustive Switch Coverage
-891 " 🔵 Comprehensive Test Coverage Across All Layers
-892 " 🔵 Detailed Test Strategy Implementation and Transition Scenario Coverage
-893 5:38p 🔵 Client UI Layer Complete Integration and Formatting
-894 6:33p ✅ Room settings panel now visible to all lobby players
-895 " 🔴 Fixed missing seats calculation in rematch waiting logic
-896 " ✅ Added test coverage for settings persistence on rematch fallback
-897 6:34p ✅ Added error handling test coverage for room join flow
-898 " ✅ Created test suite for SpectatorPlaceholderView component
-899 " 🔴 Test suite run revealed WebSocket mock constructor issue in T13
-900 6:35p 🔴 Fixed WebSocket mock constructor error in T13 test
-901 " 🔴 Verified T13 test now passes after WebSocket mock fix
-902 " ✅ Full test suite passes with all fixes applied
-903 " ✅ All tests and typecheck pass after implementation changes
-904 6:36p ✅ Updated implementation artifacts with code review fixes changelog
-905 " ✅ Updated File List to include SpectatorPlaceholderView test file
-906 6:38p 🔵 GDS Retrospective Workflow Skill Loaded
-S318 GDS Retrospective for Epic 4B: Multiplayer Resilience - Post-Epic Team Discussion and Analysis (Apr 5 at 6:38 PM)
 S319 Epic 4B Retrospective - Team Discussion of Wins and Concerns with Detailed Technical Analysis (Apr 5 at 6:42 PM)
 S320 Epic 4B Retrospective - Extended Team Discussion with Technical Debt and Testing Infrastructure Analysis (Apr 5 at 6:43 PM)
 S321 Epic 4B Retrospective - Overall Assessment and Transition to Action Item Formulation Phase (Apr 5 at 6:44 PM)
@@ -67,25 +23,90 @@ S322 Epic 4B Retrospective - Action Item Formulation and Epic 5B Preparation Pla
 S323 Epic 5B sprint planning validation and Epic 4B readiness check (Apr 5 at 6:46 PM)
 S324 Epic 4B codebase health assessment and retro closure readiness check (Apr 5 at 7:42 PM)
 S325 Epic 4B retrospective completion and action item tracking in sprint-status.yaml (Apr 5 at 7:43 PM)
-907 7:46p ⚖️ Epic 4B Retrospective: Multiplayer Resilience Complete
 S326 Epic 4B retrospective session completion and readiness confirmation for Epic 5B transition (Apr 5 at 7:47 PM)
-908 7:48p 🔵 GDS Create Story Workflow Structure
-909 7:49p 🔵 Story Creation Workflow Initialization for Epic 5B
-910 7:50p 🔵 Project Context Rules for Mahjong Game Implementation
-911 7:51p 🔵 Story 5B.1 Development Context Loaded
-912 7:52p 🔵 Architecture and UX Design Patterns for NMJL Card Panel
-913 7:53p 🟣 Story 5B.1 Developer Artifact Created for NMJL Card Panel
-S327 Create developer story file for Story 5B.1 (NMJL Card Panel with SlideInPanel and Full-Screen Overlay) (Apr 5 at 7:54 PM)
-**Investigated**: Four research agents executed to gather comprehensive context: epic-loader extracted Epic 5B with all 7 stories focusing on Story 5B.1 requirements; prev-story-gdd-loader analyzed previous story patterns from 4B.7, GDD card specifications, and project architecture rules; codebase-explorer examined existing SlideInPanel component, chat panel integration, NMJL card data schema and loader, GameTable layout, design tokens, toggle button patterns, and Pinia stores; arch-ux-loader extracted architecture patterns for client state management, Vue component conventions, animation tokens, accessibility requirements, and emotional design principles from planning documents
+S327 Create developer story file for Story 5B.1 (NMJL Card Panel with SlideInPanel and Full-Screen Overlay) (Apr 5 at 7:47 PM)
+918 7:59p 🟣 NMJL card reference panel with expandable hand details
+919 " 🟣 Toggle behavior and Charleston-aware mobile placement for NMJL panel
+920 " 🔴 Text fallback repetition in tile display
+921 " 🟣 Comprehensive test coverage for NMJL card panel
+922 " 🔴 Defensive focus call in NMJLCardPanel detail view
+923 8:00p ✅ NMJL feature validation and unused variable cleanup
+924 " ✅ Story 5B.1 documentation and completion tracking
+925 " ✅ Sprint status tracking updated for story 5B.1 review
+926 8:02p 🟣 NMJL Card Panel Toggle and Charleston Split-View Integration
+927 8:04p ✅ Dev-story second pass completed for NMJL card panel slide-in implementation
+928 8:07p 🟣 NMJL Card Panel Integration with Charleston Mobile Split-View
+929 " 🟣 Toggle Behavior Added for NMJL Panel Store Actions
+930 8:08p ✅ Story 5B.1 Marked Complete with Refined Mobile Sheet Specifications
+931 8:09p ✅ GDS Code Review Follow-up: Documentation Reconciliation and Dead Code Removal
+932 " ✅ Test Coverage Added for SlideInPanel Mobile Placement Behavior
+933 8:15p ✅ GDS Code Review Second Pass - NMJL Card Panel Quality Improvements
+934 8:26p 🔴 NMJL Card Panel List Semantics Accessibility Fix
+935 8:29p ✅ Story 5B.2 Implementation Spec: Hand Guidance Engine & Card Highlighting
+936 8:31p ✅ Story 5B.2 Spec Refinement: Normative Distance Definition & Performance Policy
+937 8:39p 🟣 Hand Guidance System for NMJL Card Pattern Ranking
+938 " 🔄 Simplified Hand Guidance by Removing Redundant Feasibility Check
+939 8:40p ✅ Exported Hand Guidance API from Shared Package
+940 " 🔵 Hand Guidance Tests Reveal Budget Matching Bug for Partial Hands
+941 " 🔴 Fixed Feasibility Check Rejecting Valid Partial Hands
+942 " 🟣 Hand Guidance Room Setting Configuration
+943 8:41p 🟣 Full-Stack Integration of Hand Guidance Room Setting
+944 " 🟣 Client-Side Hand Guidance Preferences with Auto-Disable After 3 Games
+945 8:42p ✅ Exposed Player's Melds in Game Table Mapper for Guidance
+946 " ✅ Hand Guidance Design Tokens with Warm Gold for Achievable Patterns
+947 " 🟣 NMJL Card Panel Guidance Rendering with Distance-Based Highlighting
+948 8:43p 🟣 GameTable Wired for Hand Guidance Computation and Auto-Disable Tracking
+949 " 🟣 Complete Hand Guidance Integration with Real-Time Pattern Ranking
+950 8:44p ✅ Test Coverage for Hand Guidance Data Flow and UI Controls
+951 " ✅ NMJLCardPanel Test Verifies Achievable Pattern Filtering
+952 " 🟣 Story 5B.2 Hand Guidance Implementation Complete and Ready for Review
+953 8:45p 🟣 Story 5B.2 All Tasks Completed and Documented for Code Review
+954 8:46p 🟣 Personal Guidance Re-Enable Button in NMJL Card Panel
+955 9:02p ✅ Hand Guidance Engine Regression Verification Documented
+956 9:07p 🔄 Toast Copy Messages Centralized in Shared Module
+957 " 🔄 Toast Copy Refactor Integrated Across RoomView and GameTable
+958 9:09p 🔄 Consolidated lobby toast watchers in RoomView
+959 9:10p 🔵 GDS code review identified AC4 copy mismatch in hand guidance feature
+960 9:11p 🔴 Fixed AC4 copy mismatch in hand guidance dismissal toast
+961 " ✅ Relaxed NFR8 performance test threshold to prevent CI flakes
+962 9:16p ✅ Distance Band Validation and Test Coverage for Mahjong Guidance System
+963 " ✅ Integration Tests for NMJL Guidance Pool Size Enforcement
+964 " 🔴 Test Issues Discovered in NMJL Guidance Integration Tests
+965 9:17p 🔴 Resolved Test Failures in NMJL Guidance Test Suite
+966 " ✅ GDS Code Review Second Pass Completion Documented
+### Apr 6, 2026
+967 4:16a 🔵 GDS Create Story Workflow System Architecture
+S328 Story 5B.3 (Wall Counter States & Tension Styling) - Comprehensive Story Specification Created (Apr 6 at 4:20 AM)
+**Investigated**: The PRIMARY session executed the gds-create-story workflow to create Story 5B.3. The workflow gathered exhaustive context from:
+  - Epic 5B specification and previous stories 5B.1-5B.2
+  - Existing WallCounter.vue component (66 lines with hardcoded thresholds)
+  - BaseBadge.vue wall-counter variant with tone-based styling
+  - Design tokens for wall colors (normal/warning/critical) and animation timing
+  - Architecture constraints (CSS transitions over Motion for Vue)
+  - UX specifications for tension communication without over-gamifying
 
-**Learned**: SlideInPanel infrastructure already exists from Epic 6A with mutual exclusivity enforced via slideInPanelStore managing activePanel state ("chat" | "nmjl"); SlideInReferencePanels component contains intentional NMJL placeholder ready for replacement; toggle buttons already wired in GameTable (desktop line 1074) and MobileBottomBar (mobile line 97) with aria-expanded and aria-controls properly configured; NMJL card data system complete with loadCard('2026') loading 54 hands across 7 categories from packages/shared/data/cards/2026.json; ReactionBar hiding automatically triggered via isAnySlideInPanelOpen computed property; responsive behavior handled by SlideInPanel component (280px slide-in on desktop >=768px, full-screen overlay on mobile); Charleston phase requires special split-view treatment on mobile preserving rack visibility; animation tokens enforce timing-tactile (120ms) for open and timing-exit (150ms) for close with prefers-reduced-motion support via Motion for Vue
+**Learned**: - Story 5B.3 enhances the existing wall counter component from 5A.8, not replacing it
+  - Current implementation has hardcoded thresholds (20, 10) that need extraction to shared constants
+  - Animated transitions should use existing CSS transitions with --timing-expressive (400ms), not Motion for Vue
+  - Three states: normal (>20 tiles, green), warning (≤20 tiles, gold), critical (≤10 tiles, rust)
+  - Accessibility features (aria-live announcements) must be preserved
+  - The story file includes 5 acceptance criteria and 5 implementation tasks
 
-**Completed**: Developer story file created at _bmad-output/implementation-artifacts/5b-1-nmjl-card-panel-slideinpanel-full-screen-overlay.md with status ready-for-dev; comprehensive artifact includes 7 acceptance criteria, 9 transition scenarios documenting state changes, 7 task groups with 47 detailed subtasks covering component creation (NMJLCardPanel.vue, HandPatternNotation.vue, HandPatternDetail.vue), SlideInReferencePanels integration, Charleston split-view mobile layout, desktop toggleNmjl() store action, keyboard accessibility, styling with design tokens, and unit testing; dev notes document existing infrastructure, data sources, component placement, styling rules, anti-patterns, testing standards, cross-session intelligence, and references to source documents; sprint-status.yaml updated with Epic 5B status changed from backlog to in-progress and Story 5B.1 status changed from backlog to ready-for-dev
+**Completed**: - Created comprehensive story file: _bmad-output/implementation-artifacts/5b-3-wall-counter-states-tension-styling.md
+  - Updated sprint-status.yaml:
+    - Changed last_updated to "2026-04-06 # 5B.3 story created"
+    - Transitioned story status from "backlog" to "ready-for-dev"
+  - Story now includes:
+    - Full context from previous stories and architecture
+    - Current implementation analysis
+    - Anti-patterns to avoid (Motion for Vue wrapper, hardcoded thresholds)
+    - Detailed acceptance criteria with specific transition timing
+    - Task breakdown for configurable thresholds and CSS transitions
 
-**Next Steps**: Story 5B.1 ready for implementation via dev-story workflow; implementation will create NMJLCardPanel component loading 2026 card data, replace placeholder content in SlideInReferencePanels, add toggleNmjl() action to slideInPanelStore, implement Charleston split-view layout for mobile, add detail view with tap-to-enlarge pattern breakdowns, ensure accessibility compliance, apply design tokens for styling, and write comprehensive unit tests
+**Next Steps**: Story 5B.3 is now ready for developer implementation. The PRIMARY session has completed the story creation workflow. Epic 5B remains "in-progress" with stories 5B.1 and 5B.2 done, 5B.3 ready-for-dev, and 5B.4-5B.7 still in backlog.
 
 
-Access 483k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 217k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

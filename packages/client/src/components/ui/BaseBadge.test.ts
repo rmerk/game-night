@@ -55,6 +55,23 @@ describe("BaseBadge", () => {
     );
   });
 
+  it("applies the wall-counter normal styling", () => {
+    const wrapper = mountBaseBadge({ variant: "wall-counter", tone: "normal" });
+
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([
+        "inline-flex",
+        "rounded-full",
+        "border",
+        "bg-chrome-surface-dark/85",
+        "wall-counter-tone-transition",
+        "wall-counter-wash-normal",
+        "border-wall-normal",
+        "text-text-on-felt",
+      ]),
+    );
+  });
+
   it("applies the wall-counter warning styling", () => {
     const wrapper = mountBaseBadge({ variant: "wall-counter", tone: "warning" });
 
@@ -64,9 +81,27 @@ describe("BaseBadge", () => {
         "rounded-full",
         "border",
         "bg-chrome-surface-dark/85",
-        "shadow-panel",
+        "wall-counter-tone-transition",
+        "wall-counter-wash-warning",
         "border-wall-warning",
         "text-wall-warning",
+      ]),
+    );
+  });
+
+  it("applies the wall-counter critical styling", () => {
+    const wrapper = mountBaseBadge({ variant: "wall-counter", tone: "critical" });
+
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([
+        "inline-flex",
+        "rounded-full",
+        "border",
+        "bg-chrome-surface-dark/85",
+        "wall-counter-tone-transition",
+        "wall-counter-wash-critical",
+        "border-wall-critical",
+        "text-wall-critical",
       ]),
     );
   });

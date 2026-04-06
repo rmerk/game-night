@@ -26,17 +26,23 @@ const badgeClasses = computed(() => {
   }
 
   if (props.variant === "wall-counter") {
+    let washClass: string;
     let toneClasses: string;
     if (props.tone === "critical") {
       toneClasses = "border-wall-critical text-wall-critical";
+      washClass = "wall-counter-wash-critical";
     } else if (props.tone === "warning") {
       toneClasses = "border-wall-warning text-wall-warning";
+      washClass = "wall-counter-wash-warning";
     } else {
       toneClasses = "border-wall-normal text-text-on-felt";
+      washClass = "wall-counter-wash-normal";
     }
 
     return [
-      "inline-flex items-center rounded-full border bg-chrome-surface-dark/85 shadow-panel",
+      "inline-flex items-center rounded-full border bg-chrome-surface-dark/85",
+      "wall-counter-tone-transition",
+      washClass,
       toneClasses,
     ];
   }
@@ -53,3 +59,37 @@ const badgeClasses = computed(() => {
     <slot />
   </component>
 </template>
+
+<style scoped>
+/* Wall counter: expressive tone transitions + subtle inset wash (Epic 5B). Base panel shadow matches themeShadows.panel. */
+.wall-counter-tone-transition {
+  --wall-counter-panel-shadow:
+    0 4px 12px rgba(107, 97, 88, 0.12), 0 2px 4px rgba(107, 97, 88, 0.08);
+
+  transition-property: border-color, color, background-color, box-shadow;
+  transition-duration: var(--timing-expressive);
+  transition-timing-function: var(--ease-expressive);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-counter-tone-transition {
+    transition-duration: 0ms;
+  }
+}
+
+.wall-counter-wash-normal {
+  box-shadow: var(--wall-counter-panel-shadow);
+}
+
+.wall-counter-wash-warning {
+  box-shadow:
+    var(--wall-counter-panel-shadow),
+    inset 0 0 18px rgba(212, 168, 67, 0.18);
+}
+
+.wall-counter-wash-critical {
+  box-shadow:
+    var(--wall-counter-panel-shadow),
+    inset 0 0 20px rgba(184, 85, 58, 0.22);
+}
+</style>

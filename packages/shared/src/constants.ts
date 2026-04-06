@@ -63,3 +63,9 @@ export const GROUP_SIZES: Record<(typeof GROUP_TYPES)[number], number> = {
   news: 4,
   dragon_set: 3,
 };
+
+/** Wall counter: remaining tiles at or below this value use warning styling (client HUD). */
+export const WALL_WARNING_THRESHOLD = 20;
+
+/** Wall counter: remaining tiles at or below this value use critical styling (client HUD). */
+export const WALL_CRITICAL_THRESHOLD = 10;

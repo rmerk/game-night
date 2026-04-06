@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { WALL_CRITICAL_THRESHOLD, WALL_WARNING_THRESHOLD } from "@mahjong-game/shared";
 import { computed, shallowRef, watch } from "vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 
@@ -9,11 +10,11 @@ const props = defineProps<{
 type WallTone = "normal" | "warning" | "critical";
 
 const tone = computed<WallTone>(() => {
-  if (props.wallRemaining <= 10) {
+  if (props.wallRemaining <= WALL_CRITICAL_THRESHOLD) {
     return "critical";
   }
 
-  if (props.wallRemaining <= 20) {
+  if (props.wallRemaining <= WALL_WARNING_THRESHOLD) {
     return "warning";
   }
 
