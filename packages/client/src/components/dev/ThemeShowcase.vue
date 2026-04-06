@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
+
+// Duplicated from GameTable.vue — acceptable for a dev showcase component (static string constant)
+const feltGrainBgImage =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.07'/%3E%3C/svg%3E\")";
+
 import BaseBadge from "../ui/BaseBadge.vue";
 import BaseButton from "../ui/BaseButton.vue";
 import BasePanel from "../ui/BasePanel.vue";
@@ -242,6 +247,26 @@ const moods = ["mood-arriving", "mood-playing", "mood-lingering"];
           <code class="text-secondary w-48">--timing-exit</code>
           <span>150ms, ease-in</span>
           <span class="text-text-secondary">(element exit)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Felt Grain Overlay Preview (AC 1) -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Felt Grain Overlay (AC 1)</h2>
+      <p class="text-3.5 text-text-secondary mb-4">
+        CSS SVG feTurbulence grain on felt-teal surface. Visible during Playing mood.
+      </p>
+      <div class="relative w-full h-32 rounded-lg bg-felt-teal overflow-hidden">
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-0 z-0 opacity-50 mix-blend-overlay bg-[length:200px_200px]"
+          :style="{ backgroundImage: feltGrainBgImage }"
+        />
+        <div
+          class="relative z-1 flex h-full items-center justify-center text-text-on-felt text-3.5"
+        >
+          Felt surface with grain texture
         </div>
       </div>
     </section>
