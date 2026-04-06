@@ -203,6 +203,11 @@ describe("GameTable — felt grain overlay (AC 1)", () => {
     const overlay = wrapper.find("[data-testid='felt-grain-overlay']");
     expect(overlay.classes()).toContain("pointer-events-none");
   });
+
+  it("renders felt-grain-overlay element during charleston phase (playing mood)", () => {
+    const wrapper = mountTable({ gamePhase: "charleston" });
+    expect(wrapper.find("[data-testid='felt-grain-overlay']").exists()).toBe(true);
+  });
 });
 
 describe("GameTable — layout structure", () => {
