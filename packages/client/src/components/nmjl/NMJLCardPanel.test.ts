@@ -93,4 +93,17 @@ describe("NMJLCardPanel", () => {
     const headings = wrapper.findAll('[role="heading"][aria-level="3"]');
     expect(headings.length).toBe(7);
   });
+
+  it("lists hand patterns with native list semantics per category", () => {
+    const card = loadCard("2026");
+    const wrapper = mountPanel();
+    const lists = wrapper.findAll(".nmjl-card-panel__scroll ul");
+    expect(lists.length).toBe(card.categories.length);
+    for (const list of lists) {
+      expect(list.attributes("role")).not.toBe("presentation");
+    }
+    const items = wrapper.findAll(".nmjl-card-panel__scroll ul li");
+    expect(items.length).toBe(54);
+    expect(items[0]?.attributes("role")).not.toBe("presentation");
+  });
 });

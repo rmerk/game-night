@@ -125,12 +125,11 @@ function onRowActivate(hand: HandPattern, ev: MouseEvent) {
         >
           {{ cat.name }}
         </h3>
-        <ul class="space-y-2" role="presentation">
+        <ul class="space-y-2" :aria-label="`${cat.name} hand patterns`">
           <li
             v-for="hand in cat.hands"
             :key="hand.id"
             class="rounded-md border border-chrome-border bg-chrome-surface/60"
-            role="presentation"
           >
             <button
               type="button"
