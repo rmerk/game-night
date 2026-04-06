@@ -96,6 +96,20 @@ describe("OpponentArea — player present", () => {
   });
 });
 
+describe("OpponentArea — celebration seat marker", () => {
+  it("root element has data-celebration-seat attribute with player id", () => {
+    const wrapper = mountOpponentArea({ player: connectedPlayer });
+    const shell = wrapper.get("[data-testid='opponent-area-shell']");
+    expect(shell.attributes("data-celebration-seat")).toBe("player-south");
+  });
+
+  it("root element has empty data-celebration-seat when player is null", () => {
+    const wrapper = mountOpponentArea({ player: null });
+    const shell = wrapper.get("[data-testid='opponent-area-shell']");
+    expect(shell.attributes("data-celebration-seat")).toBe("");
+  });
+});
+
 describe("OpponentArea — null player (empty seat)", () => {
   it("renders waiting text when player is null", () => {
     const wrapper = mountOpponentArea({ player: null });

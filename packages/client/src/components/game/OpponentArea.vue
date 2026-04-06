@@ -31,10 +31,11 @@ const isDev = import.meta.env.DEV;
     data-testid="opponent-area-shell"
     class="opponent-area flex max-w-[140px] flex-col items-center gap-1 rounded-xl px-2 py-1 transition md:max-w-[120px] lg:max-w-[140px]"
     :class="{ 'bg-chrome-surface-dark/25 ring-2 ring-state-turn-active': isActiveTurn }"
+    :data-celebration-seat="player?.id ?? ''"
   >
     <template v-if="player">
       <div class="relative flex flex-col items-center gap-1">
-        <div class="relative">
+        <div class="relative isolate">
           <PlayerPresence
             :player-id="player.id"
             :display-name="player.name"
