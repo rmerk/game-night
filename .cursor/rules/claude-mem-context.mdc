@@ -7,40 +7,16 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 9:54am CDT
+# $CMEM mahjong-game 2026-04-06 10:21am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (26,898t read) | 472,968t work | 94% savings
+Stats: 50 obs (22,949t read) | 521,721t work | 96% savings
 
 ### Apr 6, 2026
-1082 7:03a 🔵 Story 5B.7 Ready for Code Review
-1083 " 🔵 Code Changes Include Undocumented Features Beyond Story Scope
-1084 7:04a 🔵 Activity Ticker Implementation Quality Assessment
-1085 7:06a ✅ Story 5B.7 Status Updated to Done After Clean Code Review
-1097 8:29a ✅ Epic 5B Retrospective Document Generated
-1098 " ✅ Sprint Status Updated for Epic 5B Retrospective Completion
-S361 Create story: Pre-6B Debt Cleanup (Room Type Extraction & 4B.4 Integration Test Gaps) (Apr 6 at 8:30 AM)
-S362 GDS Code Review of Pre-6B Debt Cleanup Story - Room Type Refactoring and 4B.4 Integration Tests (Apr 6 at 8:38 AM)
-1099 8:38a 🔄 Room state structure reorganized into logical nested interfaces
-1100 8:40a 🟣 Test utility infrastructure created for nested room state structure
-1101 8:43a 🟣 Type-safe partial overrides added for nested room state in test utilities
-1102 8:44a ✅ Room state refactoring completed - all tests migrated to nested structure
-1103 8:47a 🟣 Integration tests added for turn timer and AFK vote WebSocket flows
-1104 8:57a 🔄 Extracted shared WebSocket testing utilities to eliminate duplication
-1105 8:58a 🔄 Completed migration to shared WebSocket testing utilities across all test files
-1106 8:59a 🔵 GDS Code Review Workflow Structure
-1107 " 🔵 Pre-6B Debt Cleanup Story Under Review
-1108 9:00a 🔵 Room Type Sub-Object Architecture Validated
-1109 " 🔵 Room Sub-Object Field Groupings Verified
-1110 " 🔵 Shared Test Builder Pattern Implementation
-1111 9:01a 🔵 Test File Migration Strategy Validated
-1112 " 🔵 Part B Integration Tests Validated
-1114 9:02a 🔵 Test Suite Validation and Field Migration Verification
-1116 " 🔵 Field Path Migration Breadth Confirmed
-S363 GDS Code Review Completion with Auto-Fix and Retrospective Item Closure (Apr 6 at 9:03 AM)
+1116 9:02a 🔵 Field Path Migration Breadth Confirmed
 1121 9:03a ✅ Code Review Auto-Fix Applied - File List Expanded and Story Marked Done
 S364 Code Review Completion with Retrospective Closure Discussion (Apr 6 at 9:04 AM)
 1122 9:07a ✅ Retrospective Follow-Through Items Closed
@@ -56,6 +32,7 @@ S369 Create Story 6B.1: LiveKit SDK Integration & Connection Setup using gds-cre
 1129 9:22a 🔵 GDS Story Creation Workflow Structure
 1130 9:23a 🔵 Story Creation Workflow Initialization
 1133 9:24a 🔵 Epic 6B Story Context Analysis for LiveKit WebRTC Integration
+S370 Adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - examining implementation against acceptance criteria and task claims (Apr 6 at 9:30 AM)
 1135 9:35a 🟣 Added LiveKit SDK for real-time communication
 1136 " ✅ Configured LiveKit environment variables with security separation
 1137 9:36a 🟣 Created LiveKit configuration module with environment-aware validation
@@ -75,17 +52,40 @@ S369 Create Story 6B.1: LiveKit SDK Integration & Connection Setup using gds-cre
 1151 9:44a 🔴 Build failed due to manualChunks object format incompatibility
 1152 9:45a 🔴 Fixed manualChunks configuration for rolldown bundler compatibility
 1153 9:47a ✅ LiveKit Integration Story Follow-up Pass Complete
-S370 Adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - examining implementation against acceptance criteria and task claims (Apr 6 at 9:54 AM)
-**Investigated**: The primary session performed a comprehensive code review of the LiveKit SDK integration story. The reviewer systematically examined: git changes vs story File List, all server-side components (livekit-handler.ts, config/livekit.ts, token generation, ws-server.ts routing), client-side implementation (useLiveKit composable, liveKit store, parseServerMessage, useRoomConnection integration), shared protocol types, test coverage for both client and server, Vite bundle configuration, environment variable documentation, and TURN/STUN deployment documentation.
+S371 Complete adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - identify issues, apply fixes, verify with tests, and update documentation (Apr 6 at 9:54 AM)
+1158 9:58a ✅ Story 6B.1 Code Review Complete - LiveKit Integration Quality Improvements
+S372 Create Story 6B.2: Video Thumbnails at Seat Positions using gds-create-story workflow (Apr 6 at 9:58 AM)
+1161 10:01a 🔵 Story 6B.2 Context Preparation: Video Thumbnails at Seat Positions
+1166 10:07a 🟣 LiveKit Video Track State Management
+1167 10:08a 🟣 Integrated Video State into useLiveKit Public API
+1168 " ✅ Added Type Safety and Test Coverage for LiveKit Video State
+1169 " 🔄 Centralized Mock Camera Publication State in Tests
+1170 " 🔴 Fixed Missing getTrackPublication in Remote Participant Mock
+1171 10:09a 🟣 Created Shared Presence Frame Layout System
+1172 " 🟣 Implemented Player Presence UI with Video and Avatar Components
+1173 10:10a ✅ Added Comprehensive Test Coverage for Presence Components
+1174 " 🔴 Fixed Invalid Chai Assertion in VideoThumbnail Test
+1175 " 🟣 Integrated PlayerPresence Component into OpponentArea
+1176 10:11a 🟣 Wired LiveKit Video State to GameTable Opponent Areas
+1177 " 🟣 Added PlayerPresence Component to Local Player Area
+1178 " 🔴 Fixed TypeScript Type Definition for Remote Participants in Tests
+1179 10:12a ✅ Added Integration Test for LiveKit Presence in GameTable
+1180 " 🔴 Fixed Vue Import Hoisting Error in LiveKit Presence Test
+1181 " 🔄 Consolidated LiveKit Test State into Single Hoisted Object
+1182 " 🔴 Fixed Linting Errors in LiveKit Video Track Types
+1184 10:15a 🔄 Refined participantVideoByIdentity API to include camera enabled state
+1185 10:16a ✅ Documented AC-to-code traceability and second-pass review for video thumbnails feature
+S373 Adversarial code review of Story 6B.2 (Video Thumbnails at Seat Positions) - examining implementation against acceptance criteria and tasks (Apr 6 at 10:21 AM)
+**Investigated**: The review examined 13 files implementing LiveKit video presence: useLiveKit composable with track subscription/mute handlers, PlayerPresence/VideoThumbnail/AvatarFallback Vue components, GameTable and OpponentArea integration, comprehensive test coverage, and git status verification. Structural analysis used smart_outline/smart_search/smart_unfold to map component dependencies. All 1,600 tests across packages (shared: 678, client: 546, server: 376) passed successfully.
 
-**Learned**: The LiveKit integration follows the established WebSocket handler pattern with token-based authentication. The server generates JWTs using livekit-server-sdk when seated players request tokens, and the client connects via a separate composable that treats A/V failures as non-fatal. The implementation correctly separates the LiveKit bundle, implements graceful degradation on connection failure, documents deployment requirements, and integrates cleanup into the existing resetSocialUiForSession pattern. However, the review discovered test gaps (missing connect-failure test case), dead code (unused getLiveKitUrl composable and VITE_LIVEKIT_URL env var), and duplicated utility functions (trySendJson copied rather than shared).
+**Learned**: The implementation correctly implements all 6 Acceptance Criteria: video frames at seat positions with responsive sizing (desktop 140x96, tablet 120x80, mobile 40x40 with tap-to-expand), camera toggle handling with zero layout shift via fixed container dimensions, and avatar fallback when camera disabled. The useLiveKit composable exposes participantVideoByIdentity (track + isCameraEnabled per participant) and activeSpeakers state synced from LiveKit room events. PlayerPresence component conditionally renders VideoThumbnail or AvatarFallback based on track availability. All 7 tasks marked complete are genuinely implemented. Git status matches story File List exactly (0 discrepancies).
 
-**Completed**: Code review completed with findings documented: 1 High issue (Task 11.3 test missing - connect with invalid token case has no coverage), 2 Medium issues (getLiveKitUrl dead code, duplicated trySendJson utility), 1 Low issue (cleanup function untested). All 5 acceptance criteria verified as implemented correctly. The review confirmed proper security (API secrets server-only), bundle separation, fallback behavior, protocol integration, and comprehensive documentation.
+**Completed**: Adversarial review completed with findings: 0 critical issues, 2 medium issues (missing unit test coverage for TrackMuted/TrackUnmuted and LocalTrackPublished/LocalTrackUnpublished event handlers in useLiveKit composable), 1 low issue (avatar renders as ellipse at non-square tablet/desktop dimensions despite AC5 saying "circle" - acceptable trade-off for layout stability). All acceptance criteria verified as implemented. Test suite validates backpressure gate (Task 7).
 
-**Next Steps**: The primary session is awaiting user decision on how to handle the 4 identified issues: option 1 (fix automatically), option 2 (create action items in story), or option 3 (examine specific issues in detail). The reviewer has presented the findings to Rchoi and is waiting for direction before proceeding with remediation or action item creation.
+**Next Steps**: Awaiting user decision on remediation approach: (1) automatically add 4 missing unit tests for track event handlers, (2) create action items in story Tasks/Subtasks for later follow-up, or (3) request detailed explanation of specific issues. Story status update and sprint sync will follow remediation choice.
 
 
-Access 473k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 522k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

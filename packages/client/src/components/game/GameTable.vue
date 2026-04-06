@@ -5,6 +5,7 @@ import { storeToRefs } from "pinia";
 import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
+import PlayerPresence from "./PlayerPresence.vue";
 import TurnIndicator from "./TurnIndicator.vue";
 import ActivityTicker from "./ActivityTicker.vue";
 import WallCounter from "./WallCounter.vue";
@@ -59,6 +60,7 @@ import { useReactionsStore, type ReactionBubbleRecord } from "../../stores/react
 import { useActivityTickerStore } from "../../stores/activityTicker";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
+import { useLiveKit, type ParticipantVideoState } from "../../composables/useLiveKit";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 import {
   toastCopyHandShown,
@@ -516,6 +518,37 @@ const isConfirmingMahjongCall = computed(
 const topPlayer = computed(() => props.opponents.top ?? null);
 const leftPlayer = computed(() => props.opponents.left ?? null);
 const rightPlayer = computed(() => props.opponents.right ?? null);
+
+const liveKit = useLiveKit();
+
+function presenceForPlayer(playerId: string | undefined): ParticipantVideoState {
+  if (!playerId) {
+    return { videoTrack: null, isCameraEnabled: false };
+  }
+  return (
+    liveKit.participantVideoByIdentity.value.get(playerId) ?? {
+      videoTrack: null,
+      isCameraEnabled: false,
+    }
+  );
+}
+
+function isSpeakingPlayer(playerId: string | undefined): boolean {
+  if (!playerId) {
+    return false;
+  }
+  return liveKit.activeSpeakers.value.has(playerId);
+}
+
+function initialFromName(name: string): string {
+  const t = name.trim();
+  return t ? t.charAt(0).toUpperCase() : "?";
+}
+
+const presenceTop = computed(() => presenceForPlayer(topPlayer.value?.id));
+const presenceLeft = computed(() => presenceForPlayer(leftPlayer.value?.id));
+const presenceRight = computed(() => presenceForPlayer(rightPlayer.value?.id));
+const presenceLocal = computed(() => presenceForPlayer(props.localPlayer?.id));
 
 const isScoreboardPhase = computed(() => props.gamePhase === "scoreboard");
 
@@ -1083,6 +1116,9 @@ function onChatEscape() {
         :is-active-turn="isSeatActive(topPlayer?.seatWind)"
         :score="topPlayer?.score ?? null"
         :is-dead-seat="isDeadSeatPlayer(topPlayer?.id)"
+        :video-track="presenceTop.videoTrack"
+        :is-camera-enabled="presenceTop.isCameraEnabled"
+        :is-speaking="isSpeakingPlayer(topPlayer?.id)"
       />
       <ShownHand
         v-if="isScoreboardPhase && topPlayer && hasPlayerRevealedHand(topPlayer.id)"
@@ -1112,6 +1148,9 @@ function onChatEscape() {
           :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
           :score="leftPlayer?.score ?? null"
           :is-dead-seat="isDeadSeatPlayer(leftPlayer?.id)"
+          :video-track="presenceLeft.videoTrack"
+          :is-camera-enabled="presenceLeft.isCameraEnabled"
+          :is-speaking="isSpeakingPlayer(leftPlayer?.id)"
         />
         <ShownHand
           v-if="isScoreboardPhase && leftPlayer && hasPlayerRevealedHand(leftPlayer.id)"
@@ -1240,6 +1279,10 @@ function onChatEscape() {
                   :player="leftPlayer"
                   :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
                   :score="leftPlayer?.score ?? null"
+                  :is-dead-seat="isDeadSeatPlayer(leftPlayer?.id)"
+                  :video-track="presenceLeft.videoTrack"
+                  :is-camera-enabled="presenceLeft.isCameraEnabled"
+                  :is-speaking="isSpeakingPlayer(leftPlayer?.id)"
                 />
               </div>
               <div class="relative flex flex-col items-center">
@@ -1255,6 +1298,10 @@ function onChatEscape() {
                   :player="rightPlayer"
                   :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
                   :score="rightPlayer?.score ?? null"
+                  :is-dead-seat="isDeadSeatPlayer(rightPlayer?.id)"
+                  :video-track="presenceRight.videoTrack"
+                  :is-camera-enabled="presenceRight.isCameraEnabled"
+                  :is-speaking="isSpeakingPlayer(rightPlayer?.id)"
                 />
               </div>
             </div>
@@ -1339,6 +1386,9 @@ function onChatEscape() {
           :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
           :score="rightPlayer?.score ?? null"
           :is-dead-seat="isDeadSeatPlayer(rightPlayer?.id)"
+          :video-track="presenceRight.videoTrack"
+          :is-camera-enabled="presenceRight.isCameraEnabled"
+          :is-speaking="isSpeakingPlayer(rightPlayer?.id)"
         />
         <ShownHand
           v-if="isScoreboardPhase && rightPlayer && hasPlayerRevealedHand(rightPlayer.id)"
@@ -1371,7 +1421,20 @@ function onChatEscape() {
         <ReactionBubbleStack :items="reactionBubblesByAnchor.local" />
       </div>
       <div data-testid="rack-zone-entry">
-        <div v-if="localPlayer" class="mb-2 flex justify-center">
+        <div
+          v-if="localPlayer"
+          class="mb-2 flex flex-col flex-wrap items-center justify-center gap-2 sm:flex-row"
+        >
+          <PlayerPresence
+            position="local"
+            :player-id="localPlayer.id"
+            :display-name="localPlayer.name"
+            :initial="initialFromName(localPlayer.name)"
+            :is-active-turn="isLocalPlayerTurn"
+            :video-track="presenceLocal.videoTrack"
+            :is-camera-enabled="presenceLocal.isCameraEnabled"
+            :is-speaking="isSpeakingPlayer(localPlayer.id)"
+          />
           <BasePanel
             data-testid="local-player-status-shell"
             tag="div"
