@@ -28,7 +28,7 @@ export function humanValue(key: keyof RoomSettings, next: RoomSettings): string 
     case "jokerRulesMode":
       return next.jokerRulesMode === "standard" ? "Standard" : "Simplified";
     case "dealingStyle":
-      return next.dealingStyle === "instant" ? "Instant" : "Animated";
+      return next.dealingStyle === "instant" ? "Instant" : "Animated traditional";
     case "handGuidanceEnabled":
       return next.handGuidanceEnabled ? "On" : "Off";
     default: {

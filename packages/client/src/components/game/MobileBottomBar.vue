@@ -2,7 +2,11 @@
 import { onMounted, shallowRef, useTemplateRef } from "vue";
 import BasePanel from "../ui/BasePanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
-import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "../chat/slideInPanelIds";
+import {
+  SLIDE_IN_CHAT_PANEL_ROOT_ID,
+  SLIDE_IN_NMJL_PANEL_ROOT_ID,
+  SLIDE_IN_SETTINGS_PANEL_ROOT_ID,
+} from "../chat/slideInPanelIds";
 
 const slideInPanelStore = useSlideInPanelStore();
 
@@ -117,6 +121,19 @@ onMounted(() => {
     >
       <span class="text-5">💬</span>
       <span>Chat</span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="settings-toggle-mobile"
+      class="min-tap flex flex-col items-center justify-center rounded-md px-3 py-2 text-3 text-text-primary/85 focus-visible:focus-ring-on-chrome"
+      aria-label="Room settings"
+      :aria-expanded="slideInPanelStore.activePanel === 'settings'"
+      :aria-controls="SLIDE_IN_SETTINGS_PANEL_ROOT_ID"
+      @click="slideInPanelStore.toggleSettings()"
+    >
+      <span class="text-5" aria-hidden="true">⚙</span>
+      <span>Settings</span>
     </button>
 
     <button

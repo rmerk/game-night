@@ -1,17 +1,24 @@
 <script setup lang="ts">
 /**
- * Collapsible host room settings — timer, Joker rules, dealing style (Story 4B.7).
+ * Room settings — timer, Joker rules, dealing style, hand guidance (4B.7, 5B.6).
  * Emits single-key patches; server is authoritative.
  */
 import { computed } from "vue";
 import { useDebounceFn } from "@vueuse/core";
 import type { GamePhase, RoomSettings } from "@mahjong-game/shared";
+import BaseToggle from "../ui/BaseToggle.vue";
+import BaseNumberStepper from "../ui/BaseNumberStepper.vue";
 
-const props = defineProps<{
-  settings: RoomSettings;
-  canEdit: boolean;
-  phase: GamePhase | "lobby";
-}>();
+const props = withDefaults(
+  defineProps<{
+    settings: RoomSettings;
+    canEdit: boolean;
+    phase: GamePhase | "lobby";
+    /** Hide top title when the parent already provides a panel header (e.g. slide-in). */
+    embedded?: boolean;
+  }>(),
+  { embedded: false },
+);
 
 const emit = defineEmits<{
   change: [patch: Partial<RoomSettings>];
@@ -21,50 +28,60 @@ const debouncedDuration = useDebounceFn((sec: number) => {
   emit("change", { turnDurationMs: sec * 1000 });
 }, 300);
 
-function onTimerModeChange(ev: Event) {
-  const v = (ev.target as HTMLSelectElement).value;
-  if (v !== "timed" && v !== "none") return;
-  emit("change", { timerMode: v });
-}
+const timerTimed = computed({
+  get: () => props.settings.timerMode === "timed",
+  set: (v: boolean) => {
+    emit("change", { timerMode: v ? "timed" : "none" });
+  },
+});
 
-function onDurationInput(ev: Event) {
-  const raw = Number((ev.target as HTMLInputElement).value);
-  if (!Number.isFinite(raw)) return;
-  debouncedDuration(raw);
-}
+const jokerSimplified = computed({
+  get: () => props.settings.jokerRulesMode === "simplified",
+  set: (v: boolean) => {
+    emit("change", { jokerRulesMode: v ? "simplified" : "standard" });
+  },
+});
 
-function onJokerChange(ev: Event) {
-  const v = (ev.target as HTMLSelectElement).value;
-  if (v !== "standard" && v !== "simplified") return;
-  emit("change", { jokerRulesMode: v });
-}
+const dealingAnimated = computed({
+  get: () => props.settings.dealingStyle === "animated",
+  set: (v: boolean) => {
+    emit("change", { dealingStyle: v ? "animated" : "instant" });
+  },
+});
 
-function onDealingChange(ev: Event) {
-  const v = (ev.target as HTMLSelectElement).value;
-  if (v !== "instant" && v !== "animated") return;
-  emit("change", { dealingStyle: v });
-}
+const handGuidanceOn = computed({
+  get: () => props.settings.handGuidanceEnabled,
+  set: (v: boolean) => {
+    emit("change", { handGuidanceEnabled: v });
+  },
+});
 
-function onHandGuidanceChange(ev: Event) {
-  const v = (ev.target as HTMLSelectElement).value;
-  if (v !== "on" && v !== "off") return;
-  emit("change", { handGuidanceEnabled: v === "on" });
-}
+const durationSeconds = computed({
+  get: () => Math.round(props.settings.turnDurationMs / 1000),
+  set: (sec: number) => {
+    debouncedDuration(sec);
+  },
+});
 
 const showLockedNote = computed(() => !props.canEdit && props.phase !== "lobby");
+
+const showHeading = computed(() => !props.embedded);
+
+const controlsDisabled = computed(() => !props.canEdit);
 </script>
 
 <template>
-  <details
+  <div
     data-testid="room-settings-panel"
     class="rounded-md border border-chrome-border bg-chrome-surface/90 text-text-primary"
   >
-    <summary
-      class="cursor-pointer select-none px-3 py-2 text-3.5 font-medium focus-visible:focus-ring-on-chrome"
+    <h2
+      v-if="showHeading"
+      class="border-b border-chrome-border px-3 py-2 text-interactive text-3.5 font-semibold"
     >
       Room settings
-    </summary>
-    <div class="space-y-3 border-t border-chrome-border px-3 py-3 text-3.5">
+    </h2>
+    <div class="space-y-4 px-3 py-3 text-3.5">
       <p
         v-if="showLockedNote"
         data-testid="room-settings-locked-note"
@@ -73,91 +90,51 @@ const showLockedNote = computed(() => !props.canEdit && props.phase !== "lobby")
         Settings are locked during play
       </p>
 
+      <BaseToggle v-model="timerTimed" :disabled="controlsDisabled" label="Timed turns" />
+      <p class="text-3 text-text-secondary">
+        When off, there is no turn timer. When on, use the duration below.
+      </p>
+
+      <BaseNumberStepper
+        v-model="durationSeconds"
+        :min="15"
+        :max="30"
+        :step="5"
+        :disabled="controlsDisabled || settings.timerMode === 'none'"
+        label="Turn duration (seconds)"
+      />
+
       <div>
-        <label class="mb-1 block text-text-secondary" for="room-settings-timer-mode"
-          >Timer mode</label
-        >
-        <select
-          id="room-settings-timer-mode"
-          data-testid="room-settings-timer-mode"
-          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-          :disabled="!canEdit"
-          :value="settings.timerMode"
-          @change="onTimerModeChange"
-        >
-          <option value="timed">Timed turns</option>
-          <option value="none">No timer</option>
-        </select>
+        <p class="mb-2 text-text-secondary">Joker rules</p>
+        <BaseToggle
+          v-model="jokerSimplified"
+          :disabled="controlsDisabled"
+          label="Simplified joker rules"
+        />
+        <p class="mt-1 text-3 text-text-secondary">Off: NMJL standard. On: simplified option.</p>
       </div>
 
       <div>
-        <label class="mb-1 block text-text-secondary" for="room-settings-turn-duration"
-          >Turn duration (seconds)</label
-        >
-        <input
-          id="room-settings-turn-duration"
-          data-testid="room-settings-turn-duration"
-          type="number"
-          min="15"
-          max="30"
-          step="1"
-          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-          :disabled="!canEdit || settings.timerMode === 'none'"
-          :value="Math.round(settings.turnDurationMs / 1000)"
-          @input="onDurationInput"
+        <p class="mb-2 text-text-secondary">Dealing style</p>
+        <BaseToggle
+          v-model="dealingAnimated"
+          :disabled="controlsDisabled"
+          label="Animated traditional dealing"
+        />
+        <p class="mt-1 text-3 text-text-secondary">
+          Off: tiles appear instantly. On: wall build, dice, and deal animation at hand start.
+        </p>
+      </div>
+
+      <div>
+        <p class="mb-2 text-text-secondary">Hand guidance (NMJL card hints)</p>
+        <BaseToggle
+          v-model="handGuidanceOn"
+          :disabled="controlsDisabled"
+          label="Allow hand guidance"
+          aria-label="Allow hand guidance for all players"
         />
       </div>
-
-      <div>
-        <label class="mb-1 block text-text-secondary" for="room-settings-joker-rules"
-          >Joker rules</label
-        >
-        <select
-          id="room-settings-joker-rules"
-          data-testid="room-settings-joker-rules"
-          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-          :disabled="!canEdit"
-          :value="settings.jokerRulesMode"
-          @change="onJokerChange"
-        >
-          <option value="standard">Standard</option>
-          <option value="simplified">Simplified</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-text-secondary" for="room-settings-dealing-style"
-          >Dealing style</label
-        >
-        <select
-          id="room-settings-dealing-style"
-          data-testid="room-settings-dealing-style"
-          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-          :disabled="!canEdit"
-          :value="settings.dealingStyle"
-          @change="onDealingChange"
-        >
-          <option value="instant">Instant</option>
-          <option value="animated">Animated traditional</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-text-secondary" for="room-settings-hand-guidance"
-          >Hand guidance (NMJL card hints)</label
-        >
-        <select
-          id="room-settings-hand-guidance"
-          data-testid="room-settings-hand-guidance"
-          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
-          :disabled="!canEdit"
-          :value="settings.handGuidanceEnabled ? 'on' : 'off'"
-          @change="onHandGuidanceChange"
-        >
-          <option value="on">Allowed</option>
-          <option value="off">Off for everyone</option>
-        </select>
-      </div>
     </div>
-  </details>
+  </div>
 </template>

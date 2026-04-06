@@ -6,12 +6,17 @@ import TileRack from "./TileRack.vue";
 import ActionZone from "./ActionZone.vue";
 import OpponentArea from "./OpponentArea.vue";
 import TurnIndicator from "./TurnIndicator.vue";
+import ActivityTicker from "./ActivityTicker.vue";
 import WallCounter from "./WallCounter.vue";
 import MobileBottomBar from "./MobileBottomBar.vue";
 import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
 import ReactionBar from "../reactions/ReactionBar.vue";
 import ReactionBubbleStack from "../reactions/ReactionBubbleStack.vue";
-import { SLIDE_IN_CHAT_PANEL_ROOT_ID, SLIDE_IN_NMJL_PANEL_ROOT_ID } from "../chat/slideInPanelIds";
+import {
+  SLIDE_IN_CHAT_PANEL_ROOT_ID,
+  SLIDE_IN_NMJL_PANEL_ROOT_ID,
+  SLIDE_IN_SETTINGS_PANEL_ROOT_ID,
+} from "../chat/slideInPanelIds";
 import DiscardPool from "./DiscardPool.vue";
 import DiscardConfirm from "./DiscardConfirm.vue";
 import CallButtons from "./CallButtons.vue";
@@ -23,9 +28,9 @@ import DepartureVoteModal from "./DepartureVoteModal.vue";
 import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
-import RoomSettingsPanel from "./RoomSettingsPanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
 import ShownHand from "./ShownHand.vue";
+import DealingAnimation from "./DealingAnimation.vue";
 import CharlestonZone from "../charleston/CharlestonZone.vue";
 import CharlestonVote from "../charleston/CharlestonVote.vue";
 import CourtesyPassUI from "../charleston/CourtesyPassUI.vue";
@@ -51,6 +56,7 @@ import {
 import { useHandGuidancePreferencesStore } from "../../stores/handGuidancePreferences";
 import { useRackStore } from "../../stores/rack";
 import { useReactionsStore, type ReactionBubbleRecord } from "../../stores/reactions";
+import { useActivityTickerStore } from "../../stores/activityTicker";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
@@ -60,12 +66,14 @@ import {
   toastCopyRematchWaiting,
   toastCopyRoomSettingsChanged,
 } from "../../composables/resolvedActionToastCopy";
+import { tickerCopyForAction } from "../../composables/activityTickerCopy";
 
 const GUIDANCE_CARD = loadCard("2026");
 
 const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
 const reactionsStore = useReactionsStore();
+const activityTickerStore = useActivityTickerStore();
 const handGuidancePreferencesStore = useHandGuidancePreferencesStore();
 const { items: reactionItems } = storeToRefs(reactionsStore);
 
@@ -193,6 +201,47 @@ const emit = defineEmits<{
 }>();
 
 const courtesyTileTarget = ref(0);
+
+/** After DealingAnimation completes, hide until next time we leave `play`. */
+const dealingAnimFinished = ref(false);
+
+watch(
+  () => props.gamePhase,
+  (phase, prev) => {
+    if (phase === "play" && prev !== undefined && prev !== "play") {
+      activityTickerStore.clear();
+    }
+    if (phase === "play" || phase === "charleston") {
+      if (slideInPanelStore.activePanel === "settings") {
+        slideInPanelStore.close();
+      }
+    }
+    if (phase !== "play") {
+      dealingAnimFinished.value = false;
+    } else if (prev !== undefined && prev !== "play") {
+      dealingAnimFinished.value = false;
+    }
+  },
+);
+
+function discardPoolTotal(): number {
+  const d = props.discardPools;
+  return (
+    (d.bottom?.length ?? 0) + (d.top?.length ?? 0) + (d.left?.length ?? 0) + (d.right?.length ?? 0)
+  );
+}
+
+const showDealingAnimation = computed(() => {
+  if (props.gamePhase !== "play") return false;
+  if (props.roomSettings?.dealingStyle !== "animated") return false;
+  if (dealingAnimFinished.value) return false;
+  if (discardPoolTotal() > 0) return false;
+  return true;
+});
+
+function onDealingAnimationDone() {
+  dealingAnimFinished.value = true;
+}
 
 const tileTargetCount = computed(() => {
   if (props.gamePhase === "charleston" && props.charleston) {
@@ -737,6 +786,15 @@ watch(
   },
 );
 
+watch(
+  () => props.resolvedAction,
+  (ra) => {
+    if (!ra || props.gamePhase !== "play") return;
+    const text = tickerCopyForAction(ra, playerNamesById.value, props.localPlayer?.id ?? "");
+    if (text) activityTickerStore.pushEvent(text);
+  },
+);
+
 const playerOrder = computed(() =>
   SEATS.map((seat) => playersBySeat.value[seat]?.id).filter((playerId): playerId is string =>
     Boolean(playerId),
@@ -838,6 +896,8 @@ function onChatEscape() {
         : 'bg-felt-teal'
     "
   >
+    <DealingAnimation v-if="showDealingAnimation" @done="onDealingAnimationDone" />
+
     <div
       v-if="paused"
       data-testid="game-paused-banner"
@@ -927,14 +987,6 @@ function onChatEscape() {
       >
         Hand hints are off after your first 3 games. You can re-enable hints in settings.
       </BaseToast>
-    </div>
-    <div v-if="roomSettings" class="absolute left-2 top-14 z-40 max-w-[min(100%,20rem)] sm:top-2">
-      <RoomSettingsPanel
-        :settings="roomSettings"
-        :can-edit="canEditRoomSettings"
-        :phase="gamePhase"
-        @change="(p) => emit('roomSettingsChange', p)"
-      />
     </div>
     <div
       v-if="!isScoreboardPhase && (gamePhase === 'play' || gamePhase === 'charleston')"
@@ -1147,11 +1199,14 @@ function onChatEscape() {
           </template>
 
           <template v-else>
-            <TurnIndicator
-              v-if="currentTurnSeat"
-              :active-seat="currentTurnSeat"
-              :player-names-by-seat="playerNamesBySeat"
-            />
+            <div v-if="gamePhase === 'play'" class="flex w-full flex-col items-center gap-1">
+              <TurnIndicator
+                v-if="currentTurnSeat"
+                :active-seat="currentTurnSeat"
+                :player-names-by-seat="playerNamesBySeat"
+              />
+              <ActivityTicker />
+            </div>
 
             <SocialOverridePanel
               v-if="gamePhase === 'play'"
@@ -1263,6 +1318,19 @@ function onChatEscape() {
             @click="slideInPanelStore.toggleChat()"
           >
             Chat
+          </button>
+          <button
+            v-if="roomSettings"
+            type="button"
+            data-testid="settings-toggle-desktop"
+            class="rounded-md border border-transparent bg-transparent px-3 py-2 text-3 text-text-secondary/90 hover:bg-chrome-surface/40 focus-visible:focus-ring-on-felt"
+            :aria-expanded="slideInPanelStore.activePanel === 'settings'"
+            :aria-controls="SLIDE_IN_SETTINGS_PANEL_ROOT_ID"
+            aria-label="Room settings"
+            @click="slideInPanelStore.toggleSettings()"
+          >
+            <span aria-hidden="true" class="mr-1">⚙</span>
+            Settings
           </button>
         </div>
         <OpponentArea
@@ -1448,8 +1516,12 @@ function onChatEscape() {
       :nmjl-guidance-active="nmjlGuidanceActive"
       :nmjl-guidance-by-hand-id="nmjlGuidanceByHandId"
       :nmjl-show-personal-reenable-hint="nmjlShowPersonalReenableHint"
+      :room-settings="roomSettings"
+      :can-edit-room-settings="canEditRoomSettings"
+      :settings-phase="gamePhase"
       :on-escape-focus-target="onChatEscape"
       @reenable-personal-guidance="handGuidancePreferencesStore.setGuidanceExplicitOverride(true)"
+      @room-settings-change="(p) => emit('roomSettingsChange', p)"
     />
 
     <!-- DOM anchor between actions and mobile controls (a11y / test document order); panel content mounts when open. -->

@@ -6,6 +6,7 @@ import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
 import { useRackStore } from "../../stores/rack";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useReactionsStore } from "../../stores/reactions";
+import { useActivityTickerStore } from "../../stores/activityTicker";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import {
   DEFAULT_ROOM_SETTINGS,
@@ -1407,5 +1408,149 @@ describe("GameTable — NMJL hand guidance pool size (5B.2)", () => {
     const panels = wrapper.findComponent(SlideInReferencePanels);
     expect(panels.props("nmjlGuidanceActive")).toBe(true);
     expect(panels.props("nmjlGuidanceByHandId")).not.toBeNull();
+  });
+
+  it("passes room settings to SlideInReferencePanels (5B.6)", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mountTable(
+      {
+        localPlayer,
+        gamePhase: "play",
+        roomSettings: DEFAULT_ROOM_SETTINGS,
+        tiles: makeNTilesForGuidanceTest(14),
+        myExposedGroups: [],
+      },
+      pinia,
+    );
+    const panels = wrapper.findComponent(SlideInReferencePanels);
+    expect(panels.props("roomSettings")).toEqual(DEFAULT_ROOM_SETTINGS);
+  });
+});
+
+describe("GameTable — dealing animation (5B.6)", () => {
+  it("renders dealing overlay when animated style, play phase, empty discards", () => {
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "play",
+        roomSettings: { ...DEFAULT_ROOM_SETTINGS, dealingStyle: "animated" },
+        discardPools: {},
+        tiles: makeNTilesForGuidanceTest(14),
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+        },
+      },
+    });
+    expect(wrapper.find('[data-testid="dealing-animation-overlay"]').exists()).toBe(true);
+  });
+
+  it("does not render dealing overlay when discards exist", () => {
+    const t = makeNTilesForGuidanceTest(1)[0];
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "play",
+        roomSettings: { ...DEFAULT_ROOM_SETTINGS, dealingStyle: "animated" },
+        discardPools: { bottom: [t] },
+        tiles: makeNTilesForGuidanceTest(14),
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+        },
+      },
+    });
+    expect(wrapper.find('[data-testid="dealing-animation-overlay"]').exists()).toBe(false);
+  });
+});
+
+describe("GameTable — activity ticker (5B.7)", () => {
+  it("pushes ticker text when resolvedAction updates during play", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useActivityTickerStore();
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "DISCARD_TILE",
+      playerId: localPlayer.id,
+      tileId: "dot-8-1",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(store.items.some((i) => i.text.includes("discarded") && i.text.includes("8-Dot"))).toBe(
+      true,
+    );
+  });
+
+  it("does not push ticker when not in play phase", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useActivityTickerStore();
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "DISCARD_TILE",
+      playerId: "player-north",
+      tileId: "dot-8-1",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(store.items).toHaveLength(0);
+  });
+
+  it("clears ticker when entering play from another phase", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useActivityTickerStore();
+    store.pushEvent("stale from prior context");
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    expect(store.items.length).toBeGreaterThan(0);
+    await wrapper.setProps({ gamePhase: "play" });
+    await flushPromises();
+    expect(store.items).toHaveLength(0);
   });
 });

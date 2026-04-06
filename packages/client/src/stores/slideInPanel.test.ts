@@ -38,4 +38,15 @@ describe("useSlideInPanelStore", () => {
     s.toggleNmjl();
     expect(s.activePanel).toBeNull();
   });
+
+  it("openSettings replaces chat and toggleSettings toggles", () => {
+    const s = useSlideInPanelStore();
+    s.openChat();
+    s.openSettings();
+    expect(s.activePanel).toBe("settings");
+    s.toggleSettings();
+    expect(s.activePanel).toBeNull();
+    s.toggleSettings();
+    expect(s.activePanel).toBe("settings");
+  });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
+import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { GuidanceResult } from "@mahjong-game/shared";
 import SlideInReferencePanels from "./SlideInReferencePanels.vue";
 import SlideInPanel from "../ui/SlideInPanel.vue";
@@ -10,11 +11,15 @@ import { useSlideInPanelStore } from "../../stores/slideInPanel";
 
 /** Stable ref so `smaller('md')` matches VueUse’s Ref return type across calls. */
 const isMobileViewport = ref(true);
-vi.mock("@vueuse/core", () => ({
-  useBreakpoints: () => ({
-    smaller: () => isMobileViewport,
-  }),
-}));
+vi.mock("@vueuse/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@vueuse/core")>();
+  return {
+    ...actual,
+    useBreakpoints: () => ({
+      smaller: () => isMobileViewport,
+    }),
+  };
+});
 
 describe("SlideInReferencePanels", () => {
   beforeEach(() => {
@@ -44,6 +49,16 @@ describe("SlideInReferencePanels", () => {
     expect(store.activePanel).toBe("chat");
     store.openNmjl();
     expect(store.activePanel).toBe("nmjl");
+  });
+
+  it("opening settings when chat is active replaces chat (mutual exclusivity)", () => {
+    mount(SlideInReferencePanels, {
+      props: { sendChat: () => {}, roomSettings: DEFAULT_ROOM_SETTINGS },
+    });
+    const store = useSlideInPanelStore();
+    store.openChat();
+    store.openSettings();
+    expect(store.activePanel).toBe("settings");
   });
 
   it("passes top mobile placement for NMJL when Charleston split is on and viewport is mobile", async () => {

@@ -13,6 +13,7 @@ import { getWebSocketUrl } from "./wsUrl";
 import { clearSessionToken, readSessionToken, writeSessionToken } from "./sessionTokenStorage";
 import { useChatStore } from "../stores/chat";
 import { useReactionsStore } from "../stores/reactions";
+import { useActivityTickerStore } from "../stores/activityTicker";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
 
 export type RoomConnectionStatus = "idle" | "connecting" | "open" | "closed";
@@ -32,6 +33,7 @@ export function useRoomConnection() {
   function resetSocialUiForSession(): void {
     useChatStore().clear();
     useReactionsStore().resetForRoomLeave();
+    useActivityTickerStore().resetForRoomLeave();
     useSlideInPanelStore().resetForRoomLeave();
   }
 
