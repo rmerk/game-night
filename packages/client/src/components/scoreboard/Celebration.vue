@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, useTemplateRef } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 import { animate, prefersReducedMotion } from "motion-v";
 import type { MahjongGameResult, SeatWind } from "@mahjong-game/shared";
 import TileBack from "../tiles/TileBack.vue";
@@ -45,10 +45,12 @@ const FAN_TILE_COUNT = 14;
 // ---------------------------------------------------------------------------
 let isMounted = true;
 let currentAnimation: { stop(): void } | null = null;
+let currentAnimations: { stop(): void }[] = [];
 
 onUnmounted(() => {
   isMounted = false;
   currentAnimation?.stop();
+  currentAnimations.forEach((a) => a.stop());
 });
 
 // ---------------------------------------------------------------------------
@@ -65,8 +67,8 @@ const MIN_SEQUENCE_DURATION_S = 5;
 // ---------------------------------------------------------------------------
 onMounted(() => {
   if (prefersReducedMotion()) {
-    // Reduced motion: skip all opacity/motion animations; emit done after minimal hold
-    // (Task 4 will add the full reduced-motion branch)
+    // Task 4 implements the full reduced-motion branch (dim + instant spotlight + hold < 3s).
+    // This is a temporary stub that emits done immediately.
     emit("done");
     return;
   }
@@ -104,7 +106,7 @@ async function runCelebrationSequence(): Promise<void> {
   // ─── Phase 2 — Held beat (0.5s anticipatory pause) ────────────────────────
   // Animate a non-visible beat element to keep the sequence chain pure
   // (no setTimeout — AC 7). The beat div is always rendered so the ref is stable.
-  if (beatElRef.value) {
+  if (beatElRef.value && isMounted) {
     currentAnimation = animate(beatElRef.value, { opacity: [0, 0] }, { duration: 0.5 });
     await currentAnimation.finished;
   }
@@ -134,9 +136,8 @@ async function runCelebrationSequence(): Promise<void> {
 
     // Arc spread: tiles fan in a horizontal arc centered at the viewport center
     const totalSpread = Math.min(window.innerWidth * 0.6, 480); // px total arc width
-    const tileW = 32; // approximate tile width px (w-8)
 
-    const animations = fanTileEls.map((el, i) => {
+    const fanAnims = fanTileEls.map((el, i) => {
       // Normalized position -0.5..+0.5 across the arc
       const t = fanTileEls.length > 1 ? i / (fanTileEls.length - 1) - 0.5 : 0;
       const targetX = t * totalSpread;
@@ -146,7 +147,7 @@ async function runCelebrationSequence(): Promise<void> {
       // Rotation: tilt outward from center
       const rotation = t * 25; // degrees
 
-      const anim = animate(
+      return animate(
         el,
         {
           x: [startX, targetX],
@@ -160,11 +161,10 @@ async function runCelebrationSequence(): Promise<void> {
           delay: i * 0.025, // slight stagger for each tile
         },
       );
-      currentAnimation = anim;
-      return anim.finished;
     });
-
-    await Promise.all(animations);
+    currentAnimations = fanAnims;
+    await Promise.all(fanAnims.map((a) => a.finished));
+    currentAnimations = [];
   }
 
   if (!isMounted) return;
@@ -173,7 +173,7 @@ async function runCelebrationSequence(): Promise<void> {
   // Show "Mahjong! — [winner name]" in celebration-gold, fade in.
   spotlightVisible.value = true;
   // Wait one tick for the DOM element to appear before animating
-  await Promise.resolve();
+  await nextTick();
 
   if (spotlightElRef.value && isMounted) {
     currentAnimation = animate(spotlightElRef.value, { opacity: [0, 1] }, { duration: 0.4 });
@@ -184,7 +184,7 @@ async function runCelebrationSequence(): Promise<void> {
 
   // ─── Phase 5 — Scoring overlay (0.3s) ─────────────────────────────────────
   scoringVisible.value = true;
-  await Promise.resolve();
+  await nextTick();
 
   if (scoringElRef.value && isMounted) {
     currentAnimation = animate(scoringElRef.value, { opacity: [0, 1] }, { duration: 0.3 });
