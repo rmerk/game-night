@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-06 # Story 6B.4 → done
+# last_updated: 2026-04-06 # Epic 6B retro → done
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # Story 6B.4 → review
+last_updated: 2026-04-06 # Story 6B.5 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -160,13 +160,13 @@ development_status:
   pre6b-debt-cleanup: done
 
   # Epic 6B: Voice & Video (WebRTC) — CUT LINE
-  epic-6b: in-progress
+  epic-6b: done
   6b-1-livekit-sdk-integration-connection-setup: done
   6b-2-video-thumbnails-at-seat-positions: done
   6b-3-audio-video-controls-permission-handling: done
   6b-4-speaking-indicator-avatar-fallback: done
-  6b-5-av-reconnection-graceful-degradation: backlog
-  epic-6b-retrospective: optional
+  6b-5-av-reconnection-graceful-degradation: done
+  epic-6b-retrospective: done
 
   # Epic 7: Visual Polish & Audio
   epic-7: backlog

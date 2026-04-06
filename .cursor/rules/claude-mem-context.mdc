@@ -7,65 +7,16 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 10:52am CDT
+# $CMEM mahjong-game 2026-04-06 1:43pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (20,701t read) | 347,788t work | 94% savings
+Stats: 50 obs (22,587t read) | 302,476t work | 93% savings
 
 ### Apr 6, 2026
-S368 Commit tokenless reconnect during pause bugfix and close Epic 4B retrospective follow-through tracking (Apr 6 at 9:12 AM)
-S369 Create Story 6B.1: LiveKit SDK Integration & Connection Setup using gds-create-story workflow (Apr 6 at 9:15 AM)
-S370 Adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - examining implementation against acceptance criteria and task claims (Apr 6 at 9:30 AM)
-1150 9:42a ✅ Updated implementation artifact with session notes and file manifest
-1151 9:44a 🔴 Build failed due to manualChunks object format incompatibility
-1152 9:45a 🔴 Fixed manualChunks configuration for rolldown bundler compatibility
-1153 9:47a ✅ LiveKit Integration Story Follow-up Pass Complete
-S371 Complete adversarial code review of Story 6B.1 LiveKit SDK Integration using GDS workflow - identify issues, apply fixes, verify with tests, and update documentation (Apr 6 at 9:54 AM)
-1158 9:58a ✅ Story 6B.1 Code Review Complete - LiveKit Integration Quality Improvements
-S372 Create Story 6B.2: Video Thumbnails at Seat Positions using gds-create-story workflow (Apr 6 at 9:58 AM)
-1161 10:01a 🔵 Story 6B.2 Context Preparation: Video Thumbnails at Seat Positions
-S373 Adversarial code review of Story 6B.2 (Video Thumbnails at Seat Positions) - examining implementation against acceptance criteria and tasks (Apr 6 at 10:04 AM)
-1166 10:07a 🟣 LiveKit Video Track State Management
-1167 10:08a 🟣 Integrated Video State into useLiveKit Public API
-1168 " ✅ Added Type Safety and Test Coverage for LiveKit Video State
-1169 " 🔄 Centralized Mock Camera Publication State in Tests
-1170 " 🔴 Fixed Missing getTrackPublication in Remote Participant Mock
-1171 10:09a 🟣 Created Shared Presence Frame Layout System
-1172 " 🟣 Implemented Player Presence UI with Video and Avatar Components
-1173 10:10a ✅ Added Comprehensive Test Coverage for Presence Components
-1174 " 🔴 Fixed Invalid Chai Assertion in VideoThumbnail Test
-1175 " 🟣 Integrated PlayerPresence Component into OpponentArea
-1176 10:11a 🟣 Wired LiveKit Video State to GameTable Opponent Areas
-1177 " 🟣 Added PlayerPresence Component to Local Player Area
-1178 " 🔴 Fixed TypeScript Type Definition for Remote Participants in Tests
-1179 10:12a ✅ Added Integration Test for LiveKit Presence in GameTable
-1180 " 🔴 Fixed Vue Import Hoisting Error in LiveKit Presence Test
-1181 " 🔄 Consolidated LiveKit Test State into Single Hoisted Object
-1182 " 🔴 Fixed Linting Errors in LiveKit Video Track Types
-1184 10:15a 🔄 Refined participantVideoByIdentity API to include camera enabled state
-1185 10:16a ✅ Documented AC-to-code traceability and second-pass review for video thumbnails feature
-S374 Code review completion for Story 6B.2 (Video Thumbnails at Seat Positions) - findings remediated, tests fixed, story marked done (Apr 6 at 10:21 AM)
-1186 10:21a 🔴 Added missing unit tests for LiveKit track mute and local publish event handlers
-1187 10:22a 🔴 Test failures due to object reference equality check - needs toStrictEqual instead of toBe
-1188 10:23a 🔴 Fixed test assertion from toBe to toEqual for videoTrack object comparison
-1189 " ✅ All tests passing after fixing equality matcher - 14 useLiveKit tests green including 4 new ones
-S375 Create Story 6B.3 for Audio/Video Controls and Permission Handling (Apr 6 at 10:24 AM)
-1191 10:30a ✅ Story 6B.3 Promoted to Ready for Development
-S376 Code review of Story 6B.3 Audio/Video Controls & Permission Handling for mahjong-game (Apr 6 at 10:30 AM)
-1193 10:35a 🟣 Audio/Video Controls and Permission Handling in LiveKit Composable
-1194 10:36a 🟣 Comprehensive Test Coverage for Audio/Video Controls
-1195 " 🔴 Fixed vi.hoisted() Import Order Issue with Vue Refs
-1196 10:37a 🟣 AVControls Component for Microphone and Camera UI
-1197 " 🟣 Test Suite for AVControls Component
-1198 " 🟣 Integrated AVControls into MobileBottomBar
-1199 10:38a 🟣 Added Desktop AVControls to GameTable with Responsive Layout
-1200 " 🔄 Updated Component Tests for AVControls Integration
-1201 " 🔄 Standardized Touch Target Sizing with min-tap Utility Class
-1203 10:39a 🔄 Simplified Mock LocalParticipant Construction in useLiveKit Tests
-1204 " 🔄 Removed Redundant Type Assertion in getRoom Helper
+1204 10:39a 🔄 Removed Redundant Type Assertion in getRoom Helper
 1205 10:40a ✅ Story 6B.3 Audio/Video Controls Marked for Review
 1206 " ✅ All Tasks Completed for Story 6B.3 Implementation
 1207 " ✅ Story Documentation Finalized with Implementation Notes and File Manifest
@@ -75,17 +26,66 @@ S376 Code review of Story 6B.3 Audio/Video Controls & Permission Handling for ma
 1212 10:50a 🔵 Story 6B.3 Audio/Video controls implementation validated against acceptance criteria
 1213 10:51a 🔵 Story 6B.3 validation complete - all tests and type checks pass
 1214 " 🔵 Story 6B.3 backpressure gate green - linter shows zero errors
-S377 Code review completion and story approval for Story 6B.3 Audio/Video Controls with automatic fix applied (Apr 6 at 10:52 AM)
-**Investigated**: Code review identified 1 MEDIUM issue (PlayerPresence.vue modified in git but missing from story File List) and 1 LOW issue (requestPermissions returns 'denied' for all non-permission errors). The MEDIUM issue was a documentation completeness gap where git diff showed PlayerPresence.vue changed but the story's Dev Agent Record → File List omitted it. The LOW issue was technically correct behavior per NFR23 (silent degradation) since all A/V failures produce the same user-facing result regardless of whether the error is PermissionDenied, DeviceInUse, or NotFound.
+1218 11:03a 🔴 Configure Vite dev server to bind to IPv4 localhost
+1219 11:08a 🟣 Story 6B.4: Speaking Indicator & Avatar Fallback Implementation Guide
+1220 11:10a 🟣 Speaking indicator with accessibility-aware animation and voice connection status
+1221 " ✅ Test coverage for accessibility-aware speaking indicator
+1222 11:11a ✅ Story 6B.4 completion documentation and implementation summary
+1223 11:19a 🔄 PlayerPresence speaking indicator now uses design tokens with dynamic ARIA labels
+1224 " ✅ Added test coverage for PlayerPresence accessibility and motion preferences
+1225 11:20a ✅ Implementation artifacts updated to document second pass polish improvements
+1226 11:27a ✅ Speaking Indicator Avatar Fallback Code Review Completed
+1227 " ✅ GDS Code Review Process Completed with Test Coverage Improvements
+1228 11:28a 🟣 Connected LiveKit Voice Status Test Added
+1229 11:32a ✅ Story 6B.5 Created: A/V Reconnection & Graceful Degradation
+1230 " ✅ Requirements Traceability Added to Story 6B.5
+1231 11:33a 🔵 LiveKit Token Request Flag Trap Identified in Reconnection Flow
+1232 " ⚖️ Reconnection UX and Architectural Constraints Refined
+1233 11:34a ✅ Story 6B.5 File List and API Surface Refined
+1236 1:15p 🟣 Audio/Video Session Degradation Detection and Reconnection
+1237 " 🟣 LiveKit Connection Retry Promise Infrastructure
+1238 " 🟣 Manual LiveKit A/V Reconnection with Promise-Based Timeout
+1239 1:16p 🔴 LiveKit Retry Cleanup and Double-Resolution Prevention
+1240 " 🟣 A/V Reconnection UI Coordination Composable
+1241 1:17p 🟣 A/V Reconnection UI Components and Event Wiring
+1243 " 🟣 Complete A/V Reconnection Integration in RoomView
+1245 " ✅ Simplified Reconnect Button Label During Pending State
+1246 1:18p ✅ Test Coverage for A/V Session Degraded State
+1247 1:19p ✅ Comprehensive Test Suite for LiveKit Retry Mechanism
+1248 " ✅ Test Coverage for A/V Reconnection Watchdog Logic
+1249 " ✅ Refined A/V Reconnection UI Test Ordering and Assertions
+1250 1:20p ✅ Component Tests for A/V Reconnection UI States and Interactions
+1255 1:25p 🟣 AV Reconnection with Graceful Degradation
+1256 " 🔴 Prevent Race Condition in LiveKit Retry Logic
+1258 " ✅ Test Coverage for Retry Timeout Recovery
+1260 1:27p 🔵 Code review initiated for A/V reconnection with graceful degradation feature
+1261 " 🔵 A/V reconnection UI component wiring traced through Vue component hierarchy
+1262 1:28p ✅ Story 6B.5 A/V reconnection passes all quality gates with comprehensive test coverage
+1264 1:30p 🔵 Verified retryLiveKitConnection properly exported from useRoomConnection composable API
+S379 Complete adversarial code review of Story 6B.5 A/V reconnection feature with automatic issue remediation and story completion (Apr 6 at 1:30 PM)
+1265 1:31p 🔴 Added timer cleanup and manual retry test coverage to useAvReconnectUi composable
+1266 " ✅ Story 6B.5 marked done after successful code review and automated fixes
+1267 1:32p 🔵 Retrospective Workflow System Architecture
+S380 Initialize retrospective for Epic 6B (Voice & Video WebRTC integration) (Apr 6 at 1:32 PM)
+1268 1:33p 🔵 Epic 6B Retrospective Context Loaded
+S381 Epic 6B retrospective - Voice & Video WebRTC integration review with team discussion (Apr 6 at 1:33 PM)
+S382 Epic 6B retrospective team discussion - successes and challenges analysis (Apr 6 at 1:36 PM)
+S383 Epic 6B retrospective synthesis - testing process consensus and pattern analysis (Apr 6 at 1:36 PM)
+S384 Epic 6B retrospective critical analysis - real-device testing gap and velocity context revealed (Apr 6 at 1:37 PM)
+S385 Epic 6B retrospective action planning - real-device testing validation specification (Apr 6 at 1:38 PM)
+S386 Epic 6B retrospective action items and critical path definition with Epic 7 gating decision (Apr 6 at 1:40 PM)
+S387 Epic 6B retrospective final readiness check - self-hosted LiveKit path confirmed (Apr 6 at 1:41 PM)
+S388 Epic 6B retrospective final codebase health assessment and Epic 7 preparation insights (Apr 6 at 1:43 PM)
+**Investigated**: Max performed comprehensive codebase health check confirming excellent state: all tests passing, typecheck clean, zero lint errors, no carried technical debt for first time in project history, useLiveKit API clean and well-tested at wiring level, NFR23 thoroughly enforced. Team identified two minor items: sprint-status shows epic-6b as "in-progress" when should be "done" (bookkeeping fix needed), and Epic 7 represents fundamental work type shift requiring different validation approach. Cloud Dragonborn analyzed Epic 7 testing challenge: 6B was infrastructure (composables, protocol, SDK wiring) testable in isolation, but 7 is visual/auditory (felt texture, celebration cinematics, sound design) where automated tests can assert CSS class exists but cannot validate "felt looks like real material" or "Mahjong motif feels cinematic."
 
-**Learned**: The GDS code review workflow's git-first validation approach (comparing git status output against story File List) successfully caught documentation drift that would otherwise go unnoticed. The adversarial review correctly identified that while the implementation is functionally complete and production-ready (376/376 tests passing, typecheck clean, 0 lint errors), transparency requires documenting all changed files even if changes are minor or inherited from prior work. The LOW issue analysis revealed that the error classification nuance has zero user impact because NFR23's silent fallback requirement means all MediaDeviceFailure types result in the same graceful degradation path (show "A/V unavailable" message, continue with text chat).
+**Learned**: Epic 7 requires testing strategy shift from "does the code work" (6B) to "does it feel right" (7) necessitating more manual review and subjective sign-off from Rchoi. This means Epic 7 stories may take longer to reach "done" despite being less code - velocity expectations must adjust. Sound asset sourcing identified as external dependency: 6B had no external assets, but 7.3 requires 10-12 audio files for complete sound design. Asset creation/sourcing is outside normal code pipeline and should be Epic 7 preparation item. Codebase in excellent health with zero carried debt - first occurrence in 9-epic project history enabled by pre-6B cleanup gate.
 
-**Completed**: Code review completed with automatic fixes applied. Updated story file to add PlayerPresence.vue to the File List (line 271), addressing the MEDIUM documentation gap. LOW issue left as-is since the behavior is correct per NFR23. Story status updated from "review" to "done" in the story file header. Sprint-status.yaml synchronized: development_status.6b-3-audio-video-controls-permission-handling changed from "review" to "done", last_updated timestamp updated to 2026-04-06 with comment "Story 6B.3 → done". All 6 acceptance criteria validated as implemented, all 7 tasks verified complete, backpressure gate fully green (tests, typecheck, lint).
+**Completed**: Final codebase health assessment complete confirming clean state. Epic 7 preparation insights surfaced: testing strategy shift to subjective validation, velocity expectations adjustment, and sound asset sourcing dependency. Two minor action items identified: update sprint-status epic-6b to "done" status, add sound asset sourcing to Epic 7 preparation tasks. Team confirmed no other loose ends, blockers, or stability concerns.
 
-**Next Steps**: Story 6B.3 code review session complete. The story is now approved and marked done in sprint tracking. Epic 6B (Voice & Video) remains in-progress with stories 6B.4 (speaking indicator) and 6B.5 (A/V reconnection) still in backlog status. No further action required for this story unless user requests follow-up work or proceeds to next story development.
+**Next Steps**: Awaiting Rchoi's confirmation to close retrospective. Once confirmed, will generate comprehensive retrospective document including: Epic 6B summary with delivery metrics, previous retro follow-through analysis (100% for first time), successes (6 items), challenges (5 items including real-device testing gap), key insights (5 items), action items (process improvements and technical debt), critical path for real-device validation (3 work items with 7-test matrix), Epic 7 preparation notes (testing strategy shift, sound assets), team agreements, and readiness assessment. Will then update sprint-status.yaml to mark epic-6b-retrospective as done and epic-6b status to done.
 
 
-Access 348k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 302k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

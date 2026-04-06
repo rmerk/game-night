@@ -170,4 +170,101 @@ describe("AVControls", () => {
     });
     expect(wrapper.find("[data-testid='av-toggle-mic']").classes()).toContain("min-tap");
   });
+
+  it("shows reconnecting message when showReconnectingMessage is true", () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "connecting",
+        permissionState: "granted",
+        showReconnectingMessage: true,
+      },
+    });
+    const el = wrapper.find("[data-testid='av-reconnecting-message']");
+    expect(el.exists()).toBe(true);
+    expect(el.text()).toContain("Reconnecting audio/video");
+  });
+
+  it("shows Reconnect A/V button when showReconnectButton is true", () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "failed",
+        permissionState: "granted",
+        showReconnectButton: true,
+        manualReconnectPhase: "idle",
+      },
+    });
+    const btn = wrapper.find("[data-testid='av-reconnect-button']");
+    expect(btn.exists()).toBe(true);
+    expect(btn.text()).toContain("Reconnect A/V");
+  });
+
+  it("shows spinner and aria-busy while manualReconnectPhase is pending", () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "connecting",
+        permissionState: "granted",
+        showReconnectButton: true,
+        manualReconnectPhase: "pending",
+      },
+    });
+    expect(wrapper.find("[data-testid='av-reconnect-spinner']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='av-reconnect-button']").attributes("aria-busy")).toBe(
+      "true",
+    );
+    expect(
+      wrapper.find("[data-testid='av-reconnect-button']").attributes("disabled"),
+    ).toBeDefined();
+  });
+
+  it("shows failed copy when manualReconnectPhase is failed", () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "failed",
+        permissionState: "granted",
+        showReconnectButton: true,
+        manualReconnectPhase: "failed",
+      },
+    });
+    expect(wrapper.find("[data-testid='av-reconnect-button']").text()).toContain(
+      "Connection failed — try again?",
+    );
+  });
+
+  it("emits reconnect-av when reconnect button is clicked", async () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "failed",
+        permissionState: "granted",
+        showReconnectButton: true,
+        manualReconnectPhase: "idle",
+      },
+    });
+    await wrapper.find("[data-testid='av-reconnect-button']").trigger("click");
+    expect(wrapper.emitted("reconnect-av")).toHaveLength(1);
+  });
+
+  it("does not emit reconnect-av when pending", async () => {
+    const wrapper = mount(AVControls, {
+      props: {
+        isMicEnabled: false,
+        isCameraEnabled: false,
+        connectionStatus: "connecting",
+        permissionState: "granted",
+        showReconnectButton: true,
+        manualReconnectPhase: "pending",
+      },
+    });
+    await wrapper.find("[data-testid='av-reconnect-button']").trigger("click");
+    expect(wrapper.emitted("reconnect-av")).toBeUndefined();
+  });
 });

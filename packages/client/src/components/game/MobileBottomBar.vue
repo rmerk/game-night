@@ -3,6 +3,7 @@ import { onMounted, shallowRef, useTemplateRef } from "vue";
 import BasePanel from "../ui/BasePanel.vue";
 import AVControls from "./AVControls.vue";
 import { useLiveKit } from "../../composables/useLiveKit";
+import type { ManualReconnectPhase } from "../../composables/useAvReconnectUi";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import {
   SLIDE_IN_CHAT_PANEL_ROOT_ID,
@@ -11,6 +12,23 @@ import {
 } from "../chat/slideInPanelIds";
 
 const slideInPanelStore = useSlideInPanelStore();
+
+const props = withDefaults(
+  defineProps<{
+    avShowReconnecting?: boolean;
+    avShowReconnectButton?: boolean;
+    avManualReconnectPhase?: ManualReconnectPhase;
+  }>(),
+  {
+    avShowReconnecting: false,
+    avShowReconnectButton: false,
+    avManualReconnectPhase: "idle",
+  },
+);
+
+const emit = defineEmits<{
+  reconnectAv: [];
+}>();
 
 const {
   connectionStatus,
@@ -157,10 +175,14 @@ onMounted(() => {
         :is-camera-enabled="localCameraEnabled"
         :connection-status="connectionStatus"
         :permission-state="avPermissionState"
+        :show-reconnecting-message="props.avShowReconnecting"
+        :show-reconnect-button="props.avShowReconnectButton"
+        :manual-reconnect-phase="props.avManualReconnectPhase"
         surface="chrome"
         @toggle-mic="toggleMic"
         @toggle-camera="toggleCamera"
         @request-av="requestPermissions"
+        @reconnect-av="emit('reconnectAv')"
       />
     </div>
   </BasePanel>

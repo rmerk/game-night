@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { AVPermissionState } from "../../composables/useLiveKit";
+import type { ManualReconnectPhase } from "../../composables/useAvReconnectUi";
 
 const props = withDefaults(
   defineProps<{
@@ -10,9 +11,16 @@ const props = withDefaults(
     permissionState: AVPermissionState;
     /** `chrome` for raised chrome panels; `felt` for table felt background. */
     surface?: "chrome" | "felt";
+    /** Story 6B.5 — after prior `connected`, LiveKit is reconnecting while game WS is open. */
+    showReconnectingMessage?: boolean;
+    showReconnectButton?: boolean;
+    manualReconnectPhase?: ManualReconnectPhase;
   }>(),
   {
     surface: "felt",
+    showReconnectingMessage: false,
+    showReconnectButton: false,
+    manualReconnectPhase: "idle",
   },
 );
 
@@ -20,6 +28,7 @@ const emit = defineEmits<{
   "toggle-mic": [];
   "toggle-camera": [];
   "request-av": [];
+  "reconnect-av": [];
 }>();
 
 const isConnected = computed(() => props.connectionStatus === "connected");
@@ -71,10 +80,63 @@ function onToggleCamera() {
 function onRequestAv() {
   emit("request-av");
 }
+
+function onReconnectAv() {
+  if (props.manualReconnectPhase === "pending") {
+    return;
+  }
+  emit("reconnect-av");
+}
+
+const reconnectButtonLabel = computed(() => {
+  if (props.manualReconnectPhase === "failed") {
+    return "Connection failed — try again?";
+  }
+  return "Reconnect A/V";
+});
 </script>
 
 <template>
   <div class="flex flex-col gap-2" data-testid="av-controls">
+    <!--
+      Stacking (6B.5): degraded "Reconnect A/V" sits above the permission banner so the
+      resilience CTA reads first; permission flow stays below when both apply.
+    -->
+    <div
+      v-if="showReconnectButton"
+      class="rounded-lg border border-chrome-border/50 bg-chrome-surface/30 px-3 py-2 text-3"
+      :class="textClass"
+    >
+      <button
+        type="button"
+        class="min-tap inline-flex w-full items-center justify-center gap-2 rounded-md border border-chrome-border/60 bg-transparent px-3 py-2 font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        :class="textClass"
+        data-testid="av-reconnect-button"
+        :aria-busy="manualReconnectPhase === 'pending' ? 'true' : undefined"
+        :aria-label="reconnectButtonLabel"
+        :disabled="manualReconnectPhase === 'pending'"
+        @click="onReconnectAv"
+      >
+        <span
+          v-if="manualReconnectPhase === 'pending'"
+          class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden="true"
+          data-testid="av-reconnect-spinner"
+        />
+        {{ reconnectButtonLabel }}
+      </button>
+    </div>
+
+    <p
+      v-if="showReconnectingMessage"
+      class="text-center text-2.5"
+      :class="textClass"
+      data-testid="av-reconnecting-message"
+      role="status"
+    >
+      Reconnecting audio/video…
+    </p>
+
     <div
       v-if="showPermissionBanner"
       class="rounded-lg border border-chrome-border/50 bg-chrome-surface/30 px-3 py-2 text-3"

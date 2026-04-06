@@ -21,6 +21,7 @@ import {
 } from "../composables/mapPlayerGameViewToGameTable";
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
+import { useAvReconnectUi } from "../composables/useAvReconnectUi";
 import { getApiBaseUrl } from "../composables/apiBaseUrl";
 import { canEditRoomSettings } from "../composables/roomSettingsFormatters";
 import {
@@ -62,7 +63,13 @@ const {
   clearLastError,
   roomFullError,
   clearRoomFullError,
+  retryLiveKitConnection,
 } = conn;
+
+const avReconnectUi = useAvReconnectUi({
+  roomWsStatus: status,
+  retryLiveKitConnection,
+});
 
 const isCheckingRoomStatus = ref(false);
 const isTableFullFromFetch = ref(false);
@@ -652,7 +659,11 @@ function goSpectatePlaceholder() {
       :resolved-action="resolvedAction ?? null"
       :room-settings="playerGameView?.settings ?? null"
       :can-edit-room-settings="canEditGameSettings"
+      :av-show-reconnecting="avReconnectUi.showReconnecting"
+      :av-show-reconnect-button="avReconnectUi.showReconnectButton"
+      :av-manual-reconnect-phase="avReconnectUi.manualPhase"
       @room-settings-change="(p) => conn.sendSetRoomSettings(p)"
+      @reconnect-av="avReconnectUi.onReconnectAv"
       @send-chat="(t: string) => conn.sendChat(t)"
       @send-reaction="(e: string) => conn.sendReaction(e)"
       @discard="onDiscard"

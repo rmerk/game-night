@@ -20,13 +20,23 @@ describe("useLiveKitStore", () => {
     expect(store.connectionStatus).toBe("connecting");
   });
 
-  it("resetForRoomLeave clears token, url, and status", () => {
+  it("resetForRoomLeave clears token, url, status, and avSessionDegraded", () => {
     const store = useLiveKitStore();
     store.setToken("jwt", "wss://x");
     store.setConnectionStatus("connected");
+    store.setAvSessionDegraded(true);
     store.resetForRoomLeave();
     expect(store.token).toBeNull();
     expect(store.liveKitUrl).toBeNull();
     expect(store.connectionStatus).toBe("idle");
+    expect(store.avSessionDegraded).toBe(false);
+  });
+
+  it("setAvSessionDegraded toggles degraded flag", () => {
+    const store = useLiveKitStore();
+    store.setAvSessionDegraded(true);
+    expect(store.avSessionDegraded).toBe(true);
+    store.setAvSessionDegraded(false);
+    expect(store.avSessionDegraded).toBe(false);
   });
 });

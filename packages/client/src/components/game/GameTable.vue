@@ -62,6 +62,7 @@ import { useActivityTickerStore } from "../../stores/activityTicker";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { useLiveKit, type ParticipantVideoState } from "../../composables/useLiveKit";
+import type { ManualReconnectPhase } from "../../composables/useAvReconnectUi";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 import {
   toastCopyHandShown,
@@ -139,6 +140,10 @@ const props = withDefaults(
     viewerIsHost?: boolean;
     /** Revealed racks in scoreboard phase (Story 5B.5). */
     shownHands?: Record<string, Tile[]>;
+    /** Story 6B.5 — A/V resilience (from RoomView / useAvReconnectUi). */
+    avShowReconnecting?: boolean;
+    avShowReconnectButton?: boolean;
+    avManualReconnectPhase?: ManualReconnectPhase;
   }>(),
   {
     opponents: () => ({}),
@@ -173,6 +178,9 @@ const props = withDefaults(
     sessionGameHistory: () => [],
     viewerIsHost: false,
     shownHands: () => ({}),
+    avShowReconnecting: false,
+    avShowReconnectButton: false,
+    avManualReconnectPhase: "idle",
   },
 );
 
@@ -201,6 +209,7 @@ const emit = defineEmits<{
   rematch: [];
   endSession: [];
   showHand: [];
+  reconnectAv: [];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -1625,14 +1634,23 @@ function onChatEscape() {
           :is-camera-enabled="localCameraEnabled"
           :connection-status="connectionStatus"
           :permission-state="avPermissionState"
+          :show-reconnecting-message="props.avShowReconnecting"
+          :show-reconnect-button="props.avShowReconnectButton"
+          :manual-reconnect-phase="props.avManualReconnectPhase"
           surface="felt"
           @toggle-mic="toggleMic"
           @toggle-camera="toggleCamera"
           @request-av="requestPermissions"
+          @reconnect-av="emit('reconnectAv')"
         />
       </div>
       <div data-testid="controls-zone-entry" class="w-full max-w-sm md:hidden">
-        <MobileBottomBar />
+        <MobileBottomBar
+          :av-show-reconnecting="props.avShowReconnecting"
+          :av-show-reconnect-button="props.avShowReconnectButton"
+          :av-manual-reconnect-phase="props.avManualReconnectPhase"
+          @reconnect-av="emit('reconnectAv')"
+        />
       </div>
     </div>
   </div>

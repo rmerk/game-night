@@ -17,12 +17,17 @@ import { useReactionsStore } from "../stores/reactions";
 import { useActivityTickerStore } from "../stores/activityTicker";
 import { useLiveKitStore } from "../stores/liveKit";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
+import { AV_MANUAL_RETRY_TIMEOUT_MS } from "../constants/avReconnect";
 
 export type RoomConnectionStatus = "idle" | "connecting" | "open" | "closed";
+
+type LiveKitConnectWaiter = { resolve: (ok: boolean) => void };
 
 export function useRoomConnection() {
   const liveKit = useLiveKit();
   let liveKitTokenRequested = false;
+  let liveKitConnectWaiter: LiveKitConnectWaiter | null = null;
+  let liveKitRetryGeneration = 0;
 
   const status = ref<RoomConnectionStatus>("idle");
   const lastErrorMessage = ref<string | null>(null);
@@ -35,7 +40,26 @@ export function useRoomConnection() {
 
   let ws: WebSocket | null = null;
 
+  /** Awaited `liveKit.connect` for token path; optional waiter for manual retry Promise.race. */
+  function dispatchLiveKitConnect(token: string, url: string): void {
+    const waiter = liveKitConnectWaiter;
+    void (async () => {
+      try {
+        await liveKit.connect(token, url);
+        waiter?.resolve(true);
+      } catch {
+        waiter?.resolve(false);
+      } finally {
+        if (liveKitConnectWaiter === waiter) {
+          liveKitConnectWaiter = null;
+        }
+      }
+    })();
+  }
+
   function resetSocialUiForSession(): void {
+    liveKitRetryGeneration += 1;
+    liveKitConnectWaiter = null;
     void liveKit.disconnect();
     useLiveKitStore().resetForRoomLeave();
     useChatStore().clear();
@@ -107,7 +131,7 @@ export function useRoomConnection() {
     }
     if (parsed.kind === "livekit_token") {
       const { token, url } = parsed.message;
-      void liveKit.connect(token, url);
+      dispatchLiveKitConnect(token, url);
       return;
     }
     if (parsed.kind === "chat_history") {
@@ -188,6 +212,49 @@ export function useRoomConnection() {
       return;
     }
     ws.send(JSON.stringify({ version: PROTOCOL_VERSION, ...payload }));
+  }
+
+  /**
+   * Story 6B.5: reset `liveKitTokenRequested` and ask server for a new token (manual "Reconnect A/V").
+   * Resolves `true` when LiveKit `connect` completes successfully for the matching `livekit_token`.
+   */
+  function retryLiveKitConnection(): Promise<boolean> {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return Promise.resolve(false);
+    }
+    liveKitRetryGeneration += 1;
+    const gen = liveKitRetryGeneration;
+    liveKitTokenRequested = false;
+    sendRaw({ type: "REQUEST_LIVEKIT_TOKEN" });
+    return new Promise((resolve) => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      const finish = (ok: boolean): void => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        resolve(ok);
+      };
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        if (gen !== liveKitRetryGeneration) {
+          finish(false);
+          return;
+        }
+        // Invalidate late `livekit_token` / `connect` completions from this attempt (matches reset path).
+        liveKitRetryGeneration += 1;
+        liveKitConnectWaiter = null;
+        finish(false);
+      }, AV_MANUAL_RETRY_TIMEOUT_MS);
+      liveKitConnectWaiter = {
+        resolve: (ok: boolean) => {
+          if (gen !== liveKitRetryGeneration) {
+            return;
+          }
+          finish(ok);
+        },
+      };
+    });
   }
 
   function sendGameAction(action: GameAction): void {
@@ -303,5 +370,6 @@ export function useRoomConnection() {
     clearTokenForRoom: (roomCode: string) => {
       clearSessionToken(roomCode.trim().toUpperCase());
     },
+    retryLiveKitConnection,
   };
 }
