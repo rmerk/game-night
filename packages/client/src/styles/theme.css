@@ -119,10 +119,7 @@
 }
 
 /* --- 3.3 Lingering: warm overlay softens felt dominance at the top of the table --- */
-.mood-lingering [data-testid="game-table"] {
-  position: relative;
-}
-
+/* game-table already carries `relative` via UnoCSS utility class */
 .mood-lingering [data-testid="game-table"]::before {
   content: "";
   position: absolute;
