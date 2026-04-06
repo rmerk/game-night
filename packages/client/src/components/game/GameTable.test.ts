@@ -111,6 +111,20 @@ const mockCallWindow: CallWindowState = {
   winningCall: null,
 };
 
+/**
+ * Celebration stub that immediately emits `done` on mount, so tests that
+ * focus on scoreboard content don't block on the 5–8 s animation sequence.
+ */
+const AutoDoneCelebrationStub = {
+  name: "Celebration",
+  props: ["gameResult", "playerNamesById", "winnerId", "winnerSeat"],
+  emits: ["done"],
+  template: "<div />",
+  mounted(this: { $emit: (event: string) => void }) {
+    this.$emit("done");
+  },
+};
+
 function mountTable(props: Record<string, unknown> = {}, pinia?: Pinia) {
   return mount(GameTable, {
     props: {
@@ -121,6 +135,7 @@ function mountTable(props: Record<string, unknown> = {}, pinia?: Pinia) {
       plugins: [pinia ?? createPinia()],
       stubs: {
         TileSprite: { template: "<svg />" },
+        Celebration: AutoDoneCelebrationStub,
       },
     },
   });
@@ -503,12 +518,13 @@ describe("GameTable — accessibility", () => {
     ).toBe(true);
   });
 
-  it("renders the scoreboard breakdown only during scoreboard phase", () => {
+  it("renders the scoreboard breakdown only during scoreboard phase", async () => {
     const wrapper = mountTable({
       gamePhase: "scoreboard",
       localPlayer,
       gameResult: mockGameResult,
     });
+    await flushPromises();
 
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("You");
     expect(wrapper.find("[data-testid='wall-counter']").exists()).toBe(false);
@@ -539,7 +555,7 @@ describe("GameTable — accessibility", () => {
     expect(tableClasses.join(" ")).toContain("bg-gradient-to-b");
   });
 
-  it("shows cumulative session totals (prior games + current scores) on the scoreboard", () => {
+  it("shows cumulative session totals (prior games + current scores) on the scoreboard", async () => {
     const wrapper = mountTable({
       gamePhase: "scoreboard",
       localPlayer,
@@ -552,6 +568,7 @@ describe("GameTable — accessibility", () => {
         "player-north": -10,
       },
     });
+    await flushPromises();
 
     expect(wrapper.get("[data-testid='scoreboard']").text()).toContain("+125");
   });
@@ -575,13 +592,14 @@ describe("GameTable — shown hands (5B.5)", () => {
     expect(wrapper.find('[data-testid="shown-hand-local"]').exists()).toBe(false);
   });
 
-  it("renders local shown hand during scoreboard when server included entry", () => {
+  it("renders local shown hand during scoreboard when server included entry", async () => {
     const wrapper = mountTable({
       gamePhase: "scoreboard",
       localPlayer,
       gameResult: mockGameResult,
       shownHands: { "player-south": [showTile] },
     });
+    await flushPromises();
     expect(wrapper.find('[data-testid="shown-hand-local"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="shown-hand-local"]').text()).toContain("You");
   });
@@ -615,13 +633,14 @@ describe("GameTable — shown hands (5B.5)", () => {
     expect(wrapper.get('[data-testid="shown-hand-right"]').text()).toContain("Carol");
   });
 
-  it("renders left/right shown hands in mobile fallback during scoreboard", () => {
+  it("renders left/right shown hands in mobile fallback during scoreboard", async () => {
     const wrapper = mountTable({
       gamePhase: "scoreboard",
       localPlayer,
       gameResult: mockGameResult,
       shownHands: { "player-west": [showTile], "player-east": [showTile] },
     });
+    await flushPromises();
     const mobile = wrapper.get('[data-testid="scoreboard-shown-hands-mobile-sides"]');
     expect(mobile.find('[data-testid="shown-hand-left"]').exists()).toBe(true);
     expect(mobile.find('[data-testid="shown-hand-right"]').exists()).toBe(true);
@@ -1616,5 +1635,79 @@ describe("GameTable — activity ticker (5B.7)", () => {
     await wrapper.setProps({ gamePhase: "play" });
     await flushPromises();
     expect(store.items).toHaveLength(0);
+  });
+});
+
+describe("GameTable — Celebration overlay (7.2)", () => {
+  const CelebrationStub = {
+    name: "Celebration",
+    props: ["gameResult", "playerNamesById", "winnerId", "winnerSeat"],
+    emits: ["done"],
+    template: '<div data-testid="celebration-stub" />',
+  };
+  const ScoreboardStub = {
+    name: "Scoreboard",
+    props: [
+      "gameResult",
+      "playerNamesById",
+      "playerOrder",
+      "sessionScores",
+      "sessionGameHistory",
+      "viewerIsHost",
+      "hasShownHand",
+    ],
+    emits: ["play-again", "end-session", "show-hand"],
+    template: '<div data-testid="scoreboard" />',
+  };
+
+  it("5.4: Scoreboard is not rendered while Celebration is active", () => {
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+          Celebration: CelebrationStub,
+          Scoreboard: ScoreboardStub,
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(false);
+  });
+
+  it("5.5: Scoreboard renders after Celebration emits done", async () => {
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "scoreboard",
+        gameResult: mockGameResult,
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+          Celebration: CelebrationStub,
+          Scoreboard: ScoreboardStub,
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(false);
+
+    // Emit done from the Celebration stub via vm.$emit (Vue emit, not DOM event)
+    await wrapper.findComponent(CelebrationStub).vm.$emit("done");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(false);
   });
 });

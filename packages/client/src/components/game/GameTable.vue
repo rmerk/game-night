@@ -31,6 +31,7 @@ import SocialOverridePanel from "./SocialOverridePanel.vue";
 import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
+import Celebration from "../scoreboard/Celebration.vue";
 import ShownHand from "./ShownHand.vue";
 import DealingAnimation from "./DealingAnimation.vue";
 import CharlestonZone from "../charleston/CharlestonZone.vue";
@@ -47,6 +48,7 @@ import {
   type CallWindowState,
   type GamePhase,
   type GameResult,
+  type MahjongGameResult,
   type PlayerCharlestonView,
   type ResolvedAction,
   type RoomSettings,
@@ -217,6 +219,9 @@ const courtesyTileTarget = ref(0);
 /** After DealingAnimation completes, hide until next time we leave `play`. */
 const dealingAnimFinished = ref(false);
 
+/** Set to true once Celebration emits `done`; gates Scoreboard visibility. */
+const celebrationDone = ref(false);
+
 watch(
   () => props.gamePhase,
   (phase, prev) => {
@@ -232,6 +237,9 @@ watch(
       dealingAnimFinished.value = false;
     } else if (prev !== undefined && prev !== "play") {
       dealingAnimFinished.value = false;
+    }
+    if (phase !== "scoreboard") {
+      celebrationDone.value = false;
     }
   },
 );
@@ -699,6 +707,16 @@ const playersBySeat = computed(() => {
 const playerNamesById = computed<Record<string, string>>(() => {
   const entries = Object.values(playersBySeat.value).map((player) => [player.id, player.name]);
   return Object.fromEntries(entries);
+});
+
+/** Derives the SeatWind of the winning player for passing to Celebration. */
+const winnerSeat = computed((): SeatWind => {
+  const result = props.gameResult;
+  if (!result?.winnerId) return "east";
+  const entry = Object.entries(playersBySeat.value).find(
+    ([, p]) => p.id === (result as MahjongGameResult).winnerId,
+  );
+  return (entry?.[0] ?? "east") as SeatWind;
 });
 
 const afkVoteOpen = ref<{ targetPlayerId: string; expiresAt: number } | null>(null);
@@ -1201,42 +1219,52 @@ function onChatEscape() {
         class="game-table__center min-h-[40dvh] flex flex-col items-center justify-center gap-4"
       >
         <template v-if="isScoreboardPhase">
-          <Scoreboard
-            :game-result="gameResult"
+          <Celebration
+            v-if="!celebrationDone && gameResult !== null && gameResult.winnerId !== null"
+            :game-result="gameResult as MahjongGameResult"
             :player-names-by-id="playerNamesById"
-            :player-order="playerOrder"
-            :session-scores="sessionCumulativeScores"
-            :session-game-history="sessionGameHistoryList"
-            :viewer-is-host="isViewerHost"
-            :has-shown-hand="viewerHasRevealedHand"
-            @play-again="emit('rematch')"
-            @end-session="emit('endSession')"
-            @show-hand="emit('showHand')"
+            :winner-id="(gameResult as MahjongGameResult).winnerId"
+            :winner-seat="winnerSeat"
+            @done="celebrationDone = true"
           />
-          <ShownHand
-            v-if="localPlayer && hasPlayerRevealedHand(localPlayer.id)"
-            class="w-full max-w-3xl"
-            :tiles="tilesShownFor(localPlayer.id)"
-            :player-name="localPlayer.name"
-            position="local"
-          />
-          <div
-            class="flex w-full max-w-3xl flex-col gap-3 md:hidden"
-            data-testid="scoreboard-shown-hands-mobile-sides"
-          >
-            <ShownHand
-              v-if="leftPlayer && hasPlayerRevealedHand(leftPlayer.id)"
-              :tiles="tilesShownFor(leftPlayer.id)"
-              :player-name="leftPlayer.name"
-              position="left"
+          <template v-if="celebrationDone">
+            <Scoreboard
+              :game-result="gameResult"
+              :player-names-by-id="playerNamesById"
+              :player-order="playerOrder"
+              :session-scores="sessionCumulativeScores"
+              :session-game-history="sessionGameHistoryList"
+              :viewer-is-host="isViewerHost"
+              :has-shown-hand="viewerHasRevealedHand"
+              @play-again="emit('rematch')"
+              @end-session="emit('endSession')"
+              @show-hand="emit('showHand')"
             />
             <ShownHand
-              v-if="rightPlayer && hasPlayerRevealedHand(rightPlayer.id)"
-              :tiles="tilesShownFor(rightPlayer.id)"
-              :player-name="rightPlayer.name"
-              position="right"
+              v-if="localPlayer && hasPlayerRevealedHand(localPlayer.id)"
+              class="w-full max-w-3xl"
+              :tiles="tilesShownFor(localPlayer.id)"
+              :player-name="localPlayer.name"
+              position="local"
             />
-          </div>
+            <div
+              class="flex w-full max-w-3xl flex-col gap-3 md:hidden"
+              data-testid="scoreboard-shown-hands-mobile-sides"
+            >
+              <ShownHand
+                v-if="leftPlayer && hasPlayerRevealedHand(leftPlayer.id)"
+                :tiles="tilesShownFor(leftPlayer.id)"
+                :player-name="leftPlayer.name"
+                position="left"
+              />
+              <ShownHand
+                v-if="rightPlayer && hasPlayerRevealedHand(rightPlayer.id)"
+                :tiles="tilesShownFor(rightPlayer.id)"
+                :player-name="rightPlayer.name"
+                position="right"
+              />
+            </div>
+          </template>
           <div
             ref="scoreboardChatFocusReturn"
             data-testid="scoreboard-chat-focus-return"
