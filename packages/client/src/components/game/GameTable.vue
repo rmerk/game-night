@@ -25,6 +25,7 @@ import BaseBadge from "../ui/BaseBadge.vue";
 import BasePanel from "../ui/BasePanel.vue";
 import RoomSettingsPanel from "./RoomSettingsPanel.vue";
 import Scoreboard from "../scoreboard/Scoreboard.vue";
+import ShownHand from "./ShownHand.vue";
 import CharlestonZone from "../charleston/CharlestonZone.vue";
 import CharlestonVote from "../charleston/CharlestonVote.vue";
 import CourtesyPassUI from "../charleston/CourtesyPassUI.vue";
@@ -54,6 +55,7 @@ import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
 import {
+  toastCopyHandShown,
   toastCopyHostPromoted,
   toastCopyRematchWaiting,
   toastCopyRoomSettingsChanged,
@@ -124,6 +126,8 @@ const props = withDefaults(
     sessionScoresFromPriorGames?: Record<string, number>;
     sessionGameHistory?: readonly SessionGameHistoryEntry[];
     viewerIsHost?: boolean;
+    /** Revealed racks in scoreboard phase (Story 5B.5). */
+    shownHands?: Record<string, Tile[]>;
   }>(),
   {
     opponents: () => ({}),
@@ -157,6 +161,7 @@ const props = withDefaults(
     sessionScoresFromPriorGames: () => ({}),
     sessionGameHistory: () => [],
     viewerIsHost: false,
+    shownHands: () => ({}),
   },
 );
 
@@ -184,6 +189,7 @@ const emit = defineEmits<{
   roomSettingsChange: [patch: Partial<RoomSettings>];
   rematch: [];
   endSession: [];
+  showHand: [];
 }>();
 
 const courtesyTileTarget = ref(0);
@@ -606,6 +612,8 @@ const roomSettingsToastText = ref("");
 const guidanceAutoDisableToastVisible = ref(false);
 const rematchWaitingToastVisible = ref(false);
 const rematchWaitingToastText = ref("");
+const handShownToastVisible = ref(false);
+const handShownToastText = ref("");
 const guidanceScoreboardRecorded = ref(false);
 
 const afkVoteTargetDisplayName = computed(() => {
@@ -717,6 +725,12 @@ watch(
         rematchWaitingToastVisible.value = true;
         break;
       }
+      case "HAND_SHOWN": {
+        const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
+        handShownToastText.value = toastCopyHandShown(name);
+        handShownToastVisible.value = true;
+        break;
+      }
       default:
         break;
     }
@@ -743,6 +757,18 @@ const sessionCumulativeScores = computed<Record<string, number>>(() => {
 const sessionGameHistoryList = computed(() => props.sessionGameHistory ?? []);
 
 const isViewerHost = computed(() => props.viewerIsHost ?? false);
+
+function tilesShownFor(playerId: string | undefined): Tile[] {
+  if (!playerId) return [];
+  return props.shownHands?.[playerId] ?? [];
+}
+
+function hasPlayerRevealedHand(playerId: string | undefined): boolean {
+  if (!playerId) return false;
+  return Object.prototype.hasOwnProperty.call(props.shownHands ?? {}, playerId);
+}
+
+const viewerHasRevealedHand = computed(() => hasPlayerRevealedHand(props.localPlayer?.id));
 
 const nmjlGuidanceActive = computed(() => {
   if (!props.roomSettings?.handGuidanceEnabled) return false;
@@ -884,6 +910,15 @@ function onChatEscape() {
         {{ rematchWaitingToastText }}
       </BaseToast>
       <BaseToast
+        data-testid="hand-shown-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="handShownToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="handShownToastVisible = false"
+      >
+        {{ handShownToastText }}
+      </BaseToast>
+      <BaseToast
         data-testid="hand-guidance-auto-disable-toast"
         class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
         :visible="guidanceAutoDisableToastVisible"
@@ -997,6 +1032,12 @@ function onChatEscape() {
         :score="topPlayer?.score ?? null"
         :is-dead-seat="isDeadSeatPlayer(topPlayer?.id)"
       />
+      <ShownHand
+        v-if="isScoreboardPhase && topPlayer && hasPlayerRevealedHand(topPlayer.id)"
+        :tiles="tilesShownFor(topPlayer.id)"
+        :player-name="topPlayer.name"
+        position="top"
+      />
     </div>
 
     <!-- Left / Center / Right row -->
@@ -1004,7 +1045,7 @@ function onChatEscape() {
       <!-- Opponent Left (hidden on phone, shown via grid on tablet/desktop) -->
       <div
         data-testid="opponent-left"
-        class="game-table__opponent-left relative hidden md:flex items-center justify-center"
+        class="game-table__opponent-left relative hidden md:flex flex-col items-center justify-center gap-2"
       >
         <div
           v-if="showReactionChrome && reactionBubblesByAnchor.left.length > 0"
@@ -1019,6 +1060,12 @@ function onChatEscape() {
           :is-active-turn="isSeatActive(leftPlayer?.seatWind)"
           :score="leftPlayer?.score ?? null"
           :is-dead-seat="isDeadSeatPlayer(leftPlayer?.id)"
+        />
+        <ShownHand
+          v-if="isScoreboardPhase && leftPlayer && hasPlayerRevealedHand(leftPlayer.id)"
+          :tiles="tilesShownFor(leftPlayer.id)"
+          :player-name="leftPlayer.name"
+          position="left"
         />
       </div>
 
@@ -1035,9 +1082,35 @@ function onChatEscape() {
             :session-scores="sessionCumulativeScores"
             :session-game-history="sessionGameHistoryList"
             :viewer-is-host="isViewerHost"
+            :has-shown-hand="viewerHasRevealedHand"
             @play-again="emit('rematch')"
             @end-session="emit('endSession')"
+            @show-hand="emit('showHand')"
           />
+          <ShownHand
+            v-if="localPlayer && hasPlayerRevealedHand(localPlayer.id)"
+            class="w-full max-w-3xl"
+            :tiles="tilesShownFor(localPlayer.id)"
+            :player-name="localPlayer.name"
+            position="local"
+          />
+          <div
+            class="flex w-full max-w-3xl flex-col gap-3 md:hidden"
+            data-testid="scoreboard-shown-hands-mobile-sides"
+          >
+            <ShownHand
+              v-if="leftPlayer && hasPlayerRevealedHand(leftPlayer.id)"
+              :tiles="tilesShownFor(leftPlayer.id)"
+              :player-name="leftPlayer.name"
+              position="left"
+            />
+            <ShownHand
+              v-if="rightPlayer && hasPlayerRevealedHand(rightPlayer.id)"
+              :tiles="tilesShownFor(rightPlayer.id)"
+              :player-name="rightPlayer.name"
+              position="right"
+            />
+          </div>
           <div
             ref="scoreboardChatFocusReturn"
             data-testid="scoreboard-chat-focus-return"
@@ -1198,6 +1271,12 @@ function onChatEscape() {
           :is-active-turn="isSeatActive(rightPlayer?.seatWind)"
           :score="rightPlayer?.score ?? null"
           :is-dead-seat="isDeadSeatPlayer(rightPlayer?.id)"
+        />
+        <ShownHand
+          v-if="isScoreboardPhase && rightPlayer && hasPlayerRevealedHand(rightPlayer.id)"
+          :tiles="tilesShownFor(rightPlayer.id)"
+          :player-name="rightPlayer.name"
+          position="right"
         />
       </div>
     </div>

@@ -58,6 +58,8 @@ export interface GameTablePropsFromView {
   sessionScoresFromPriorGames: Record<string, number>;
   sessionGameHistory: PlayerGameView["sessionGameHistory"];
   viewerIsHost: boolean;
+  /** Revealed racks after "Show My Hand" in scoreboard phase (Story 5B.5). */
+  shownHands: Record<string, Tile[]>;
 }
 
 function initialFromName(name: string): string {
@@ -272,5 +274,6 @@ export function mapPlayerGameViewToGameTableProps(
     sessionScoresFromPriorGames: view.sessionScoresFromPriorGames,
     sessionGameHistory: view.sessionGameHistory,
     viewerIsHost: view.players.find((p) => p.playerId === myId)?.isHost ?? false,
+    shownHands: view.shownHands ?? {},
   };
 }

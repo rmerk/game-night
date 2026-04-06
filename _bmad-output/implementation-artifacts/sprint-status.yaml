@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-06 # 5B.4 done
+# last_updated: 2026-04-06 # 5B.5 done
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # 5B.4 done
+last_updated: 2026-04-06 # 5B.5 done
 project: mahjong-game
 
 project_key: NOKEY
@@ -151,7 +151,7 @@ development_status:
   5b-2-hand-guidance-engine-card-highlighting: done
   5b-3-wall-counter-states-tension-styling: done
   5b-4-session-scoreboard-rematch-flow: done
-  5b-5-show-hands-post-game-social: backlog
+  5b-5-show-hands-post-game-social: done
   5b-6-settings-panel-dealing-style-options: backlog
   5b-7-recent-activity-indicator-ticker: backlog
   epic-5b-retrospective: optional

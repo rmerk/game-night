@@ -12,6 +12,10 @@ export function toastCopyRematchWaiting(missingSeats: number): string {
   return `Waiting for ${n} more player${n === 1 ? "" : "s"}`;
 }
 
+export function toastCopyHandShown(playerName: string): string {
+  return `${playerName} showed their hand`;
+}
+
 export function toastCopyRoomSettingsChanged(
   ra: Extract<ResolvedAction, { type: "ROOM_SETTINGS_CHANGED" }>,
 ): string {

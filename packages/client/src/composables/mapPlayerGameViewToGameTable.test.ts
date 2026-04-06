@@ -105,6 +105,16 @@ test("maps south-local opponents to top=north, left=east, right=west", () => {
   expect(m.opponents.right?.seatWind).toBe("west");
 });
 
+test("maps shownHands onto GameTable props", () => {
+  const tile = t("dot-1-1", "dot", 1, 1);
+  const m = mapPlayerGameViewToGameTableProps(
+    minimalPlayerView({
+      shownHands: { pN: [tile] },
+    }),
+  );
+  expect(m.shownHands.pN).toEqual([tile]);
+});
+
 test("maps sessionScoresFromPriorGames and sessionGameHistory onto GameTable props", () => {
   const history: readonly SessionGameHistoryEntry[] = [
     {

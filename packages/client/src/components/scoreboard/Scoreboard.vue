@@ -6,18 +6,27 @@ import BaseButton from "../ui/BaseButton.vue";
 import SessionScores from "./SessionScores.vue";
 import { formatSignedNumber } from "./format-signed-number";
 
-const props = defineProps<{
-  gameResult: GameResult | null;
-  playerNamesById: Record<string, string>;
-  playerOrder: string[];
-  sessionScores: Record<string, number>;
-  sessionGameHistory?: readonly SessionGameHistoryEntry[];
-  viewerIsHost?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    gameResult: GameResult | null;
+    playerNamesById: Record<string, string>;
+    playerOrder: string[];
+    sessionScores: Record<string, number>;
+    sessionGameHistory?: readonly SessionGameHistoryEntry[];
+    viewerIsHost?: boolean;
+    /** Server confirmed this viewer revealed their hand (Story 5B.5). */
+    hasShownHand?: boolean;
+  }>(),
+  {
+    viewerIsHost: false,
+    hasShownHand: false,
+  },
+);
 
 const emit = defineEmits<{
   playAgain: [];
   endSession: [];
+  showHand: [];
 }>();
 
 function isMahjong(result: GameResult | null): result is MahjongGameResult {
@@ -114,6 +123,22 @@ function gameSummary(entry: SessionGameHistoryEntry): string {
       :player-order="props.playerOrder"
       :session-scores="props.sessionScores"
     />
+
+    <section
+      class="flex flex-col items-center gap-2 border-t border-chrome-border/40 pt-4"
+      data-testid="scoreboard-show-hand-section"
+    >
+      <BaseButton
+        data-testid="scoreboard-show-hand"
+        type="button"
+        variant="secondary"
+        class="!min-h-11 max-w-md"
+        :disabled="hasShownHand"
+        @click="emit('showHand')"
+      >
+        {{ hasShownHand ? "Hand Shown" : "Show My Hand" }}
+      </BaseButton>
+    </section>
 
     <footer
       v-if="viewerIsHost"

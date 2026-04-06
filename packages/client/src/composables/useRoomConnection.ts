@@ -180,6 +180,14 @@ export function useRoomConnection() {
     sendRaw({ type: "SET_ROOM_SETTINGS", ...patch });
   }
 
+  function sendShowHand(): void {
+    const v = playerGameView.value;
+    if (!v) {
+      return;
+    }
+    sendGameAction({ type: "SHOW_HAND", playerId: v.myPlayerId });
+  }
+
   function sendRematch(): void {
     sendRaw({ type: "REMATCH" });
   }
@@ -254,6 +262,7 @@ export function useRoomConnection() {
     sendStartGame,
     sendSetJokerRules,
     sendSetRoomSettings,
+    sendShowHand,
     sendRematch,
     sendEndSession,
     requestState,

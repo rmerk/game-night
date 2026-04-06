@@ -7,39 +7,17 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 5:22am CDT
+# $CMEM mahjong-game 2026-04-06 6:13am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (26,990t read) | 300,043t work | 91% savings
+Stats: 50 obs (24,903t read) | 289,099t work | 91% savings
 
-### Apr 5, 2026
-963 9:16p ✅ Integration Tests for NMJL Guidance Pool Size Enforcement
-964 " 🔴 Test Issues Discovered in NMJL Guidance Integration Tests
-965 9:17p 🔴 Resolved Test Failures in NMJL Guidance Test Suite
-966 " ✅ GDS Code Review Second Pass Completion Documented
 ### Apr 6, 2026
-967 4:16a 🔵 GDS Create Story Workflow System Architecture
-968 4:27a 🟣 Wall counter visual tension states with threshold-based styling
-969 4:31a 🟣 Wall Counter Tension Styling with Animated State Transitions
-970 4:35a ⚖️ Story 5B.3 Code Review Approved - Status Updated to Done
-S331 Investigate gds-create-story skill dependencies and integrated capabilities (Apr 6 at 4:35 AM)
-971 4:36a 🔵 gds-create-story skill architecture and dependencies
-S332 Analyzed dependencies and capabilities of the gds-create-story skill in the mahjong-game project (Apr 6 at 4:37 AM)
-S333 Investigate what skills, agents, and abilities the gds-create-story skill leverages (Apr 6 at 4:40 AM)
-972 4:47a 🔵 gds-create-story skill leverages subagents and validation frameworks
-973 " 🔵 gds-create-story implements file discovery protocol and MCP tool integration
 S334 Refactor gds-create-story skill to use token-efficient claude-mem structural tools (smart_outline, smart_search) throughout artifact discovery and analysis (Apr 6 at 4:48 AM)
-974 4:51a 🔄 Refactored discover-inputs protocol to prioritize token-efficient structural discovery
-975 4:52a 🔄 Refactored workflow previous story discovery to use token-efficient structural tools
-976 " 🔄 Added smart_outline to epic analysis for token-efficient story extraction
-978 " 🔄 Refactored architecture analysis in workflow and checklist to use token-efficient structural tools
-977 4:53a 🟣 Session Scoreboard with Multi-Game Tracking and Rematch Flow
-979 " 🔄 Completed checklist token-efficiency refactor for epics and previous story analysis
 S335 Apply token-efficiency refactoring to gds-dev-story skill following patterns from gds-create-story optimization (Apr 6 at 4:53 AM)
-980 4:53a 🟣 Protocol Types for Session End and Game History
 982 4:54a 🔵 gds-dev-story skill already uses some token-efficient patterns but has full-load opportunities
 981 " 🟣 PlayerGameView Extended with Session Tracking Fields
 983 " 🟣 Server Session Scoring and Dealer Rotation Logic
@@ -74,19 +52,40 @@ S339 Code review of Story 5B.4 Session Scoreboard & Rematch Flow using GDS adver
 1008 " 🔵 GDS Code Review Workflow System
 1009 5:13a 🔵 Mahjong Game Project Structure and Story Inventory
 1010 " 🔵 Story 5B.4 Session Scoreboard Review Initiated
+S340 Code review for Story 5B.4 Session Scoreboard & Rematch Flow in Mahjong game project (Apr 6 at 5:17 AM)
 1011 5:21a 🟣 Session Scoreboard & Rematch Flow for Mahjong Game
 1012 5:22a ⚖️ Story 5B.4 Code Review Completed and Approved
-S340 Code review for Story 5B.4 Session Scoreboard & Rematch Flow in Mahjong game project (Apr 6 at 5:22 AM)
-**Investigated**: AI code review verified all 6 acceptance criteria against implementation, confirmed all 15 subtasks complete through code inspection, examined file list documentation for completeness, validated test coverage quality (real assertions vs placeholders), and checked implementation patterns for host-only authorization gates, session merge timing, and dealer rotation logic
+S341 Create comprehensive story file for Story 5B.5 "Show Hands & Post-Game Social" using BMad Method GDS workflow (Apr 6 at 5:22 AM)
+1013 5:24a 🔵 BMad Method Story Creation Workflow
+1014 " 🔵 Mahjong Game Project BMad Method Configuration and Sprint Status
+1015 5:25a 🔵 Story Creation Workflow Parallel Task Execution Pattern
+S342 Adversarial code review of Story 5B.5 "Show Hands & Post-Game Social" implementation with AC validation, task audit, and quality assessment (Apr 6 at 5:33 AM)
+1016 5:38a 🟣 Show Hands Post-Game Social Feature Implementation Started
+1017 " 🔄 Simplified sendShowHand Guard Condition
+1018 " 🟣 Created ShownHand Vue Component for Revealed Hands
+1019 " 🟣 Added Hand Reveal Notifications and Scoreboard Integration
+1020 5:39a 🟣 Completed Hand Reveal UI Integration in GameTable and Scoreboard
+1021 " 🟣 Completed Hand Reveal Event Flow and Responsive Layout
+1022 5:40a ✅ Added Unit Tests for Hand Reveal Feature
+1023 " ✅ Added Comprehensive Tests for ShownHand Component and GameTable Integration
+1024 " ✅ Story 5B.5 Client Implementation Complete and Ready for Review
+1025 " ✅ Marked All Story 5B.5 Tasks Complete in Implementation Artifact
+1026 5:45a ✅ Pass 2 validation documented for show-hands-post-game story
+1027 6:12a ✅ Added test coverage for shown hands in right and mobile layouts
+1028 " ✅ Story 5B.5 marked complete after test validation
+1029 6:13a ✅ Documented code review pass in Story 5B.5 change log
+1030 " ✅ Updated sprint status tracking for completed Story 5B.5
+S343 Code review and completion of Story 5B.5 (Show Hands & Post-Game Social feature) (Apr 6 at 6:13 AM)
+**Investigated**: GameTable.test.ts was examined for test coverage gaps in the shown hands feature. The existing tests covered local player and top opponent scenarios, but right opponent and mobile fallback layouts were missing test coverage.
 
-**Learned**: Story 5B.4 implements cumulative session scoring with proper session merge timing that avoids double-counting by merging scores when transitioning off scoreboard (not during display). Dealer rotation follows counterclockwise pattern (South→East) matching National Mah Jongg League rules. Host-only gates on REMATCH and END_SESSION use proper error codes. Test coverage uses real assertions throughout for Scoreboard rendering, button variants, WebSocket integration, and idle-timeout cancellation. Implementation spans server (Room session fields, session-scoring helpers, WebSocket handlers), protocol (SESSION_ENDED resolved action, extended PlayerGameView), and client (Scoreboard.vue, SessionScores.vue, format-signed-number.ts helper)
+**Learned**: The shown hands feature displays revealed player tiles during the scoreboard phase using testid selectors for positioning (shown-hand-right, shown-hand-left, shown-hand-top) with a mobile fallback container (scoreboard-shown-hands-mobile-sides) for side opponents. The test suite validates rendering for different player positions and responsive layouts.
 
-**Completed**: Code review completed with APPROVED verdict. Documentation gap fixed: three missing files (SessionScores.vue, format-signed-number.ts, gameActionFromPlayerView.test.ts) added to File List. Story 5B.4 status transitioned from review to done in both story document and sprint-status.yaml. Two low-severity notes logged regarding generic test file grouping but not requiring fixes
+**Completed**: Added two new test cases to GameTable.test.ts covering right opponent shown hand display and mobile fallback layout for left/right opponents. All 80 tests passed successfully. Updated Story 5B.5 status from "review" to "done" in both the implementation artifact and sprint-status.yaml. Documented Pass 3 (gds-code-review) in the change log noting the test additions.
 
-**Next Steps**: Story 5B.4 complete; Epic 5B continues with three remaining stories in backlog (5B.5 Show Hands Post-Game Social, 5B.6 Settings Panel Dealing Style Options, 5B.7 Recent Activity Indicator Ticker)
+**Next Steps**: Story 5B.5 is complete. Epic 5B has two remaining stories in backlog: 5B.6 (settings panel with dealing style options) and 5B.7 (recent activity indicator ticker). The primary session may move on to the next story or work item.
 
 
-Access 300k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 289k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

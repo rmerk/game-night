@@ -1,10 +1,15 @@
 import { expect, test } from "vite-plus/test";
 import {
+  toastCopyHandShown,
   toastCopyHostPromoted,
   toastCopyRematchWaiting,
   toastCopyRoomSettingsChanged,
 } from "./resolvedActionToastCopy";
 import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
+
+test("toastCopyHandShown", () => {
+  expect(toastCopyHandShown("Alex")).toBe("Alex showed their hand");
+});
 
 test("toastCopyHostPromoted", () => {
   expect(toastCopyHostPromoted("Alex")).toBe("Alex is now the host");

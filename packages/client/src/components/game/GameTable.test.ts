@@ -492,6 +492,101 @@ describe("GameTable — accessibility", () => {
   });
 });
 
+describe("GameTable — shown hands (5B.5)", () => {
+  const showTile: Tile = {
+    id: "bam-1-1",
+    category: "suited",
+    suit: "bam",
+    value: 1,
+    copy: 1,
+  } as SuitedTile;
+
+  it("does not render local shown-hand strip during play phase", () => {
+    const wrapper = mountTable({
+      gamePhase: "play",
+      localPlayer,
+      shownHands: { "player-south": [showTile] },
+    });
+    expect(wrapper.find('[data-testid="shown-hand-local"]').exists()).toBe(false);
+  });
+
+  it("renders local shown hand during scoreboard when server included entry", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+      shownHands: { "player-south": [showTile] },
+    });
+    expect(wrapper.find('[data-testid="shown-hand-local"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="shown-hand-local"]').text()).toContain("You");
+  });
+
+  it("renders top opponent shown hand during scoreboard", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+      shownHands: { "player-north": [showTile] },
+    });
+    expect(
+      wrapper.get('[data-testid="opponent-top"]').find('[data-testid="shown-hand-top"]').exists(),
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="shown-hand-top"]').text()).toContain("Alice");
+  });
+
+  it("renders right opponent shown hand during scoreboard", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+      shownHands: { "player-east": [showTile] },
+    });
+    expect(
+      wrapper
+        .get('[data-testid="opponent-right"]')
+        .find('[data-testid="shown-hand-right"]')
+        .exists(),
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="shown-hand-right"]').text()).toContain("Carol");
+  });
+
+  it("renders left/right shown hands in mobile fallback during scoreboard", () => {
+    const wrapper = mountTable({
+      gamePhase: "scoreboard",
+      localPlayer,
+      gameResult: mockGameResult,
+      shownHands: { "player-west": [showTile], "player-east": [showTile] },
+    });
+    const mobile = wrapper.get('[data-testid="scoreboard-shown-hands-mobile-sides"]');
+    expect(mobile.find('[data-testid="shown-hand-left"]').exists()).toBe(true);
+    expect(mobile.find('[data-testid="shown-hand-right"]').exists()).toBe(true);
+  });
+
+  it("shows hand-shown toast when resolvedAction is HAND_SHOWN", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        gamePhase: "scoreboard",
+        localPlayer,
+        gameResult: mockGameResult,
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    await wrapper.setProps({
+      resolvedAction: { type: "HAND_SHOWN", playerId: "player-north" },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="hand-shown-toast"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hand-shown-toast"]').text()).toContain("Alice");
+  });
+});
+
 describe("GameTable — discard pools", () => {
   const mockDiscardTiles: Tile[] = [
     { id: "bam-1-1", category: "suited", suit: "bam", value: 1, copy: 1 } as SuitedTile,

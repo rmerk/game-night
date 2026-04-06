@@ -674,6 +674,7 @@ function goSpectatePlaceholder() {
       @leave-game="conn.sendLeaveRoom()"
       @rematch="conn.sendRematch()"
       @end-session="conn.sendEndSession()"
+      @show-hand="conn.sendShowHand()"
     />
 
     <div

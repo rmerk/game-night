@@ -159,4 +159,24 @@ describe("Scoreboard", () => {
     expect(playAgain?.props("variant")).toBe("primary");
     expect(endSession?.props("variant")).toBe("secondary");
   });
+
+  it("renders Show My Hand for all viewers", () => {
+    const wrapper = mountScoreboard();
+    const btn = wrapper.get('[data-testid="scoreboard-show-hand"]');
+    expect(btn.text()).toContain("Show My Hand");
+    expect(btn.attributes("disabled")).toBeUndefined();
+  });
+
+  it("emits showHand when Show My Hand is clicked", async () => {
+    const wrapper = mountScoreboard({ hasShownHand: false });
+    await wrapper.get('[data-testid="scoreboard-show-hand"]').trigger("click");
+    expect(wrapper.emitted("showHand")?.length).toBe(1);
+  });
+
+  it("disables button and shows Hand Shown when hasShownHand is true", () => {
+    const wrapper = mountScoreboard({ hasShownHand: true });
+    const btn = wrapper.get('[data-testid="scoreboard-show-hand"]');
+    expect(btn.text()).toContain("Hand Shown");
+    expect(btn.attributes("disabled")).toBeDefined();
+  });
 });
