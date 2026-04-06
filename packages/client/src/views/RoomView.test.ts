@@ -8,7 +8,7 @@ import { useRoomConnection } from "../composables/useRoomConnection";
 import { useAvReconnectUi } from "../composables/useAvReconnectUi";
 
 const { mockAnimate } = vi.hoisted(() => {
-  const mockAnimate = vi.fn(() => ({ finished: Promise.resolve() }));
+  const mockAnimate = vi.fn(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
   return { mockAnimate };
 });
 
