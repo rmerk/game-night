@@ -21,6 +21,7 @@ export type RoomSettingsPatch = Partial<{
   turnDurationMs: number;
   jokerRulesMode: JokerRulesMode;
   dealingStyle: RoomSettings["dealingStyle"];
+  handGuidanceEnabled: boolean;
 }>;
 
 function mergeRoomSettings(
@@ -68,6 +69,13 @@ function mergeRoomSettings(
     next = { ...next, dealingStyle: patch.dealingStyle };
   }
 
+  if (patch.handGuidanceEnabled !== undefined) {
+    if (typeof patch.handGuidanceEnabled !== "boolean") {
+      return { ok: false, error: "handGuidanceEnabled: must be boolean" };
+    }
+    next = { ...next, handGuidanceEnabled: patch.handGuidanceEnabled };
+  }
+
   if (next.timerMode === "timed") {
     if (next.turnDurationMs < MIN_TURN_DURATION_MS || next.turnDurationMs > MAX_TURN_DURATION_MS) {
       return { ok: false, error: "turnDurationMs: out of range for timed mode" };
@@ -79,7 +87,13 @@ function mergeRoomSettings(
 
 function diffSettingsKeys(previous: RoomSettings, next: RoomSettings): (keyof RoomSettings)[] {
   const out: (keyof RoomSettings)[] = [];
-  for (const k of ["timerMode", "turnDurationMs", "jokerRulesMode", "dealingStyle"] as const) {
+  for (const k of [
+    "timerMode",
+    "turnDurationMs",
+    "jokerRulesMode",
+    "dealingStyle",
+    "handGuidanceEnabled",
+  ] as const) {
     if (previous[k] !== next[k]) out.push(k);
   }
   return out;

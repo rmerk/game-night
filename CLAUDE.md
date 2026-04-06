@@ -57,6 +57,7 @@ pnpm test && pnpm run typecheck && vp lint
 - **Seat order is counterclockwise** — SEATS array: east → south → west → north
 - **UnoCSS config imports from src/** — `uno.config.ts` imports design tokens from `src/styles/design-tokens.ts` at build time
 - **happy-dom for client tests** — not jsdom
+- **Resolved-action toasts** — `HOST_PROMOTED`, `ROOM_SETTINGS_CHANGED`, and `REMATCH_WAITING_FOR_PLAYERS` use shared copy in `packages/client/src/composables/resolvedActionToastCopy.ts`. Wire them with one `watch` on `resolvedAction` and a `switch` on `ra.type`; `GameTable` handles in-table phases, `RoomView` gates with lobby-only (`lobbyState !== null && playerGameView === null`). Add new toast copy there instead of duplicating strings.
 
 ## Testing
 

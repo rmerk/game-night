@@ -10,8 +10,12 @@ export function humanLabel(key: keyof RoomSettings): string {
       return "Joker rules";
     case "dealingStyle":
       return "dealing style";
-    default:
-      return String(key);
+    case "handGuidanceEnabled":
+      return "hand guidance";
+    default: {
+      const _exhaustive: never = key;
+      return String(_exhaustive);
+    }
   }
 }
 
@@ -25,8 +29,12 @@ export function humanValue(key: keyof RoomSettings, next: RoomSettings): string 
       return next.jokerRulesMode === "standard" ? "Standard" : "Simplified";
     case "dealingStyle":
       return next.dealingStyle === "instant" ? "Instant" : "Animated";
-    default:
-      return "";
+    case "handGuidanceEnabled":
+      return next.handGuidanceEnabled ? "On" : "Off";
+    default: {
+      const _exhaustive: never = key;
+      return String(_exhaustive);
+    }
   }
 }
 

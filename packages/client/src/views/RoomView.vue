@@ -21,7 +21,12 @@ import {
 import { buildGameActionFromTableEvent } from "../composables/gameActionFromPlayerView";
 import { useRoomConnection } from "../composables/useRoomConnection";
 import { getApiBaseUrl } from "../composables/apiBaseUrl";
-import { canEditRoomSettings, humanLabel, humanValue } from "../composables/roomSettingsFormatters";
+import { canEditRoomSettings } from "../composables/roomSettingsFormatters";
+import {
+  toastCopyHostPromoted,
+  toastCopyRematchWaiting,
+  toastCopyRoomSettingsChanged,
+} from "../composables/resolvedActionToastCopy";
 import { useRackStore } from "../stores/rack";
 import { useReactionsStore, type ReactionBubbleRecord } from "../stores/reactions";
 import { storeToRefs } from "pinia";
@@ -135,42 +140,31 @@ const roomSettingsLobbyToastText = ref("");
 const rematchWaitingLobbyVisible = ref(false);
 const rematchWaitingLobbyText = ref("");
 
+/** Lobby-only toasts from `resolvedAction` — same copy helpers as GameTable (`resolvedActionToastCopy`). */
 watch(
   () => resolvedAction.value,
   (ra) => {
-    if (!ra || ra.type !== "HOST_PROMOTED") return;
-    if (lobbyState.value !== null && playerGameView.value === null) {
-      hostPromotedLobbyText.value = `${ra.newHostName} is now the host`;
-      hostPromotedLobbyVisible.value = true;
-    }
-  },
-);
-
-watch(
-  () => resolvedAction.value,
-  (ra) => {
-    if (!ra || ra.type !== "ROOM_SETTINGS_CHANGED") return;
+    if (!ra) return;
     const lob = lobbyState.value;
-    if (!lob || playerGameView.value !== null) return;
-    if (ra.changedBy === lob.myPlayerId) return;
-    if (ra.changedKeys.length === 1) {
-      const k = ra.changedKeys[0];
-      roomSettingsLobbyToastText.value = `Host changed ${humanLabel(k)} to ${humanValue(k, ra.next)}`;
-    } else {
-      roomSettingsLobbyToastText.value = `Host updated room settings (${ra.changedKeys.length} changes)`;
-    }
-    roomSettingsLobbyToastVisible.value = true;
-  },
-);
+    if (lob === null || playerGameView.value !== null) return;
 
-watch(
-  () => resolvedAction.value,
-  (ra) => {
-    if (!ra || ra.type !== "REMATCH_WAITING_FOR_PLAYERS") return;
-    if (lobbyState.value === null || playerGameView.value !== null) return;
-    const n = ra.missingSeats;
-    rematchWaitingLobbyText.value = `Waiting for ${n} more player${n === 1 ? "" : "s"}`;
-    rematchWaitingLobbyVisible.value = true;
+    switch (ra.type) {
+      case "HOST_PROMOTED":
+        hostPromotedLobbyText.value = toastCopyHostPromoted(ra.newHostName);
+        hostPromotedLobbyVisible.value = true;
+        break;
+      case "ROOM_SETTINGS_CHANGED":
+        if (ra.changedBy === lob.myPlayerId) return;
+        roomSettingsLobbyToastText.value = toastCopyRoomSettingsChanged(ra);
+        roomSettingsLobbyToastVisible.value = true;
+        break;
+      case "REMATCH_WAITING_FOR_PLAYERS":
+        rematchWaitingLobbyText.value = toastCopyRematchWaiting(ra.missingSeats);
+        rematchWaitingLobbyVisible.value = true;
+        break;
+      default:
+        break;
+    }
   },
 );
 

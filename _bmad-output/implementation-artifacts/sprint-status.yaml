@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-05 # 4b-2 in progress
+# last_updated: 2026-04-05 # 5B.2 done after GDS review fixes
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-05 # Story 5B.1 done (GDS code review follow-up)
+last_updated: 2026-04-05 # 5B.2 done (GDS review fixes)
 project: mahjong-game
 
 project_key: NOKEY
@@ -126,7 +126,8 @@ development_status:
   epic-3c-retrospective: done
 
   # Epic 6A: Text Chat & Reactions
-  epic-6a: done
+  epic-6a: done1
+  
   6a-1-chat-message-protocol-server-handling: done
   6a-2-chat-panel-ui-slideinpanel: done
   6a-3-quick-reactions-system: done
@@ -147,7 +148,7 @@ development_status:
   # Epic 5B: Remaining UI
   epic-5b: in-progress
   5b-1-nmjl-card-panel-slideinpanel-full-screen-overlay: done
-  5b-2-hand-guidance-engine-card-highlighting: backlog
+  5b-2-hand-guidance-engine-card-highlighting: done
   5b-3-wall-counter-states-tension-styling: backlog
   5b-4-session-scoreboard-rematch-flow: backlog
   5b-5-show-hands-post-game-social: backlog
@@ -232,7 +233,7 @@ retro_follow_through:
     # Epic 4B retrospective action items (2026-04-05)
     # Critical: consolidate client toast wiring to one pattern (composable vs component watcher)
     # before 5B starts. Two patterns emerged in 4B.5/4B.6/4B.7 — pick one, migrate, document in CLAUDE.md.
-    4b-retro-1-consolidate-toast-pattern: pending
+    4b-retro-1-consolidate-toast-pattern: done
     # MEDIUM: Extract concern-specific sub-objects from Room type (TurnTimerState, VoteState, SeatStatus)
     # to reduce 20+ top-level fields. Create createTestRoom(overrides) builder. Parallel with early 5B.
     4b-retro-2-room-type-extraction: pending

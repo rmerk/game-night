@@ -45,6 +45,12 @@ function onDealingChange(ev: Event) {
   emit("change", { dealingStyle: v });
 }
 
+function onHandGuidanceChange(ev: Event) {
+  const v = (ev.target as HTMLSelectElement).value;
+  if (v !== "on" && v !== "off") return;
+  emit("change", { handGuidanceEnabled: v === "on" });
+}
+
 const showLockedNote = computed(() => !props.canEdit && props.phase !== "lobby");
 </script>
 
@@ -133,6 +139,23 @@ const showLockedNote = computed(() => !props.canEdit && props.phase !== "lobby")
         >
           <option value="instant">Instant</option>
           <option value="animated">Animated traditional</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-text-secondary" for="room-settings-hand-guidance"
+          >Hand guidance (NMJL card hints)</label
+        >
+        <select
+          id="room-settings-hand-guidance"
+          data-testid="room-settings-hand-guidance"
+          class="w-full rounded-md border border-chrome-border bg-chrome-surface px-3 py-2"
+          :disabled="!canEdit"
+          :value="settings.handGuidanceEnabled ? 'on' : 'off'"
+          @change="onHandGuidanceChange"
+        >
+          <option value="on">Allowed</option>
+          <option value="off">Off for everyone</option>
         </select>
       </div>
     </div>

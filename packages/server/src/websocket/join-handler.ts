@@ -132,6 +132,13 @@ export function handleSetRoomSettings(
     }
     patch.dealingStyle = parsed.dealingStyle;
   }
+  if ("handGuidanceEnabled" in parsed && parsed.handGuidanceEnabled !== undefined) {
+    if (typeof parsed.handGuidanceEnabled !== "boolean") {
+      sendError(ws, "INVALID_SETTINGS", "handGuidanceEnabled: invalid value");
+      return;
+    }
+    patch.handGuidanceEnabled = parsed.handGuidanceEnabled;
+  }
 
   if (Object.keys(patch).length === 0) {
     sendError(ws, "INVALID_SETTINGS", "No valid settings fields");

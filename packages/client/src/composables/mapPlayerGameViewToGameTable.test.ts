@@ -2,6 +2,7 @@ import { expect, test } from "vite-plus/test";
 import {
   DEFAULT_ROOM_SETTINGS,
   PROTOCOL_VERSION,
+  type ExposedGroup,
   type PlayerGameView,
   type SuitedTile,
   type Tile,
@@ -99,6 +100,19 @@ test("maps south-local opponents to top=north, left=east, right=west", () => {
   expect(m.opponents.top?.seatWind).toBe("north");
   expect(m.opponents.left?.seatWind).toBe("east");
   expect(m.opponents.right?.seatWind).toBe("west");
+});
+
+test("maps myExposedGroups from exposedGroups[myPlayerId]", () => {
+  const eg: ExposedGroup = {
+    type: "pung",
+    tiles: [t("bam-1-1", "bam", 1, 1), t("bam-1-2", "bam", 1, 2), t("bam-1-3", "bam", 1, 3)],
+    identity: { type: "pung", suit: "bam", value: 1 },
+  };
+  const v = minimalPlayerView({
+    exposedGroups: { pS: [eg] },
+  });
+  const m = mapPlayerGameViewToGameTableProps(v);
+  expect(m.myExposedGroups).toEqual([eg]);
 });
 
 test("reactionBubbleAnchorForPlayer matches opponent slots for south-local view", () => {

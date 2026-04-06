@@ -12,6 +12,8 @@ export interface RoomSettings {
   /** Same values as JokerRulesMode in game-state.ts — keep in sync. */
   readonly jokerRulesMode: "standard" | "simplified";
   readonly dealingStyle: DealingStyle;
+  /** When false, no player sees hand guidance highlights (Story 5B.2). */
+  readonly handGuidanceEnabled: boolean;
 }
 
 export const MIN_TURN_DURATION_MS = 15_000;
@@ -22,4 +24,5 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   turnDurationMs: 20_000,
   jokerRulesMode: "standard",
   dealingStyle: "instant",
+  handGuidanceEnabled: true,
 };

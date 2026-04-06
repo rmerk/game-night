@@ -1,16 +1,36 @@
 <script setup lang="ts">
-import { loadCard } from "@mahjong-game/shared";
-import type { HandPattern, NMJLCard } from "@mahjong-game/shared";
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  loadCard,
+  type GuidanceResult,
+  type HandPattern,
+  type NMJLCard,
+} from "@mahjong-game/shared";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import HandPatternDetail from "./HandPatternDetail.vue";
 import HandPatternNotation from "./HandPatternNotation.vue";
 
-const props = defineProps<{
-  onEscapeFocusTarget?: () => void;
-}>();
+const CLOSE_GUIDANCE_DISTANCE = 3;
+
+const props = withDefaults(
+  defineProps<{
+    onEscapeFocusTarget?: () => void;
+    /** When true, rows use guidance styling and impossible rows are hidden. */
+    guidanceActive?: boolean;
+    /** Map of pattern id → guidance row; when inactive, ignored. */
+    guidanceByHandId?: ReadonlyMap<string, GuidanceResult> | null;
+    /** After 3-game auto-disable: allow local user to opt back in (room must still allow guidance). */
+    showPersonalReenableHint?: boolean;
+  }>(),
+  {
+    guidanceActive: false,
+    guidanceByHandId: null,
+    showPersonalReenableHint: false,
+  },
+);
 
 const emit = defineEmits<{
   close: [];
+  reenablePersonalGuidance: [];
 }>();
 
 const card = ref<NMJLCard | null>(null);
@@ -28,6 +48,28 @@ const selectedHand = ref<HandPattern | null>(null);
 
 const lastRowButtonRef = ref<HTMLButtonElement | null>(null);
 const detailRootRef = ref<HTMLElement | null>(null);
+
+const categoriesForDisplay = computed(() => {
+  const c = card.value;
+  if (!c) return [];
+  if (!props.guidanceActive || !props.guidanceByHandId) {
+    return c.categories;
+  }
+  return c.categories
+    .map((cat) => ({
+      ...cat,
+      hands: cat.hands.filter((h) => props.guidanceByHandId!.get(h.id)?.achievable),
+    }))
+    .filter((cat) => cat.hands.length > 0);
+});
+
+function guidanceRowClass(handId: string): string {
+  if (!props.guidanceActive || !props.guidanceByHandId) return "";
+  const g = props.guidanceByHandId.get(handId);
+  if (!g?.achievable) return "";
+  if (g.distance <= CLOSE_GUIDANCE_DISTANCE) return "guidance-achievable";
+  return "guidance-distant";
+}
 
 function selectHand(hand: HandPattern) {
   selectedHandId.value = hand.id;
@@ -112,7 +154,7 @@ function onRowActivate(hand: HandPattern, ev: MouseEvent) {
       aria-labelledby="nmjl-card-panel-title"
     >
       <section
-        v-for="cat in card.categories"
+        v-for="cat in categoriesForDisplay"
         :key="cat.name"
         class="mb-4"
         role="group"
@@ -130,6 +172,7 @@ function onRowActivate(hand: HandPattern, ev: MouseEvent) {
             v-for="hand in cat.hands"
             :key="hand.id"
             class="rounded-md border border-chrome-border bg-chrome-surface/60"
+            :class="guidanceRowClass(hand.id)"
           >
             <button
               type="button"
@@ -175,6 +218,17 @@ function onRowActivate(hand: HandPattern, ev: MouseEvent) {
           </li>
         </ul>
       </section>
+
+      <div v-if="showPersonalReenableHint" class="border-t border-chrome-border px-3 py-2">
+        <button
+          type="button"
+          class="text-3 text-text-secondary underline decoration-chrome-border hover:text-text-primary"
+          data-testid="nmjl-personal-reenable-hints"
+          @click="emit('reenablePersonalGuidance')"
+        >
+          Turn personal hints back on
+        </button>
+      </div>
     </div>
   </div>
 </template>

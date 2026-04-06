@@ -361,6 +361,299 @@ function tryMatch(
   return false;
 }
 
+/**
+ * Like {@link tryMatch}, but up to `budget` additional tiles may be "drawn" from the wall
+ * (phantom naturals) to complete the hand. Each phantom tile costs 1 budget and is placed
+ * on the key that the matcher needs next (same group is retried after augmentation).
+ * Used by hand guidance (Story 5B.2) — distance = 14 − |pool| when this succeeds with
+ * budget = 14 − |pool|.
+ */
+function tryMatchWithExtraBudget(
+  groups: RGroup[],
+  gi: number,
+  pool: TilePool,
+  picks: Map<string, string[]>,
+  budget: number,
+): boolean {
+  if (gi >= groups.length) return true;
+  const g = groups[gi];
+  const sz = GROUP_SIZES[g.type];
+
+  if (g.type === "news") {
+    const p = clonePool(pool);
+    let need = 0;
+    for (const w of WINDS) {
+      const a = p.counts.get(`wind:${w}`) ?? 0;
+      if (a > 0) p.counts.set(`wind:${w}`, a - 1);
+      else need++;
+    }
+    if (!g.jok && need > 0) return false;
+    if (need > p.jokers) {
+      const deficit = need - p.jokers;
+      if (deficit > budget) return false;
+      p.jokers = 0;
+      return tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget - deficit);
+    }
+    p.jokers -= need;
+    return tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget);
+  }
+
+  if (g.type === "dragon_set") {
+    const p = clonePool(pool);
+    let need = 0;
+    for (const d of DRAGONS) {
+      const a = p.counts.get(`dragon:${d}`) ?? 0;
+      if (a > 0) p.counts.set(`dragon:${d}`, a - 1);
+      else need++;
+    }
+    if (!g.jok && need > 0) return false;
+    if (need > p.jokers) {
+      const deficit = need - p.jokers;
+      if (deficit > budget) return false;
+      p.jokers = 0;
+      return tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget - deficit);
+    }
+    p.jokers -= need;
+    return tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget);
+  }
+
+  if (g.suit !== undefined && g.val !== undefined) {
+    const key = `suited:${g.suit}:${g.val}`;
+    const avail = pool.counts.get(key) ?? 0;
+    if (g.jok && pool.jokers > 0) {
+      const maxNat = Math.min(sz, avail);
+      const minNat = Math.max(0, sz - pool.jokers);
+      for (let nat = maxNat; nat >= minNat; nat--) {
+        const jok = sz - nat;
+        const p = clonePool(pool);
+        p.counts.set(key, avail - nat);
+        p.jokers -= jok;
+        if (tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)) return true;
+      }
+      if (budget > 0) {
+        const p = clonePool(pool);
+        p.counts.set(key, avail + 1);
+        if (tryMatchWithExtraBudget(groups, gi, p, picks, budget - 1)) return true;
+      }
+      return false;
+    }
+    const p = clonePool(pool);
+    if (take(p, key, sz, false)) {
+      if (tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)) return true;
+    }
+    if (budget > 0) {
+      const p2 = clonePool(pool);
+      p2.counts.set(key, (p2.counts.get(key) ?? 0) + 1);
+      if (tryMatchWithExtraBudget(groups, gi, p2, picks, budget - 1)) return true;
+    }
+    return false;
+  }
+
+  if (g.cat) {
+    const catPool = CAT_POOL[g.cat];
+    if (!catPool) return false;
+    const spec = g.spec ?? "any";
+
+    if (spec !== "any" && !spec.startsWith("any_different:")) {
+      const key = `${g.cat}:${spec}`;
+      const avail = pool.counts.get(key) ?? 0;
+      if (g.jok && pool.jokers > 0) {
+        const maxNat = Math.min(sz, avail);
+        const minNat = Math.max(0, sz - pool.jokers);
+        for (let nat = maxNat; nat >= minNat; nat--) {
+          const jok = sz - nat;
+          const p = clonePool(pool);
+          p.counts.set(key, avail - nat);
+          p.jokers -= jok;
+          if (tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)) return true;
+        }
+        if (budget > 0) {
+          const p = clonePool(pool);
+          p.counts.set(key, avail + 1);
+          if (tryMatchWithExtraBudget(groups, gi, p, picks, budget - 1)) return true;
+        }
+        return false;
+      }
+      const p = clonePool(pool);
+      if (take(p, key, sz, false)) {
+        if (tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)) return true;
+      }
+      if (budget > 0) {
+        const p2 = clonePool(pool);
+        p2.counts.set(key, (p2.counts.get(key) ?? 0) + 1);
+        if (tryMatchWithExtraBudget(groups, gi, p2, picks, budget - 1)) return true;
+      }
+      return false;
+    }
+
+    if (spec === "any") {
+      const existing = picks.get(g.cat);
+      if (existing && existing.length > 0) {
+        const p = clonePool(pool);
+        if (
+          take(p, `${g.cat}:${existing[0]}`, sz, g.jok) &&
+          tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)
+        ) {
+          return true;
+        }
+        if (budget > 0) {
+          const k = `${g.cat}:${existing[0]}`;
+          const p2 = clonePool(pool);
+          p2.counts.set(k, (p2.counts.get(k) ?? 0) + 1);
+          if (tryMatchWithExtraBudget(groups, gi, p2, picks, budget - 1)) return true;
+        }
+        return false;
+      }
+      for (const v of catPool) {
+        const p = clonePool(pool);
+        if (!take(p, `${g.cat}:${v}`, sz, g.jok)) continue;
+        const np = new Map(picks);
+        np.set(g.cat, [v]);
+        if (tryMatchWithExtraBudget(groups, gi + 1, p, np, budget)) return true;
+      }
+      if (budget > 0) {
+        for (const v of catPool) {
+          const p = clonePool(pool);
+          const k = `${g.cat}:${v}`;
+          p.counts.set(k, (p.counts.get(k) ?? 0) + 1);
+          const np = new Map(picks);
+          np.set(g.cat, [v]);
+          if (tryMatchWithExtraBudget(groups, gi, p, np, budget - 1)) return true;
+        }
+      }
+      return false;
+    }
+
+    const n = parseInt(spec.split(":")[1]);
+    const existing = picks.get(g.cat) ?? [];
+    if (existing.length >= n) {
+      const p = clonePool(pool);
+      if (
+        take(p, `${g.cat}:${existing[n - 1]}`, sz, g.jok) &&
+        tryMatchWithExtraBudget(groups, gi + 1, p, picks, budget)
+      ) {
+        return true;
+      }
+      if (budget > 0) {
+        const k = `${g.cat}:${existing[n - 1]}`;
+        const p2 = clonePool(pool);
+        p2.counts.set(k, (p2.counts.get(k) ?? 0) + 1);
+        if (tryMatchWithExtraBudget(groups, gi, p2, picks, budget - 1)) return true;
+      }
+      return false;
+    }
+    const used = new Set(existing);
+    for (const v of catPool) {
+      if (used.has(v)) continue;
+      const p = clonePool(pool);
+      if (!take(p, `${g.cat}:${v}`, sz, g.jok)) continue;
+      const np = new Map(picks);
+      np.set(g.cat, [...existing, v]);
+      if (tryMatchWithExtraBudget(groups, gi + 1, p, np, budget)) return true;
+    }
+    if (budget > 0) {
+      for (const v of catPool) {
+        if (used.has(v)) continue;
+        const p = clonePool(pool);
+        const k = `${g.cat}:${v}`;
+        p.counts.set(k, (p.counts.get(k) ?? 0) + 1);
+        const np = new Map(picks);
+        np.set(g.cat, [...existing, v]);
+        if (tryMatchWithExtraBudget(groups, gi, p, np, budget - 1)) return true;
+      }
+    }
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * True iff `tiles` (length 14) completes `pattern` under the same matching rules as
+ * {@link validateHand} for a single pattern.
+ */
+export function matchesSpecificPattern(tiles: Tile[], pattern: HandPattern): boolean {
+  if (tiles.length !== 14) return false;
+  const summary = categorizePlayerTiles(tiles);
+  if (!isFeasible(pattern, summary)) return false;
+  const pool = buildTilePool(tiles);
+  const suitPerms = getSuitPermutations(pattern);
+  const valRanges = getValueRanges(pattern);
+  for (const sm of suitPerms) {
+    for (const nv of valRanges) {
+      const resolved: RGroup[] = [];
+      let ok = true;
+      for (const g of pattern.groups) {
+        const r = resolveGroup(g, sm, nv || 1);
+        if (!r) {
+          ok = false;
+          break;
+        }
+        resolved.push(r);
+      }
+      if (!ok) continue;
+      if (tryMatch(resolved, 0, clonePool(pool), new Map())) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Minimum extra tiles to draw so the hand can complete `pattern`, or `null` if impossible.
+ * When `tiles.length === 14`, returns `0` if the pattern matches, else `null`.
+ * When `tiles.length < 14`, returns `14 - tiles.length` if completable with exactly that many
+ * draws (optimally chosen), else `null`.
+ */
+export function minAdditionalTilesForPattern(tiles: Tile[], pattern: HandPattern): number | null {
+  const n = tiles.length;
+  if (n > 14) return null;
+  const summary = categorizePlayerTiles(tiles);
+  /** Phase-1 filter assumes 14 tiles; partial pools can be wrongly rejected (e.g. 13 naturals, 1 draw left). */
+  if (n === 14 && !isFeasible(pattern, summary)) return null;
+  const pool = buildTilePool(tiles);
+  const suitPerms = getSuitPermutations(pattern);
+  const valRanges = getValueRanges(pattern);
+
+  if (n === 14) {
+    for (const sm of suitPerms) {
+      for (const nv of valRanges) {
+        const resolved: RGroup[] = [];
+        let ok = true;
+        for (const g of pattern.groups) {
+          const r = resolveGroup(g, sm, nv || 1);
+          if (!r) {
+            ok = false;
+            break;
+          }
+          resolved.push(r);
+        }
+        if (!ok) continue;
+        if (tryMatch(resolved, 0, clonePool(pool), new Map())) return 0;
+      }
+    }
+    return null;
+  }
+
+  const need = 14 - n;
+  for (const sm of suitPerms) {
+    for (const nv of valRanges) {
+      const resolved: RGroup[] = [];
+      let ok = true;
+      for (const g of pattern.groups) {
+        const r = resolveGroup(g, sm, nv || 1);
+        if (!r) {
+          ok = false;
+          break;
+        }
+        resolved.push(r);
+      }
+      if (!ok) continue;
+      if (tryMatchWithExtraBudget(resolved, 0, clonePool(pool), new Map(), need)) return need;
+    }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------

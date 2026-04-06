@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vite-plus/test";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { loadCard } from "@mahjong-game/shared";
+import { loadCard, type GuidanceResult } from "@mahjong-game/shared";
 import NMJLCardPanel from "./NMJLCardPanel.vue";
 
 describe("NMJLCardPanel", () => {
@@ -105,5 +105,53 @@ describe("NMJLCardPanel", () => {
     const items = wrapper.findAll(".nmjl-card-panel__scroll ul li");
     expect(items.length).toBe(54);
     expect(items[0]?.attributes("role")).not.toBe("presentation");
+  });
+
+  it("shows only achievable rows when guidance is active (5B.2)", () => {
+    const m = new Map<string, GuidanceResult>([
+      ["ev-1", { patternId: "ev-1", distance: 1, achievable: true }],
+    ]);
+    const wrapper = mount(NMJLCardPanel, {
+      props: {
+        guidanceActive: true,
+        guidanceByHandId: m,
+        onEscapeFocusTarget: () => {},
+      },
+    });
+    const rows = wrapper.findAll("[data-testid^='nmjl-hand-row-']");
+    expect(rows.length).toBe(1);
+    expect(wrapper.find('[data-testid="nmjl-hand-row-ev-1"]').exists()).toBe(true);
+  });
+
+  it("applies guidance-achievable class for close-band distance (5B.2)", () => {
+    const m = new Map<string, GuidanceResult>([
+      ["ev-1", { patternId: "ev-1", distance: 2, achievable: true }],
+    ]);
+    const wrapper = mount(NMJLCardPanel, {
+      props: {
+        guidanceActive: true,
+        guidanceByHandId: m,
+        onEscapeFocusTarget: () => {},
+      },
+    });
+    const btn = wrapper.find('[data-testid="nmjl-hand-row-ev-1"]');
+    const li = btn.element.parentElement as HTMLElement;
+    expect(li.className).toMatch(/guidance-achievable/);
+  });
+
+  it("applies guidance-distant class for far-band distance (5B.2)", () => {
+    const m = new Map<string, GuidanceResult>([
+      ["ev-1", { patternId: "ev-1", distance: 4, achievable: true }],
+    ]);
+    const wrapper = mount(NMJLCardPanel, {
+      props: {
+        guidanceActive: true,
+        guidanceByHandId: m,
+        onEscapeFocusTarget: () => {},
+      },
+    });
+    const btn = wrapper.find('[data-testid="nmjl-hand-row-ev-1"]');
+    const li = btn.element.parentElement as HTMLElement;
+    expect(li.className).toMatch(/guidance-distant/);
   });
 });

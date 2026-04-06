@@ -58,4 +58,19 @@ describe("RoomSettingsPanel (4B.7)", () => {
     });
     expect(wrapper.find('[data-testid="room-settings-locked-note"]').exists()).toBe(false);
   });
+
+  it("emits handGuidanceEnabled patch from hand guidance select (5B.2)", async () => {
+    const wrapper = mount(RoomSettingsPanel, {
+      props: {
+        settings: DEFAULT_ROOM_SETTINGS,
+        canEdit: true,
+        phase: "lobby",
+      },
+    });
+    await wrapper.get('[data-testid="room-settings-hand-guidance"]').setValue("off");
+    await flushPromises();
+    const ev = wrapper.emitted("change");
+    expect(ev?.length).toBeGreaterThanOrEqual(1);
+    expect(ev?.[ev.length - 1]?.[0]).toEqual({ handGuidanceEnabled: false });
+  });
 });

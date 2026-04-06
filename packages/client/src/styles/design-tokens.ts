@@ -40,8 +40,9 @@ export const themeColors = {
     warning: "#D4A843",
     critical: "#B8553A",
   },
+  /** NMJL hand hints — warm gold / neutral only (UX-DR41); not suit colors. */
   guidance: {
-    achievable: "#4A9B6E",
+    achievable: "#D4B36A",
     distant: "#8B7E72",
   },
   celebration: {
@@ -90,4 +91,6 @@ export const themeShortcuts: Record<string, string> = {
   "focus-ring-on-chrome": "outline-2 outline-solid outline-focus-ring-on-chrome outline-offset-2",
   "focus-ring-on-felt": "outline-2 outline-solid outline-focus-ring-on-felt outline-offset-2",
   "focus-ring-on-dark": "outline-2 outline-solid outline-focus-ring-on-dark outline-offset-2",
+  "guidance-achievable": "border border-gold-accent/45 bg-guidance-achievable/20 shadow-sm",
+  "guidance-distant": "opacity-80 border-chrome-border bg-chrome-surface/50",
 };

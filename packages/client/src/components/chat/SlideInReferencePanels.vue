@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { GuidanceResult } from "@mahjong-game/shared";
 import { useBreakpoints } from "@vueuse/core";
 import { computed } from "vue";
 import SlideInPanel from "../ui/SlideInPanel.vue";
@@ -13,11 +14,21 @@ const props = withDefaults(
     onEscapeFocusTarget?: () => void;
     /** Mobile Charleston: anchor NMJL panel to top so the rack stays visible below. */
     nmjlCharlestonMobileSplit?: boolean;
+    nmjlGuidanceActive?: boolean;
+    nmjlGuidanceByHandId?: ReadonlyMap<string, GuidanceResult> | null;
+    nmjlShowPersonalReenableHint?: boolean;
   }>(),
   {
     nmjlCharlestonMobileSplit: false,
+    nmjlGuidanceActive: false,
+    nmjlGuidanceByHandId: null,
+    nmjlShowPersonalReenableHint: false,
   },
 );
+
+const emit = defineEmits<{
+  reenablePersonalGuidance: [];
+}>();
 
 const slideInPanelStore = useSlideInPanelStore();
 
@@ -59,8 +70,12 @@ const nmjlMobilePlacement = computed(() =>
     @close="slideInPanelStore.close()"
   >
     <NMJLCardPanel
+      :guidance-active="nmjlGuidanceActive"
+      :guidance-by-hand-id="nmjlGuidanceByHandId"
+      :show-personal-reenable-hint="nmjlShowPersonalReenableHint"
       :on-escape-focus-target="onEscapeFocusTarget"
       @close="slideInPanelStore.close()"
+      @reenable-personal-guidance="emit('reenablePersonalGuidance')"
     />
   </SlideInPanel>
 </template>

@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, vi } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
+import type { GuidanceResult } from "@mahjong-game/shared";
 import SlideInReferencePanels from "./SlideInReferencePanels.vue";
 import SlideInPanel from "../ui/SlideInPanel.vue";
+import NMJLCardPanel from "../nmjl/NMJLCardPanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 
 /** Stable ref so `smaller('md')` matches VueUse’s Ref return type across calls. */
@@ -72,5 +74,29 @@ describe("SlideInReferencePanels", () => {
     const nmjlPanel = panels[1];
     expect(nmjlPanel?.props("mobilePlacement")).toBe("bottom");
     isMobileViewport.value = true;
+  });
+
+  it("passes NMJL guidance props through to NMJLCardPanel (5B.2)", async () => {
+    const guidanceMap = new Map<string, GuidanceResult>([
+      ["ev-1", { patternId: "ev-1", distance: 1, achievable: true }],
+    ]);
+    const wrapper = mount(SlideInReferencePanels, {
+      props: {
+        sendChat: () => {},
+        nmjlGuidanceActive: true,
+        nmjlGuidanceByHandId: guidanceMap,
+        nmjlShowPersonalReenableHint: true,
+      },
+    });
+    const store = useSlideInPanelStore();
+    store.openNmjl();
+    await flushPromises();
+    const nmjl = wrapper.findComponent(NMJLCardPanel);
+    expect(nmjl.exists()).toBe(true);
+    expect(nmjl.props("guidanceActive")).toBe(true);
+    const passedMap = nmjl.props("guidanceByHandId") as ReadonlyMap<string, GuidanceResult>;
+    expect(passedMap.size).toBe(guidanceMap.size);
+    expect(passedMap.get("ev-1")).toEqual(guidanceMap.get("ev-1"));
+    expect(nmjl.props("showPersonalReenableHint")).toBe(true);
   });
 });

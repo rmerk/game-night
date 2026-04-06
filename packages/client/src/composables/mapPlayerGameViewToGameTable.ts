@@ -10,6 +10,7 @@ import {
   SEATS,
   getValidCallOptions,
   type CallType,
+  type ExposedGroup,
   type LobbyState,
   type PlayerGameView,
   type PlayerPublicInfo,
@@ -27,6 +28,8 @@ export interface GameTablePropsFromView {
   };
   localPlayer: LocalPlayerSummary | null;
   tiles: Tile[];
+  /** Local player's exposed melds — for hand guidance (Story 5B.2). */
+  myExposedGroups: ExposedGroup[];
   isPlayerTurn: boolean;
   currentTurnSeat: SeatWind | null;
   wallRemaining: number;
@@ -235,6 +238,7 @@ export function mapPlayerGameViewToGameTableProps(
     opponents,
     localPlayer,
     tiles: view.myRack,
+    myExposedGroups: view.exposedGroups[myId] ?? [],
     isPlayerTurn: view.currentTurn === myId,
     currentTurnSeat,
     wallRemaining: view.wallRemaining,

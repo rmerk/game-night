@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia, type Pinia } from "pinia";
 import GameTable from "./GameTable.vue";
+import SlideInReferencePanels from "../chat/SlideInReferencePanels.vue";
 import { useRackStore } from "../../stores/rack";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useReactionsStore } from "../../stores/reactions";
@@ -11,6 +12,7 @@ import {
   PROTOCOL_VERSION,
   type SuitedTile,
   type Tile,
+  type TileValue,
   type CallWindowState,
   type GameResult,
   type PlayerCharlestonView,
@@ -119,6 +121,16 @@ function mountTable(props: Record<string, unknown> = {}, pinia?: Pinia) {
       },
     },
   });
+}
+
+function makeNTilesForGuidanceTest(n: number): Tile[] {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `gt-bam-${i}-c${(i % 4) + 1}`,
+    category: "suited" as const,
+    suit: "bam" as const,
+    value: ((i % 9) + 1) as TileValue,
+    copy: ((i % 4) + 1) as 1 | 2 | 3 | 4,
+  }));
 }
 
 describe("GameTable — simultaneous disconnect pause", () => {
@@ -1218,5 +1230,49 @@ describe("GameTable — room settings + rematch toasts (4B.7)", () => {
     await flushPromises();
     expect(document.querySelector('[data-testid="rematch-waiting-toast"]')).not.toBeNull();
     wrapper.unmount();
+  });
+});
+
+describe("GameTable — NMJL hand guidance pool size (5B.2)", () => {
+  const guidanceStorageKey = "mahjong-hand-guidance-prefs-v1";
+
+  beforeEach(() => {
+    localStorage.removeItem(guidanceStorageKey);
+  });
+
+  it("disables NMJL guidance when combined rack + exposed pool has more than 14 tiles", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mountTable(
+      {
+        localPlayer,
+        gamePhase: "play",
+        roomSettings: DEFAULT_ROOM_SETTINGS,
+        tiles: makeNTilesForGuidanceTest(15),
+        myExposedGroups: [],
+      },
+      pinia,
+    );
+    const panels = wrapper.findComponent(SlideInReferencePanels);
+    expect(panels.props("nmjlGuidanceActive")).toBe(false);
+    expect(panels.props("nmjlGuidanceByHandId")).toBeNull();
+  });
+
+  it("enables NMJL guidance when pool is exactly 14 tiles and room allows hints", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mountTable(
+      {
+        localPlayer,
+        gamePhase: "play",
+        roomSettings: DEFAULT_ROOM_SETTINGS,
+        tiles: makeNTilesForGuidanceTest(14),
+        myExposedGroups: [],
+      },
+      pinia,
+    );
+    const panels = wrapper.findComponent(SlideInReferencePanels);
+    expect(panels.props("nmjlGuidanceActive")).toBe(true);
+    expect(panels.props("nmjlGuidanceByHandId")).not.toBeNull();
   });
 });

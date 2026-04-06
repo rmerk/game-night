@@ -52,6 +52,19 @@ describe("isBetweenGames", () => {
 });
 
 describe("applyRoomSettingsUpdate", () => {
+  it("merges handGuidanceEnabled (5B.2)", () => {
+    const room = minimalRoom();
+    const r = applyRoomSettingsUpdate(
+      room,
+      { handGuidanceEnabled: false },
+      createSilentTestLogger(),
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok === true) {
+      expect(r.next.handGuidanceEnabled).toBe(false);
+    }
+  });
+
   it("rejects out-of-range turn duration", () => {
     const room = minimalRoom();
     const r = applyRoomSettingsUpdate(room, { turnDurationMs: 10_000 }, createSilentTestLogger());

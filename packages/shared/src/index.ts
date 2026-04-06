@@ -160,8 +160,14 @@ export {
 
 // Card
 export { loadCard } from "./card/card-loader";
-export { validateHand } from "./card/pattern-matcher";
+export {
+  validateHand,
+  matchesSpecificPattern,
+  minAdditionalTilesForPattern,
+} from "./card/pattern-matcher";
 export type { MatchResult } from "./card/pattern-matcher";
+export { rankHandsForGuidance } from "./card/hand-guidance";
+export type { GuidanceResult } from "./card/hand-guidance";
 export {
   isJokerEligibleGroup,
   canSubstituteJoker,

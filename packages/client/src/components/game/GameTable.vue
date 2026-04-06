@@ -31,6 +31,9 @@ import CourtesyPassUI from "../charleston/CourtesyPassUI.vue";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 import {
   SEATS,
+  loadCard,
+  rankHandsForGuidance,
+  type ExposedGroup,
   type Tile,
   type CallType,
   type CallWindowState,
@@ -43,16 +46,24 @@ import {
   type SocialOverrideState,
   type TableTalkReportState,
 } from "@mahjong-game/shared";
+import { useHandGuidancePreferencesStore } from "../../stores/handGuidancePreferences";
 import { useRackStore } from "../../stores/rack";
 import { useReactionsStore, type ReactionBubbleRecord } from "../../stores/reactions";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useTileSelection } from "../../composables/useTileSelection";
 import { getRequiredRackCountForCallType } from "../../composables/gameActionFromPlayerView";
-import { humanLabel, humanValue } from "../../composables/roomSettingsFormatters";
+import {
+  toastCopyHostPromoted,
+  toastCopyRematchWaiting,
+  toastCopyRoomSettingsChanged,
+} from "../../composables/resolvedActionToastCopy";
+
+const GUIDANCE_CARD = loadCard("2026");
 
 const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
 const reactionsStore = useReactionsStore();
+const handGuidancePreferencesStore = useHandGuidancePreferencesStore();
 const { items: reactionItems } = storeToRefs(reactionsStore);
 
 const props = withDefaults(
@@ -63,6 +74,8 @@ const props = withDefaults(
       right?: OpponentPlayer | null;
     };
     tiles?: Tile[];
+    /** Local player's exposed melds — hand guidance input (Story 5B.2). */
+    myExposedGroups?: ExposedGroup[];
     isPlayerTurn?: boolean;
     localPlayer?: LocalPlayerSummary | null;
     currentTurnSeat?: SeatWind | null;
@@ -109,6 +122,7 @@ const props = withDefaults(
   {
     opponents: () => ({}),
     tiles: () => [],
+    myExposedGroups: () => [],
     isPlayerTurn: false,
     localPlayer: null,
     currentTurnSeat: null,
@@ -577,14 +591,41 @@ const hostPromotedToastText = ref("");
 /** Story 4B.7 — settings change notification (shown in all phases; see HOST_PROMOTED asymmetry above). */
 const roomSettingsToastVisible = ref(false);
 const roomSettingsToastText = ref("");
+const guidanceAutoDisableToastVisible = ref(false);
 const rematchWaitingToastVisible = ref(false);
 const rematchWaitingToastText = ref("");
+const guidanceScoreboardRecorded = ref(false);
 
 const afkVoteTargetDisplayName = computed(() => {
   const o = afkVoteOpen.value;
   if (!o) return "";
   return playerNamesById.value[o.targetPlayerId] ?? o.targetPlayerId;
 });
+
+watch(
+  () => props.gamePhase,
+  (p) => {
+    if (p !== "scoreboard") {
+      guidanceScoreboardRecorded.value = false;
+    }
+  },
+);
+
+watch(
+  () => [props.gamePhase, props.gameResult] as const,
+  () => {
+    if (props.gamePhase !== "scoreboard" || props.gameResult === null) {
+      return;
+    }
+    if (!props.localPlayer || guidanceScoreboardRecorded.value) {
+      return;
+    }
+    guidanceScoreboardRecorded.value = true;
+    if (handGuidancePreferencesStore.recordQualifyingGameCompletion()) {
+      guidanceAutoDisableToastVisible.value = true;
+    }
+  },
+);
 
 watch(
   () => props.departureVoteState,
@@ -648,25 +689,19 @@ watch(
       case "HOST_PROMOTED": {
         const phase = props.gamePhase;
         if (phase === "lobby" || phase === "scoreboard" || phase === "rematch") {
-          hostPromotedToastText.value = `${ra.newHostName} is now the host`;
+          hostPromotedToastText.value = toastCopyHostPromoted(ra.newHostName);
           hostPromotedToastVisible.value = true;
         }
         break;
       }
       case "ROOM_SETTINGS_CHANGED": {
         if (ra.changedBy === props.localPlayer?.id) break;
-        if (ra.changedKeys.length === 1) {
-          const k = ra.changedKeys[0];
-          roomSettingsToastText.value = `Host changed ${humanLabel(k)} to ${humanValue(k, ra.next)}`;
-        } else {
-          roomSettingsToastText.value = `Host updated room settings (${ra.changedKeys.length} changes)`;
-        }
+        roomSettingsToastText.value = toastCopyRoomSettingsChanged(ra);
         roomSettingsToastVisible.value = true;
         break;
       }
       case "REMATCH_WAITING_FOR_PLAYERS": {
-        const n = ra.missingSeats;
-        rematchWaitingToastText.value = `Waiting for ${n} more player${n === 1 ? "" : "s"}`;
+        rematchWaitingToastText.value = toastCopyRematchWaiting(ra.missingSeats);
         rematchWaitingToastVisible.value = true;
         break;
       }
@@ -686,6 +721,31 @@ const sessionScores = computed<Record<string, number>>(() => {
   const entries = Object.values(playersBySeat.value).map((player) => [player.id, player.score]);
   return Object.fromEntries(entries);
 });
+
+const nmjlGuidanceActive = computed(() => {
+  if (!props.roomSettings?.handGuidanceEnabled) return false;
+  if (!handGuidancePreferencesStore.userWantsHandGuidance) return false;
+  if (!props.localPlayer) return false;
+  if (props.gamePhase === "scoreboard" || props.gamePhase === "rematch") return false;
+  const exposed = props.myExposedGroups ?? [];
+  const n = props.tiles.length + exposed.reduce((a, g) => a + g.tiles.length, 0);
+  if (n === 0) return false;
+  // AC1 distance is defined for a 14-tile winning pool; larger transitional pools → reference-only (5B.1).
+  if (n > 14) return false;
+  return true;
+});
+
+const nmjlGuidanceByHandId = computed(() => {
+  if (!nmjlGuidanceActive.value) return null;
+  const rows = rankHandsForGuidance(props.tiles, props.myExposedGroups ?? [], GUIDANCE_CARD);
+  return new Map(rows.map((r) => [r.patternId, r]));
+});
+
+const nmjlShowPersonalReenableHint = computed(() =>
+  Boolean(
+    props.roomSettings?.handGuidanceEnabled && !handGuidancePreferencesStore.userWantsHandGuidance,
+  ),
+);
 
 const actionZoneEntryRef = useTemplateRef<HTMLDivElement>("actionZoneEntry");
 const scoreboardChatFocusReturnRef = useTemplateRef<HTMLDivElement>("scoreboardChatFocusReturn");
@@ -795,6 +855,15 @@ function onChatEscape() {
         @dismiss="rematchWaitingToastVisible = false"
       >
         {{ rematchWaitingToastText }}
+      </BaseToast>
+      <BaseToast
+        data-testid="hand-guidance-auto-disable-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="guidanceAutoDisableToastVisible"
+        :auto-dismiss-ms="6000"
+        @dismiss="guidanceAutoDisableToastVisible = false"
+      >
+        Hand hints are off after your first 3 games. You can re-enable hints in settings.
       </BaseToast>
     </div>
     <div v-if="roomSettings" class="absolute left-2 top-14 z-40 max-w-[min(100%,20rem)] sm:top-2">
@@ -1266,7 +1335,11 @@ function onChatEscape() {
     <SlideInReferencePanels
       :send-chat="(t: string) => emit('sendChat', t)"
       :nmjl-charleston-mobile-split="gamePhase === 'charleston'"
+      :nmjl-guidance-active="nmjlGuidanceActive"
+      :nmjl-guidance-by-hand-id="nmjlGuidanceByHandId"
+      :nmjl-show-personal-reenable-hint="nmjlShowPersonalReenableHint"
       :on-escape-focus-target="onChatEscape"
+      @reenable-personal-guidance="handGuidancePreferencesStore.setGuidanceExplicitOverride(true)"
     />
 
     <!-- DOM anchor between actions and mobile controls (a11y / test document order); panel content mounts when open. -->
