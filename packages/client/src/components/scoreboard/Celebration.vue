@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
-import { animate, prefersReducedMotion } from "motion-v";
+import { animate } from "motion-v";
 import type { MahjongGameResult, SeatWind } from "@mahjong-game/shared";
 import TileBack from "../tiles/TileBack.vue";
 
@@ -43,9 +43,14 @@ const FAN_TILE_COUNT = 14;
 // ---------------------------------------------------------------------------
 // Race guard + unmount cleanup (same pattern as RoomView.vue Story 7.1)
 // ---------------------------------------------------------------------------
+/** Returns true when the user has requested reduced motion at the OS level. */
+function checkPrefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
 let isMounted = true;
-let currentAnimation: { stop(): void } | null = null;
-let currentAnimations: { stop(): void }[] = [];
+let currentAnimation: ReturnType<typeof animate> | null = null;
+let currentAnimations: ReturnType<typeof animate>[] = [];
 
 onUnmounted(() => {
   isMounted = false;
@@ -66,7 +71,7 @@ const MIN_SEQUENCE_DURATION_S = 5;
 // Celebration sequence
 // ---------------------------------------------------------------------------
 onMounted(() => {
-  if (prefersReducedMotion()) {
+  if (checkPrefersReducedMotion()) {
     void runReducedMotionSequence();
     return;
   }

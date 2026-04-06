@@ -7,16 +7,30 @@ import Celebration from "./Celebration.vue";
 // ---------------------------------------------------------------------------
 // motion-v mock — same pattern as RoomView.test.ts
 // ---------------------------------------------------------------------------
-const { mockAnimate, mockPrefersReducedMotion } = vi.hoisted(() => {
+const { mockAnimate } = vi.hoisted(() => {
   const animateFn = vi.fn(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
-  const prefersReducedMotionFn = vi.fn(() => false);
-  return { mockAnimate: animateFn, mockPrefersReducedMotion: prefersReducedMotionFn };
+  return { mockAnimate: animateFn };
 });
 
 vi.mock("motion-v", () => ({
   animate: mockAnimate,
-  prefersReducedMotion: mockPrefersReducedMotion,
 }));
+
+// ---------------------------------------------------------------------------
+// window.matchMedia stub — controls checkPrefersReducedMotion() in Celebration.vue
+// ---------------------------------------------------------------------------
+function stubMatchMedia(prefersReduced: boolean): void {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: prefersReduced && query === "(prefers-reduced-motion: reduce)",
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    onchange: null,
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -107,7 +121,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
   beforeEach(() => {
     setActivePinia(createPinia());
     mockAnimate.mockClear();
-    mockPrefersReducedMotion.mockReturnValue(false);
+    stubMatchMedia(false);
   });
 
   afterEach(() => {
@@ -210,7 +224,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
     });
 
     it("calls animate() to dim non-winner seat areas on mount (normal motion)", async () => {
-      mockPrefersReducedMotion.mockReturnValue(false);
+      stubMatchMedia(false);
 
       // Attach seat markers to document.body so querySelectorAll finds them
       const seatMarkers = ["player-south", "player-west", "player-north"].map((id) => {
@@ -232,7 +246,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
     });
 
     it("calls animate() with duration:0 for dim even when prefers-reduced-motion is true (opacity change, not motion)", async () => {
-      mockPrefersReducedMotion.mockReturnValue(true);
+      stubMatchMedia(true);
 
       const seatMarker = document.createElement("div");
       seatMarker.setAttribute("data-celebration-seat", "player-south");
@@ -242,7 +256,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       const wrapper = mountCelebrationReal();
       await flushPromises();
 
-      // In reduced motion mode, dim IS applied but with duration:0 (instant, not animated)
+      // In reduced motion mode, dim IS applied but with duration:0 (instant, not animated — AC 6)
       const calls = getAnimateCalls();
       const dimCall = calls.find(
         (call) =>
@@ -321,7 +335,7 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockAnimate.mockClear();
-    mockPrefersReducedMotion.mockReturnValue(false);
+    stubMatchMedia(false);
     // Default mock: immediately resolved
     mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
   });
@@ -415,11 +429,13 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
       );
       // The element array should NOT contain the winner marker
       if (dimCall) {
-        const elements = dimCall[0] as HTMLElement[];
-        const winnerInList = elements.some(
-          (el) => el.getAttribute("data-celebration-seat") === WINNER_ID,
-        );
-        expect(winnerInList).toBe(false);
+        const raw = dimCall[0];
+        if (Array.isArray(raw) && raw.every((el): el is HTMLElement => el instanceof HTMLElement)) {
+          const winnerInList = raw.some(
+            (el) => el.getAttribute("data-celebration-seat") === WINNER_ID,
+          );
+          expect(winnerInList).toBe(false);
+        }
       }
 
       winnerMarker.remove();
@@ -658,11 +674,11 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Reduced motion: real path (dim + instant spotlight + hold < 3s)
+  // Reduced motion: sequence is skipped, done emitted immediately
   // ---------------------------------------------------------------------------
   describe("Reduced motion path (Task 4)", () => {
     it("emits done after reduced-motion sequence completes", async () => {
-      mockPrefersReducedMotion.mockReturnValue(true);
+      stubMatchMedia(true);
       mockAnimate.mockClear();
 
       const wrapper = mountCelebration();
@@ -673,7 +689,7 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
     });
 
     it("does NOT emit motifPlay in reduced motion path", async () => {
-      mockPrefersReducedMotion.mockReturnValue(true);
+      stubMatchMedia(true);
       mockAnimate.mockClear();
 
       const wrapper = mountCelebration();
@@ -732,7 +748,7 @@ describe("Celebration.vue — Task 4: Reduced motion path", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockAnimate.mockClear();
-    mockPrefersReducedMotion.mockReturnValue(true);
+    stubMatchMedia(true);
     mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
     // Clean up any leftover seat/fan markers
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
@@ -787,9 +803,10 @@ describe("Celebration.vue — Task 4: Reduced motion path", () => {
     const calls = getAnimateCalls();
     // No animate call should target fan tile elements
     const fanAnimCall = calls.find((call) => {
-      if (!Array.isArray(call[0])) return false;
-      const els = call[0] as HTMLElement[];
-      return els.some((el) => el.hasAttribute("data-celebration-fan-tile"));
+      const raw = call[0];
+      if (!Array.isArray(raw)) return false;
+      if (!raw.every((el): el is HTMLElement => el instanceof HTMLElement)) return false;
+      return raw.some((el) => el.hasAttribute("data-celebration-fan-tile"));
     });
     expect(fanAnimCall).toBeUndefined();
 
