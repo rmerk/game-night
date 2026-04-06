@@ -187,6 +187,7 @@ function registerRoomVideoHandlers(r: Room): void {
     }
   });
 
+  // LiveKit ranks "active speakers" using SDK voice-activity / speaker detection — not app-level RMS metering.
   r.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
     activeSpeakers.value = new Set(speakers.map((p) => p.identity));
   });

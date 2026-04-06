@@ -4,12 +4,14 @@ import { ref } from "vue";
 import PlayerPresence from "./PlayerPresence.vue";
 
 const isMobileMq = ref(false);
+const prefersReducedMotionMq = ref(false);
 
 vi.mock("@vueuse/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@vueuse/core")>();
   return {
     ...actual,
-    useMediaQuery: () => isMobileMq,
+    useMediaQuery: (query: string) =>
+      query.includes("prefers-reduced-motion") ? prefersReducedMotionMq : isMobileMq,
   };
 });
 
@@ -23,6 +25,7 @@ function createMockVideoTrack() {
 describe("PlayerPresence", () => {
   beforeEach(() => {
     isMobileMq.value = false;
+    prefersReducedMotionMq.value = false;
     vi.useFakeTimers();
   });
 
@@ -58,7 +61,7 @@ describe("PlayerPresence", () => {
     expect(wrapper.find('[data-testid="avatar-fallback"]').exists()).toBe(false);
   });
 
-  it("renders avatar when camera muted but track still present (AC5)", () => {
+  it("renders avatar when camera muted but track still present", () => {
     const track = createMockVideoTrack();
     const wrapper = mount(PlayerPresence, {
       props: {
@@ -122,5 +125,71 @@ describe("PlayerPresence", () => {
     vi.advanceTimersByTime(4000);
     await flushPromises();
     expect(wrapper.find('[data-testid="presence-expand-backdrop"]').exists()).toBe(false);
+  });
+
+  it("applies animated speaking class when speaking and motion is allowed", async () => {
+    prefersReducedMotionMq.value = false;
+    const wrapper = mount(PlayerPresence, {
+      props: { ...baseProps, isSpeaking: true },
+    });
+    const btn = wrapper.find("button");
+    expect(btn.classes()).toContain("player-presence--speaking-animated");
+    expect(btn.classes()).not.toContain("ring-state-turn-active");
+    await wrapper.setProps({ isSpeaking: false });
+    await flushPromises();
+    expect(btn.classes()).not.toContain("player-presence--speaking-animated");
+  });
+
+  it("applies static ring when speaking under prefers-reduced-motion", async () => {
+    prefersReducedMotionMq.value = true;
+    const wrapper = mount(PlayerPresence, {
+      props: { ...baseProps, isSpeaking: true },
+    });
+    const btn = wrapper.find("button");
+    expect(btn.classes()).toContain("ring-2");
+    expect(btn.classes()).toContain("ring-state-turn-active");
+    expect(btn.classes()).not.toContain("player-presence--speaking-animated");
+  });
+
+  it("uses same speaking treatment for video and avatar branches", async () => {
+    const track = createMockVideoTrack();
+    for (const cameraOn of [true, false]) {
+      prefersReducedMotionMq.value = false;
+      const wrapper = mount(PlayerPresence, {
+        props: {
+          ...baseProps,
+          videoTrack: cameraOn ? track : null,
+          isCameraEnabled: cameraOn,
+          isSpeaking: true,
+        },
+      });
+      expect(wrapper.find("button").classes()).toContain("player-presence--speaking-animated");
+    }
+  });
+
+  it("aria-label includes speaking when isSpeaking", () => {
+    const quiet = mount(PlayerPresence, { props: baseProps });
+    expect(quiet.find("button").attributes("aria-label")).toBe("Alice's seat");
+
+    const speaking = mount(PlayerPresence, {
+      props: { ...baseProps, isSpeaking: true },
+    });
+    expect(speaking.find("button").attributes("aria-label")).toBe("Alice's seat, speaking");
+  });
+
+  it("swaps speaking visual from animated to static ring when reduced-motion toggles at runtime", async () => {
+    prefersReducedMotionMq.value = false;
+    const wrapper = mount(PlayerPresence, {
+      props: { ...baseProps, isSpeaking: true },
+    });
+    const btn = wrapper.find("button");
+    expect(btn.classes()).toContain("player-presence--speaking-animated");
+    expect(btn.classes()).not.toContain("ring-state-turn-active");
+
+    prefersReducedMotionMq.value = true;
+    await flushPromises();
+    expect(btn.classes()).not.toContain("player-presence--speaking-animated");
+    expect(btn.classes()).toContain("ring-2");
+    expect(btn.classes()).toContain("ring-state-turn-active");
   });
 });

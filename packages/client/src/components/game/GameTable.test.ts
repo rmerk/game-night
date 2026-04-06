@@ -7,6 +7,7 @@ import { useRackStore } from "../../stores/rack";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import { useReactionsStore } from "../../stores/reactions";
 import { useActivityTickerStore } from "../../stores/activityTicker";
+import { useLiveKitStore } from "../../stores/liveKit";
 import { expectHtmlElement } from "../../test-utils/expect-html-element";
 import {
   DEFAULT_ROOM_SETTINGS,
@@ -398,6 +399,25 @@ describe("GameTable — accessibility", () => {
     });
 
     expect(wrapper.get("[data-testid='turn-indicator']").text()).toContain("You");
+  });
+
+  it("shows local voice status dot with disconnected label when LiveKit is idle", async () => {
+    const wrapper = mountTable({ localPlayer });
+    await flushPromises();
+    const dot = wrapper.get('[data-testid="local-voice-status-dot"]');
+    expect(dot.attributes("aria-label")).toBe("Voice disconnected");
+    expect(dot.classes()).toContain("bg-text-secondary");
+  });
+
+  it("shows local voice status dot with connected label when LiveKit store is connected", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useLiveKitStore().setConnectionStatus("connected");
+    const wrapper = mountTable({ localPlayer }, pinia);
+    await flushPromises();
+    const dot = wrapper.get('[data-testid="local-voice-status-dot"]');
+    expect(dot.attributes("aria-label")).toBe("Voice connected");
+    expect(dot.classes()).toContain("bg-state-success");
   });
 
   it("shows compact local player score and highlights only the active seat", () => {

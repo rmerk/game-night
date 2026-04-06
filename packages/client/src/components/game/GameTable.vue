@@ -547,8 +547,14 @@ function isSpeakingPlayer(playerId: string | undefined): boolean {
   if (!playerId) {
     return false;
   }
+  if (liveKit.connectionStatus.value !== "connected") {
+    return false;
+  }
   return liveKit.activeSpeakers.value.has(playerId);
 }
+
+// Opponent status dots: game WS `player.connected`. Local dot: LiveKit voice only.
+const liveKitVoiceConnected = computed(() => liveKit.connectionStatus.value === "connected");
 
 function initialFromName(name: string): string {
   const t = name.trim();
@@ -1435,16 +1441,25 @@ function onChatEscape() {
           v-if="localPlayer"
           class="mb-2 flex flex-col flex-wrap items-center justify-center gap-2 sm:flex-row"
         >
-          <PlayerPresence
-            position="local"
-            :player-id="localPlayer.id"
-            :display-name="localPlayer.name"
-            :initial="initialFromName(localPlayer.name)"
-            :is-active-turn="isLocalPlayerTurn"
-            :video-track="presenceLocal.videoTrack"
-            :is-camera-enabled="presenceLocal.isCameraEnabled"
-            :is-speaking="isSpeakingPlayer(localPlayer.id)"
-          />
+          <div class="relative">
+            <PlayerPresence
+              position="local"
+              :player-id="localPlayer.id"
+              :display-name="localPlayer.name"
+              :initial="initialFromName(localPlayer.name)"
+              :is-active-turn="isLocalPlayerTurn"
+              :video-track="presenceLocal.videoTrack"
+              :is-camera-enabled="presenceLocal.isCameraEnabled"
+              :is-speaking="isSpeakingPlayer(localPlayer.id)"
+            />
+            <BaseBadge
+              class="absolute -bottom-0.5 -right-0.5 z-[60]"
+              variant="status-dot"
+              :tone="liveKitVoiceConnected ? 'success' : 'muted'"
+              :aria-label="liveKitVoiceConnected ? 'Voice connected' : 'Voice disconnected'"
+              data-testid="local-voice-status-dot"
+            />
+          </div>
           <BasePanel
             data-testid="local-player-status-shell"
             tag="div"
