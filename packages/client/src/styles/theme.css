@@ -107,6 +107,35 @@
   --mood-surface: #28262a;
 }
 
+/* ==========================================================================
+   Mood Visual Weight — AC2/3/4 (Task 3)
+   Adjusts backgrounds and surface visibility per mood phase.
+   ========================================================================== */
+
+/* --- 3.1 Arriving: warm cream replaces felt, text inverts for legibility --- */
+[data-testid="room-view-root"].mood-arriving {
+  background-color: var(--mood-surface);
+  color: var(--text-primary);
+}
+
+/* --- 3.3 Lingering: warm overlay softens felt dominance at the top of the table --- */
+.mood-lingering [data-testid="game-table"] {
+  position: relative;
+}
+
+.mood-lingering [data-testid="game-table"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--mood-surface) 15%, transparent) 0%,
+    transparent 40%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* --- Reduced Motion Override (AC3) --- */
 @media (prefers-reduced-motion: reduce) {
   :root {
