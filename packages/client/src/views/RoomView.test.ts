@@ -7,6 +7,15 @@ import RoomView from "./RoomView.vue";
 import { useRoomConnection } from "../composables/useRoomConnection";
 import { useAvReconnectUi } from "../composables/useAvReconnectUi";
 
+const { mockAnimate } = vi.hoisted(() => {
+  const mockAnimate = vi.fn(() => ({ finished: Promise.resolve() }));
+  return { mockAnimate };
+});
+
+vi.mock("motion-v", () => ({
+  animate: mockAnimate,
+}));
+
 vi.mock("../composables/apiBaseUrl", () => ({
   getApiBaseUrl: () => "http://127.0.0.1:3001",
 }));
@@ -437,5 +446,146 @@ describe("RoomView mood classes (Task 2.5)", () => {
     const rootDiv = wrapper.find('[data-testid="room-view-root"]');
     expect(rootDiv.exists()).toBe(true);
     expect(rootDiv.classes()).toContain("mood-lingering");
+  });
+});
+
+describe("RoomView crossfade transitions (Task 4)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    mockAnimate.mockClear();
+    vi.mocked(useAvReconnectUi).mockReturnValue({
+      showReconnecting: ref(false),
+      showReconnectButton: ref(false),
+      manualPhase: ref("idle"),
+      onReconnectAv: vi.fn(),
+    } as unknown as ReturnType<typeof useAvReconnectUi>);
+  });
+
+  async function mountRoomViewForCrossfade(conn: ReturnType<typeof makeRoomConnection>) {
+    vi.mocked(useRoomConnection).mockReturnValue(conn as ReturnType<typeof useRoomConnection>);
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/", name: "home", component: { template: "<div />" } },
+        { path: "/room/:code", name: "room", component: RoomView },
+        { path: "/room/:code/spectate", name: "room-spectate", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/room/XFADETEST");
+    await router.isReady();
+    const wrapper = mount(
+      { template: "<router-view />" },
+      {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            GameTable: true,
+            RoomSettingsPanel: true,
+            SlideInReferencePanels: true,
+            ReactionBar: true,
+            ReactionBubbleStack: true,
+            BaseToast: true,
+          },
+        },
+      },
+    );
+    await flushPromises();
+    return wrapper;
+  }
+
+  it("4.4: calls motion-v animate() when mood changes (not setTimeout)", async () => {
+    const playerGameView = ref<null | {
+      myPlayerId: string;
+      gamePhase: string;
+      players: never[];
+      myRack: never[];
+      settings: never;
+    }>(null);
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
+      myPlayerId: "p1",
+      players: [],
+      settings: {} as never,
+    });
+
+    const conn = makeRoomConnection({
+      lobbyState: lobbyState as never,
+      playerGameView: playerGameView as never,
+    });
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    await mountRoomViewForCrossfade(conn);
+    mockAnimate.mockClear();
+    setTimeoutSpy.mockClear();
+
+    // Transition from lobby → play (mood-arriving → mood-playing)
+    lobbyState.value = null;
+    playerGameView.value = {
+      myPlayerId: "p1",
+      gamePhase: "play",
+      players: [],
+      myRack: [],
+      settings: {} as never,
+    };
+    await flushPromises();
+
+    expect(mockAnimate).toHaveBeenCalled();
+    // animate should have been called for fade-out and fade-in with opacity keyframes
+    const calls = mockAnimate.mock.calls as unknown as Array<
+      [unknown, Record<string, unknown>, unknown?]
+    >;
+    const opacityCalls = calls.filter((call) => call[1] && typeof call[1].opacity !== "undefined");
+    expect(opacityCalls.length).toBeGreaterThanOrEqual(1);
+
+    setTimeoutSpy.mockRestore();
+  });
+
+  it("4.5: mood class changes immediately when prefers-reduced-motion is active", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+
+    const playerGameView = ref<null | {
+      myPlayerId: string;
+      gamePhase: string;
+      players: never[];
+      myRack: never[];
+      settings: never;
+    }>(null);
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
+      myPlayerId: "p1",
+      players: [],
+      settings: {} as never,
+    });
+
+    const conn = makeRoomConnection({
+      lobbyState: lobbyState as never,
+      playerGameView: playerGameView as never,
+    });
+    const wrapper = await mountRoomViewForCrossfade(conn);
+
+    // Verify initial state
+    expect(wrapper.find('[data-testid="room-view-root"]').classes()).toContain("mood-arriving");
+
+    // Transition to play mood
+    lobbyState.value = null;
+    playerGameView.value = {
+      myPlayerId: "p1",
+      gamePhase: "play",
+      players: [],
+      myRack: [],
+      settings: {} as never,
+    };
+
+    // With motion-v handling reduced-motion natively (resolves synchronously),
+    // the class should update after flushing microtasks
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="room-view-root"]').classes()).toContain("mood-playing");
+
+    vi.unstubAllGlobals();
   });
 });

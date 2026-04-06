@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
+import { animate } from "motion-v";
 import { useRoute, useRouter } from "vue-router";
 import type { CallType, SessionGameHistoryEntry } from "@mahjong-game/shared";
 import GameTable from "../components/game/GameTable.vue";
@@ -118,6 +119,31 @@ const moodClass = computed(() => {
   if (!phase) return "";
   if (phase === "scoreboard" || phase === "rematch") return "mood-lingering";
   return "mood-playing"; // dealing, charleston, play
+});
+
+/** Template ref for the root element — used by Motion for Vue crossfade (AC 5, 7). */
+const roomViewRoot = useTemplateRef<HTMLElement>("roomViewRoot");
+
+/**
+ * `displayedMoodClass` — the mood class actually applied to the DOM.
+ * Lags behind `moodClass` during the crossfade so the old mood fades out
+ * before the new mood's styles are painted.
+ */
+const displayedMoodClass = ref(moodClass.value);
+
+watch(moodClass, async (newMood) => {
+  const el = roomViewRoot.value;
+  if (!el || newMood === displayedMoodClass.value) return;
+
+  // Fade out — motion-v respects prefers-reduced-motion natively (instant when active)
+  await animate(el, { opacity: 0 }, { duration: 0.4, ease: [0.16, 1, 0.3, 1] }).finished;
+
+  // Update the applied class while invisible
+  displayedMoodClass.value = newMood;
+  await nextTick();
+
+  // Fade back in
+  await animate(el, { opacity: 1 }, { duration: 1.0, ease: [0.16, 1, 0.3, 1] }).finished;
 });
 
 const localPlayerId = computed(
@@ -383,9 +409,10 @@ function goSpectatePlaceholder() {
 
 <template>
   <div
+    ref="roomViewRoot"
     data-testid="room-view-root"
     class="min-h-[100dvh] bg-felt-teal text-text-on-felt"
-    :class="moodClass"
+    :class="displayedMoodClass"
   >
     <div
       v-if="systemNotice === 'session_superseded'"
