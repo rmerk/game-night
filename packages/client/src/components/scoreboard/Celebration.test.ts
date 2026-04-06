@@ -231,7 +231,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       wrapper.unmount();
     });
 
-    it("does NOT call animate() for opacity reduction when prefers-reduced-motion is true", async () => {
+    it("calls animate() with duration:0 for dim even when prefers-reduced-motion is true (opacity change, not motion)", async () => {
       mockPrefersReducedMotion.mockReturnValue(true);
 
       const seatMarker = document.createElement("div");
@@ -242,8 +242,18 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       const wrapper = mountCelebrationReal();
       await flushPromises();
 
-      // In reduced motion mode, the sequence is skipped entirely
-      expect(mockAnimate).not.toHaveBeenCalled();
+      // In reduced motion mode, dim IS applied but with duration:0 (instant, not animated)
+      const calls = getAnimateCalls();
+      const dimCall = calls.find(
+        (call) =>
+          Array.isArray(call[0]) &&
+          call[1] !== null &&
+          typeof call[1] === "object" &&
+          "opacity" in call[1] &&
+          call[1].opacity === 0.22,
+      );
+      expect(dimCall).toBeDefined();
+      expect(dimCall?.[2]).toMatchObject({ duration: 0 });
 
       seatMarker.remove();
       wrapper.unmount();
@@ -648,20 +658,28 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Reduced motion: sequence is skipped, done emitted immediately
+  // Reduced motion: real path (dim + instant spotlight + hold < 3s)
   // ---------------------------------------------------------------------------
-  describe("Reduced motion path", () => {
-    it("emits done immediately when prefersReducedMotion is true (no sequence)", async () => {
+  describe("Reduced motion path (Task 4)", () => {
+    it("emits done after reduced-motion sequence completes", async () => {
       mockPrefersReducedMotion.mockReturnValue(true);
       mockAnimate.mockClear();
 
       const wrapper = mountCelebration();
       await flushPromises();
 
-      // No animate() calls
-      expect(mockAnimate).not.toHaveBeenCalled();
-      // done should still be emitted so the parent can transition
+      // done should be emitted so the parent can transition
       expect(wrapper.emitted("done")).toBeDefined();
+    });
+
+    it("does NOT emit motifPlay in reduced motion path", async () => {
+      mockPrefersReducedMotion.mockReturnValue(true);
+      mockAnimate.mockClear();
+
+      const wrapper = mountCelebration();
+      await flushPromises();
+
+      expect(wrapper.emitted("motifPlay")).toBeUndefined();
     });
   });
 
@@ -704,5 +722,196 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
       // done should NOT be emitted since we unmounted
       expect(wrapper.emitted("done")).toBeUndefined();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests — Task 4: Reduced motion path (AC 5, AC 6)
+// ---------------------------------------------------------------------------
+describe("Celebration.vue — Task 4: Reduced motion path", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    mockAnimate.mockClear();
+    mockPrefersReducedMotion.mockReturnValue(true);
+    mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
+    // Clean up any leftover seat/fan markers
+    document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4.4a — Total sequence duration < 3s (AC 5)
+  // ---------------------------------------------------------------------------
+  it("4.4a: sequence completes (emits done) well within 3s — no fan-out or held beat delays", async () => {
+    vi.useFakeTimers();
+    // animate() resolves instantly — simulates the 0-duration and 2s hold immediately resolving
+    mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
+
+    const startMs = Date.now();
+    const wrapper = mountCelebration();
+    await vi.runAllTimersAsync();
+    await flushPromises();
+
+    const elapsedMs = Date.now() - startMs;
+
+    // With fake timers and instantly-resolving animate, the sequence should complete
+    // synchronously — well under 3000ms
+    expect(elapsedMs).toBeLessThan(3000);
+    expect(wrapper.emitted("done")).toBeDefined();
+
+    vi.useRealTimers();
+    wrapper.unmount();
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4.4b — Fan-out elements are NOT animated (AC 5)
+  // ---------------------------------------------------------------------------
+  it("4.4b: fan-out arc animation is skipped — animate() not called with fan tile elements", async () => {
+    // Add fan tile markers to the DOM
+    const fanTiles = Array.from({ length: 14 }, (_, i) => {
+      const el = document.createElement("div");
+      el.setAttribute("data-celebration-fan-tile", String(i + 1));
+      document.body.appendChild(el);
+      return el;
+    });
+
+    const wrapper = mountCelebrationReal();
+    await flushPromises();
+
+    const calls = getAnimateCalls();
+    // No animate call should target fan tile elements
+    const fanAnimCall = calls.find((call) => {
+      if (!Array.isArray(call[0])) return false;
+      const els = call[0] as HTMLElement[];
+      return els.some((el) => el.hasAttribute("data-celebration-fan-tile"));
+    });
+    expect(fanAnimCall).toBeUndefined();
+
+    fanTiles.forEach((el) => el.remove());
+    wrapper.unmount();
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC 6 — Dim IS applied (duration:0, instant opacity change)
+  // ---------------------------------------------------------------------------
+  it("AC 6: dim is applied with opacity 0.22 and duration 0 (instant, not animated)", async () => {
+    const seatIds = ["player-south", "player-west", "player-north"];
+    const seatMarkers = seatIds.map((id) => {
+      const el = document.createElement("div");
+      el.setAttribute("data-celebration-seat", id);
+      document.body.appendChild(el);
+      return el;
+    });
+
+    const wrapper = mountCelebrationReal();
+    await flushPromises();
+
+    const calls = getAnimateCalls();
+    const dimCall = calls.find(
+      (call) =>
+        Array.isArray(call[0]) &&
+        call[1] !== null &&
+        typeof call[1] === "object" &&
+        "opacity" in call[1] &&
+        call[1].opacity === 0.22,
+    );
+    expect(dimCall).toBeDefined();
+    expect(dimCall?.[2]).toMatchObject({ duration: 0 });
+
+    seatMarkers.forEach((el) => el.remove());
+    wrapper.unmount();
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC 6 — Spotlight IS shown (no animation)
+  // ---------------------------------------------------------------------------
+  it("AC 6: spotlight is made visible (spotlightVisible = true) in reduced motion path", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+
+    const spotlight = wrapper.find("[data-testid='celebration-spotlight']");
+    expect(spotlight.exists()).toBe(true);
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC 6 — Scoring IS shown (no animation)
+  // ---------------------------------------------------------------------------
+  it("AC 6: scoring is made visible (scoringVisible = true) in reduced motion path", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+
+    const scoring = wrapper.find("[data-testid='celebration-scoring']");
+    expect(scoring.exists()).toBe(true);
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC 5 — No held beat (0.5s) in reduced motion
+  // ---------------------------------------------------------------------------
+  it("AC 5: held beat (duration 0.5) is NOT used in reduced motion path", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+    wrapper.unmount();
+
+    const calls = getAnimateCalls();
+    const beatCall = calls.find(
+      (call) => call[2] !== undefined && typeof call[2] === "object" && call[2].duration === 0.5,
+    );
+    expect(beatCall).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC 5 — Hold is 2s (not the full MIN_SEQUENCE_DURATION_S = 5s)
+  // ---------------------------------------------------------------------------
+  it("AC 5: hold animate call uses duration 2 (not 5) in reduced motion path", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+    wrapper.unmount();
+
+    const calls = getAnimateCalls();
+    // Should have a hold animate call with duration exactly 2
+    const holdCall = calls.find(
+      (call) => call[2] !== undefined && typeof call[2] === "object" && call[2].duration === 2,
+    );
+    expect(holdCall).toBeDefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // done is emitted after reduced motion sequence
+  // ---------------------------------------------------------------------------
+  it("emits done after reduced motion sequence completes", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+
+    expect(wrapper.emitted("done")).toBeDefined();
+    expect(wrapper.emitted("done")?.length).toBe(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // motifPlay is NOT emitted (motif is a visual animation, skip under reduced motion)
+  // ---------------------------------------------------------------------------
+  it("does NOT emit motifPlay in reduced motion path", async () => {
+    const wrapper = mountCelebration();
+    await flushPromises();
+
+    expect(wrapper.emitted("motifPlay")).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // No setTimeout used in reduced motion path
+  // ---------------------------------------------------------------------------
+  it("does not call setTimeout during reduced motion sequence", async () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    const wrapper = mountCelebration();
+    await flushPromises();
+    wrapper.unmount();
+
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 });

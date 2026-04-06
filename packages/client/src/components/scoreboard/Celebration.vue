@@ -67,14 +67,53 @@ const MIN_SEQUENCE_DURATION_S = 5;
 // ---------------------------------------------------------------------------
 onMounted(() => {
   if (prefersReducedMotion()) {
-    // Task 4 implements the full reduced-motion branch (dim + instant spotlight + hold < 3s).
-    // This is a temporary stub that emits done immediately.
-    emit("done");
+    void runReducedMotionSequence();
     return;
   }
 
   void runCelebrationSequence();
 });
+
+/**
+ * Reduced-motion celebration path (AC 5 & 6).
+ *
+ * - Dims non-winner seats instantly (duration:0 — opacity change, not motion).
+ * - Immediately reveals spotlight + scoring (no fade animation).
+ * - Holds 2 seconds via animate() (no setTimeout — AR21).
+ * - Skips fan-out arc and held beat entirely.
+ * - Does NOT emit motifPlay (motif is a visual scale animation, skip under reduced motion).
+ * - Total sequence well under 3 seconds (AC 5).
+ */
+async function runReducedMotionSequence(): Promise<void> {
+  // Phase 1: Dim instantly (opacity change, no animation duration — AC 6)
+  const opponentEls = [...document.querySelectorAll<HTMLElement>("[data-celebration-seat]")].filter(
+    (el) => el.getAttribute("data-celebration-seat") !== props.winnerId,
+  );
+
+  if (opponentEls.length && isMounted) {
+    currentAnimation = animate(opponentEls, { opacity: 0.22 }, { duration: 0 });
+    await currentAnimation.finished;
+  }
+
+  if (!isMounted) return;
+
+  // Phase 2: Instantly reveal spotlight + scoring (no animation — AC 6)
+  spotlightVisible.value = true;
+  scoringVisible.value = true;
+  await nextTick();
+
+  if (!isMounted) return;
+
+  // Phase 3: Hold 2s via animate() — no setTimeout (AR21). Total < 3s (AC 5).
+  if (beatElRef.value && isMounted) {
+    currentAnimation = animate(beatElRef.value, { opacity: [0, 0] }, { duration: 2 });
+    await currentAnimation.finished;
+  }
+
+  if (!isMounted) return;
+
+  emit("done");
+}
 
 /**
  * Full 6-phase celebration sequence orchestrated via Motion for Vue's
