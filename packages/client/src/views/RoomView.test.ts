@@ -2,11 +2,24 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createRouter, createMemoryHistory } from "vue-router";
+import { ref } from "vue";
 import RoomView from "./RoomView.vue";
+import { useRoomConnection } from "../composables/useRoomConnection";
+import { useAvReconnectUi } from "../composables/useAvReconnectUi";
 
 vi.mock("../composables/apiBaseUrl", () => ({
   getApiBaseUrl: () => "http://127.0.0.1:3001",
 }));
+
+vi.mock("../composables/useRoomConnection", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../composables/useRoomConnection")>();
+  return { useRoomConnection: vi.fn(real.useRoomConnection) };
+});
+
+vi.mock("../composables/useAvReconnectUi", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../composables/useAvReconnectUi")>();
+  return { useAvReconnectUi: vi.fn(real.useAvReconnectUi) };
+});
 
 const stubs = {
   GameTable: true,
@@ -20,6 +33,9 @@ const stubs = {
 describe("RoomView (4B.7)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    // Restore real implementations so existing tests that stub WebSocket/fetch still work
+    vi.mocked(useRoomConnection).mockRestore();
+    vi.mocked(useAvReconnectUi).mockRestore();
   });
 
   it("shows table-full when status returns full: true and does not open WebSocket", async () => {
@@ -283,5 +299,126 @@ describe("RoomView (4B.7)", () => {
     expect(pushSpy).toHaveBeenCalledWith({ name: "room-spectate", params: { code: "ABCD12" } });
 
     vi.unstubAllGlobals();
+  });
+});
+
+function makeRoomConnection(overrides: Partial<ReturnType<typeof useRoomConnection>> = {}) {
+  return {
+    status: ref("open" as const),
+    lobbyState: ref(null),
+    playerGameView: ref(null),
+    resolvedAction: ref(null),
+    systemNotice: ref(null),
+    clearLastError: vi.fn(),
+    roomFullError: ref(false),
+    clearRoomFullError: vi.fn(),
+    retryLiveKitConnection: vi.fn(),
+    lastErrorMessage: ref(null),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    sendGameAction: vi.fn(),
+    clearTokenForRoom: vi.fn(),
+    sendChat: vi.fn(),
+    sendReaction: vi.fn(),
+    sendStartGame: vi.fn(),
+    sendSetRoomSettings: vi.fn(),
+    sendRematch: vi.fn(),
+    sendEndSession: vi.fn(),
+    sendLeaveRoom: vi.fn(),
+    sendAfkVote: vi.fn(),
+    sendDepartureVote: vi.fn(),
+    sendShowHand: vi.fn(),
+    ...overrides,
+  };
+}
+
+describe("RoomView mood classes (Task 2.5)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.mocked(useAvReconnectUi).mockReturnValue({
+      showReconnecting: ref(false),
+      showReconnectButton: ref(false),
+      manualPhase: ref("idle"),
+      onReconnectAv: vi.fn(),
+    } as unknown as ReturnType<typeof useAvReconnectUi>);
+  });
+
+  async function mountRoomView(conn: ReturnType<typeof makeRoomConnection>) {
+    vi.mocked(useRoomConnection).mockReturnValue(conn as ReturnType<typeof useRoomConnection>);
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/", name: "home", component: { template: "<div />" } },
+        { path: "/room/:code", name: "room", component: RoomView },
+        { path: "/room/:code/spectate", name: "room-spectate", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/room/MOODTEST");
+    await router.isReady();
+    const wrapper = mount(
+      { template: "<router-view />" },
+      {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            GameTable: true,
+            RoomSettingsPanel: true,
+            SlideInReferencePanels: true,
+            ReactionBar: true,
+            ReactionBubbleStack: true,
+            BaseToast: true,
+          },
+        },
+      },
+    );
+    await flushPromises();
+    return wrapper;
+  }
+
+  it("applies mood-arriving class when in lobby state", async () => {
+    const conn = makeRoomConnection({
+      lobbyState: ref({ myPlayerId: "p1", players: [], settings: {} as never }) as never,
+      playerGameView: ref(null),
+    });
+    const wrapper = await mountRoomView(conn);
+    const rootDiv = wrapper.find('[data-testid="room-view-root"]');
+    expect(rootDiv.exists()).toBe(true);
+    expect(rootDiv.classes()).toContain("mood-arriving");
+  });
+
+  it("applies mood-playing class when game phase is play", async () => {
+    const conn = makeRoomConnection({
+      lobbyState: ref(null),
+      playerGameView: ref({
+        myPlayerId: "p1",
+        gamePhase: "play",
+        players: [],
+        myRack: [],
+        settings: {} as never,
+      } as never),
+    });
+    const wrapper = await mountRoomView(conn);
+    const rootDiv = wrapper.find('[data-testid="room-view-root"]');
+    expect(rootDiv.exists()).toBe(true);
+    expect(rootDiv.classes()).toContain("mood-playing");
+  });
+
+  it("applies mood-lingering class when game phase is scoreboard", async () => {
+    const conn = makeRoomConnection({
+      lobbyState: ref(null),
+      playerGameView: ref({
+        myPlayerId: "p1",
+        gamePhase: "scoreboard",
+        players: [],
+        myRack: [],
+        settings: {} as never,
+      } as never),
+    });
+    const wrapper = await mountRoomView(conn);
+    const rootDiv = wrapper.find('[data-testid="room-view-root"]');
+    expect(rootDiv.exists()).toBe(true);
+    expect(rootDiv.classes()).toContain("mood-lingering");
   });
 });

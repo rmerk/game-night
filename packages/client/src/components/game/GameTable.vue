@@ -953,7 +953,7 @@ function onChatEscape() {
     class="game-table relative min-h-[100dvh] max-w-screen-2xl mx-auto grid gap-2 p-2 lg:p-4"
     :class="
       isScoreboardPhase || gamePhase === 'rematch'
-        ? 'mood-lingering bg-gradient-to-b from-[#3d2e26]/55 via-felt-teal to-felt-teal'
+        ? 'bg-gradient-to-b from-[#3d2e26]/55 via-felt-teal to-felt-teal'
         : 'bg-felt-teal'
     "
   >

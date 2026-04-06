@@ -515,22 +515,28 @@ describe("GameTable — accessibility", () => {
     expect(wrapper.find("[data-testid='rack-area']").exists()).toBe(false);
   });
 
-  it("applies mood-lingering to the table root during scoreboard phase", () => {
+  it("applies scoreboard gradient background to the table root during scoreboard phase", () => {
     const wrapper = mountTable({
       gamePhase: "scoreboard",
       localPlayer,
       gameResult: mockGameResult,
     });
-    expect(wrapper.get("[data-testid='game-table']").classes()).toContain("mood-lingering");
+    // mood-lingering is now authoritative at RoomView root level; GameTable applies gradient only
+    const tableClasses = wrapper.get("[data-testid='game-table']").classes();
+    expect(tableClasses).not.toContain("mood-lingering");
+    expect(tableClasses.join(" ")).toContain("bg-gradient-to-b");
   });
 
-  it("applies mood-lingering to the table root during rematch phase", () => {
+  it("applies scoreboard gradient background to the table root during rematch phase", () => {
     const wrapper = mountTable({
       gamePhase: "rematch",
       localPlayer,
       gameResult: mockGameResult,
     });
-    expect(wrapper.get("[data-testid='game-table']").classes()).toContain("mood-lingering");
+    // mood-lingering is now authoritative at RoomView root level; GameTable applies gradient only
+    const tableClasses = wrapper.get("[data-testid='game-table']").classes();
+    expect(tableClasses).not.toContain("mood-lingering");
+    expect(tableClasses.join(" ")).toContain("bg-gradient-to-b");
   });
 
   it("shows cumulative session totals (prior games + current scores) on the scoreboard", () => {

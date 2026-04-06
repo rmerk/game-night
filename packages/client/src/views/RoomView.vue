@@ -112,6 +112,14 @@ const reactionAnchorForPlayer = computed(() => {
 
 const isLobby = computed(() => lobbyState.value !== null && playerGameView.value === null);
 
+const moodClass = computed(() => {
+  if (lobbyState.value !== null && playerGameView.value === null) return "mood-arriving";
+  const phase = playerGameView.value?.gamePhase;
+  if (!phase) return "";
+  if (phase === "scoreboard" || phase === "rematch") return "mood-lingering";
+  return "mood-playing"; // dealing, charleston, play
+});
+
 const localPlayerId = computed(
   () => lobbyState.value?.myPlayerId ?? playerGameView.value?.myPlayerId ?? null,
 );
@@ -374,7 +382,11 @@ function goSpectatePlaceholder() {
 </script>
 
 <template>
-  <div class="min-h-[100dvh] bg-felt-teal text-text-on-felt">
+  <div
+    data-testid="room-view-root"
+    class="min-h-[100dvh] bg-felt-teal text-text-on-felt"
+    :class="moodClass"
+  >
     <div
       v-if="systemNotice === 'session_superseded'"
       class="border-b border-state-warning bg-chrome-surface px-4 py-2 text-center text-3.5 text-text-primary"
