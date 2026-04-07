@@ -300,6 +300,65 @@ const moods = ["mood-arriving", "mood-playing", "mood-lingering"];
       </div>
     </section>
 
+    <!-- Celebration Overlay Preview (AC 3) -->
+    <section class="mb-12">
+      <h2 class="text-6 font-semibold mb-4">Celebration Overlay</h2>
+      <p class="text-3.5 text-text-secondary mb-4">
+        Visual QA for celebration states. Note: element-opacity dimming reduces opponent text to
+        ~1.71:1 contrast (below WCAG AA 4.5:1). Per story Dev Notes, text in dimmed opponent areas
+        is decorative context during celebration — the spotlight is the focus.
+      </p>
+
+      <!-- Dimmed opponent area preview -->
+      <div class="mb-6">
+        <h3 class="text-4.5 font-semibold mb-2 text-text-muted">
+          Dimmed Opponent Area (22% opacity)
+        </h3>
+        <div class="relative bg-felt-teal p-4 rounded-xl">
+          <div
+            class="opacity-[0.22] bg-chrome-surface-dark/25 rounded-xl px-2 py-1 inline-flex flex-col items-center gap-1"
+          >
+            <span class="text-3.5 text-text-on-felt font-medium">Alice</span>
+            <span class="text-3 text-text-on-felt/85">Score: 150</span>
+          </div>
+          <span class="ml-4 text-3.5 text-text-on-felt/60 italic">
+            ← text is decorative context at this opacity
+          </span>
+        </div>
+      </div>
+
+      <!-- Spotlight preview -->
+      <div class="mb-6">
+        <h3 class="text-4.5 font-semibold mb-2 text-text-muted">Winner Spotlight</h3>
+        <div class="bg-celebration-dim p-6 rounded-xl text-center">
+          <p class="text-celebration-gold text-4xl font-bold">Mahjong!</p>
+          <p class="text-celebration-gold text-xl mt-2">— Alice —</p>
+          <p class="text-text-on-felt/80 text-sm mt-1">Even Suited Kongs · 50pts</p>
+        </div>
+      </div>
+
+      <!-- Scoring layout preview -->
+      <div class="mb-6">
+        <h3 class="text-4.5 font-semibold mb-2 text-text-muted">Scoring Overlay</h3>
+        <div class="bg-celebration-dim/80 rounded-xl p-4">
+          <ul class="space-y-2">
+            <li class="flex justify-between text-text-on-felt">
+              <span>Bob</span><span class="text-red-400">-25</span>
+            </li>
+            <li class="flex justify-between text-text-on-felt">
+              <span>Carol</span><span class="text-red-400">-25</span>
+            </li>
+            <li class="flex justify-between text-text-on-felt">
+              <span>Dave</span><span class="text-red-400">-50</span>
+            </li>
+            <li class="flex justify-between text-text-on-felt">
+              <span>Alice</span><span class="text-green-400">+100</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <!-- Dark Mode Toggle -->
     <section class="mb-12">
       <h2 class="text-6 font-semibold mb-4">Dark Mode</h2>
