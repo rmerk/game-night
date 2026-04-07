@@ -131,14 +131,14 @@ const ambientEnabled = computed({
     <!-- Theme section -->
     <div class="border-t border-chrome-border px-3 py-3 text-3.5">
       <p class="mb-2 text-interactive font-semibold">Theme</p>
-      <div class="flex gap-2">
+      <div role="group" aria-label="Theme" class="flex gap-2">
         <button
           v-for="opt in themeOptions"
           :key="opt.value"
           type="button"
           :data-testid="`theme-${opt.value}`"
-          :aria-pressed="currentTheme === opt.value"
-          class="flex-1 rounded-md border px-3 py-2 text-center font-medium transition-colors focus-visible:focus-ring-on-chrome"
+          :aria-pressed="currentTheme === opt.value ? 'true' : 'false'"
+          class="flex-1 min-h-11 rounded-md border px-3 py-2 text-center font-medium transition-colors focus-visible:focus-ring-on-chrome"
           :class="
             currentTheme === opt.value
               ? 'border-gold-accent bg-gold-accent text-chrome-surface'
