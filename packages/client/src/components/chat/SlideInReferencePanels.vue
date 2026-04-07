@@ -6,6 +6,7 @@ import SlideInPanel from "../ui/SlideInPanel.vue";
 import ChatPanel from "./ChatPanel.vue";
 import NMJLCardPanel from "../nmjl/NMJLCardPanel.vue";
 import RoomSettingsPanel from "../game/RoomSettingsPanel.vue";
+import AudioSettingsPanel from "../game/AudioSettingsPanel.vue";
 import { useSlideInPanelStore } from "../../stores/slideInPanel";
 import {
   SLIDE_IN_CHAT_PANEL_ROOT_ID,
@@ -118,6 +119,9 @@ const nmjlMobilePlacement = computed(() =>
           :phase="settingsPhase"
           @change="emit('roomSettingsChange', $event)"
         />
+        <div class="mt-4">
+          <AudioSettingsPanel />
+        </div>
       </div>
     </div>
   </SlideInPanel>
