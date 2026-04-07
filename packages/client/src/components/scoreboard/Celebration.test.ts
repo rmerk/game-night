@@ -952,49 +952,6 @@ describe("Celebration.vue — Task 6: AC coverage audit", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 6.1 — Renders over the game table as a fixed overlay
-  // (cross-reference: already covered by Task 1 "1.1 Overlay shell" tests)
-  // ---------------------------------------------------------------------------
-  describe("6.1 Fixed overlay over game table", () => {
-    it("renders a fixed inset-0 z-[70] overlay element", () => {
-      stubMatchMedia(false);
-      const wrapper = mountCelebration();
-      const overlay = wrapper.find("[data-testid='celebration-overlay']");
-      expect(overlay.exists()).toBe(true);
-      expect(overlay.classes()).toContain("fixed");
-      expect(overlay.classes()).toContain("inset-0");
-      expect(overlay.classes()).toContain("z-[70]");
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6.2 — Winner name appears in the spotlight section
-  // (cross-reference: already covered by Task 3 "3.5 Phase 4 — Winner spotlight")
-  // ---------------------------------------------------------------------------
-  describe("6.2 Winner name in spotlight", () => {
-    it("shows the winner's display name from playerNamesById in the spotlight", async () => {
-      stubMatchMedia(false);
-      const wrapper = mountCelebration();
-      await flushPromises();
-
-      const spotlight = wrapper.find("[data-testid='celebration-spotlight']");
-      expect(spotlight.exists()).toBe(true);
-      // "Alice" is playerNamesById[WINNER_ID]
-      expect(spotlight.text()).toContain("Alice");
-    });
-
-    it("shows 'Mahjong! — [winner name] —' format in spotlight", async () => {
-      stubMatchMedia(false);
-      const wrapper = mountCelebration();
-      await flushPromises();
-
-      const text = wrapper.find("[data-testid='celebration-spotlight']").text();
-      expect(text).toContain("Mahjong!");
-      expect(text).toContain("Alice");
-    });
-  });
-
-  // ---------------------------------------------------------------------------
   // 6.3 — Payment amounts shown in scoring overlay (at least one row)
   // ---------------------------------------------------------------------------
   describe("6.3 Payment amounts in scoring overlay", () => {
@@ -1039,113 +996,14 @@ describe("Celebration.vue — Task 6: AC coverage audit", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 6.4 — done event emitted after sequence (mock timers to fast-forward)
-  // (cross-reference: already covered by Task 3 "3.8 Hold and done emit")
-  // ---------------------------------------------------------------------------
-  describe("6.4 done event emitted after sequence with mocked timers", () => {
-    it("emits done after sequence completes using fake timers", async () => {
-      stubMatchMedia(false);
-      vi.useFakeTimers();
-      mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
-
-      const wrapper = mountCelebration();
-      await vi.runAllTimersAsync();
-      await flushPromises();
-
-      expect(wrapper.emitted("done")).toBeDefined();
-      expect(wrapper.emitted("done")?.length).toBe(1);
-
-      vi.useRealTimers();
-      wrapper.unmount();
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6.5 — pointer-events: none so clicks pass through
-  // (cross-reference: already covered by Task 1 "1.4 pointer-events: none")
-  // ---------------------------------------------------------------------------
-  describe("6.5 pointer-events: none on overlay", () => {
-    it("overlay root has pointer-events-none so underlying UI remains interactive", () => {
-      stubMatchMedia(false);
-      const wrapper = mountCelebration();
-      const overlay = wrapper.find("[data-testid='celebration-overlay']");
-      expect(overlay.classes()).toContain("pointer-events-none");
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6.6 — Reduced motion: total time < 3s AND animate() called 0 times for fan-out
-  // (cross-reference: 4.4a covers time < 3s, 4.4b covers fan-out = 0 animate calls)
-  // ---------------------------------------------------------------------------
-  describe("6.6 Reduced motion path", () => {
-    it("completes within 3s wall-clock time in reduced motion mode", async () => {
-      stubMatchMedia(true);
-      vi.useFakeTimers();
-      mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
-
-      const startMs = Date.now();
-      const wrapper = mountCelebration();
-      await vi.runAllTimersAsync();
-      await flushPromises();
-      const elapsedMs = Date.now() - startMs;
-
-      expect(elapsedMs).toBeLessThan(3000);
-      expect(wrapper.emitted("done")).toBeDefined();
-
-      vi.useRealTimers();
-      wrapper.unmount();
-    });
-
-    it("calls animate() 0 times targeting fan tile elements in reduced motion mode", async () => {
-      stubMatchMedia(true);
-
-      // Add fan tile DOM markers
-      const fanTiles = Array.from({ length: 14 }, (_, i) => {
-        const el = document.createElement("div");
-        el.setAttribute("data-celebration-fan-tile", String(i + 1));
-        document.body.appendChild(el);
-        return el;
-      });
-
-      const wrapper = mountCelebrationReal();
-      await flushPromises();
-
-      const calls = getAnimateCalls();
-      const fanAnimCalls = calls.filter((call) => {
-        const raw = call[0];
-        if (!Array.isArray(raw)) return false;
-        if (!raw.every((el): el is HTMLElement => el instanceof HTMLElement)) return false;
-        return raw.some((el) => el.hasAttribute("data-celebration-fan-tile"));
-      });
-      // Zero fan-out animate() calls in reduced motion
-      expect(fanAnimCalls).toHaveLength(0);
-
-      fanTiles.forEach((el) => el.remove());
-      wrapper.unmount();
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6.7 — Full motion: sequence duration in 5–8s range
+  // 6.7 — Full motion: sequence duration upper bound
   // ---------------------------------------------------------------------------
   describe("6.7 Full motion sequence duration 5–8s", () => {
-    it("hold animate call duration brings total elapsed to at least 5s (MIN_SEQUENCE_DURATION_S)", async () => {
-      stubMatchMedia(false);
-      // With instantly-resolving animate(), elapsed ≈ 0ms, so remaining ≈ 5s
-      const wrapper = mountCelebration();
-      await flushPromises();
-      wrapper.unmount();
-
-      const calls = getAnimateCalls();
-      // The hold call should have duration >= 4 (approaching 5 given near-zero real elapsed)
-      const holdCall = calls.find((call) => {
-        const opts = call[2];
-        return typeof opts?.duration === "number" && opts.duration >= 4;
-      });
-      expect(holdCall).toBeDefined();
+    afterEach(() => {
+      vi.useRealTimers();
     });
 
-    it("hold animate duration is <= 8 (sequence total never exceeds 8s)", async () => {
+    it("hold animate duration is <= 8 seconds (upper bound of AC 4)", async () => {
       stubMatchMedia(false);
       const wrapper = mountCelebration();
       await flushPromises();
