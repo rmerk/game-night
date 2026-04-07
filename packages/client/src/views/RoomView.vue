@@ -223,7 +223,7 @@ const audioPreviewToastVisible = ref(false);
 
 /** First-join audio preview (AC 7, 8) — fires once when the player first lands in a live room. */
 watch(
-  () => lobbyState.value ?? playerGameView.value,
+  () => lobbyState.value,
   async (val) => {
     if (!val) return;
     if (prefsStore.hasSeenAudioPreview) return;
@@ -241,7 +241,7 @@ watch(
       void audioStore.play("mahjong-motif", "gameplay");
     }
   },
-  { once: true, immediate: true },
+  { once: true },
 );
 
 /** Story 5B.4 — final session summary after host ends session */

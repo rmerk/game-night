@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createRouter, createMemoryHistory } from "vue-router";
@@ -617,7 +617,6 @@ describe("RoomView crossfade transitions (Task 4)", () => {
 
 describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
   beforeEach(() => {
-    setActivePinia(createPinia());
     mockAnimate.mockClear();
     vi.mocked(useAvReconnectUi).mockReturnValue({
       showReconnecting: ref(false),
@@ -625,6 +624,10 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
       manualPhase: ref("idle"),
       onReconnectAv: vi.fn(),
     } as unknown as ReturnType<typeof useAvReconnectUi>);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   async function mountRoomViewForAudio(
@@ -647,8 +650,6 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
 
     vi.mocked(useRoomConnection).mockReturnValue(conn as ReturnType<typeof useRoomConnection>);
 
-    const pinia = createPinia();
-    setActivePinia(pinia);
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -663,7 +664,7 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
       { template: "<router-view />" },
       {
         global: {
-          plugins: [pinia, router],
+          plugins: [createPinia(), router],
           stubs: {
             GameTable: true,
             RoomSettingsPanel: true,
@@ -682,14 +683,15 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
   it("AC7: plays preview sequence on first room join (hasSeenAudioPreview: false)", async () => {
     vi.useFakeTimers();
 
-    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
-      myPlayerId: "p1",
-      players: [],
-      settings: {} as never,
-    });
+    // Start with null — real usage: lobbyState is always null at mount
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>(null);
     const conn = makeRoomConnection({ lobbyState: lobbyState as never });
 
     const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(conn);
+
+    // Simulate server delivering room state (triggers the watcher)
+    lobbyState.value = { myPlayerId: "p1", players: [], settings: {} as never };
+    await flushPromises();
 
     // Advance past the 800ms delays between sounds
     await vi.advanceTimersByTimeAsync(800);
@@ -702,41 +704,31 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
     expect(playMock).toHaveBeenCalledWith("tile-discard", "gameplay");
     expect(playMock).toHaveBeenCalledWith("mahjong-motif", "gameplay");
     expect(playMock).toHaveBeenCalledTimes(3);
-
-    vi.useRealTimers();
   });
 
   it("AC8: skips preview when hasSeenAudioPreview is already true", async () => {
     vi.useFakeTimers();
 
-    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
-      myPlayerId: "p1",
-      players: [],
-      settings: {} as never,
-    });
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>(null);
     const conn = makeRoomConnection({ lobbyState: lobbyState as never });
 
     const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(conn, {
       hasSeenAudioPreview: true,
     });
 
+    lobbyState.value = { myPlayerId: "p1", players: [], settings: {} as never };
+    await flushPromises();
     await vi.advanceTimersByTimeAsync(2000);
     await flushPromises();
 
     expect(playMock).not.toHaveBeenCalled();
     expect(markAudioPreviewSeen).not.toHaveBeenCalled();
-
-    vi.useRealTimers();
   });
 
   it("AC8: marks seen but skips playback when masterMuted is true", async () => {
     vi.useFakeTimers();
 
-    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
-      myPlayerId: "p1",
-      players: [],
-      settings: {} as never,
-    });
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>(null);
     const conn = makeRoomConnection({ lobbyState: lobbyState as never });
 
     const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(
@@ -745,12 +737,12 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
       { masterMuted: true },
     );
 
+    lobbyState.value = { myPlayerId: "p1", players: [], settings: {} as never };
+    await flushPromises();
     await vi.advanceTimersByTimeAsync(2000);
     await flushPromises();
 
     expect(markAudioPreviewSeen).toHaveBeenCalledOnce();
     expect(playMock).not.toHaveBeenCalled();
-
-    vi.useRealTimers();
   });
 });
