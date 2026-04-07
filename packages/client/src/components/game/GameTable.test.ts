@@ -24,6 +24,12 @@ import {
 } from "@mahjong-game/shared";
 import type { LocalPlayerSummary, OpponentPlayer } from "./seat-types";
 
+// Mock audio store so Web Audio API calls don't run in happy-dom
+const mockAudioPlay = vi.fn();
+vi.mock("../../stores/audio", () => ({
+  useAudioStore: () => ({ play: mockAudioPlay }),
+}));
+
 // Mock Vue DnD Kit (needed by TileRack)
 vi.mock("@vue-dnd-kit/core", () => ({
   DnDProvider: {
@@ -1735,5 +1741,115 @@ describe("GameTable — Celebration overlay (7.2)", () => {
     expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(false);
     // Scoreboard must appear immediately without any done event
     expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(true);
+  });
+});
+
+describe("GameTable — game-event audio (7.3 AC 7)", () => {
+  beforeEach(() => {
+    mockAudioPlay.mockClear();
+  });
+
+  it("plays tile-draw sound on DRAW_TILE resolved action", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = { type: "DRAW_TILE", playerId: "player-south" };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(mockAudioPlay).toHaveBeenCalledWith("tile-draw", "gameplay");
+  });
+
+  it("plays tile-discard sound on DISCARD_TILE resolved action", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "DISCARD_TILE",
+      playerId: "player-south",
+      tileId: "bam-3-1",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(mockAudioPlay).toHaveBeenCalledWith("tile-discard", "gameplay");
+  });
+
+  it("plays call-alert sound on CALL_WINDOW_OPENED resolved action", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "CALL_WINDOW_OPENED",
+      discarderId: "player-east",
+      discardedTileId: "bam-1-1",
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(mockAudioPlay).toHaveBeenCalledWith("call-alert", "notification");
+  });
+
+  it("plays call-snap sound on CALL_CONFIRMED resolved action", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        tiles: [],
+        gamePhase: "play",
+        resolvedAction: null,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { TileSprite: { template: "<svg />" } },
+      },
+    });
+    const resolved: ResolvedAction = {
+      type: "CALL_CONFIRMED",
+      callerId: "player-south",
+      callType: "pung",
+      exposedTileIds: ["bam-1-1", "bam-1-2", "bam-1-3"],
+      calledTileId: "bam-1-1",
+      fromPlayerId: "player-east",
+      groupIdentity: { type: "pung", suit: "bam", value: 1 },
+    };
+    await wrapper.setProps({ resolvedAction: resolved });
+    await flushPromises();
+    expect(mockAudioPlay).toHaveBeenCalledWith("call-snap", "gameplay");
   });
 });
