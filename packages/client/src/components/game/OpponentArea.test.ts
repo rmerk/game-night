@@ -108,6 +108,16 @@ describe("OpponentArea — celebration seat marker", () => {
     const shell = wrapper.get("[data-testid='opponent-area-shell']");
     expect(shell.attributes("data-celebration-seat")).toBe("");
   });
+
+  it("renders a celebration dim overlay div when player is seated", () => {
+    const wrapper = mountOpponentArea({ player: connectedPlayer });
+    expect(wrapper.find("[data-celebration-dim-overlay]").exists()).toBe(true);
+  });
+
+  it("does NOT render a celebration dim overlay div for empty seats (player: null)", () => {
+    const wrapper = mountOpponentArea({ player: null });
+    expect(wrapper.find("[data-celebration-dim-overlay]").exists()).toBe(false);
+  });
 });
 
 describe("OpponentArea — null player (empty seat)", () => {

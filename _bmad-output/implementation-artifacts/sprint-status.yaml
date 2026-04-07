@@ -1,5 +1,5 @@
 # generated: 2026-03-26
-# last_updated: 2026-04-06 # Epic 6B retro → done
+# last_updated: 2026-04-06 # Story 7.5 → ready-for-dev
 # project: mahjong-game
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # Story 7.2 → ready-for-dev
+last_updated: 2026-04-06 # Story 7.2 → done (code review)
 project: mahjong-game
 
 project_key: NOKEY
@@ -171,9 +171,10 @@ development_status:
   # Epic 7: Visual Polish & Audio
   epic-7: in-progress
   7-1-felt-texture-three-moods-transitions: done
-  7-2-celebration-overlay-sequence: ready-for-dev
+  7-2-celebration-overlay-sequence: done
   7-3-complete-sound-design-all-10-12-effects: backlog
   7-4-dark-mode-first-visit-entrance-audio-preview: backlog
+  7-5-full-session-golden-path-validation: ready-for-dev
   epic-7-retrospective: optional
 
   # Epic 8: Profiles, Stats & Remaining Accessibility

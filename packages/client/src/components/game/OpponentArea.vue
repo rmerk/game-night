@@ -29,12 +29,25 @@ const isDev = import.meta.env.DEV;
 <template>
   <div
     data-testid="opponent-area-shell"
-    class="opponent-area flex max-w-[140px] flex-col items-center gap-1 rounded-xl px-2 py-1 transition md:max-w-[120px] lg:max-w-[140px]"
+    class="opponent-area relative flex max-w-[140px] flex-col items-center gap-1 rounded-xl px-2 py-1 transition md:max-w-[120px] lg:max-w-[140px]"
     :class="{ 'bg-chrome-surface-dark/25 ring-2 ring-state-turn-active': isActiveTurn }"
     :data-celebration-seat="player?.id ?? ''"
   >
+    <!--
+      Celebration dim overlay (Story 7.2): animated by Celebration.vue to darken this area.
+      z-10 keeps it above the background but below the PlayerPresence wrapper (z-20 via its
+      stacking context), so LiveKit video thumbnails punch through at full opacity (AC 2).
+      Text elements at natural z-index appear against the dark overlay, improving WCAG contrast
+      compared to element-level opacity dimming (AC 3). Only shown for occupied seats (AC 2).
+    -->
+    <div
+      v-if="player"
+      data-celebration-dim-overlay
+      class="absolute inset-0 rounded-xl bg-black opacity-0 pointer-events-none z-10"
+      aria-hidden="true"
+    />
     <template v-if="player">
-      <div class="relative flex flex-col items-center gap-1">
+      <div class="relative z-20 flex flex-col items-center gap-1">
         <div class="relative isolate">
           <PlayerPresence
             :player-id="player.id"

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import type { MahjongGameResult, SeatWind } from "@mahjong-game/shared";
+import type { MahjongGameResult } from "@mahjong-game/shared";
 import Celebration from "./Celebration.vue";
 
 // ---------------------------------------------------------------------------
@@ -63,7 +63,6 @@ const defaultProps = {
   gameResult: mockGameResult,
   playerNamesById: mockPlayerNamesById,
   winnerId: WINNER_ID,
-  winnerSeat: "east" as SeatWind,
 };
 
 // ---------------------------------------------------------------------------
@@ -100,7 +99,7 @@ function mountCelebration(propsOverride?: Partial<typeof defaultProps>) {
 }
 
 /**
- * Mount with real Teleport for tests that target document-level [data-celebration-seat] markers.
+ * Mount with real Teleport for tests that target document-level [data-celebration-dim-overlay] divs.
  */
 function mountCelebrationReal(propsOverride?: Partial<typeof defaultProps>) {
   return mount(Celebration, {
@@ -160,13 +159,6 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       expect(() => mountCelebration()).not.toThrow();
     });
 
-    it("accepts winnerSeat prop for all four winds", () => {
-      const winds: SeatWind[] = ["east", "south", "west", "north"];
-      for (const wind of winds) {
-        expect(() => mountCelebration({ winnerSeat: wind })).not.toThrow();
-      }
-    });
-
     it("accepts a gameResult with selfDrawn: true", () => {
       const selfDrawnResult: MahjongGameResult = {
         ...mockGameResult,
@@ -207,7 +199,7 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
   });
 
   // ---------------------------------------------------------------------------
-  // 1.5 — Dim layer targeting [data-celebration-seat] elements
+  // 1.5 — Dim layer targeting [data-celebration-dim-overlay] elements
   // ---------------------------------------------------------------------------
   describe("1.5 Dim layer", () => {
     it("renders a dim layer element", () => {
@@ -223,13 +215,13 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       expect(dimLayer.exists()).toBe(true);
     });
 
-    it("calls animate() to dim non-winner seat areas on mount (normal motion)", async () => {
+    it("calls animate() to dim non-winner overlay divs on mount (normal motion)", async () => {
       stubMatchMedia(false);
 
-      // Attach seat markers to document.body so querySelectorAll finds them
-      const seatMarkers = ["player-south", "player-west", "player-north"].map((id) => {
+      // Attach dim-overlay divs (as rendered by OpponentArea) so querySelectorAll finds them
+      const overlays = ["player-south", "player-west", "player-north"].map(() => {
         const el = document.createElement("div");
-        el.setAttribute("data-celebration-seat", id);
+        el.setAttribute("data-celebration-dim-overlay", "");
         document.body.appendChild(el);
         return el;
       });
@@ -237,20 +229,20 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       const wrapper = mountCelebrationReal();
       await flushPromises();
 
-      // animate() should be called for non-winner seats
+      // animate() should be called for non-winner overlays
       expect(mockAnimate).toHaveBeenCalled();
 
       // Cleanup
-      seatMarkers.forEach((el) => el.remove());
+      overlays.forEach((el) => el.remove());
       wrapper.unmount();
     });
 
     it("calls animate() with duration:0 for dim even when prefers-reduced-motion is true (opacity change, not motion)", async () => {
       stubMatchMedia(true);
 
-      const seatMarker = document.createElement("div");
-      seatMarker.setAttribute("data-celebration-seat", "player-south");
-      document.body.appendChild(seatMarker);
+      const overlay = document.createElement("div");
+      overlay.setAttribute("data-celebration-dim-overlay", "");
+      document.body.appendChild(overlay);
 
       mockAnimate.mockClear();
       const wrapper = mountCelebrationReal();
@@ -264,12 +256,12 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
           call[1] !== null &&
           typeof call[1] === "object" &&
           "opacity" in call[1] &&
-          call[1].opacity === 0.22,
+          call[1].opacity === 0.6,
       );
       expect(dimCall).toBeDefined();
       expect(dimCall?.[2]).toMatchObject({ duration: 0 });
 
-      seatMarker.remove();
+      overlay.remove();
       wrapper.unmount();
     });
   });
@@ -282,16 +274,16 @@ describe("Celebration.vue — Task 1: structure, props, emits, overlay shell", (
       const stopFn = vi.fn();
       mockAnimate.mockReturnValue({ finished: Promise.resolve(), stop: stopFn });
 
-      const seatMarker = document.createElement("div");
-      seatMarker.setAttribute("data-celebration-seat", "player-south");
-      document.body.appendChild(seatMarker);
+      const overlay = document.createElement("div");
+      overlay.setAttribute("data-celebration-dim-overlay", "");
+      document.body.appendChild(overlay);
 
       const wrapper = mountCelebrationReal();
       await flushPromises();
 
       wrapper.unmount();
 
-      seatMarker.remove();
+      overlay.remove();
 
       // stop() should have been called on unmount
       expect(stopFn).toHaveBeenCalled();
@@ -344,6 +336,7 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
     vi.restoreAllMocks();
     // Clean up any leftover seat markers
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-dim-overlay]").forEach((el) => el.remove());
   });
 
   // ---------------------------------------------------------------------------
@@ -373,14 +366,14 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 3.2 — Phase 1: Dim opponent seats to 0.22 opacity
+  // 3.2 — Phase 1: Dim opponent overlays to 0.6 opacity (overlay-div approach)
   // ---------------------------------------------------------------------------
   describe("3.2 Phase 1 — Dim", () => {
-    it("animates non-winner seat elements to opacity 0.22 with duration 0.12", async () => {
-      const seatIds = ["player-south", "player-west", "player-north"];
-      const seatMarkers = seatIds.map((id) => {
+    it("animates non-winner overlay divs to opacity 0.6 with duration 0.12", async () => {
+      // Dim overlays as rendered by OpponentArea for opponent seats
+      const overlays = ["player-south", "player-west", "player-north"].map(() => {
         const el = document.createElement("div");
-        el.setAttribute("data-celebration-seat", id);
+        el.setAttribute("data-celebration-dim-overlay", "");
         document.body.appendChild(el);
         return el;
       });
@@ -389,31 +382,34 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
       await flushPromises();
 
       const calls = getAnimateCalls();
-      // First animate() call should be the dim animation with opacity 0.22 and duration 0.12
       const dimCall = calls.find(
         (call) =>
           Array.isArray(call[0]) &&
           call[1] !== null &&
           typeof call[1] === "object" &&
           "opacity" in call[1] &&
-          call[1].opacity === 0.22,
+          call[1].opacity === 0.6,
       );
       expect(dimCall).toBeDefined();
       expect(dimCall?.[2]).toMatchObject({ duration: 0.12 });
 
-      seatMarkers.forEach((el) => el.remove());
+      overlays.forEach((el) => el.remove());
       wrapper.unmount();
     });
 
-    it("does NOT animate the winner's own seat element", async () => {
-      // Add winner's seat marker too
-      const winnerMarker = document.createElement("div");
-      winnerMarker.setAttribute("data-celebration-seat", WINNER_ID);
-      document.body.appendChild(winnerMarker);
+    it("does NOT animate the winner's overlay when winner is an opponent seat", async () => {
+      // Winner's seat element wraps the winner's overlay
+      const winnerSeatEl = document.createElement("div");
+      winnerSeatEl.setAttribute("data-celebration-seat", WINNER_ID);
+      const winnerOverlay = document.createElement("div");
+      winnerOverlay.setAttribute("data-celebration-dim-overlay", "");
+      winnerSeatEl.appendChild(winnerOverlay);
+      document.body.appendChild(winnerSeatEl);
 
-      const opponentMarker = document.createElement("div");
-      opponentMarker.setAttribute("data-celebration-seat", "player-south");
-      document.body.appendChild(opponentMarker);
+      // Opponent overlay (not inside winner's seat element)
+      const opponentOverlay = document.createElement("div");
+      opponentOverlay.setAttribute("data-celebration-dim-overlay", "");
+      document.body.appendChild(opponentOverlay);
 
       const wrapper = mountCelebrationReal();
       await flushPromises();
@@ -425,21 +421,19 @@ describe("Celebration.vue — Task 3: sequence orchestration", () => {
           call[1] !== null &&
           typeof call[1] === "object" &&
           "opacity" in call[1] &&
-          call[1].opacity === 0.22,
+          call[1].opacity === 0.6,
       );
-      // The element array should NOT contain the winner marker
+      // The element array should NOT contain the winner's overlay
       if (dimCall) {
         const raw = dimCall[0];
         if (Array.isArray(raw) && raw.every((el): el is HTMLElement => el instanceof HTMLElement)) {
-          const winnerInList = raw.some(
-            (el) => el.getAttribute("data-celebration-seat") === WINNER_ID,
-          );
-          expect(winnerInList).toBe(false);
+          expect(raw).not.toContain(winnerOverlay);
+          expect(raw).toContain(opponentOverlay);
         }
       }
 
-      winnerMarker.remove();
-      opponentMarker.remove();
+      winnerSeatEl.remove();
+      opponentOverlay.remove();
       wrapper.unmount();
     });
   });
@@ -752,12 +746,14 @@ describe("Celebration.vue — Task 4: Reduced motion path", () => {
     mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
     // Clean up any leftover seat/fan markers
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-dim-overlay]").forEach((el) => el.remove());
     document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-dim-overlay]").forEach((el) => el.remove());
     document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
   });
 
@@ -815,13 +811,12 @@ describe("Celebration.vue — Task 4: Reduced motion path", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // AC 6 — Dim IS applied (duration:0, instant opacity change)
+  // AC 6 — Dim IS applied via overlay divs (duration:0, instant opacity change)
   // ---------------------------------------------------------------------------
-  it("AC 6: dim is applied with opacity 0.22 and duration 0 (instant, not animated)", async () => {
-    const seatIds = ["player-south", "player-west", "player-north"];
-    const seatMarkers = seatIds.map((id) => {
+  it("AC 6: dim overlay is animated to opacity 0.6 with duration 0 (instant, not animated)", async () => {
+    const overlays = ["player-south", "player-west", "player-north"].map(() => {
       const el = document.createElement("div");
-      el.setAttribute("data-celebration-seat", id);
+      el.setAttribute("data-celebration-dim-overlay", "");
       document.body.appendChild(el);
       return el;
     });
@@ -836,12 +831,12 @@ describe("Celebration.vue — Task 4: Reduced motion path", () => {
         call[1] !== null &&
         typeof call[1] === "object" &&
         "opacity" in call[1] &&
-        call[1].opacity === 0.22,
+        call[1].opacity === 0.6,
     );
     expect(dimCall).toBeDefined();
     expect(dimCall?.[2]).toMatchObject({ duration: 0 });
 
-    seatMarkers.forEach((el) => el.remove());
+    overlays.forEach((el) => el.remove());
     wrapper.unmount();
   });
 
@@ -942,12 +937,14 @@ describe("Celebration.vue — Task 6: AC coverage audit", () => {
     mockAnimate.mockClear();
     mockAnimate.mockImplementation(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-dim-overlay]").forEach((el) => el.remove());
     document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     document.querySelectorAll("[data-celebration-seat]").forEach((el) => el.remove());
+    document.querySelectorAll("[data-celebration-dim-overlay]").forEach((el) => el.remove());
     document.querySelectorAll("[data-celebration-fan-tile]").forEach((el) => el.remove());
   });
 

@@ -713,14 +713,6 @@ const mahjongResult = computed((): MahjongGameResult | null =>
   props.gameResult?.winnerId != null ? (props.gameResult as MahjongGameResult) : null,
 );
 
-/** Derives the SeatWind of the winning player for passing to Celebration. */
-const winnerSeat = computed((): SeatWind => {
-  const result = mahjongResult.value;
-  if (!result) return "east";
-  const entry = Object.entries(playersBySeat.value).find(([, p]) => p.id === result.winnerId);
-  return (entry?.[0] ?? "east") as SeatWind;
-});
-
 const afkVoteOpen = ref<{ targetPlayerId: string; expiresAt: number } | null>(null);
 const departureVoteOpen = ref<{
   targetPlayerId: string;
@@ -1226,7 +1218,6 @@ function onChatEscape() {
             :game-result="mahjongResult"
             :player-names-by-id="playerNamesById"
             :winner-id="mahjongResult.winnerId"
-            :winner-seat="winnerSeat"
             @done="celebrationDone = true"
           />
           <template v-if="celebrationDone || (gameResult !== null && mahjongResult === null)">

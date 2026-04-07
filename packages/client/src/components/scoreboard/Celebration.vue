@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 import { animate } from "motion-v";
-import type { MahjongGameResult, SeatWind } from "@mahjong-game/shared";
+import type { MahjongGameResult } from "@mahjong-game/shared";
 import TileBack from "../tiles/TileBack.vue";
 
 // ---------------------------------------------------------------------------
@@ -11,7 +11,6 @@ const props = defineProps<{
   gameResult: MahjongGameResult;
   playerNamesById: Record<string, string>;
   winnerId: string;
-  winnerSeat: SeatWind;
 }>();
 
 const emit = defineEmits<{
@@ -90,13 +89,22 @@ onMounted(() => {
  * - Total sequence well under 3 seconds (AC 5).
  */
 async function runReducedMotionSequence(): Promise<void> {
-  // Phase 1: Dim instantly (opacity change, no animation duration — AC 6)
-  const opponentEls = [...document.querySelectorAll<HTMLElement>("[data-celebration-seat]")].filter(
-    (el) => el.getAttribute("data-celebration-seat") !== props.winnerId,
+  // Phase 1: Dim instantly via overlay divs (opacity change, no animation duration — AC 6).
+  // Targets [data-celebration-dim-overlay] elements inside opponent OpponentArea components.
+  // Excludes the winner's overlay (if they are an opponent seat). Leaving opacity on the overlay
+  // (not the root element) keeps LiveKit video thumbnails visible above z-10 (AC 2 / AC 3).
+  const winnerSeatEl = document.querySelector<HTMLElement>(
+    `[data-celebration-seat="${props.winnerId}"]`,
   );
+  const allDimOverlays = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-celebration-dim-overlay]"),
+  );
+  const opponentOverlays = winnerSeatEl
+    ? allDimOverlays.filter((el) => !winnerSeatEl.contains(el))
+    : allDimOverlays;
 
-  if (opponentEls.length && isMounted) {
-    currentAnimation = animate(opponentEls, { opacity: 0.22 }, { duration: 0 });
+  if (opponentOverlays.length && isMounted) {
+    currentAnimation = animate(opponentOverlays, { opacity: 0.6 }, { duration: 0 });
     await currentAnimation.finished;
   }
 
@@ -124,24 +132,32 @@ async function runReducedMotionSequence(): Promise<void> {
  * Full 6-phase celebration sequence orchestrated via Motion for Vue's
  * `animate().finished` chain — no setTimeout chains anywhere (AC 7 / AR21).
  *
- * Trade-off note: Phase 1 applies element-level opacity to OpponentArea root
- * elements ([data-celebration-seat] markers). This dims ALL children including
- * LiveKit video thumbnails. Per spec subtask 3.2 and dev notes, this is the
- * correct implementation approach; a future task (Task 7 WCAG) may revisit if
- * contrast requirements demand positional overlay divs instead.
+ * Phase 1 animates [data-celebration-dim-overlay] divs rendered inside each
+ * OpponentArea at z-10. PlayerPresence (LiveKit video) renders at z-20 above
+ * the overlay, remaining visible at full opacity (AC 2). Text elements read
+ * against the dark overlay background, satisfying WCAG AA contrast (AC 3).
  */
 async function runCelebrationSequence(): Promise<void> {
   const startTime = Date.now();
 
   // ─── Phase 1 — Dim (0.12s, tactile speed) ────────────────────────────────
-  // Target non-winner seat areas via [data-celebration-seat] DOM markers
-  // placed by OpponentArea (Task 2). Spec: animate to ~22% opacity.
-  const opponentEls = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-celebration-seat]"),
-  ).filter((el) => el.getAttribute("data-celebration-seat") !== props.winnerId);
+  // Animate [data-celebration-dim-overlay] divs rendered inside each OpponentArea.
+  // Using an overlay div instead of element-level opacity means LiveKit video thumbnails
+  // (rendered at z-20 in OpponentArea) punch through the overlay (z-10) at full brightness
+  // (AC 2), while text elements reading against the dark overlay background retain WCAG AA
+  // contrast (AC 3). The winner's overlay (if they occupy an opponent seat) is excluded.
+  const winnerSeatEl = document.querySelector<HTMLElement>(
+    `[data-celebration-seat="${props.winnerId}"]`,
+  );
+  const allDimOverlays = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-celebration-dim-overlay]"),
+  );
+  const opponentOverlays = winnerSeatEl
+    ? allDimOverlays.filter((el) => !winnerSeatEl.contains(el))
+    : allDimOverlays;
 
-  if (opponentEls.length > 0 && isMounted) {
-    currentAnimation = animate(opponentEls, { opacity: 0.22 }, { duration: 0.12 });
+  if (opponentOverlays.length > 0 && isMounted) {
+    currentAnimation = animate(opponentOverlays, { opacity: 0.6 }, { duration: 0.12 });
     await currentAnimation.finished;
   }
 
@@ -253,10 +269,9 @@ async function runCelebrationSequence(): Promise<void> {
   const elapsed = (Date.now() - startTime) / 1000;
   const remaining = Math.max(0, MIN_SEQUENCE_DURATION_S - elapsed);
 
-  if (remaining > 0 && isMounted) {
+  if (remaining > 0 && isMounted && beatElRef.value) {
     // Use beatEl as a stable no-op target for the hold duration
-    const holdTarget = beatElRef.value ?? document.body;
-    currentAnimation = animate(holdTarget, { opacity: [0, 0] }, { duration: remaining });
+    currentAnimation = animate(beatElRef.value, { opacity: [0, 0] }, { duration: remaining });
     await currentAnimation.finished;
   }
 
