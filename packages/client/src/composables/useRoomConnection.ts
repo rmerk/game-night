@@ -14,6 +14,7 @@ import { getWebSocketUrl } from "./wsUrl";
 import { clearSessionToken, readSessionToken, writeSessionToken } from "./sessionTokenStorage";
 import { useChatStore } from "../stores/chat";
 import { useReactionsStore } from "../stores/reactions";
+import { useAudioStore } from "../stores/audio";
 import { useActivityTickerStore } from "../stores/activityTicker";
 import { useLiveKitStore } from "../stores/liveKit";
 import { useSlideInPanelStore } from "../stores/slideInPanel";
@@ -108,6 +109,7 @@ export function useRoomConnection() {
         code === "LIVEKIT_TOKEN_FAILED";
       if (!silentLiveKitError) {
         lastErrorMessage.value = `${parsed.message.code}: ${parsed.message.message}`;
+        void useAudioStore().play("error-nope", "notification");
       }
       return;
     }
@@ -140,6 +142,11 @@ export function useRoomConnection() {
     }
     if (parsed.kind === "chat_broadcast") {
       useChatStore().appendBroadcast(parsed.message);
+      const localPlayerId =
+        lobbyState.value?.myPlayerId ?? playerGameView.value?.myPlayerId ?? null;
+      if (parsed.message.playerId !== localPlayerId) {
+        void useAudioStore().play("chat-pop", "notification");
+      }
       return;
     }
     if (parsed.kind === "reaction_broadcast") {

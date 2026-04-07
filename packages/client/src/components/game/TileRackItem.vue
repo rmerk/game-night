@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import type { Tile } from "@mahjong-game/shared";
 import TileComponent from "../tiles/Tile.vue";
 import type { TileState } from "../tiles/Tile.vue";
 import { TILE_MIN_WIDTH_CSS } from "../tiles/tile-sizing";
 import { useRackTileDraggable } from "../../composables/useRackDragDrop";
+import { useAudioStore } from "../../stores/audio";
 
 const props = defineProps<{
   tile: Tile;
@@ -24,6 +25,10 @@ const indexRef = computed(() => props.index);
 const tilesRef = computed(() => props.tiles);
 
 const { isDragging } = useRackTileDraggable(itemRef, indexRef, tilesRef);
+
+watch(isDragging, (nowDragging) => {
+  if (nowDragging) useAudioStore().play("rack-arrange", "gameplay");
+});
 </script>
 
 <template>

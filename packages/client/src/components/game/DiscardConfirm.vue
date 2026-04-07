@@ -12,7 +12,6 @@ const emit = defineEmits<{
 
 function handleDiscard() {
   if (props.selectedTileId) {
-    // TODO: audioStore.play('tile-discard')
     emit("discard", props.selectedTileId);
   }
 }

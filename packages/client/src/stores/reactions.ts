@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { ReactionBroadcast } from "@mahjong-game/shared";
+import { useAudioStore } from "./audio";
 
 /** Single place for bubble lifetime (AC5). */
 export const REACTION_BUBBLE_MS = 2500;
@@ -61,6 +62,7 @@ export const useReactionsStore = defineStore("reactions", () => {
     ) {
       return;
     }
+    void useAudioStore().play("chat-pop", "notification");
     const rest = alive.filter((i) => i.playerId !== b.playerId);
     const capped = forPlayer.slice(-(MAX_BUBBLES_PER_PLAYER - 1));
 
