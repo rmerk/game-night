@@ -20,12 +20,18 @@ class MockAudioBufferSourceNode {
 
 /** Most recently created source node — updated by MockAudioContext.createBufferSource */
 let lastCreatedSourceNode: MockAudioBufferSourceNode | null = null;
+/** All GainNode instances created by MockAudioContext.createGain since last reset */
+const gainNodeInstances: MockGainNode[] = [];
 
 class MockAudioContext {
   destination = {};
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   decodeAudioData = vi.fn().mockResolvedValue({} as unknown as AudioBuffer);
-  createGain = vi.fn(() => new MockGainNode());
+  createGain = vi.fn(() => {
+    const node = new MockGainNode();
+    gainNodeInstances.push(node);
+    return node;
+  });
   createBufferSource = vi.fn(() => {
     const node = new MockAudioBufferSourceNode();
     lastCreatedSourceNode = node;
@@ -50,8 +56,9 @@ beforeEach(() => {
   // Reset module-scope engine state so no cache or nodes bleed between tests
   _resetAudioEngineForTests();
 
-  // Reset source node tracker
+  // Reset source node and gain node trackers
   lastCreatedSourceNode = null;
+  gainNodeInstances.length = 0;
 
   // Stub AudioContext before any test that might trigger play()
   vi.stubGlobal("AudioContext", MockAudioContext);
@@ -293,6 +300,52 @@ describe("useAudioStore — play()", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, arrayBuffer: vi.fn() }));
     const store = useAudioStore();
     await expect(store.play("chat-pop", "notification")).resolves.toBeUndefined();
+  });
+
+  it("play() applies masterMuted=true to GainNodes on the very first play (lazy-init sync)", async () => {
+    // Simulate returning user who had masterMuted saved — hydrate before store init
+    lsData["mahjong-audio-prefs-v1"] = JSON.stringify({
+      gameplayVolume: 0.8,
+      notificationVolume: 0.7,
+      ambientVolume: 0.3,
+      masterMuted: true,
+      ambientEnabled: false,
+    });
+
+    const store = useAudioStore();
+    expect(store.masterMuted).toBe(true);
+
+    // AudioContext not yet created — trigger first play to force lazy init
+    await store.play("tile-draw", "gameplay");
+
+    // getCtx() created 3 GainNodes (gameplay, notification, ambient).
+    // syncGains() must have run, setting all gains to 0 (muted).
+    expect(gainNodeInstances).toHaveLength(3);
+    for (const node of gainNodeInstances) {
+      expect(node.gain.value).toBe(0);
+    }
+  });
+
+  it("play() applies persisted volume to GainNodes on first play (lazy-init sync)", async () => {
+    lsData["mahjong-audio-prefs-v1"] = JSON.stringify({
+      gameplayVolume: 0.4,
+      notificationVolume: 0.5,
+      ambientVolume: 0.2,
+      masterMuted: false,
+      ambientEnabled: false,
+    });
+
+    const store = useAudioStore();
+    expect(store.gameplayVolume).toBe(0.4);
+
+    await store.play("tile-draw", "gameplay");
+
+    // 3 GainNodes created: gameplay (index 0), notification (index 1), ambient (index 2).
+    // syncGains() must have applied persisted volumes, not the Web Audio default of 1.0.
+    expect(gainNodeInstances).toHaveLength(3);
+    expect(gainNodeInstances[0].gain.value).toBe(0.4); // gameplay
+    expect(gainNodeInstances[1].gain.value).toBe(0.5); // notification
+    expect(gainNodeInstances[2].gain.value).toBe(0.2); // ambient
   });
 });
 

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-06 # Story 7.3 → review
+last_updated: 2026-04-07 # Story 7.3 → done
 project: mahjong-game
 
 project_key: NOKEY
@@ -172,7 +172,7 @@ development_status:
   epic-7: in-progress
   7-1-felt-texture-three-moods-transitions: done
   7-2-celebration-overlay-sequence: done
-  7-3-complete-sound-design-all-10-12-effects: review
+  7-3-complete-sound-design-all-10-12-effects: done
   7-4-dark-mode-first-visit-entrance-audio-preview: backlog
   7-5-full-session-golden-path-validation: ready-for-dev
   epic-7-retrospective: optional

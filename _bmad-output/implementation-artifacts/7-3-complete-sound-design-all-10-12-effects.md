@@ -1,6 +1,6 @@
 # Story 7.3: Complete Sound Design (All 10-12 Effects)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -282,7 +282,9 @@ claude-sonnet-4-6 (story creation)
 
 ### Completion Notes List
 
-Story 7.3 implemented in 7 tasks. Web Audio API engine (no external library) with lazy AudioContext, three GainNode channels, mp3→ogg fallback, and silent failure. localStorage persistence follows handGuidancePreferences.ts pattern. 24 placeholder WAV-as-MP3/OGG files generated via Node.js script. 11 of 12 sound effects wired (timer-warning available but no trigger defined in current game events). All quality gates passed: 728 tests, 0 type errors, 0 lint errors.
+Story 7.3 implemented in 7 tasks. Web Audio API engine (no external library) with lazy AudioContext, three GainNode channels, mp3→ogg fallback, and silent failure. localStorage persistence follows handGuidancePreferences.ts pattern. 24 placeholder WAV-as-MP3/OGG files generated via Node.js script. 11 of 12 sound effects wired (timer-warning reserved for future countdown UI — no current game event trigger). All quality gates passed: 730 tests, 0 type errors, 0 lint errors.
+
+Code review (2026-04-07): Fixed lazy-init GainNode sync bug — watchEffect skipped gain assignment at store setup when GainNodes were null; first play() now calls syncGains() explicitly after AudioContext creation, ensuring persisted masterMuted and volume preferences apply from the very first sound. Added 2 regression tests covering masterMuted=true and custom volume on first play. Discarded uncommitted whitespace drift in reaction components (unrelated to story scope).
 
 ### File List
 

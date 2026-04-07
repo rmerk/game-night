@@ -159,24 +159,19 @@ export const useAudioStore = defineStore("audio", () => {
 
   hydrate();
 
-  // Keep GainNode values in sync with store state.
-  // GainNodes are lazily initialized, so we guard with null checks.
-  watchEffect(() => {
+  // Sync GainNode gain values to current store state.
+  // Called by watchEffect (for reactive settings changes) and explicitly in play()
+  // after lazy AudioContext init, because watchEffect runs once at store setup when
+  // GainNodes are still null and won't re-run until a reactive dep changes.
+  function syncGains() {
     const muted = masterMuted.value;
-    const gv = gameplayVolume.value;
-    const nv = notificationVolume.value;
-    const av = ambientVolume.value;
+    if (gameplayGain) gameplayGain.gain.value = muted ? 0 : gameplayVolume.value;
+    if (notificationGain) notificationGain.gain.value = muted ? 0 : notificationVolume.value;
+    if (ambientGain) ambientGain.gain.value = muted ? 0 : ambientVolume.value;
+  }
 
-    if (gameplayGain) {
-      gameplayGain.gain.value = muted ? 0 : gv;
-    }
-    if (notificationGain) {
-      notificationGain.gain.value = muted ? 0 : nv;
-    }
-    if (ambientGain) {
-      ambientGain.gain.value = muted ? 0 : av;
-    }
-  });
+  // Keep GainNode values in sync when settings change reactively.
+  watchEffect(syncGains);
 
   // ─── Volume setters ──────────────────────────────────────────────────────────
 
@@ -211,6 +206,7 @@ export const useAudioStore = defineStore("audio", () => {
     try {
       const buffer = await loadBuffer(soundId);
       const context = getCtx();
+      syncGains(); // ensure gains match store state after lazy AudioContext init
       const source = context.createBufferSource();
       source.buffer = buffer;
       source.connect(getGainNode(channel));
@@ -225,6 +221,7 @@ export const useAudioStore = defineStore("audio", () => {
       stopAmbientLoop();
       const buffer = await loadBuffer("ambient-loop");
       const context = getCtx();
+      syncGains(); // ensure gains match store state after lazy AudioContext init
       const source = context.createBufferSource();
       source.buffer = buffer;
       source.loop = true;
