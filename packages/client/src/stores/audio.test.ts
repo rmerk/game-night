@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vite-plus/test";
 import { setActivePinia, createPinia } from "pinia";
-import { useAudioStore, SOUND_CHANNEL } from "./audio";
+import { useAudioStore, SOUND_CHANNEL, _resetAudioEngineForTests } from "./audio";
 
 // ─── AudioContext mock ────────────────────────────────────────────────────────
 
@@ -18,12 +18,19 @@ class MockAudioBufferSourceNode {
   disconnect = vi.fn();
 }
 
+/** Most recently created source node — updated by MockAudioContext.createBufferSource */
+let lastCreatedSourceNode: MockAudioBufferSourceNode | null = null;
+
 class MockAudioContext {
   destination = {};
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   decodeAudioData = vi.fn().mockResolvedValue({} as unknown as AudioBuffer);
   createGain = vi.fn(() => new MockGainNode());
-  createBufferSource = vi.fn(() => new MockAudioBufferSourceNode());
+  createBufferSource = vi.fn(() => {
+    const node = new MockAudioBufferSourceNode();
+    lastCreatedSourceNode = node;
+    return node;
+  });
 }
 
 // ─── localStorage data store ──────────────────────────────────────────────────
@@ -40,6 +47,12 @@ function resetLsData() {
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  // Reset module-scope engine state so no cache or nodes bleed between tests
+  _resetAudioEngineForTests();
+
+  // Reset source node tracker
+  lastCreatedSourceNode = null;
+
   // Stub AudioContext before any test that might trigger play()
   vi.stubGlobal("AudioContext", MockAudioContext);
 
@@ -280,5 +293,95 @@ describe("useAudioStore — play()", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, arrayBuffer: vi.fn() }));
     const store = useAudioStore();
     await expect(store.play("chat-pop", "notification")).resolves.toBeUndefined();
+  });
+});
+
+// ─── playAmbientLoop / stopAmbientLoop ────────────────────────────────────────
+
+describe("useAudioStore — playAmbientLoop / stopAmbientLoop", () => {
+  it("playAmbientLoop() resolves without throwing", async () => {
+    const store = useAudioStore();
+    await expect(store.playAmbientLoop()).resolves.not.toThrow();
+  });
+
+  it("playAmbientLoop() sets loop = true on the created source node", async () => {
+    const store = useAudioStore();
+    await store.playAmbientLoop();
+
+    expect(lastCreatedSourceNode).not.toBeNull();
+    expect(lastCreatedSourceNode!.loop).toBe(true);
+  });
+
+  it("stopAmbientLoop() calls stop() and disconnect() on the active node", async () => {
+    const store = useAudioStore();
+    await store.playAmbientLoop();
+    expect(lastCreatedSourceNode).not.toBeNull();
+
+    store.stopAmbientLoop();
+    expect(lastCreatedSourceNode!.stop).toHaveBeenCalledOnce();
+    expect(lastCreatedSourceNode!.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it("stopAmbientLoop() is a no-op when no loop is active (does not throw)", () => {
+    const store = useAudioStore();
+    // No prior playAmbientLoop — ambientNode is null
+    expect(() => store.stopAmbientLoop()).not.toThrow();
+  });
+
+  it("playAmbientLoop() silently handles fetch failure (warns, does not throw)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network error")));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const store = useAudioStore();
+    await expect(store.playAmbientLoop()).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[audio]"), expect.any(Error));
+
+    warnSpy.mockRestore();
+  });
+});
+
+// ─── Volume clamping ──────────────────────────────────────────────────────────
+
+describe("useAudioStore — volume clamping", () => {
+  it("setGameplayVolume clamps values above 1 to 1", () => {
+    const store = useAudioStore();
+    store.setGameplayVolume(1.5);
+    expect(store.gameplayVolume).toBe(1);
+  });
+
+  it("setGameplayVolume clamps values below 0 to 0", () => {
+    const store = useAudioStore();
+    store.setGameplayVolume(-0.5);
+    expect(store.gameplayVolume).toBe(0);
+  });
+
+  it("setNotificationVolume clamps values above 1 to 1", () => {
+    const store = useAudioStore();
+    store.setNotificationVolume(2);
+    expect(store.notificationVolume).toBe(1);
+  });
+
+  it("setNotificationVolume clamps values below 0 to 0", () => {
+    const store = useAudioStore();
+    store.setNotificationVolume(-1);
+    expect(store.notificationVolume).toBe(0);
+  });
+
+  it("setAmbientVolume clamps values above 1 to 1", () => {
+    const store = useAudioStore();
+    store.setAmbientVolume(99);
+    expect(store.ambientVolume).toBe(1);
+  });
+
+  it("setAmbientVolume clamps values below 0 to 0", () => {
+    const store = useAudioStore();
+    store.setAmbientVolume(-0.1);
+    expect(store.ambientVolume).toBe(0);
+  });
+
+  it("setGameplayVolume accepts valid in-range values unchanged", () => {
+    const store = useAudioStore();
+    store.setGameplayVolume(0.6);
+    expect(store.gameplayVolume).toBe(0.6);
   });
 });

@@ -43,6 +43,16 @@ let gameplayGain: GainNode | null = null;
 let notificationGain: GainNode | null = null;
 let ambientGain: GainNode | null = null;
 
+/** @internal Test-only: resets all module-scope engine state between test cases. */
+export function _resetAudioEngineForTests(): void {
+  ctx = null;
+  bufferCache.clear();
+  ambientNode = null;
+  gameplayGain = null;
+  notificationGain = null;
+  ambientGain = null;
+}
+
 function getCtx(): AudioContext {
   if (!ctx) {
     // Lookup AudioContext via globalThis so that test environments can stub it
@@ -171,17 +181,17 @@ export const useAudioStore = defineStore("audio", () => {
   // ─── Volume setters ──────────────────────────────────────────────────────────
 
   function setGameplayVolume(value: number) {
-    gameplayVolume.value = value;
+    gameplayVolume.value = Math.max(0, Math.min(1, value));
     persist();
   }
 
   function setNotificationVolume(value: number) {
-    notificationVolume.value = value;
+    notificationVolume.value = Math.max(0, Math.min(1, value));
     persist();
   }
 
   function setAmbientVolume(value: number) {
-    ambientVolume.value = value;
+    ambientVolume.value = Math.max(0, Math.min(1, value));
     persist();
   }
 
