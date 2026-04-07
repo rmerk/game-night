@@ -3243,7 +3243,7 @@ So that **a brief drop doesn't mean losing voice for the rest of the game (FR110
 
 ## Epic 7: Visual Polish & Audio
 
-Make the game beautiful and tactile — Three Moods atmosphere, felt texture, celebration cinematics, complete sound design, dark mode, first-visit entrance, and first-launch audio preview. This epic transforms "it works" into "it's gorgeous."
+Make the game beautiful and tactile — Three Moods atmosphere, felt texture, celebration cinematics, complete sound design, dark mode, first-visit entrance, and first-launch audio preview. This epic transforms "it works" into "it's gorgeous." **Story 7.5** adds a tracked **full-session golden path validation** (four players, lobby through rematch or session end) so polish ships on top of a proven integrated flow — see `_bmad-output/playtest-plan.md`.
 
 ### Story 7.1: Felt Texture & Three Moods Transitions
 
@@ -3392,6 +3392,28 @@ So that **evening play is comfortable, first impressions are polished, and playe
 **Given** the audio preview
 **When** checking subsequent joins
 **Then** the preview plays only once (tracked in localStorage) — not on every join
+
+### Story 7.5: Full-Session Golden Path Validation
+
+As a **team shipping Mahjong Night**,
+I want **a documented four-player run through lobby → Charleston → play → hand resolution → scoreboard → rematch (or session end)**,
+So that **we prove the integrated product works as one continuous experience—not only as isolated epic deliverables.**
+
+**Acceptance Criteria:**
+
+**Given** `_bmad-output/playtest-plan.md` golden path rows G1–G8
+**When** an internal playtest runs with four real clients
+**Then** each row is executed and marked pass/fail with notes (build/commit, time, device mix recorded)
+
+**Given** P0 or P1 findings from that run
+**When** closing this story
+**Then** each is fixed in-repo or explicitly tracked as a new story in `sprint-status.yaml` (no undocumented blockers)
+
+**Given** reconnect (G9) and orientation (G10) checks
+**When** the report is filed
+**Then** the document states whether they were run or deferred with reason
+
+**Implementation artifact:** `_bmad-output/implementation-artifacts/7-5-full-session-golden-path-validation.md`
 
 ---
 

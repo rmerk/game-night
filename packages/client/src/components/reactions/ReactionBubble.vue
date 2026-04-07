@@ -16,4 +16,3 @@ defineProps<{
     </span>
   </div>
 </template>
-

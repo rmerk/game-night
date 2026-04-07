@@ -7,85 +7,85 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 1:43pm CDT
+# $CMEM mahjong-game 2026-04-06 10:44pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (22,587t read) | 302,476t work | 93% savings
+Stats: 50 obs (38,050t read) | 652,441t work | 94% savings
 
 ### Apr 6, 2026
-1204 10:39a 🔄 Removed Redundant Type Assertion in getRoom Helper
-1205 10:40a ✅ Story 6B.3 Audio/Video Controls Marked for Review
-1206 " ✅ All Tasks Completed for Story 6B.3 Implementation
-1207 " ✅ Story Documentation Finalized with Implementation Notes and File Manifest
-1209 10:46a 🟣 Enhanced A/V permission handling with "unknown" state support
-1210 10:47a 🟣 Added smooth fade transitions for video/avatar switching in PlayerPresence
-1211 10:49a 🔵 GDS code review workflow system configured for mahjong-game project
-1212 10:50a 🔵 Story 6B.3 Audio/Video controls implementation validated against acceptance criteria
-1213 10:51a 🔵 Story 6B.3 validation complete - all tests and type checks pass
-1214 " 🔵 Story 6B.3 backpressure gate green - linter shows zero errors
-1218 11:03a 🔴 Configure Vite dev server to bind to IPv4 localhost
-1219 11:08a 🟣 Story 6B.4: Speaking Indicator & Avatar Fallback Implementation Guide
-1220 11:10a 🟣 Speaking indicator with accessibility-aware animation and voice connection status
-1221 " ✅ Test coverage for accessibility-aware speaking indicator
-1222 11:11a ✅ Story 6B.4 completion documentation and implementation summary
-1223 11:19a 🔄 PlayerPresence speaking indicator now uses design tokens with dynamic ARIA labels
-1224 " ✅ Added test coverage for PlayerPresence accessibility and motion preferences
-1225 11:20a ✅ Implementation artifacts updated to document second pass polish improvements
-1226 11:27a ✅ Speaking Indicator Avatar Fallback Code Review Completed
-1227 " ✅ GDS Code Review Process Completed with Test Coverage Improvements
-1228 11:28a 🟣 Connected LiveKit Voice Status Test Added
-1229 11:32a ✅ Story 6B.5 Created: A/V Reconnection & Graceful Degradation
-1230 " ✅ Requirements Traceability Added to Story 6B.5
-1231 11:33a 🔵 LiveKit Token Request Flag Trap Identified in Reconnection Flow
-1232 " ⚖️ Reconnection UX and Architectural Constraints Refined
-1233 11:34a ✅ Story 6B.5 File List and API Surface Refined
-1236 1:15p 🟣 Audio/Video Session Degradation Detection and Reconnection
-1237 " 🟣 LiveKit Connection Retry Promise Infrastructure
-1238 " 🟣 Manual LiveKit A/V Reconnection with Promise-Based Timeout
-1239 1:16p 🔴 LiveKit Retry Cleanup and Double-Resolution Prevention
-1240 " 🟣 A/V Reconnection UI Coordination Composable
-1241 1:17p 🟣 A/V Reconnection UI Components and Event Wiring
-1243 " 🟣 Complete A/V Reconnection Integration in RoomView
-1245 " ✅ Simplified Reconnect Button Label During Pending State
-1246 1:18p ✅ Test Coverage for A/V Session Degraded State
-1247 1:19p ✅ Comprehensive Test Suite for LiveKit Retry Mechanism
-1248 " ✅ Test Coverage for A/V Reconnection Watchdog Logic
-1249 " ✅ Refined A/V Reconnection UI Test Ordering and Assertions
-1250 1:20p ✅ Component Tests for A/V Reconnection UI States and Interactions
-1255 1:25p 🟣 AV Reconnection with Graceful Degradation
-1256 " 🔴 Prevent Race Condition in LiveKit Retry Logic
-1258 " ✅ Test Coverage for Retry Timeout Recovery
-1260 1:27p 🔵 Code review initiated for A/V reconnection with graceful degradation feature
-1261 " 🔵 A/V reconnection UI component wiring traced through Vue component hierarchy
-1262 1:28p ✅ Story 6B.5 A/V reconnection passes all quality gates with comprehensive test coverage
-1264 1:30p 🔵 Verified retryLiveKitConnection properly exported from useRoomConnection composable API
-S379 Complete adversarial code review of Story 6B.5 A/V reconnection feature with automatic issue remediation and story completion (Apr 6 at 1:30 PM)
-1265 1:31p 🔴 Added timer cleanup and manual retry test coverage to useAvReconnectUi composable
-1266 " ✅ Story 6B.5 marked done after successful code review and automated fixes
-1267 1:32p 🔵 Retrospective Workflow System Architecture
-S380 Initialize retrospective for Epic 6B (Voice & Video WebRTC integration) (Apr 6 at 1:32 PM)
-1268 1:33p 🔵 Epic 6B Retrospective Context Loaded
-S381 Epic 6B retrospective - Voice & Video WebRTC integration review with team discussion (Apr 6 at 1:33 PM)
-S382 Epic 6B retrospective team discussion - successes and challenges analysis (Apr 6 at 1:36 PM)
-S383 Epic 6B retrospective synthesis - testing process consensus and pattern analysis (Apr 6 at 1:36 PM)
-S384 Epic 6B retrospective critical analysis - real-device testing gap and velocity context revealed (Apr 6 at 1:37 PM)
-S385 Epic 6B retrospective action planning - real-device testing validation specification (Apr 6 at 1:38 PM)
-S386 Epic 6B retrospective action items and critical path definition with Epic 7 gating decision (Apr 6 at 1:40 PM)
-S387 Epic 6B retrospective final readiness check - self-hosted LiveKit path confirmed (Apr 6 at 1:41 PM)
-S388 Epic 6B retrospective final codebase health assessment and Epic 7 preparation insights (Apr 6 at 1:43 PM)
-**Investigated**: Max performed comprehensive codebase health check confirming excellent state: all tests passing, typecheck clean, zero lint errors, no carried technical debt for first time in project history, useLiveKit API clean and well-tested at wiring level, NFR23 thoroughly enforced. Team identified two minor items: sprint-status shows epic-6b as "in-progress" when should be "done" (bookkeeping fix needed), and Epic 7 represents fundamental work type shift requiring different validation approach. Cloud Dragonborn analyzed Epic 7 testing challenge: 6B was infrastructure (composables, protocol, SDK wiring) testable in isolation, but 7 is visual/auditory (felt texture, celebration cinematics, sound design) where automated tests can assert CSS class exists but cannot validate "felt looks like real material" or "Mahjong motif feels cinematic."
+1286 1:52p 🟣 Added test coverage for felt grain overlay visual element
+1287 1:53p 🟣 Felt Grain Overlay Implemented with CSS-Only SVG Technique
+1288 1:54p 🟣 Task 1 Complete: Felt Grain Overlay Committed
+1289 " 🟣 Implemented felt grain texture overlay for playing mood
+1290 1:56p ⚖️ Code Quality Review Identified Phase Logic and Style Issues
+1291 1:57p ⚖️ Quality Review Feedback Sent to Implementer with Clarifications
+1292 " 🔄 Refactored felt grain overlay to use computed property for background image
+1293 " 🟣 Added test coverage for felt grain overlay during charleston phase
+1294 2:01p 🟣 Added TDD tests for RoomView mood class application
+S394 Continue Story 7.1: Felt Texture & Three Moods Transitions - Complete Task 5 and finalize for review (Apr 6 at 2:33 PM)
+S395 Adversarial code review of Story 7.1: Felt Texture & Three Moods Transitions (Apr 6 at 2:46 PM)
+S396 Code review completion with fix application and test verification for Story 7.1: Felt Texture & Three Moods Transitions (Apr 6 at 2:52 PM)
+S397 Story 7.2 Definition-of-Done validation and status transition to review (Apr 6 at 2:54 PM)
+1295 3:01p 🟣 Story 7.2: Celebration Overlay Sequence Created
+1296 3:04p 🔵 GDS Dev Story Workflow System Architecture
+1297 " 🔵 Story 7.2 Celebration Overlay Sequence Feature Scope
+1298 " 🔵 GDS Workflow Templates and Quality Gates Infrastructure
+1299 3:06p ✅ Story 7.2 Workflow Initialization and Sprint Status Transition
+1300 3:08p 🟣 Celebration.vue Test Suite Creation Following TDD Red Phase
+1301 3:09p 🟣 Celebration.vue Component Implementation with Dim Animation Phase
+1302 3:10p 🟣 Task 1 Celebration Component Tests Passing with Teleport Stub Pattern
+1303 " 🟣 Task 1 Celebration Component Completed and Committed via Subagent Dispatch
+1304 3:11p ✅ Task 1 Spec Compliance Review Passed with Type System Clarification
+1305 3:12p ✅ Playtest plan created for full-session integration testing
+1306 3:39p ✅ Story 7.5 Golden Path Validation Added
+1307 " ✅ Story 7.5 Added to Epic 7 Planning Documentation
+1308 6:52p 🟣 Celebration overlay integration tests added to GameTable
+1309 " 🔵 Celebration overlay tests fail - feature not yet implemented in GameTable
+1310 " ✅ Added Celebration component and MahjongGameResult type imports to GameTable
+S398 Adversarial code review of Story 7.2 (Celebration Overlay Sequence) to validate AC implementation against actual code (Apr 6 at 7:26 PM)
+1315 9:26p 🔵 Story 7.2 Code Review Initialization
+S399 Story 7.2 Code Review Completion - Overlay-div Architecture Fix for AC 2/AC 3 Violations (Apr 6 at 9:30 PM)
+1316 9:33p 🔵 Code Review Findings Presented for Story 7.2
+1317 9:34p 🔴 Overlay-div Refactor in OpponentArea to Fix AC Violations
+1318 " 🔴 Removed Unused winnerSeat Prop and Updated Reduced Motion Dimming
+1319 " 🔴 Full Motion Sequence Updated for Overlay-div and L2/L3 Fixes
+S400 Determine next development step and understand how to connect completed Epic 7 work (Apr 6 at 9:40 PM)
+1320 9:40p 🔵 Sprint status workflow configuration and current project state
+S401 Sprint status correction and preparing to start Story 7.5 (Full Session Golden Path Validation) (Apr 6 at 9:40 PM)
+S402 Create Story 7.3: Complete Sound Design System with 12 audio effects and three-channel mixing architecture (Apr 6 at 9:45 PM)
+1321 9:50p 🟣 Story 7.3 Specification Created: Complete Sound Design System
+1322 9:56p 🔵 GDS Dev Story Workflow System Architecture
+1323 " 🔵 Story 7.3 Audio System Context Mapping
+1324 9:57p 🔵 Audio System Integration Points Mapped
+1325 9:58p 🔵 TileRack Drag System Architecture for Rack-Arrange Sound
+1326 " ✅ Story 7.3 Marked In-Progress with Task Tracking
+1327 9:59p ✅ Implementation Phase Initiated with BASE_SHA Recorded
+1328 10:01p 🟣 Audio Store Test Suite Created (TDD Red Phase)
+1329 " 🟣 Audio Store Implemented with Web Audio API Engine (TDD Green Phase)
+1330 10:02p 🔄 Audio Store Tests Refactored for Proper Test Isolation
+1331 10:03p 🔄 Audio Tests Mock Reset Enhanced with Object Wrapper Pattern
+1332 " 🔴 AudioContext Instantiation Fixed for Test Stub Compatibility
+1333 10:04p 🔄 Audio Tests Simplified with Fresh Stubs in beforeEach
+1334 " 🟣 Audio Store Tests Pass (TDD Green Phase Complete)
+1335 10:40p 🔵 Mahjong game audio system architecture
+1336 " 🔵 Audio system integration across game UI and event handlers
+1337 10:41p 🔵 Audio integration test coverage and unused timer-warning sound
+1338 10:42p 🟣 Story 7.3 audio system implementation validated and complete
+1339 10:43p ✅ Story 7.3 status updated to review with completion summary
+S403 Story 7.3 Complete Sound Design - DoD validation and status transition to review (Apr 6 at 10:44 PM)
+**Investigated**: The primary session validated Story 7.3 implementation through comprehensive DoD checks including test execution (376 server + client tests passing), TypeScript compilation (zero errors), and linting (0 errors). The session explored the complete audio system architecture including the Pinia audio store (267 lines), Web Audio API engine with three GainNode channels, 24 placeholder sound files (448KB total), integration points across GameTable.vue, TileRackItem.vue, useRoomConnection.ts, reactions store, AudioSettingsPanel UI component, and comprehensive test coverage (53 audio-related tests). The validation confirmed all 8 acceptance criteria were satisfied with evidence.
 
-**Learned**: Epic 7 requires testing strategy shift from "does the code work" (6B) to "does it feel right" (7) necessitating more manual review and subjective sign-off from Rchoi. This means Epic 7 stories may take longer to reach "done" despite being less code - velocity expectations must adjust. Sound asset sourcing identified as external dependency: 6B had no external assets, but 7.3 requires 10-12 audio files for complete sound design. Asset creation/sourcing is outside normal code pipeline and should be Epic 7 preparation item. Codebase in excellent health with zero carried debt - first occurrence in 9-epic project history enabled by pre-6B cleanup gate.
+**Learned**: The audio system uses a clean architectural pattern: Web Audio API directly (no external libraries) with lazy AudioContext initialization, three independent GainNode chains for gameplay/notification/ambient channels, and module-scope engine state to avoid Vue reactivity overhead. Sound triggering follows separation of concerns: game events via resolvedAction watcher in GameTable.vue, UI interactions via component event handlers (drag sounds), and victory celebration through event-based @motifPlay emission. The timer-warning sound exists in the type system and has audio files but remains unwired - TURN_TIMER_NUDGE fires turn-ping instead, with timer-warning available for future countdown UI features. LocalStorage persistence follows the handGuidancePreferences.ts pattern (manual JSON serialization) maintaining consistency with existing stores. Test architecture mocks Web Audio API and audio store cleanly to prevent browser API calls in happy-dom environment.
 
-**Completed**: Final codebase health assessment complete confirming clean state. Epic 7 preparation insights surfaced: testing strategy shift to subjective validation, velocity expectations adjustment, and sound asset sourcing dependency. Two minor action items identified: update sprint-status epic-6b to "done" status, add sound asset sourcing to Epic 7 preparation tasks. Team confirmed no other loose ends, blockers, or stability concerns.
+**Completed**: Story 7.3 implementation fully validated and transitioned to review status. All 7 tasks complete: (1) useAudioStore with Web Audio API engine, (2) SoundId type and channel mapping, (3) 24 placeholder audio files generated, (4) 8 game-event sounds wired in GameTable.vue resolvedAction watcher, (5) UI interaction sounds (rack-arrange, chat-pop, error-nope), (6) AudioSettingsPanel with 3 volume sliders + master mute + ambient toggle integrated into settings slide-in, (7) all quality gates passed. Implementation artifacts updated: story file status changed ready-for-dev → review, completion notes added documenting Web Audio API architecture and validation metrics (728 tests, 0 type errors, 0 lint errors), sprint-status.yaml updated to reflect review status.
 
-**Next Steps**: Awaiting Rchoi's confirmation to close retrospective. Once confirmed, will generate comprehensive retrospective document including: Epic 6B summary with delivery metrics, previous retro follow-through analysis (100% for first time), successes (6 items), challenges (5 items including real-device testing gap), key insights (5 items), action items (process improvements and technical debt), critical path for real-device validation (3 work items with 7-test matrix), Epic 7 preparation notes (testing strategy shift, sound assets), team agreements, and readiness assessment. Will then update sprint-status.yaml to mark epic-6b-retrospective as done and epic-6b status to done.
+**Next Steps**: Story 7.3 is ready for code review workflow (recommended with fresh context and different LLM per project standards). Story 7.5 (Full Session Golden Path Validation) is available as ready-for-dev and represents the final story in Epic 7 before optional retrospective.
 
 
-Access 302k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 652k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*
