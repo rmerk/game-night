@@ -7,29 +7,15 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-06 10:44pm CDT
+# $CMEM mahjong-game 2026-04-07 5:41am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (38,050t read) | 652,441t work | 94% savings
+Stats: 50 obs (41,257t read) | 608,485t work | 93% savings
 
 ### Apr 6, 2026
-1286 1:52p 🟣 Added test coverage for felt grain overlay visual element
-1287 1:53p 🟣 Felt Grain Overlay Implemented with CSS-Only SVG Technique
-1288 1:54p 🟣 Task 1 Complete: Felt Grain Overlay Committed
-1289 " 🟣 Implemented felt grain texture overlay for playing mood
-1290 1:56p ⚖️ Code Quality Review Identified Phase Logic and Style Issues
-1291 1:57p ⚖️ Quality Review Feedback Sent to Implementer with Clarifications
-1292 " 🔄 Refactored felt grain overlay to use computed property for background image
-1293 " 🟣 Added test coverage for felt grain overlay during charleston phase
-1294 2:01p 🟣 Added TDD tests for RoomView mood class application
-S394 Continue Story 7.1: Felt Texture & Three Moods Transitions - Complete Task 5 and finalize for review (Apr 6 at 2:33 PM)
-S395 Adversarial code review of Story 7.1: Felt Texture & Three Moods Transitions (Apr 6 at 2:46 PM)
-S396 Code review completion with fix application and test verification for Story 7.1: Felt Texture & Three Moods Transitions (Apr 6 at 2:52 PM)
-S397 Story 7.2 Definition-of-Done validation and status transition to review (Apr 6 at 2:54 PM)
-1295 3:01p 🟣 Story 7.2: Celebration Overlay Sequence Created
 1296 3:04p 🔵 GDS Dev Story Workflow System Architecture
 1297 " 🔵 Story 7.2 Celebration Overlay Sequence Feature Scope
 1298 " 🔵 GDS Workflow Templates and Quality Gates Infrastructure
@@ -45,7 +31,6 @@ S397 Story 7.2 Definition-of-Done validation and status transition to review (Ap
 1308 6:52p 🟣 Celebration overlay integration tests added to GameTable
 1309 " 🔵 Celebration overlay tests fail - feature not yet implemented in GameTable
 1310 " ✅ Added Celebration component and MahjongGameResult type imports to GameTable
-S398 Adversarial code review of Story 7.2 (Celebration Overlay Sequence) to validate AC implementation against actual code (Apr 6 at 7:26 PM)
 1315 9:26p 🔵 Story 7.2 Code Review Initialization
 S399 Story 7.2 Code Review Completion - Overlay-div Architecture Fix for AC 2/AC 3 Violations (Apr 6 at 9:30 PM)
 1316 9:33p 🔵 Code Review Findings Presented for Story 7.2
@@ -57,6 +42,7 @@ S400 Determine next development step and understand how to connect completed Epi
 S401 Sprint status correction and preparing to start Story 7.5 (Full Session Golden Path Validation) (Apr 6 at 9:40 PM)
 S402 Create Story 7.3: Complete Sound Design System with 12 audio effects and three-channel mixing architecture (Apr 6 at 9:45 PM)
 1321 9:50p 🟣 Story 7.3 Specification Created: Complete Sound Design System
+S403 Story 7.3 Complete Sound Design - DoD validation and status transition to review (Apr 6 at 9:51 PM)
 1322 9:56p 🔵 GDS Dev Story Workflow System Architecture
 1323 " 🔵 Story 7.3 Audio System Context Mapping
 1324 9:57p 🔵 Audio System Integration Points Mapped
@@ -75,17 +61,32 @@ S402 Create Story 7.3: Complete Sound Design System with 12 audio effects and th
 1337 10:41p 🔵 Audio integration test coverage and unused timer-warning sound
 1338 10:42p 🟣 Story 7.3 audio system implementation validated and complete
 1339 10:43p ✅ Story 7.3 status updated to review with completion summary
-S403 Story 7.3 Complete Sound Design - DoD validation and status transition to review (Apr 6 at 10:44 PM)
-**Investigated**: The primary session validated Story 7.3 implementation through comprehensive DoD checks including test execution (376 server + client tests passing), TypeScript compilation (zero errors), and linting (0 errors). The session explored the complete audio system architecture including the Pinia audio store (267 lines), Web Audio API engine with three GainNode channels, 24 placeholder sound files (448KB total), integration points across GameTable.vue, TileRackItem.vue, useRoomConnection.ts, reactions store, AudioSettingsPanel UI component, and comprehensive test coverage (53 audio-related tests). The validation confirmed all 8 acceptance criteria were satisfied with evidence.
+S404 Code review of Story 7.3 "Complete Sound Design (All 10-12 Effects)" for mahjong-game project (Apr 6 at 10:44 PM)
+### Apr 7, 2026
+S405 Code review of Story 7.3 "Complete Sound Design" for mahjong-game audio system implementation (Apr 7 at 4:41 AM)
+1340 4:44a 🔴 Fixed lazy-init audio GainNode sync bug in Story 7.3 code review
+S406 Complete code review of Story 7.3 "Complete Sound Design" with bug fixes committed to main branch (Apr 7 at 4:45 AM)
+1341 4:46a 🔴 Committed code review fixes for Story 7.3 lazy-init audio bug
+S407 Story 7.4 Creation: Dark Mode, First-Visit Entrance & Audio Preview (Apr 7 at 4:47 AM)
+1342 4:54a 🟣 Story 7.4 Created: Dark Mode, First-Visit Entrance & Audio Preview
+1345 4:57a 🔵 Story 7.4 Development Session Initialized - Dark Mode & First-Visit UX
+1346 4:58a 🟣 Preferences Store Test Suite Created - TDD Foundation for Dark Mode & UX Preferences
+1347 4:59a 🟣 Preferences Store Implementation Complete - localStorage-Backed Dark Mode & UX State
+1350 5:03a ⚖️ Task 1 Quality Review Approved - Pattern Consistency vs Runtime Safety Trade-offs Documented
+1351 5:04a 🟣 App.vue Dark Mode Test Suite Created - TDD Foundation for Reactive Theme Switching
+1352 5:05a 🟣 App.vue Dark Mode Implementation Complete - Reactive System Preference Detection
+1354 5:08a ⚖️ Task 2 Quality Review Approved with Test Reliability Concerns - Memory Leak and Reactivity Gap Identified
+S408 DoD validation and status transition for Story 7.4 (Dark Mode, First-Visit Entrance & Audio Preview) (Apr 7 at 5:41 AM)
+**Investigated**: Independent DoD validation agent ran comprehensive verification: executed all three quality gates (pnpm test, typecheck, vp lint), read all 10 implementation files, verified each of 8 acceptance criteria against implementation and tests, checked all story-specific critical implementation points (preferences.ts pattern, App.vue dark mode wiring, AudioSettingsPanel theme section, FirstVisitEntrance cleanup, RoomView.vue watcher options), and validated complete DoD checklist
 
-**Learned**: The audio system uses a clean architectural pattern: Web Audio API directly (no external libraries) with lazy AudioContext initialization, three independent GainNode chains for gameplay/notification/ambient channels, and module-scope engine state to avoid Vue reactivity overhead. Sound triggering follows separation of concerns: game events via resolvedAction watcher in GameTable.vue, UI interactions via component event handlers (drag sounds), and victory celebration through event-based @motifPlay emission. The timer-warning sound exists in the type system and has audio files but remains unwired - TURN_TIMER_NUDGE fires turn-ping instead, with timer-warning available for future countdown UI features. LocalStorage persistence follows the handGuidancePreferences.ts pattern (manual JSON serialization) maintaining consistency with existing stores. Test architecture mocks Web Audio API and audio store cleanly to prevent browser API calls in happy-dom environment.
+**Learned**: Story 7.4 achieved full PASS on DoD validation. All quality gates green: 1,817 tests passing (678 shared + 763 client + 376 server), TypeScript compilation clean, 0 lint errors (166 pre-existing warnings). All 8 acceptance criteria verified with corresponding implementation and test coverage. No cross-task integration issues found. All critical implementation checks passed including the Task 5 fix (watcher uses `{ once: true }` without `immediate: true` to prevent self-destruct before lobbyState becomes non-null)
 
-**Completed**: Story 7.3 implementation fully validated and transitioned to review status. All 7 tasks complete: (1) useAudioStore with Web Audio API engine, (2) SoundId type and channel mapping, (3) 24 placeholder audio files generated, (4) 8 game-event sounds wired in GameTable.vue resolvedAction watcher, (5) UI interaction sounds (rack-arrange, chat-pop, error-nope), (6) AudioSettingsPanel with 3 volume sliders + master mute + ambient toggle integrated into settings slide-in, (7) all quality gates passed. Implementation artifacts updated: story file status changed ready-for-dev → review, completion notes added documenting Web Audio API architecture and validation metrics (728 tests, 0 type errors, 0 lint errors), sprint-status.yaml updated to reflect review status.
+**Completed**: Story status updated from "ready-for-dev" to "review" in implementation artifact. Sprint-status.yaml updated with story status "review" and last_updated timestamp. Story 7.4 is now ready for code review phase per project workflow
 
-**Next Steps**: Story 7.3 is ready for code review workflow (recommended with fresh context and different LLM per project standards). Story 7.5 (Full Session Golden Path Validation) is available as ready-for-dev and represents the final story in Epic 7 before optional retrospective.
+**Next Steps**: Story awaits code review (workflow recommends different LLM than implementation agent). Once code review passes, story can transition to "done" status. Story 7.5 (Full Session Golden Path Validation) is already at "ready-for-dev" status and available for work
 
 
-Access 652k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 608k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

@@ -221,11 +221,11 @@ const rematchWaitingLobbyText = ref("");
 /** Audio preview toast (AC 7) */
 const audioPreviewToastVisible = ref(false);
 
-/** First-join audio preview (AC 7, 8) — fires once when the player first lands in a live room. */
+/** First-join audio preview (AC 7, 8) — fires once when the player first lands in a live room (lobby or in-progress game). */
 watch(
-  () => lobbyState.value,
-  async (val) => {
-    if (!val) return;
+  () => lobbyState.value ?? playerGameView.value,
+  async (roomState) => {
+    if (!roomState) return;
     if (prefsStore.hasSeenAudioPreview) return;
     // Mark immediately before playing to prevent re-trigger on remount
     prefsStore.markAudioPreviewSeen();
@@ -507,6 +507,21 @@ function goSpectatePlaceholder() {
     </header>
 
     <div
+      v-if="lobbyState !== null || playerGameView !== null"
+      class="pointer-events-none fixed inset-x-0 top-20 z-[100] flex justify-center px-4"
+    >
+      <BaseToast
+        data-testid="audio-preview-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="audioPreviewToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="audioPreviewToastVisible = false"
+      >
+        Sound is on. Adjust in settings.
+      </BaseToast>
+    </div>
+
+    <div
       v-if="showSessionErrorBanner"
       class="flex flex-wrap items-center justify-between gap-2 border-b border-state-error/40 bg-chrome-surface px-4 py-2 text-3.5 text-state-error"
       role="alert"
@@ -622,15 +637,6 @@ function goSpectatePlaceholder() {
       class="relative mx-auto max-w-lg px-4 py-8"
       data-testid="lobby-root"
     >
-      <BaseToast
-        data-testid="audio-preview-toast"
-        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
-        :visible="audioPreviewToastVisible"
-        :auto-dismiss-ms="4000"
-        @dismiss="audioPreviewToastVisible = false"
-      >
-        Sound is on. Adjust in settings.
-      </BaseToast>
       <BaseToast
         data-testid="host-promoted-toast"
         class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"

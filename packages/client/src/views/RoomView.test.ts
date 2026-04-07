@@ -706,6 +706,44 @@ describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
     expect(playMock).toHaveBeenCalledTimes(3);
   });
 
+  it("AC7: plays preview when first room state is PlayerGameView only (in-progress join)", async () => {
+    vi.useFakeTimers();
+
+    const playerGameView = ref<null | {
+      myPlayerId: string;
+      gamePhase: string;
+      players: never[];
+      myRack: never[];
+      settings: never;
+    }>(null);
+    const conn = makeRoomConnection({
+      lobbyState: ref(null),
+      playerGameView: playerGameView as never,
+    });
+
+    const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(conn);
+
+    playerGameView.value = {
+      myPlayerId: "p1",
+      gamePhase: "play",
+      players: [],
+      myRack: [],
+      settings: {} as never,
+    };
+    await flushPromises();
+
+    await vi.advanceTimersByTimeAsync(800);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(800);
+    await flushPromises();
+
+    expect(markAudioPreviewSeen).toHaveBeenCalledOnce();
+    expect(playMock).toHaveBeenCalledWith("tile-draw", "gameplay");
+    expect(playMock).toHaveBeenCalledWith("tile-discard", "gameplay");
+    expect(playMock).toHaveBeenCalledWith("mahjong-motif", "gameplay");
+    expect(playMock).toHaveBeenCalledTimes(3);
+  });
+
   it("AC8: skips preview when hasSeenAudioPreview is already true", async () => {
     vi.useFakeTimers();
 
