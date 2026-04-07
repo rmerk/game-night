@@ -32,6 +32,8 @@ import {
 } from "../composables/resolvedActionToastCopy";
 import { useRackStore } from "../stores/rack";
 import { useReactionsStore, type ReactionBubbleRecord } from "../stores/reactions";
+import { usePreferencesStore } from "../stores/preferences";
+import { useAudioStore } from "../stores/audio";
 import { storeToRefs } from "pinia";
 
 const route = useRoute();
@@ -88,6 +90,8 @@ const rackStore = useRackStore();
 const slideInPanelStore = useSlideInPanelStore();
 const reactionsStore = useReactionsStore();
 const { items: lobbyReactionItems } = storeToRefs(reactionsStore);
+const prefsStore = usePreferencesStore();
+const audioStore = useAudioStore();
 
 const lobbyFocusReturnRef = useTemplateRef<HTMLDivElement>("lobbyFocusReturn");
 
@@ -213,6 +217,32 @@ const roomSettingsLobbyToastVisible = ref(false);
 const roomSettingsLobbyToastText = ref("");
 const rematchWaitingLobbyVisible = ref(false);
 const rematchWaitingLobbyText = ref("");
+
+/** Audio preview toast (AC 7) */
+const audioPreviewToastVisible = ref(false);
+
+/** First-join audio preview (AC 7, 8) — fires once when the player first lands in a live room. */
+watch(
+  () => lobbyState.value ?? playerGameView.value,
+  async (val) => {
+    if (!val) return;
+    if (prefsStore.hasSeenAudioPreview) return;
+    // Mark immediately before playing to prevent re-trigger on remount
+    prefsStore.markAudioPreviewSeen();
+    if (!audioStore.masterMuted) {
+      audioPreviewToastVisible.value = true;
+      setTimeout(() => {
+        audioPreviewToastVisible.value = false;
+      }, 4000);
+      void audioStore.play("tile-draw", "gameplay");
+      await new Promise((r) => setTimeout(r, 800));
+      void audioStore.play("tile-discard", "gameplay");
+      await new Promise((r) => setTimeout(r, 800));
+      void audioStore.play("mahjong-motif", "gameplay");
+    }
+  },
+  { once: true, immediate: true },
+);
 
 /** Story 5B.4 — final session summary after host ends session */
 const sessionEndedSnapshot = ref<{
@@ -592,6 +622,15 @@ function goSpectatePlaceholder() {
       class="relative mx-auto max-w-lg px-4 py-8"
       data-testid="lobby-root"
     >
+      <BaseToast
+        data-testid="audio-preview-toast"
+        class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"
+        :visible="audioPreviewToastVisible"
+        :auto-dismiss-ms="4000"
+        @dismiss="audioPreviewToastVisible = false"
+      >
+        Sound is on. Adjust in settings.
+      </BaseToast>
       <BaseToast
         data-testid="host-promoted-toast"
         class="pointer-events-auto !border-chrome-border !bg-chrome-surface/95 !text-text-primary"

@@ -6,6 +6,8 @@ import { ref } from "vue";
 import RoomView from "./RoomView.vue";
 import { useRoomConnection } from "../composables/useRoomConnection";
 import { useAvReconnectUi } from "../composables/useAvReconnectUi";
+import { usePreferencesStore } from "../stores/preferences";
+import { useAudioStore } from "../stores/audio";
 
 const { mockAnimate } = vi.hoisted(() => {
   const mockAnimate = vi.fn(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
@@ -30,6 +32,9 @@ vi.mock("../composables/useAvReconnectUi", async (importOriginal) => {
   return { useAvReconnectUi: vi.fn(real.useAvReconnectUi) };
 });
 
+vi.mock("../stores/preferences");
+vi.mock("../stores/audio");
+
 const stubs = {
   GameTable: true,
   RoomSettingsPanel: true,
@@ -42,6 +47,7 @@ const stubs = {
 describe("RoomView (4B.7)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    mockDefaultStores();
     // Clear any mockReturnValue overrides from mood tests while keeping the vi.fn() wrapper intact
     vi.mocked(useRoomConnection).mockReset();
     vi.mocked(useAvReconnectUi).mockReset();
@@ -341,9 +347,21 @@ function makeRoomConnection(overrides: Partial<ReturnType<typeof useRoomConnecti
   };
 }
 
+function mockDefaultStores() {
+  vi.mocked(usePreferencesStore).mockReturnValue({
+    hasSeenAudioPreview: true,
+    markAudioPreviewSeen: vi.fn(),
+  } as unknown as ReturnType<typeof usePreferencesStore>);
+  vi.mocked(useAudioStore).mockReturnValue({
+    masterMuted: false,
+    play: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ReturnType<typeof useAudioStore>);
+}
+
 describe("RoomView mood classes (Task 2.5)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    mockDefaultStores();
     vi.mocked(useAvReconnectUi).mockReturnValue({
       showReconnecting: ref(false),
       showReconnectButton: ref(false),
@@ -453,6 +471,7 @@ describe("RoomView crossfade transitions (Task 4)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockAnimate.mockClear();
+    mockDefaultStores();
     vi.mocked(useAvReconnectUi).mockReturnValue({
       showReconnecting: ref(false),
       showReconnectButton: ref(false),
@@ -593,5 +612,145 @@ describe("RoomView crossfade transitions (Task 4)", () => {
 
     vi.unstubAllGlobals();
     mockAnimate.mockClear();
+  });
+});
+
+describe("RoomView first-join audio preview (Task 5, AC 7+8)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    mockAnimate.mockClear();
+    vi.mocked(useAvReconnectUi).mockReturnValue({
+      showReconnecting: ref(false),
+      showReconnectButton: ref(false),
+      manualPhase: ref("idle"),
+      onReconnectAv: vi.fn(),
+    } as unknown as ReturnType<typeof useAvReconnectUi>);
+  });
+
+  async function mountRoomViewForAudio(
+    conn: ReturnType<typeof makeRoomConnection>,
+    prefsOverrides: { hasSeenAudioPreview: boolean } = { hasSeenAudioPreview: false },
+    audioOverrides: { masterMuted: boolean } = { masterMuted: false },
+  ) {
+    const markAudioPreviewSeen = vi.fn();
+    const playMock = vi.fn().mockResolvedValue(undefined);
+
+    vi.mocked(usePreferencesStore).mockReturnValue({
+      hasSeenAudioPreview: prefsOverrides.hasSeenAudioPreview,
+      markAudioPreviewSeen,
+    } as unknown as ReturnType<typeof usePreferencesStore>);
+
+    vi.mocked(useAudioStore).mockReturnValue({
+      masterMuted: audioOverrides.masterMuted,
+      play: playMock,
+    } as unknown as ReturnType<typeof useAudioStore>);
+
+    vi.mocked(useRoomConnection).mockReturnValue(conn as ReturnType<typeof useRoomConnection>);
+
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/", name: "home", component: { template: "<div />" } },
+        { path: "/room/:code", name: "room", component: RoomView },
+        { path: "/room/:code/spectate", name: "room-spectate", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/room/AUDIOTEST");
+    await router.isReady();
+    const wrapper = mount(
+      { template: "<router-view />" },
+      {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            GameTable: true,
+            RoomSettingsPanel: true,
+            SlideInReferencePanels: true,
+            ReactionBar: true,
+            ReactionBubbleStack: true,
+            BaseToast: true,
+          },
+        },
+      },
+    );
+    await flushPromises();
+    return { wrapper, playMock, markAudioPreviewSeen };
+  }
+
+  it("AC7: plays preview sequence on first room join (hasSeenAudioPreview: false)", async () => {
+    vi.useFakeTimers();
+
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
+      myPlayerId: "p1",
+      players: [],
+      settings: {} as never,
+    });
+    const conn = makeRoomConnection({ lobbyState: lobbyState as never });
+
+    const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(conn);
+
+    // Advance past the 800ms delays between sounds
+    await vi.advanceTimersByTimeAsync(800);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(800);
+    await flushPromises();
+
+    expect(markAudioPreviewSeen).toHaveBeenCalledOnce();
+    expect(playMock).toHaveBeenCalledWith("tile-draw", "gameplay");
+    expect(playMock).toHaveBeenCalledWith("tile-discard", "gameplay");
+    expect(playMock).toHaveBeenCalledWith("mahjong-motif", "gameplay");
+    expect(playMock).toHaveBeenCalledTimes(3);
+
+    vi.useRealTimers();
+  });
+
+  it("AC8: skips preview when hasSeenAudioPreview is already true", async () => {
+    vi.useFakeTimers();
+
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
+      myPlayerId: "p1",
+      players: [],
+      settings: {} as never,
+    });
+    const conn = makeRoomConnection({ lobbyState: lobbyState as never });
+
+    const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(conn, {
+      hasSeenAudioPreview: true,
+    });
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await flushPromises();
+
+    expect(playMock).not.toHaveBeenCalled();
+    expect(markAudioPreviewSeen).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it("AC8: marks seen but skips playback when masterMuted is true", async () => {
+    vi.useFakeTimers();
+
+    const lobbyState = ref<null | { myPlayerId: string; players: never[]; settings: never }>({
+      myPlayerId: "p1",
+      players: [],
+      settings: {} as never,
+    });
+    const conn = makeRoomConnection({ lobbyState: lobbyState as never });
+
+    const { playMock, markAudioPreviewSeen } = await mountRoomViewForAudio(
+      conn,
+      { hasSeenAudioPreview: false },
+      { masterMuted: true },
+    );
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await flushPromises();
+
+    expect(markAudioPreviewSeen).toHaveBeenCalledOnce();
+    expect(playMock).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
   });
 });
