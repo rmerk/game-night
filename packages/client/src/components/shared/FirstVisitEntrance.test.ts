@@ -128,6 +128,25 @@ describe("FirstVisitEntrance (Task 4 — AC 4, 5, 6)", () => {
     expect(mockMarkEntranceSeen).not.toHaveBeenCalled();
   });
 
+  it("unmounting before timeout does NOT call markEntranceSeen (timer cleared)", async () => {
+    mockPrefsStore.hasSeenEntrance = false;
+
+    const wrapper = mount(FirstVisitEntrance, {
+      global: { stubs: { Teleport: teleportStub } },
+    });
+    await flushPromises();
+
+    // Advance to 1000ms — before the 2100ms timeout fires
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(mockMarkEntranceSeen).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+
+    // Advance past the timeout — timer should have been cleared
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(mockMarkEntranceSeen).not.toHaveBeenCalled();
+  });
+
   it("hides overlay after timeout completes", async () => {
     mockPrefsStore.hasSeenEntrance = false;
 
