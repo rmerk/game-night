@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vite-plus/test";
 import { mount, flushPromises } from "@vue/test-utils";
+import { reactive } from "vue";
 import { setActivePinia, createPinia } from "pinia";
 import App from "./App.vue";
 
@@ -11,9 +12,9 @@ vi.mock("vue-router", () => ({
 
 // ─── Mock usePreferencesStore ─────────────────────────────────────────────────
 
-const mockPrefsStore = {
+const mockPrefsStore = reactive({
   darkMode: "auto" as "auto" | "light" | "dark",
-};
+});
 
 vi.mock("./stores/preferences", () => ({
   usePreferencesStore: () => mockPrefsStore,
@@ -36,6 +37,8 @@ function stubMatchMedia(systemIsDark: boolean) {
 
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
 
+let wrapper: ReturnType<typeof mount>;
+
 beforeEach(() => {
   setActivePinia(createPinia());
   // Clean up any lingering class from previous tests
@@ -43,6 +46,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  wrapper?.unmount();
   document.documentElement.classList.remove("theme-dark");
   vi.unstubAllGlobals();
 });
@@ -54,7 +58,7 @@ describe("App.vue — dark mode class toggling on document.documentElement", () 
     mockPrefsStore.darkMode = "dark";
     stubMatchMedia(false);
 
-    mount(App);
+    wrapper = mount(App, { global: { stubs: { RouterView: true } } });
     await flushPromises();
 
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
@@ -64,7 +68,7 @@ describe("App.vue — dark mode class toggling on document.documentElement", () 
     mockPrefsStore.darkMode = "light";
     stubMatchMedia(false);
 
-    mount(App);
+    wrapper = mount(App, { global: { stubs: { RouterView: true } } });
     await flushPromises();
 
     expect(document.documentElement.classList.contains("theme-dark")).toBe(false);
@@ -74,7 +78,7 @@ describe("App.vue — dark mode class toggling on document.documentElement", () 
     mockPrefsStore.darkMode = "auto";
     stubMatchMedia(true);
 
-    mount(App);
+    wrapper = mount(App, { global: { stubs: { RouterView: true } } });
     await flushPromises();
 
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
@@ -84,7 +88,7 @@ describe("App.vue — dark mode class toggling on document.documentElement", () 
     mockPrefsStore.darkMode = "auto";
     stubMatchMedia(false);
 
-    mount(App);
+    wrapper = mount(App, { global: { stubs: { RouterView: true } } });
     await flushPromises();
 
     expect(document.documentElement.classList.contains("theme-dark")).toBe(false);
@@ -94,7 +98,7 @@ describe("App.vue — dark mode class toggling on document.documentElement", () 
     mockPrefsStore.darkMode = "dark";
     stubMatchMedia(false);
 
-    mount(App);
+    wrapper = mount(App, { global: { stubs: { RouterView: true } } });
     await flushPromises();
 
     expect(document.documentElement.classList.contains("theme-dark")).toBe(true);
