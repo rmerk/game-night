@@ -32,6 +32,19 @@ vi.mock("../../stores/audio", () => ({
   useAudioStore: () => mockStore,
 }));
 
+// ─── Mock the preferences store ───────────────────────────────────────────────
+
+const mockSetDarkMode = vi.fn();
+
+const mockPrefsStore = {
+  darkMode: "auto" as "auto" | "light" | "dark",
+  setDarkMode: mockSetDarkMode,
+};
+
+vi.mock("../../stores/preferences", () => ({
+  usePreferencesStore: () => mockPrefsStore,
+}));
+
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("AudioSettingsPanel (Story 7.3 Task 6 — AC 4, 6, 8)", () => {
@@ -152,5 +165,60 @@ describe("AudioSettingsPanel (Story 7.3 Task 6 — AC 4, 6, 8)", () => {
       expect(slider.attributes("min")).toBe("0");
       expect(slider.attributes("max")).toBe("100");
     }
+  });
+});
+
+// ─── Theme section tests (Story 7.4 — AC 2) ───────────────────────────────────
+
+describe("AudioSettingsPanel — Theme section (Story 7.4 AC 2)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+    mockPrefsStore.darkMode = "auto";
+  });
+
+  it("renders a Theme section with Auto, Light, and Dark buttons", () => {
+    const wrapper = mount(AudioSettingsPanel);
+    const text = wrapper.text();
+    expect(text).toMatch(/theme/i);
+    expect(text).toMatch(/auto/i);
+    expect(text).toMatch(/light/i);
+    expect(text).toMatch(/dark/i);
+  });
+
+  it("calls setDarkMode('auto') when Auto button is clicked", async () => {
+    const wrapper = mount(AudioSettingsPanel);
+    const autoBtn = wrapper.find('[data-testid="theme-auto"]');
+    expect(autoBtn.exists()).toBe(true);
+    await autoBtn.trigger("click");
+    await flushPromises();
+    expect(mockSetDarkMode).toHaveBeenCalledWith("auto");
+  });
+
+  it("calls setDarkMode('light') when Light button is clicked", async () => {
+    const wrapper = mount(AudioSettingsPanel);
+    const lightBtn = wrapper.find('[data-testid="theme-light"]');
+    expect(lightBtn.exists()).toBe(true);
+    await lightBtn.trigger("click");
+    await flushPromises();
+    expect(mockSetDarkMode).toHaveBeenCalledWith("light");
+  });
+
+  it("calls setDarkMode('dark') when Dark button is clicked", async () => {
+    const wrapper = mount(AudioSettingsPanel);
+    const darkBtn = wrapper.find('[data-testid="theme-dark"]');
+    expect(darkBtn.exists()).toBe(true);
+    await darkBtn.trigger("click");
+    await flushPromises();
+    expect(mockSetDarkMode).toHaveBeenCalledWith("dark");
+  });
+
+  it("highlights the currently active theme option", () => {
+    mockPrefsStore.darkMode = "dark";
+    const wrapper = mount(AudioSettingsPanel);
+    const darkBtn = wrapper.find('[data-testid="theme-dark"]');
+    expect(darkBtn.attributes("aria-pressed")).toBe("true");
+    const autoBtn = wrapper.find('[data-testid="theme-auto"]');
+    expect(autoBtn.attributes("aria-pressed")).toBe("false");
   });
 });

@@ -1,13 +1,32 @@
 <script setup lang="ts">
 /**
  * Audio settings — three channel volume sliders + master mute + ambient enable.
- * AC 4, 6, 8 (Story 7.3). Reads/writes directly from useAudioStore; no props.
+ * AC 4, 6, 8 (Story 7.3). Theme selector — AC 2 (Story 7.4).
+ * Reads/writes directly from useAudioStore and usePreferencesStore; no props.
  */
 import { computed } from "vue";
 import BaseToggle from "../ui/BaseToggle.vue";
 import { useAudioStore } from "../../stores/audio";
+import { usePreferencesStore } from "../../stores/preferences";
 
 const audioStore = useAudioStore();
+const prefsStore = usePreferencesStore();
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
+type ThemeOption = "auto" | "light" | "dark";
+
+const themeOptions: { value: ThemeOption; label: string }[] = [
+  { value: "auto", label: "Auto" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+const currentTheme = computed(() => prefsStore.darkMode);
+
+function selectTheme(value: ThemeOption) {
+  prefsStore.setDarkMode(value);
+}
 
 // ─── Master mute ──────────────────────────────────────────────────────────────
 
@@ -106,6 +125,29 @@ const ambientEnabled = computed({
         <p class="mt-1 text-3 text-text-secondary">
           Lo-fi jazz loop plays during your game session. Off by default.
         </p>
+      </div>
+    </div>
+
+    <!-- Theme section -->
+    <div class="border-t border-chrome-border px-3 py-3 text-3.5">
+      <p class="mb-2 text-interactive font-semibold">Theme</p>
+      <div class="flex gap-2">
+        <button
+          v-for="opt in themeOptions"
+          :key="opt.value"
+          type="button"
+          :data-testid="`theme-${opt.value}`"
+          :aria-pressed="currentTheme === opt.value"
+          class="flex-1 rounded-md border px-3 py-2 text-center font-medium transition-colors focus-visible:focus-ring-on-chrome"
+          :class="
+            currentTheme === opt.value
+              ? 'border-gold-accent bg-gold-accent text-chrome-surface'
+              : 'border-chrome-border bg-chrome-surface text-text-primary hover:border-gold-accent/60'
+          "
+          @click="selectTheme(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
       </div>
     </div>
   </div>
