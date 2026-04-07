@@ -2,6 +2,7 @@
 import { computed, watchEffect } from "vue";
 import { useMediaQuery } from "@vueuse/core";
 import { usePreferencesStore } from "./stores/preferences";
+import FirstVisitEntrance from "./components/shared/FirstVisitEntrance.vue";
 
 const prefsStore = usePreferencesStore();
 const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
@@ -15,5 +16,6 @@ watchEffect(() => {
 </script>
 
 <template>
+  <FirstVisitEntrance />
   <RouterView />
 </template>
