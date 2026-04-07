@@ -18,6 +18,7 @@ import {
   type TileValue,
   type CallWindowState,
   type GameResult,
+  type WallGameResult,
   type PlayerCharlestonView,
   type ResolvedAction,
 } from "@mahjong-game/shared";
@@ -1709,5 +1710,30 @@ describe("GameTable — Celebration overlay (7.2)", () => {
 
     expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(false);
+  });
+
+  it("shows Scoreboard immediately for wall game (no winner)", async () => {
+    const wallGameResult: WallGameResult = { winnerId: null, points: 0 };
+    const wrapper = mount(GameTable, {
+      props: {
+        opponents: mockPlayers,
+        localPlayer,
+        gamePhase: "scoreboard",
+        gameResult: wallGameResult as GameResult,
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          TileSprite: { template: "<svg />" },
+          Celebration: CelebrationStub,
+          Scoreboard: ScoreboardStub,
+        },
+      },
+    });
+
+    // No winner — Celebration must NOT appear
+    expect(wrapper.find('[data-testid="celebration-stub"]').exists()).toBe(false);
+    // Scoreboard must appear immediately without any done event
+    expect(wrapper.find('[data-testid="scoreboard"]').exists()).toBe(true);
   });
 });

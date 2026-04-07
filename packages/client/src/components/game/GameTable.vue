@@ -709,13 +709,15 @@ const playerNamesById = computed<Record<string, string>>(() => {
   return Object.fromEntries(entries);
 });
 
+const mahjongResult = computed((): MahjongGameResult | null =>
+  props.gameResult?.winnerId != null ? (props.gameResult as MahjongGameResult) : null,
+);
+
 /** Derives the SeatWind of the winning player for passing to Celebration. */
 const winnerSeat = computed((): SeatWind => {
-  const result = props.gameResult;
-  if (!result?.winnerId) return "east";
-  const entry = Object.entries(playersBySeat.value).find(
-    ([, p]) => p.id === (result as MahjongGameResult).winnerId,
-  );
+  const result = mahjongResult.value;
+  if (!result) return "east";
+  const entry = Object.entries(playersBySeat.value).find(([, p]) => p.id === result.winnerId);
   return (entry?.[0] ?? "east") as SeatWind;
 });
 
@@ -1220,14 +1222,14 @@ function onChatEscape() {
       >
         <template v-if="isScoreboardPhase">
           <Celebration
-            v-if="!celebrationDone && gameResult !== null && gameResult.winnerId !== null"
-            :game-result="gameResult as MahjongGameResult"
+            v-if="!celebrationDone && mahjongResult !== null"
+            :game-result="mahjongResult"
             :player-names-by-id="playerNamesById"
-            :winner-id="(gameResult as MahjongGameResult).winnerId"
+            :winner-id="mahjongResult.winnerId"
             :winner-seat="winnerSeat"
             @done="celebrationDone = true"
           />
-          <template v-if="celebrationDone">
+          <template v-if="celebrationDone || (gameResult !== null && mahjongResult === null)">
             <Scoreboard
               :game-result="gameResult"
               :player-names-by-id="playerNamesById"
