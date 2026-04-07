@@ -3,6 +3,11 @@ import { createPinia, setActivePinia } from "pinia";
 import { PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { useReactionsStore, REACTION_BUBBLE_MS } from "./reactions";
 
+const mockAudioPlay = vi.fn();
+vi.mock("./audio", () => ({
+  useAudioStore: () => ({ play: mockAudioPlay }),
+}));
+
 function broadcast(
   playerId: string,
   emoji: string,
@@ -23,6 +28,7 @@ describe("useReactionsStore", () => {
     setActivePinia(createPinia());
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    mockAudioPlay.mockClear();
   });
 
   afterEach(() => {
@@ -77,5 +83,23 @@ describe("useReactionsStore", () => {
     store.pushBroadcast(broadcast("p1", "👍", 1));
     store.resetForRoomLeave();
     expect(store.items).toHaveLength(0);
+  });
+
+  describe("audio side effects", () => {
+    it("plays chat-pop on a new broadcast", () => {
+      const store = useReactionsStore();
+      store.pushBroadcast(broadcast("p1", "👍", 1));
+      expect(mockAudioPlay).toHaveBeenCalledOnce();
+      expect(mockAudioPlay).toHaveBeenCalledWith("chat-pop", "notification");
+    });
+
+    it("does NOT play audio when dedupe guard fires (duplicate broadcast)", () => {
+      const store = useReactionsStore();
+      const b = broadcast("p1", "👍", 99);
+      store.pushBroadcast(b);
+      mockAudioPlay.mockClear();
+      store.pushBroadcast(b);
+      expect(mockAudioPlay).not.toHaveBeenCalled();
+    });
   });
 });

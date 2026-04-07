@@ -27,7 +27,7 @@ const tilesRef = computed(() => props.tiles);
 const { isDragging } = useRackTileDraggable(itemRef, indexRef, tilesRef);
 
 watch(isDragging, (nowDragging) => {
-  if (nowDragging) useAudioStore().play("rack-arrange", "gameplay");
+  if (nowDragging) void useAudioStore().play("rack-arrange", "gameplay");
 });
 </script>
 

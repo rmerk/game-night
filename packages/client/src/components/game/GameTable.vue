@@ -800,14 +800,14 @@ watch(
         const isLocal = ra.playerId === props.localPlayer?.id;
         nudgeToastText.value = isLocal ? "It's your turn!" : `${name} is idle`;
         nudgeToastVisible.value = true;
-        audioStore.play("turn-ping", "notification");
+        void audioStore.play("turn-ping", "notification");
         break;
       }
       case "TURN_TIMEOUT_AUTO_DISCARD": {
         const name = playerNamesById.value[ra.playerId] ?? ra.playerId;
         autoDiscardToastText.value = `${name} auto-discarded`;
         autoDiscardToastVisible.value = true;
-        audioStore.play("error-nope", "notification");
+        void audioStore.play("error-nope", "notification");
         break;
       }
       case "AFK_VOTE_STARTED":
@@ -858,22 +858,22 @@ watch(
         break;
       }
       case "DRAW_TILE":
-        audioStore.play("tile-draw", "gameplay");
+        void audioStore.play("tile-draw", "gameplay");
         break;
       case "DISCARD_TILE":
-        audioStore.play("tile-discard", "gameplay");
+        void audioStore.play("tile-discard", "gameplay");
         break;
       case "CALL_WINDOW_OPENED":
-        audioStore.play("call-alert", "notification");
+        void audioStore.play("call-alert", "notification");
         break;
       case "CALL_CONFIRMED":
-        audioStore.play("call-snap", "gameplay");
+        void audioStore.play("call-snap", "gameplay");
         break;
       case "CHARLESTON_PHASE_COMPLETE":
-        audioStore.play("charleston-whoosh", "gameplay");
+        void audioStore.play("charleston-whoosh", "gameplay");
         break;
       case "INVALID_MAHJONG_WARNING":
-        audioStore.play("error-nope", "notification");
+        void audioStore.play("error-nope", "notification");
         break;
       default:
         break;
