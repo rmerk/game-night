@@ -118,6 +118,11 @@ export interface Room {
   rateLimits: RateLimits;
   createdAt: number;
   logger: FastifyBaseLogger;
-  /** Dev solo: synthetic player IDs (no WebSocket) removed when returning to lobby */
+  /**
+   * Only dev-solo synthetic seat player IDs (no WebSocket), created by the dev-solo START_GAME flow
+   * and cleared when returning to lobby. Must not include a real human seat ID: if one were listed
+   * while that player's {@link PlayerInfo.connected} is false, public roster payloads would wrongly
+   * expose `connected: true`.
+   */
   devSoloGhostPlayerIds?: string[];
 }

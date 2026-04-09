@@ -73,13 +73,32 @@ type RoomPlayerPublic = Pick<
   "playerId" | "displayName" | "wind" | "isHost" | "connected"
 >;
 
+/**
+ * Dev-solo synthetic seats have no WebSocket; {@link PlayerInfo.connected} stays false so
+ * disconnect/pause logic (e.g. allPlayersDisconnected) is unchanged. For public roster payloads
+ * only, ghosts read as connected so clients show normal seated presence (Epic 9 Bug B).
+ * The wire `connected` override is correct only when `devSoloGhostPlayerIds` lists exclusively
+ * dev-solo synthetic IDs (see `Room.devSoloGhostPlayerIds`).
+ */
+function effectiveConnectedForPublicView(
+  room: Room,
+  playerId: string,
+  storedConnected: boolean,
+): boolean {
+  const ghosts = room.devSoloGhostPlayerIds;
+  if (ghosts !== undefined && ghosts.includes(playerId)) {
+    return true;
+  }
+  return storedConnected;
+}
+
 function mapRoomPlayersPublic(room: Room): RoomPlayerPublic[] {
   return Array.from(room.players.values()).map((p) => ({
     playerId: p.playerId,
     displayName: p.displayName,
     wind: p.wind,
     isHost: p.isHost,
-    connected: p.connected,
+    connected: effectiveConnectedForPublicView(room, p.playerId, p.connected),
   }));
 }
 
@@ -93,7 +112,7 @@ function mapRoomPlayersPublicForGame(room: Room, gameState: GameState): RoomPlay
       displayName: p.displayName,
       wind,
       isHost: p.isHost,
-      connected: p.connected,
+      connected: effectiveConnectedForPublicView(room, p.playerId, p.connected),
     };
   });
 }

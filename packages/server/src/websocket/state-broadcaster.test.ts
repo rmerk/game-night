@@ -10,7 +10,12 @@ import {
 import type { PlayerInfo, Room } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { createTestRoomWithSessions, createTestPlayer } from "../testing";
-import { buildPlayerView, buildSpectatorView, broadcastGameState } from "./state-broadcaster";
+import {
+  buildCurrentStateMessage,
+  buildPlayerView,
+  buildSpectatorView,
+  broadcastGameState,
+} from "./state-broadcaster";
 
 /** Extract the mock send function from a mock WebSocket */
 function mockSend(ws: WebSocket): Mock {
@@ -665,6 +670,67 @@ describe("buildPlayerView", () => {
     });
   });
 
+  it("Epic 9 Bug B: dev-solo ghosts show connected in public game roster while PlayerInfo stays disconnected", () => {
+    const human = createTestPlayer("player-0", "east", true);
+    const ghost: PlayerInfo = { ...createTestPlayer("dev-solo-south", "south"), connected: false };
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoomWithSessions([human, ghost], wsList);
+    room.devSoloGhostPlayerIds = ["dev-solo-south"];
+
+    const base = createTestGameState();
+    const gameState: GameState = {
+      ...base,
+      players: {
+        "player-0": base.players["player-0"],
+        "dev-solo-south": {
+          ...base.players["player-1"],
+          id: "dev-solo-south",
+          seatWind: "south",
+        },
+      },
+      scores: { "player-0": 0, "dev-solo-south": 0 },
+    };
+
+    expect(room.players.get("dev-solo-south")?.connected).toBe(false);
+
+    const view = buildPlayerView(room, gameState, "player-0");
+    const humanPublic = view.players.find((p) => p.playerId === "player-0");
+    expect(humanPublic?.connected).toBe(true);
+    const ghostPublic = view.players.find((p) => p.playerId === "dev-solo-south");
+    expect(ghostPublic?.connected).toBe(true);
+  });
+
+  it("empty devSoloGhostPlayerIds does not force disconnected non-ghost players to connected on the wire", () => {
+    const human = createTestPlayer("player-0", "east", true);
+    const disconnected: PlayerInfo = {
+      ...createTestPlayer("player-1", "south"),
+      connected: false,
+    };
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoomWithSessions([human, disconnected], wsList);
+    room.devSoloGhostPlayerIds = [];
+
+    const gameState = createTestGameState();
+    const view = buildPlayerView(room, gameState, "player-0");
+    const p1 = view.players.find((p) => p.playerId === "player-1");
+    expect(p1?.connected).toBe(false);
+  });
+
+  it("Epic 9 Bug B: without devSoloGhostPlayerIds, disconnected players stay disconnected on the wire", () => {
+    const human = createTestPlayer("player-0", "east", true);
+    const disconnected: PlayerInfo = {
+      ...createTestPlayer("player-1", "south"),
+      connected: false,
+    };
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoomWithSessions([human, disconnected], wsList);
+
+    const gameState = createTestGameState();
+    const view = buildPlayerView(room, gameState, "player-0");
+    const p1 = view.players.find((p) => p.playerId === "player-1");
+    expect(p1?.connected).toBe(false);
+  });
+
   it("includes call window state when present", () => {
     const players = [
       createTestPlayer("player-0", "east", true),
@@ -691,6 +757,27 @@ describe("buildPlayerView", () => {
     expect(view.callWindow).not.toBeNull();
     expect(view.callWindow!.status).toBe("open");
     expect(view.callWindow!.discarderId).toBe("player-0");
+  });
+});
+
+describe("buildCurrentStateMessage (Epic 9 Bug B dev-solo)", () => {
+  it("lobby roster serializes dev-solo ghosts as connected while PlayerInfo stays disconnected", () => {
+    const human = createTestPlayer("player-0", "east", true);
+    const ghost: PlayerInfo = { ...createTestPlayer("dev-solo-south", "south"), connected: false };
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoomWithSessions([human, ghost], wsList);
+    room.devSoloGhostPlayerIds = ["dev-solo-south"];
+
+    const msg = buildCurrentStateMessage(room, "player-0");
+    expect(msg).not.toBeNull();
+    const state = msg!.state as {
+      gamePhase: string;
+      players: Array<{ playerId: string; connected: boolean }>;
+    };
+    expect(state.gamePhase).toBe("lobby");
+    const g = state.players.find((p) => p.playerId === "dev-solo-south");
+    expect(g?.connected).toBe(true);
+    expect(room.players.get("dev-solo-south")?.connected).toBe(false);
   });
 });
 
@@ -1074,6 +1161,34 @@ describe("buildSpectatorView", () => {
 
     expect(view.shownHands["player-0"]).toEqual(gameState.players["player-0"].rack);
     expect(view.shownHands["player-1"]).toBeUndefined();
+  });
+
+  it("Epic 9 Bug B: dev-solo ghosts show connected in spectator roster while PlayerInfo stays disconnected", () => {
+    const human = createTestPlayer("player-0", "east", true);
+    const ghost: PlayerInfo = { ...createTestPlayer("dev-solo-south", "south"), connected: false };
+    const wsList = [createMockWs(), createMockWs()];
+    const room = createTestRoomWithSessions([human, ghost], wsList);
+    room.devSoloGhostPlayerIds = ["dev-solo-south"];
+
+    const base = createTestGameState();
+    const gameState: GameState = {
+      ...base,
+      players: {
+        "player-0": base.players["player-0"],
+        "dev-solo-south": {
+          ...base.players["player-1"],
+          id: "dev-solo-south",
+          seatWind: "south",
+        },
+      },
+      scores: { "player-0": 0, "dev-solo-south": 0 },
+    };
+
+    expect(room.players.get("dev-solo-south")?.connected).toBe(false);
+
+    const view = buildSpectatorView(room, gameState);
+    const ghostPublic = view.players.find((p) => p.playerId === "dev-solo-south");
+    expect(ghostPublic?.connected).toBe(true);
   });
 });
 

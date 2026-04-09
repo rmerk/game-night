@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-09 # Story 9-bug-a → done (code-review follow-up)
+last_updated: 2026-04-09 # Story 9-bug-b → review (gds-dev-story)
 project: mahjong-game
 
 project_key: NOKEY
@@ -184,7 +184,7 @@ development_status:
   epic-9: in-progress
   # Phase 0: Bug fixes (fix commits, no story files needed)
   9-bug-a-table-talk-report-always-visible: done  # P0: form permanently covers discard pools
-  9-bug-b-dev-solo-ghost-players-reconnecting: backlog  # Ghost players show wireframe state in solo testing
+  9-bug-b-dev-solo-ghost-players-reconnecting: review  # Ghost players show wireframe state in solo testing
   # Phase 1: Design quality stories
   9-1-landing-page-brand-identity: backlog
   9-2-game-table-visual-quality-pass: backlog
