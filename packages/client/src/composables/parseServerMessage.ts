@@ -7,6 +7,7 @@ import {
   type PlayerGameView,
   type ReactionBroadcast,
   type LiveKitTokenMessage,
+  type ResolvedAction,
   type ServerErrorMessage,
   type StateUpdateMessage,
   type SystemEventMessage,
@@ -24,6 +25,23 @@ export type ParsedServerMessage =
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Minimal wire-shape check so JSON state can be typed without unsafe assertions. */
+function isWireGameState(u: unknown): u is LobbyState | PlayerGameView {
+  if (!isRecord(u)) return false;
+  if (typeof u.gamePhase !== "string") return false;
+  if (typeof u.roomId !== "string" || typeof u.roomCode !== "string") return false;
+  if (!Array.isArray(u.players)) return false;
+  if (typeof u.myPlayerId !== "string") return false;
+  if (u.gamePhase === "lobby") {
+    return "settings" in u && isRecord(u.settings);
+  }
+  return Array.isArray(u.myRack) && "exposedGroups" in u && isRecord(u.exposedGroups);
+}
+
+function isWireResolvedAction(u: unknown): u is ResolvedAction {
+  return isRecord(u) && typeof u.type === "string";
 }
 
 /** Same field contract as CHAT_BROADCAST wire parsing (shared with CHAT_HISTORY entries). */
@@ -71,18 +89,19 @@ export function parseServerMessage(raw: string): ParsedServerMessage | null {
 
   switch (t) {
     case "STATE_UPDATE": {
-      if (!("state" in parsed) || !isRecord(parsed.state)) {
+      if (!("state" in parsed) || !isWireGameState(parsed.state)) {
         return null;
       }
       const message: StateUpdateMessage = {
         version: PROTOCOL_VERSION,
         type: "STATE_UPDATE",
-        state: parsed.state as unknown as StateUpdateMessage["state"],
+        state: parsed.state,
       };
       if ("resolvedAction" in parsed && parsed.resolvedAction !== undefined) {
-        message.resolvedAction = parsed.resolvedAction as unknown as NonNullable<
-          StateUpdateMessage["resolvedAction"]
-        >;
+        const ra = parsed.resolvedAction;
+        if (isWireResolvedAction(ra)) {
+          message.resolvedAction = ra;
+        }
       }
       if (typeof parsed.token === "string") {
         message.token = parsed.token;

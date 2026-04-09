@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { PROTOCOL_VERSION } from "@mahjong-game/shared";
+import { DEFAULT_ROOM_SETTINGS, PROTOCOL_VERSION } from "@mahjong-game/shared";
 import { parseServerMessage } from "./parseServerMessage";
 
 test("parses STATE_UPDATE JSON into state_update with state and optional token", () => {
@@ -13,6 +13,7 @@ test("parses STATE_UPDATE JSON into state_update with state and optional token",
       players: [],
       myPlayerId: "p1",
       jokerRulesMode: "standard",
+      settings: DEFAULT_ROOM_SETTINGS,
     },
     token: "tok-123",
   });

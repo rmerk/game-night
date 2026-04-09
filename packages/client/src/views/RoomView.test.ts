@@ -10,8 +10,8 @@ import { usePreferencesStore } from "../stores/preferences";
 import { useAudioStore } from "../stores/audio";
 
 const { mockAnimate } = vi.hoisted(() => {
-  const mockAnimate = vi.fn(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
-  return { mockAnimate };
+  const fn = vi.fn(() => ({ finished: Promise.resolve(), stop: vi.fn() }));
+  return { mockAnimate: fn };
 });
 
 vi.mock("motion-v", () => ({

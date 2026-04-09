@@ -335,7 +335,7 @@ describe("handleRematch (4B.7)", () => {
   });
 
   it("T22: lobby with no game — NOT_BETWEEN_GAMES", async () => {
-    const { roomCode, players } = await setupLobbyWithPlayers(4);
+    const { players } = await setupLobbyWithPlayers(4);
     const errP = waitForError(players[0].ws);
     sendRematch(players[0].ws);
     const err = await errP;

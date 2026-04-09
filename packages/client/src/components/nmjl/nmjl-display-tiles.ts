@@ -3,6 +3,7 @@ import type {
   FlowerValue,
   Tile,
   TileSuit,
+  TileSpecific,
   TileValue,
   WindValue,
 } from "@mahjong-game/shared";
@@ -18,11 +19,26 @@ export const DEFAULT_SUIT_MAPPING: Record<"A" | "B" | "C", TileSuit> = {
 
 export type DisplayTileItem = { kind: "tile"; tile: Tile } | { kind: "text"; text: string };
 
+function isTileValue(n: number): n is TileValue {
+  return Number.isInteger(n) && n >= 1 && n <= 9;
+}
+
 function asTileValue(n: number): TileValue {
-  if (n >= 1 && n <= 9) {
-    return n as TileValue;
-  }
-  return 1;
+  return isTileValue(n) ? n : 1;
+}
+
+function isWindTileSpecific(s: TileSpecific): s is WindValue {
+  return s === "north" || s === "south" || s === "east" || s === "west";
+}
+
+function isDragonTileSpecific(s: TileSpecific): s is DragonValue {
+  return s === "red" || s === "green" || s === "soap";
+}
+
+/** Flower letters are not part of {@link TileSpecific} in types but appear in loaded card JSON. */
+function parseFlowerSpecific(spec: unknown): FlowerValue | null {
+  if (spec === "a" || spec === "b") return spec;
+  return null;
 }
 
 function resolveSuitedValue(
@@ -63,8 +79,12 @@ function requirementToDisplayItems(
 ): DisplayTileItem[] {
   const out: DisplayTileItem[] = [];
 
-  if (req.category === "wind" && req.specific) {
-    const w = req.specific as WindValue;
+  if (req.category === "wind" && req.specific !== undefined) {
+    if (!isWindTileSpecific(req.specific)) {
+      out.push({ kind: "text", text: "?" });
+      return out;
+    }
+    const w = req.specific;
     for (let c = 1; c <= count; c++) {
       out.push({
         kind: "tile",
@@ -79,8 +99,12 @@ function requirementToDisplayItems(
     return out;
   }
 
-  if (req.category === "dragon" && req.specific) {
-    const d = req.specific as DragonValue;
+  if (req.category === "dragon" && req.specific !== undefined) {
+    if (!isDragonTileSpecific(req.specific)) {
+      out.push({ kind: "text", text: "?" });
+      return out;
+    }
+    const d = req.specific;
     for (let c = 1; c <= count; c++) {
       out.push({
         kind: "tile",
@@ -95,8 +119,12 @@ function requirementToDisplayItems(
     return out;
   }
 
-  if (req.category === "flower" && req.specific) {
-    const f = req.specific as FlowerValue;
+  if (req.category === "flower" && req.specific !== undefined) {
+    const f = parseFlowerSpecific(req.specific);
+    if (f === null) {
+      out.push({ kind: "text", text: "?" });
+      return out;
+    }
     for (let c = 1; c <= count; c++) {
       out.push({
         kind: "tile",

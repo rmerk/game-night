@@ -285,7 +285,7 @@ describe("GET /api/rooms/:code/status — full room (4B.7)", () => {
       payload: { hostName: "TestHost" },
     });
     expect(createResponse.statusCode).toBe(201);
-    const { roomCode } = createResponse.json() as { roomCode: string };
+    const { roomCode } = createResponse.json();
 
     function connectWs(): Promise<InstanceType<typeof WsClient>> {
       return new Promise((resolve, reject) => {
@@ -329,7 +329,7 @@ describe("GET /api/rooms/:code/status — full room (4B.7)", () => {
       url: `/api/rooms/${roomCode}/status`,
     });
     expect(statusResponse.statusCode).toBe(200);
-    const body = statusResponse.json() as { full: boolean; playerCount: number };
+    const body = statusResponse.json();
     expect(body.full).toBe(true);
     expect(body.playerCount).toBe(4);
 

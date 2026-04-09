@@ -1,12 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- message payloads are intentionally inspected as loose JSON fixtures in broadcaster tests */
 import { describe, expect, it, vi, type Mock } from "vitest";
 import { WebSocket } from "ws";
-import {
-  DEFAULT_ROOM_SETTINGS,
-  loadCard,
-  type GameState,
-  type SeatWind,
-} from "@mahjong-game/shared";
+import { loadCard, type GameState } from "@mahjong-game/shared";
 import type { PlayerInfo, Room } from "../rooms/room";
 import type { FastifyBaseLogger } from "fastify";
 import { createTestRoomWithSessions, createTestPlayer } from "../testing";

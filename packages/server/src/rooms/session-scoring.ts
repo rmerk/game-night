@@ -40,9 +40,12 @@ export function rotateDealerPlayerIdsForRematch(gameState: GameState): string[] 
     bySeat[ps.seatWind] = pid;
   }
   const ordered = SEATS.map((s) => bySeat[s]);
-  if (ordered.some((x) => x === undefined)) {
+  const east = ordered[0];
+  const south = ordered[1];
+  const west = ordered[2];
+  const north = ordered[3];
+  if (east === undefined || south === undefined || west === undefined || north === undefined) {
     return null;
   }
-  const o = ordered as [string, string, string, string];
-  return [o[1], o[2], o[3], o[0]];
+  return [south, west, north, east];
 }

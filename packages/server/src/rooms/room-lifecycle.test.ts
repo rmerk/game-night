@@ -11,7 +11,6 @@ import {
   DEFAULT_IDLE_TIMEOUT_MS,
   DEFAULT_ABANDONED_TIMEOUT_MS,
 } from "./room-lifecycle";
-import { DEFAULT_ROOM_SETTINGS } from "@mahjong-game/shared";
 import type { Room } from "./room";
 import { createTestRoom, type CreateTestRoomOverrides } from "../testing";
 

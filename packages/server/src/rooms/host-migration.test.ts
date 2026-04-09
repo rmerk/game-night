@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { DEFAULT_ROOM_SETTINGS, type SeatWind } from "@mahjong-game/shared";
+import type { SeatWind } from "@mahjong-game/shared";
 import { migrateHost } from "./host-migration";
 import type { PlayerInfo, Room } from "./room";
 import { createSilentTestLogger, createTestRoom, type CreateTestRoomOverrides } from "../testing";
