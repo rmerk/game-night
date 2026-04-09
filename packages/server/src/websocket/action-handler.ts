@@ -17,12 +17,19 @@ import {
 } from "../rooms/session-scoring";
 import { cancelLifecycleTimer, startLifecycleTimer } from "../rooms/room-lifecycle";
 import { broadcastGameState, broadcastStateToRoom } from "./state-broadcaster";
+import { drainCharlestonForDeadSeats } from "./charleston-auto-action";
 import {
   cancelAfkVote,
   cancelTurnTimer,
   resetTurnTimerStateOnGameEnd,
   syncTurnTimer,
 } from "./turn-timer";
+import {
+  isDevSoloStartEnabled,
+  makeDevSoloGhostSpecs,
+  removeAddedDevSoloGhostPlayers,
+  stripDevSoloGhostPlayers,
+} from "../config/dev-solo";
 
 function clearSocialOverrideTimer(room: Room): void {
   if (room.votes.socialOverrideTimer) {
@@ -346,6 +353,10 @@ export function handleActionMessage(
     );
     broadcastGameState(room, room.gameState, result.resolved);
 
+    if (room.devSoloGhostPlayerIds?.length && room.gameState?.gamePhase === "charleston") {
+      drainCharlestonForDeadSeats(room, logger, roomManager);
+    }
+
     room.turnTimer.consecutiveTimeouts.delete(playerId);
 
     const postActionGameState = room.gameState;
@@ -461,6 +472,7 @@ export function handleEndSession(
   const sessionGameHistory = [...room.sessionHistory.gameHistory];
   room.sessionHistory.scoresFromPriorGames = {};
   room.sessionHistory.gameHistory = [];
+  stripDevSoloGhostPlayers(room);
   room.gameState = null;
   cancelLifecycleTimer(room, "idle-timeout");
   logger.info({ roomCode: room.roomCode, playerId }, "Session ended by host");
@@ -527,6 +539,7 @@ export function handleRematch(
     clearSocialOverrideTimer(room);
     clearTableTalkReportTimer(room);
 
+    stripDevSoloGhostPlayers(room);
     room.gameState = null;
     logger.info(
       { roomCode: room.roomCode, connectedCount, missingSeats },
@@ -543,8 +556,9 @@ export function handleRematch(
 }
 
 /**
- * Handle START_GAME action from lobby state.
- * Server-side authorization: only the host can start, and exactly 4 players must be connected.
+ * Handle START_GAME action from lobby state (or rematch via handleRematch).
+ * Server-side authorization: only the host can start; normally exactly 4 players must be connected.
+ * Dev solo (MAHJONG_DEV_SOLO_START + non-production): one human + three dead-seat ghosts.
  * The shared engine handles game-level validation (phase check, player count, dealing).
  */
 function handleStartGameAction(
@@ -562,23 +576,44 @@ function handleStartGameAction(
     return;
   }
 
-  // 2. Validate — exactly 4 connected players
   const connectedCount = Array.from(room.players.values()).filter((p) => p.connected).length;
+  const useDevSolo =
+    isDevSoloStartEnabled() && connectedCount === 1 && room.players.size === 1 && player.connected;
+
+  let ghostIdsAdded: string[] | null = null;
+
   if (connectedCount < 4) {
-    logger.info(
-      { roomCode: room.roomCode, playerId, connectedCount },
-      "START_GAME rejected: not enough players",
-    );
-    sendActionError(
-      ws,
-      logger,
-      "NOT_ENOUGH_PLAYERS",
-      `Need 4 players, only ${connectedCount} connected`,
-    );
-    return;
+    if (!useDevSolo) {
+      logger.info(
+        { roomCode: room.roomCode, playerId, connectedCount },
+        "START_GAME rejected: not enough players",
+      );
+      sendActionError(
+        ws,
+        logger,
+        "NOT_ENOUGH_PLAYERS",
+        `Need 4 players, only ${connectedCount} connected`,
+      );
+      return;
+    }
+
+    const ghostSpecs = makeDevSoloGhostSpecs(room.roomId);
+    ghostIdsAdded = ghostSpecs.map((g) => g.playerId);
+    const now = Date.now();
+    for (const spec of ghostSpecs) {
+      room.players.set(spec.playerId, {
+        playerId: spec.playerId,
+        displayName: spec.displayName,
+        wind: spec.wind,
+        isHost: false,
+        connected: false,
+        connectedAt: now,
+      });
+    }
   }
 
-  // 3. Build playerIds: rematch rotates dealer CCW; cold start uses sorted order (Story 5B.4)
+  // 2. Build playerIds: rematch rotates dealer CCW; cold start uses sorted order (Story 5B.4);
+  // dev solo uses [host, ...ghosts] so the human is East.
   const preGame = room.gameState;
   let playerIds: string[];
   if (
@@ -590,11 +625,13 @@ function handleStartGameAction(
     cancelLifecycleTimer(room, "idle-timeout");
     const rotated = rotateDealerPlayerIdsForRematch(preGame);
     playerIds = rotated ?? Array.from(room.players.keys()).sort();
+  } else if (ghostIdsAdded) {
+    playerIds = [playerId, ...ghostIdsAdded];
   } else {
     playerIds = Array.from(room.players.keys()).sort();
   }
 
-  // 4. Initialize lobby state and dispatch to engine
+  // 3. Initialize lobby state and dispatch to engine
   room.gameState = createLobbyState();
   const result = handleAction(room.gameState, {
     type: "START_GAME",
@@ -617,11 +654,23 @@ function handleStartGameAction(
       cancelLifecycleTimer(room, "departure-vote-timeout");
       room.votes.departure = null;
     }
+
+    if (ghostIdsAdded) {
+      room.devSoloGhostPlayerIds = [...ghostIdsAdded];
+      for (const gid of ghostIdsAdded) {
+        room.seatStatus.deadSeatPlayerIds.add(gid);
+      }
+      drainCharlestonForDeadSeats(room, logger, roomManager);
+    }
+
     broadcastGameState(room, room.gameState, result.resolved);
     syncTurnTimer(room, logger, 0, roomManager);
   } else {
     // Engine rejected — clean up the lobby state
     room.gameState = null;
+    if (ghostIdsAdded) {
+      removeAddedDevSoloGhostPlayers(room, ghostIdsAdded);
+    }
     logger.info(
       { roomCode: room.roomCode, playerId, reason: result.reason },
       "START_GAME rejected by engine",

@@ -48,6 +48,8 @@ Set `PORT` when you need a different port, for example:
 PORT=4000 pnpm --filter @mahjong-game/server dev
 ```
 
+The browser client calls the API on a different origin than Vite in dev; the server sends CORS headers automatically. In **production** (`NODE_ENV=production`), allowed origins default to `BASE_URL`’s origin (same as room share links). Override with comma-separated **`CORS_ORIGIN`** (e.g. `https://app.example.com,https://www.example.com`) if the SPA is served from a different origin than `BASE_URL`.
+
 ## Common commands
 
 | Command | What it does |

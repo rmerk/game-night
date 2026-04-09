@@ -84,6 +84,8 @@ const localPlayer: LocalPlayerSummary = {
 
 type Scenario = "4-players" | "3-players";
 const activeScenario = ref<Scenario>("4-players");
+/** Dev-only: drive SocialOverridePanel table-talk trigger + modal (Playwright / manual QA). */
+const tableTalkEligible = ref(false);
 
 const scenarios: { key: Scenario; label: string }[] = [
   { key: "4-players", label: "4 Players (1 disconnected)" },
@@ -114,6 +116,15 @@ const opponents = {
     >
       {{ scenario.label }}
     </button>
+    <button
+      type="button"
+      data-testid="dev-toggle-table-talk-eligible"
+      class="min-tap ml-2 rounded-md border border-chrome-border px-3 py-1 text-3 text-text-on-felt"
+      :class="tableTalkEligible ? 'bg-state-warning/30' : 'bg-chrome-surface'"
+      @click="tableTalkEligible = !tableTalkEligible"
+    >
+      {{ tableTalkEligible ? "Table talk eligible: on" : "Table talk eligible: off" }}
+    </button>
   </div>
 
   <div class="pt-12">
@@ -124,6 +135,7 @@ const opponents = {
       :wall-remaining="48"
       :tiles="mockTiles"
       :is-player-turn="true"
+      :can-request-table-talk-report="tableTalkEligible"
     />
   </div>
 </template>

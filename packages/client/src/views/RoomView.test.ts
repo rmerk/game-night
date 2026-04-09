@@ -467,6 +467,81 @@ describe("RoomView mood classes (Task 2.5)", () => {
   });
 });
 
+describe("RoomView chrome header", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    mockDefaultStores();
+    vi.mocked(useAvReconnectUi).mockReturnValue({
+      showReconnecting: ref(false),
+      showReconnectButton: ref(false),
+      manualPhase: ref("idle"),
+      onReconnectAv: vi.fn(),
+    } as unknown as ReturnType<typeof useAvReconnectUi>);
+  });
+
+  async function mountRoomForHeaderCase(conn: ReturnType<typeof makeRoomConnection>) {
+    vi.mocked(useRoomConnection).mockReturnValue(conn as ReturnType<typeof useRoomConnection>);
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/", name: "home", component: { template: "<div />" } },
+        { path: "/room/:code", name: "room", component: RoomView },
+        { path: "/room/:code/spectate", name: "room-spectate", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/room/HEADTEST");
+    await router.isReady();
+    const wrapper = mount(
+      { template: "<router-view />" },
+      {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            GameTable: true,
+            RoomSettingsPanel: true,
+            SlideInReferencePanels: true,
+            ReactionBar: true,
+            ReactionBubbleStack: true,
+            BaseToast: true,
+          },
+        },
+      },
+    );
+    await flushPromises();
+    return wrapper;
+  }
+
+  it("applies text-text-primary to chrome header on join screen while root keeps text-text-on-felt", async () => {
+    const wrapper = await mountRoomForHeaderCase(makeRoomConnection());
+    expect(wrapper.find("h1").text()).toContain("Join room");
+    const root = wrapper.find('[data-testid="room-view-root"]');
+    const header = wrapper.find('[data-testid="room-chrome-header"]');
+    expect(root.classes()).toContain("text-text-on-felt");
+    expect(header.classes()).toContain("text-text-primary");
+  });
+
+  it("applies text-text-primary to chrome header when mood-playing", async () => {
+    const conn = makeRoomConnection({
+      lobbyState: ref(null),
+      playerGameView: ref({
+        myPlayerId: "p1",
+        gamePhase: "play",
+        players: [],
+        myRack: [],
+        settings: {} as never,
+      } as never),
+    });
+    const wrapper = await mountRoomForHeaderCase(conn);
+    const root = wrapper.find('[data-testid="room-view-root"]');
+    const header = wrapper.find('[data-testid="room-chrome-header"]');
+    expect(root.classes()).toContain("mood-playing");
+    expect(root.classes()).toContain("text-text-on-felt");
+    expect(header.classes()).toContain("text-text-primary");
+  });
+});
+
 describe("RoomView crossfade transitions (Task 4)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());

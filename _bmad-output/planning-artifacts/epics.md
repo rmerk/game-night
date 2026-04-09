@@ -3568,3 +3568,119 @@ So that **I can customize the visual experience for my needs (NFR25, NFR26, NFR2
 **Given** the minimum text size constraint
 **When** checking with accessibility settings at default
 **Then** no text anywhere in the application is smaller than 14px (NFR34) — this was established in Epic 5A and is verified here across all views added since
+
+---
+
+## Epic 9: Game Experience Quality
+
+**Goal:** Close the gap between technically-correct implementation and a designed product that feels like "Mahjong Night." Live golden path session (Story 7.5) revealed two P0 bugs and design quality gaps that make the game feel disconnected and broken. Epic 8 is on hold until Epic 9 passes a live visual review session.
+
+**Unlocked by:** `_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-09.md`
+
+**Dependencies:** Epic 7 done ✓
+
+**Sequencing:** Phase 0 bug fixes → Story 9.1 → Story 9.2 → Story 9.3 → live visual review gate → Epic 8 resumes
+
+---
+
+### Phase 0: Bug Fixes (fix commits, no story files)
+
+**Bug A — Table Talk Report form always visible (P0)**
+The Table Talk Report form permanently occupies the center of the game table, covering discard pools and making the game look like a reporting tool during every turn. It should be a button that opens an overlay. Fix in a single commit.
+
+**Bug B — Dev-solo ghost players render as "reconnecting"**
+Ghost players in dev-solo mode trigger the wireframe/dashed-box placeholder state for all 3 opponent seats, making solo testing always appear visually broken. Ghost players should render as connected seated players. Fix in a single commit.
+
+---
+
+### Story 9.1: Landing Page Brand Identity
+
+As a **prospective player clicking a room link**,
+I want **the landing/entry page to feel like the start of Mahjong Night**,
+So that **my first impression matches the quality of the game I'm about to play**.
+
+**Acceptance Criteria:**
+
+**Given** the landing page
+**When** a player arrives via direct URL or room link
+**Then** the page uses the game's visual language — teal/cream palette, correct typography, brand presence — not an unstyled white form
+
+**Given** the room create/join flow
+**When** viewed on the landing page
+**Then** the flows feel visually connected to the room experience they lead to; the warm-up to entering a game, not a form submission
+
+**Given** dev showcase links
+**When** present on the landing page
+**Then** they are visually distinct from player-facing content and clearly marked as developer tools
+
+**Given** the room join intermediate screen
+**When** a player is confirming their display name before connecting
+**Then** the room code is prominently displayed as the primary context ("Joining room JYWZ9S"), not buried as a header label
+
+---
+
+### Story 9.2: Game Table Visual Quality Pass
+
+As a **player at the game table**,
+I want **the table to feel like a beautifully designed game surface with real people at it**,
+So that **the experience matches the GDD's goal: "primary audience testers describe the interface as beautiful or gorgeous."**
+
+**Acceptance Criteria:**
+
+**Given** opponent seat areas at 1024px (iPad landscape)
+**When** a player is seated and connected
+**Then** their avatar circle is the visually dominant element in the seat — larger than the face-down tile stack representation — and their name is readable without leaning toward the screen
+
+**Given** opponent area sizing
+**When** rendering at iPad landscape
+**Then** avatar frames are minimum 56px (tablet) / 72px (desktop), player names are minimum 14px, scores are clearly visible as secondary elements, and the max-width constraint allows names to display without truncation in typical cases
+
+**Given** the lobby player list
+**When** one or more players have joined
+**Then** each player row shows an avatar circle with their initial alongside their name and seat wind — players feel like people sitting down, not entries in a flat list
+
+**Given** the tile rack
+**When** displayed during active play
+**Then** individual tiles meet the 44px minimum touch target dimension for comfortable iPad thumb interaction
+
+**Given** the active player's seat
+**When** it is that player's turn
+**Then** the active-turn styling is unmissable at a glance — readable from arm's length on a propped-up iPad without reading text
+
+**Given** this story's completion
+**When** verifying done status
+**Then** a live browser visual check at 1024px confirms: opponent seats feel like people, not stats; the table reads as a designed game surface; no gameplay-relevant text is below 14px. The test suite (pnpm test && pnpm run typecheck && vp lint) also passes.
+
+---
+
+### Story 9.3: Phase Transitions & Session Cohesion
+
+As a **player completing a full game session**,
+I want **lobby → game → charleston → play → scoreboard → rematch to feel like one designed arc**,
+So that **the game reads as a cohesive experience rather than a sequence of disconnected screens**.
+
+**Acceptance Criteria:**
+
+**Given** each major phase boundary (lobby→dealing, charleston→play, mahjong→scoreboard, scoreboard→rematch)
+**When** the phase changes
+**Then** the transition is choreographed — a designed enter/leave motion of 0.5–1.5 seconds — not an instantaneous state switch. Uses motion-v (already in stack).
+
+**Given** the CSS mood crossfades (arriving → playing → lingering)
+**When** observed in a live browser
+**Then** the crossfade is perceptible and smooth — 1–2 seconds as specified in the GDD — not a hard color cut
+
+**Given** major phase entries (game start, charleston, new round)
+**When** the phase begins
+**Then** a brief contextual announcement (1.5–2 seconds, non-blocking, auto-dismisses) orients players: "Game starting — East deals first", "Charleston begins", "Game 2"
+
+**Given** player names and session scores
+**When** viewing any game phase (lobby, play, scoreboard)
+**Then** they are persistently visible — players always know who they're playing with and where scores stand
+
+**Given** the rematch flow
+**When** a rematch is accepted
+**Then** the transition back into dealing includes a brief anticipatory beat ("Reshuffling...") — the energy of "here we go again" rather than a silent reset
+
+**Given** this story's completion
+**When** verifying done status
+**Then** a live browser session reads as one designed arc from link-click to session end. Backpressure gate passes.

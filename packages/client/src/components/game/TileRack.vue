@@ -239,11 +239,13 @@ const RackDnDSetup = defineComponent({
 });
 
 const rackRef = useTemplateRef<HTMLElement>("rackRef");
+/** Pass-through so template does not unwrap the ref when binding to RackDnDSetup */
+const rackRefForDnd = { r: rackRef };
 </script>
 
 <template>
   <DnDProvider>
-    <RackDnDSetup :rack-ref="rackRef" :tiles="orderedTiles" />
+    <RackDnDSetup :rack-ref="rackRefForDnd.r" :tiles="orderedTiles" />
     <div class="tile-rack-container">
       <div
         ref="rackRef"

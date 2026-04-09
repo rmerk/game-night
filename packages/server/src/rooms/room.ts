@@ -118,4 +118,6 @@ export interface Room {
   rateLimits: RateLimits;
   createdAt: number;
   logger: FastifyBaseLogger;
+  /** Dev solo: synthetic player IDs (no WebSocket) removed when returning to lobby */
+  devSoloGhostPlayerIds?: string[];
 }

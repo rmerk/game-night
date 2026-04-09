@@ -110,6 +110,20 @@ describe("POST /api/rooms", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({ error: "INVALID_HOST_NAME" });
   });
+
+  it("sends Access-Control-Allow-Origin for browser cross-origin requests", async () => {
+    const app = buildApp();
+    const origin = "http://127.0.0.1:5174";
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/rooms",
+      headers: { origin },
+      payload: { hostName: "TestHost" },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.headers["access-control-allow-origin"]).toBe(origin);
+  });
 });
 
 describe("GET /api/rooms/:code/status", () => {

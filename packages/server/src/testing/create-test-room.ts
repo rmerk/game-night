@@ -148,6 +148,7 @@ function defaultRoom(logger: FastifyBaseLogger): Room {
     },
     createdAt: Date.now(),
     logger,
+    devSoloGhostPlayerIds: undefined,
   };
 }
 

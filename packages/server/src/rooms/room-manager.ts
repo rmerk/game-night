@@ -72,6 +72,7 @@ export class RoomManager {
       },
       createdAt: Date.now(),
       logger: roomLogger,
+      devSoloGhostPlayerIds: undefined,
     };
 
     this.rooms.set(roomCode, room);

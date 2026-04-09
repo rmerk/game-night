@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-26
-last_updated: 2026-04-07 # Story 7.4 → done (code review follow-up merged)
+last_updated: 2026-04-09 # Story 9-bug-a → done (code-review follow-up)
 project: mahjong-game
 
 project_key: NOKEY
@@ -169,15 +169,30 @@ development_status:
   epic-6b-retrospective: done
 
   # Epic 7: Visual Polish & Audio
-  epic-7: in-progress
+  epic-7: done
   7-1-felt-texture-three-moods-transitions: done
   7-2-celebration-overlay-sequence: done
   7-3-complete-sound-design-all-10-12-effects: done
   7-4-dark-mode-first-visit-entrance-audio-preview: done
-  7-5-full-session-golden-path-validation: ready-for-dev
+  7-5-full-session-golden-path-validation: done
   epic-7-retrospective: optional
 
+  # Epic 9: Game Experience Quality
+  # Unlocked by: sprint-change-proposal-2026-04-09.md
+  # Live golden path session (Story 7.5 Task 1.6) revealed two P0 bugs + design quality gaps.
+  # Epic 8 is on hold until Epic 9 stories pass live visual review.
+  epic-9: in-progress
+  # Phase 0: Bug fixes (fix commits, no story files needed)
+  9-bug-a-table-talk-report-always-visible: done  # P0: form permanently covers discard pools
+  9-bug-b-dev-solo-ghost-players-reconnecting: backlog  # Ghost players show wireframe state in solo testing
+  # Phase 1: Design quality stories
+  9-1-landing-page-brand-identity: backlog
+  9-2-game-table-visual-quality-pass: backlog
+  9-3-phase-transitions-session-cohesion: backlog
+  epic-9-retrospective: optional
+
   # Epic 8: Profiles, Stats & Remaining Accessibility
+  # ON HOLD — resume after Epic 9 passes live visual review
   epic-8: backlog
   8-1-optional-account-creation-email-google-oauth: backlog
   8-2-guest-to-account-migration-persistent-stats: backlog

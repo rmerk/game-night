@@ -45,4 +45,34 @@ describe("TableTalkReportSection", () => {
     await flushPromises();
     expect((w.find("select").element as HTMLSelectElement).value).toBe("");
   });
+
+  it("shows the inline section heading when omitHeading is false", async () => {
+    const w = mount(TableTalkReportSection, {
+      props: {
+        canRequestTableTalkReport: true,
+        tableTalkReportState: null,
+        reportTargets: [{ id: "a", name: "A" }],
+        myPlayerId: "me",
+        omitHeading: false,
+      },
+    });
+    await flushPromises();
+    const heading = w.find("p.mb-2.font-medium");
+    expect(heading.exists()).toBe(true);
+    expect(heading.text()).toBe("Table talk report");
+  });
+
+  it("omits the inline section heading when omitHeading is true", async () => {
+    const w = mount(TableTalkReportSection, {
+      props: {
+        canRequestTableTalkReport: true,
+        tableTalkReportState: null,
+        reportTargets: [{ id: "a", name: "A" }],
+        myPlayerId: "me",
+        omitHeading: true,
+      },
+    });
+    await flushPromises();
+    expect(w.find("p.mb-2.font-medium").exists()).toBe(false);
+  });
 });

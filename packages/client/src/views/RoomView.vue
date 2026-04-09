@@ -39,6 +39,8 @@ import { storeToRefs } from "pinia";
 const route = useRoute();
 const router = useRouter();
 
+const isDevBuild = import.meta.env.DEV;
+
 const roomCode = computed(() =>
   String(route.params.code ?? "")
     .trim()
@@ -190,6 +192,14 @@ const isHost = computed(() => {
   const lobby = lobbyState.value;
   if (!lobby) return false;
   return lobby.players.some((p) => p.playerId === lobby.myPlayerId && p.isHost);
+});
+
+/** Dev build: host can attempt start with fewer than four humans if server runs with MAHJONG_DEV_SOLO_START. */
+const canStartGameFromLobby = computed(() => {
+  const lob = lobbyState.value;
+  if (!lob) return false;
+  if (lob.players.length >= 4) return true;
+  return isDevBuild && isHost.value;
 });
 
 const isHostInGame = computed(() => {
@@ -492,14 +502,15 @@ function goSpectatePlaceholder() {
     </div>
 
     <header
-      class="flex flex-wrap items-center justify-between gap-2 border-b border-chrome-border bg-chrome-surface/90 px-4 py-3"
+      data-testid="room-chrome-header"
+      class="flex min-w-0 flex-nowrap items-center justify-between gap-2 border-b border-chrome-border bg-chrome-surface/90 px-4 py-3 text-text-primary"
     >
-      <div class="text-3.5 font-medium">
+      <div class="min-w-0 truncate text-3.5 font-medium">
         Room <span class="font-mono tracking-wide">{{ roomCode || "—" }}</span>
       </div>
       <button
         type="button"
-        class="rounded-md border border-chrome-border px-3 py-1.5 text-3 hover:bg-chrome-surface-dark"
+        class="shrink-0 rounded-md border border-chrome-border px-3 py-1.5 text-3 hover:bg-chrome-surface-dark"
         @click="leaveRoom"
       >
         Leave
@@ -508,7 +519,7 @@ function goSpectatePlaceholder() {
 
     <div
       v-if="lobbyState !== null || playerGameView !== null"
-      class="pointer-events-none fixed inset-x-0 top-20 z-[100] flex justify-center px-4"
+      class="pointer-events-none fixed inset-x-0 top-28 z-[100] flex justify-center px-4"
     >
       <BaseToast
         data-testid="audio-preview-toast"
@@ -754,13 +765,16 @@ function goSpectatePlaceholder() {
         <button
           type="button"
           class="rounded-md bg-state-turn-active px-4 py-2 text-3.5 font-medium text-text-on-felt disabled:opacity-50"
-          :disabled="lobbyState.players.length < 4"
+          :disabled="!canStartGameFromLobby"
           @click="conn.sendStartGame()"
         >
           Start game
         </button>
         <p v-if="lobbyState.players.length < 4" class="text-3 text-text-secondary">
-          Need four players connected to start.
+          <template v-if="isDevBuild && isHost">
+            Dev: set MAHJONG_DEV_SOLO_START=1 on the server to fill empty seats with dead-seat bots.
+          </template>
+          <template v-else>Need four players connected to start.</template>
         </p>
       </div>
       <p v-else class="mt-4 text-3.5 text-text-secondary">

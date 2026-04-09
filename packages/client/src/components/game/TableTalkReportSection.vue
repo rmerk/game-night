@@ -9,6 +9,8 @@ const props = withDefaults(
     myTableTalkReportsUsed?: number;
     reportTargets?: { id: string; name: string }[];
     myPlayerId: string | null;
+    /** Parent supplies dialog title (e.g. modal shell). */
+    omitHeading?: boolean;
   }>(),
   {
     canRequestTableTalkReport: false,
@@ -16,6 +18,7 @@ const props = withDefaults(
     myTableTalkReportsUsed: 0,
     reportTargets: () => [],
     myPlayerId: null,
+    omitHeading: false,
   },
 );
 
@@ -98,7 +101,7 @@ function submitTableTalkReport() {
 <template>
   <div v-if="canRequestTableTalkReport || pendingTableTalk">
     <template v-if="canRequestTableTalkReport && !pendingTableTalk && !tableTalkAtReportLimit">
-      <p class="mb-2 font-medium">Table talk report</p>
+      <p v-if="!omitHeading" class="mb-2 font-medium">Table talk report</p>
       <p class="text-text-secondary mb-2 text-2.5">
         Report a player who named a tile they need. 2 of 3 other players must uphold.
       </p>
@@ -139,7 +142,7 @@ function submitTableTalkReport() {
     </p>
 
     <template v-else-if="pendingTableTalk && tableTalkReportState">
-      <p class="font-medium">Table talk report</p>
+      <p v-if="!omitHeading" class="font-medium">Table talk report</p>
       <p class="text-text-secondary mt-1">{{ tableTalkReportState.description }}</p>
       <p class="mt-1 text-2.5 text-text-secondary">Accused: {{ reportedPlayerLabel }}</p>
       <p v-if="isTableTalkReporter" class="mt-2 text-text-secondary">

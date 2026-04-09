@@ -1030,6 +1030,61 @@ describe("handleActionMessage", () => {
 
       for (const p of players) p.ws.close();
     });
+
+    it("rejects START_GAME with only one player when dev solo is disabled", async () => {
+      const prevSolo = process.env.MAHJONG_DEV_SOLO_START;
+      delete process.env.MAHJONG_DEV_SOLO_START;
+      try {
+        const { roomCode } = await createRoom();
+        const host = await joinPlayer(roomCode, "Lonely");
+        const msgPromise = waitForMessage(host.ws);
+        sendAction(host.ws, { type: "START_GAME" });
+        const msg = await msgPromise;
+        expect(msg.type).toBe("ERROR");
+        expect(msg.code).toBe("NOT_ENOUGH_PLAYERS");
+        host.ws.close();
+      } finally {
+        if (prevSolo !== undefined) process.env.MAHJONG_DEV_SOLO_START = prevSolo;
+        else delete process.env.MAHJONG_DEV_SOLO_START;
+      }
+    });
+
+    describe("MAHJONG_DEV_SOLO_START", () => {
+      let prevSolo: string | undefined;
+      let prevNode: string | undefined;
+
+      beforeEach(() => {
+        prevSolo = process.env.MAHJONG_DEV_SOLO_START;
+        prevNode = process.env.NODE_ENV;
+        process.env.MAHJONG_DEV_SOLO_START = "1";
+        process.env.NODE_ENV = "test";
+      });
+
+      afterEach(() => {
+        if (prevSolo === undefined) delete process.env.MAHJONG_DEV_SOLO_START;
+        else process.env.MAHJONG_DEV_SOLO_START = prevSolo;
+        if (prevNode === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = prevNode;
+      });
+
+      it("allows START_GAME with only the host in the room", async () => {
+        const { roomCode } = await createRoom();
+        const host = await joinPlayer(roomCode, "SoloHost");
+        const msgPromise = waitForMessage(host.ws);
+        sendAction(host.ws, { type: "START_GAME" });
+        await msgPromise;
+
+        const room = app.roomManager.getRoom(roomCode)!;
+        expect(room.players.size).toBe(4);
+        expect(room.devSoloGhostPlayerIds).toHaveLength(3);
+        expect(room.gameState?.gamePhase).toBe("charleston");
+        for (const gid of room.devSoloGhostPlayerIds ?? []) {
+          expect(room.seatStatus.deadSeatPlayerIds.has(gid)).toBe(true);
+        }
+
+        host.ws.close();
+      });
+    });
   });
 
   it("handles discard that triggers call window — all players see callWindow in state", async () => {

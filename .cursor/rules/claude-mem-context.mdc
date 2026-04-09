@@ -7,86 +7,86 @@ description: "Claude-mem context from past sessions (auto-updated)"
 
 The following context is from claude-mem, a persistent memory system that tracks your coding sessions.
 
-# $CMEM mahjong-game 2026-04-07 5:41am CDT
+# $CMEM mahjong-game 2026-04-09 6:11am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (41,257t read) | 608,485t work | 93% savings
+Stats: 50 obs (23,417t read) | 409,457t work | 94% savings
 
-### Apr 6, 2026
-1296 3:04p 🔵 GDS Dev Story Workflow System Architecture
-1297 " 🔵 Story 7.2 Celebration Overlay Sequence Feature Scope
-1298 " 🔵 GDS Workflow Templates and Quality Gates Infrastructure
-1299 3:06p ✅ Story 7.2 Workflow Initialization and Sprint Status Transition
-1300 3:08p 🟣 Celebration.vue Test Suite Creation Following TDD Red Phase
-1301 3:09p 🟣 Celebration.vue Component Implementation with Dim Animation Phase
-1302 3:10p 🟣 Task 1 Celebration Component Tests Passing with Teleport Stub Pattern
-1303 " 🟣 Task 1 Celebration Component Completed and Committed via Subagent Dispatch
-1304 3:11p ✅ Task 1 Spec Compliance Review Passed with Type System Clarification
-1305 3:12p ✅ Playtest plan created for full-session integration testing
-1306 3:39p ✅ Story 7.5 Golden Path Validation Added
-1307 " ✅ Story 7.5 Added to Epic 7 Planning Documentation
-1308 6:52p 🟣 Celebration overlay integration tests added to GameTable
-1309 " 🔵 Celebration overlay tests fail - feature not yet implemented in GameTable
-1310 " ✅ Added Celebration component and MahjongGameResult type imports to GameTable
-1315 9:26p 🔵 Story 7.2 Code Review Initialization
-S399 Story 7.2 Code Review Completion - Overlay-div Architecture Fix for AC 2/AC 3 Violations (Apr 6 at 9:30 PM)
-1316 9:33p 🔵 Code Review Findings Presented for Story 7.2
-1317 9:34p 🔴 Overlay-div Refactor in OpponentArea to Fix AC Violations
-1318 " 🔴 Removed Unused winnerSeat Prop and Updated Reduced Motion Dimming
-1319 " 🔴 Full Motion Sequence Updated for Overlay-div and L2/L3 Fixes
-S400 Determine next development step and understand how to connect completed Epic 7 work (Apr 6 at 9:40 PM)
-1320 9:40p 🔵 Sprint status workflow configuration and current project state
-S401 Sprint status correction and preparing to start Story 7.5 (Full Session Golden Path Validation) (Apr 6 at 9:40 PM)
-S402 Create Story 7.3: Complete Sound Design System with 12 audio effects and three-channel mixing architecture (Apr 6 at 9:45 PM)
-1321 9:50p 🟣 Story 7.3 Specification Created: Complete Sound Design System
-S403 Story 7.3 Complete Sound Design - DoD validation and status transition to review (Apr 6 at 9:51 PM)
-1322 9:56p 🔵 GDS Dev Story Workflow System Architecture
-1323 " 🔵 Story 7.3 Audio System Context Mapping
-1324 9:57p 🔵 Audio System Integration Points Mapped
-1325 9:58p 🔵 TileRack Drag System Architecture for Rack-Arrange Sound
-1326 " ✅ Story 7.3 Marked In-Progress with Task Tracking
-1327 9:59p ✅ Implementation Phase Initiated with BASE_SHA Recorded
-1328 10:01p 🟣 Audio Store Test Suite Created (TDD Red Phase)
-1329 " 🟣 Audio Store Implemented with Web Audio API Engine (TDD Green Phase)
-1330 10:02p 🔄 Audio Store Tests Refactored for Proper Test Isolation
-1331 10:03p 🔄 Audio Tests Mock Reset Enhanced with Object Wrapper Pattern
-1332 " 🔴 AudioContext Instantiation Fixed for Test Stub Compatibility
-1333 10:04p 🔄 Audio Tests Simplified with Fresh Stubs in beforeEach
-1334 " 🟣 Audio Store Tests Pass (TDD Green Phase Complete)
-1335 10:40p 🔵 Mahjong game audio system architecture
-1336 " 🔵 Audio system integration across game UI and event handlers
-1337 10:41p 🔵 Audio integration test coverage and unused timer-warning sound
-1338 10:42p 🟣 Story 7.3 audio system implementation validated and complete
-1339 10:43p ✅ Story 7.3 status updated to review with completion summary
-S404 Code review of Story 7.3 "Complete Sound Design (All 10-12 Effects)" for mahjong-game project (Apr 6 at 10:44 PM)
 ### Apr 7, 2026
-S405 Code review of Story 7.3 "Complete Sound Design" for mahjong-game audio system implementation (Apr 7 at 4:41 AM)
-1340 4:44a 🔴 Fixed lazy-init audio GainNode sync bug in Story 7.3 code review
-S406 Complete code review of Story 7.3 "Complete Sound Design" with bug fixes committed to main branch (Apr 7 at 4:45 AM)
-1341 4:46a 🔴 Committed code review fixes for Story 7.3 lazy-init audio bug
-S407 Story 7.4 Creation: Dark Mode, First-Visit Entrance & Audio Preview (Apr 7 at 4:47 AM)
-1342 4:54a 🟣 Story 7.4 Created: Dark Mode, First-Visit Entrance & Audio Preview
-1345 4:57a 🔵 Story 7.4 Development Session Initialized - Dark Mode & First-Visit UX
-1346 4:58a 🟣 Preferences Store Test Suite Created - TDD Foundation for Dark Mode & UX Preferences
-1347 4:59a 🟣 Preferences Store Implementation Complete - localStorage-Backed Dark Mode & UX State
-1350 5:03a ⚖️ Task 1 Quality Review Approved - Pattern Consistency vs Runtime Safety Trade-offs Documented
-1351 5:04a 🟣 App.vue Dark Mode Test Suite Created - TDD Foundation for Reactive Theme Switching
-1352 5:05a 🟣 App.vue Dark Mode Implementation Complete - Reactive System Preference Detection
-1354 5:08a ⚖️ Task 2 Quality Review Approved with Test Reliability Concerns - Memory Leak and Reactivity Gap Identified
-S408 DoD validation and status transition for Story 7.4 (Dark Mode, First-Visit Entrance & Audio Preview) (Apr 7 at 5:41 AM)
-**Investigated**: Independent DoD validation agent ran comprehensive verification: executed all three quality gates (pnpm test, typecheck, vp lint), read all 10 implementation files, verified each of 8 acceptance criteria against implementation and tests, checked all story-specific critical implementation points (preferences.ts pattern, App.vue dark mode wiring, AudioSettingsPanel theme section, FirstVisitEntrance cleanup, RoomView.vue watcher options), and validated complete DoD checklist
+1399 6:38a 🔵 Mahjong Game Project State and Story 7.5 Review Context
+1400 6:39a 🔵 Story 7.5 Validation Results and Automated Testing Methodology
+1401 6:40a ✅ Story 7.5 Status Reverted to In-Progress
+1402 " 🔴 Playtest Report P2 Finding Enhanced with Timestamp and Repro Hints
+1403 " 🔴 Task Checkboxes Corrected to Reflect Actual Work Performed
+1404 6:41a 🔴 Documentation Gaps Fixed Across Story and Sprint Status Files
+1405 " ✅ Code Review Audit Trail Documented in Story Record
+1406 6:42a ✅ Live Validation Environment Started for Task 1.6 Execution
+1407 " 🔴 Server Startup Error Resolved Using tsx Watch Script
+1408 8:48a 🟣 Added CORS support to Fastify server
+1409 " 🟣 Implemented environment-aware CORS configuration for Fastify server
+1410 8:49a ✅ Added test coverage for CORS Access-Control-Allow-Origin headers
+1420 9:07a 🟣 Single-user development testing with ghost players
+1421 " ✅ Integrated ghost player cleanup into room lifecycle
+1422 " 🟣 Implemented START_GAME with single-player dev-solo mode
+1423 9:08a ✅ Documented dev-solo environment variable configuration
+1424 " ✅ Added comprehensive test coverage for dev-solo utilities
+1425 " 🔄 Refactored test environment variable handling to use direct process.env manipulation
+1426 9:09a 🔄 Simplified test environment restoration to only track modified variables
+1427 " ✅ Added integration test for dev-solo single-player START_GAME
+1428 " 🟣 Enabled client UI to support dev-solo mode START_GAME
+1429 9:10a ✅ Dev-solo feature tests passed successfully
+1430 " ✅ Added test verifying START_GAME rejection when dev-solo is disabled
+1431 " 🔴 Dev-solo integration test failing due to environment variable stubbing issue
+1432 " 🔴 Fixed dev-solo test by replacing vi.stubEnv with direct process.env manipulation
+1433 9:11a ✅ Full test suite passed with dev-solo feature complete
+### Apr 9, 2026
+1552 4:35a ✅ Single-user testing mode enabled for mahjong server
+1553 4:38a ✅ Development scripts configured for single-user testing workflow
+1554 " ✅ Environment variable documentation updated for solo testing mode
+1555 4:44a 🔴 Fixed missing tile display by mounting SVG sprite definitions
+1556 4:48a 🔴 Vue prop validation error in RackDnDSetup component
+1557 " 🔴 Fixed rackRef null prop error by preventing Vue template ref unwrapping
+1558 5:06a 🔴 Fixed header layout issues in mahjong room view
+1559 5:07a ✅ Added tests for chrome header text color inheritance
+1560 5:22a 🔵 BMad Method Workflow System Architecture
+1561 5:23a 🔵 BMAD Game Development System Exploration
+1562 5:24a 🔵 Epic 7 Golden Path Validation Status Review
+1563 5:25a 🔵 Automated Playtest Report Baseline Review
+1564 5:26a 🔵 Change Navigation Checklist Structure Review
+1565 5:27a 🔵 Epic Breakdown and Functional Requirements Review
+1566 5:28a 🔵 UX Design Specification Philosophy and Intended Experience
+S419 Critical assessment of Sprint Change Proposal sufficiency and deeper diagnosis of "disconnected and broken" root cause (Apr 9 at 5:29 AM)
+S420 Direct diagnostic question to determine whether issue is transition-specific or systemic design problem (Apr 9 at 5:31 AM)
+S421 UI quality assessment revealed fundamental implementation gaps in table layout and player presence (Apr 9 at 5:31 AM)
+S422 Root cause analysis of broken game table UI revealed design quality gap rather than missing implementation (Apr 9 at 5:40 AM)
+1567 5:43a 🔵 Story 6B.4 Avatar Fallback Implementation Review
+1568 5:44a 🔵 Story 5A.4 Immersive Table Layout Implementation Review
+S423 Revised Sprint Change Proposal to prioritize table visual design quality over phase transitions (Apr 9 at 5:44 AM)
+1569 5:50a 🔵 Actual Component Implementation Sizing Reveals Small Avatar Dimensions
+1570 " 🔵 Comprehensive Layout Audit Confirms Conservative Sizing Constants
+S424 Critique and revision of Sprint Change Proposal structure and methodology for visual design work (Apr 9 at 5:52 AM)
+S425 Pivot to visual audit methodology using agent browser capabilities before writing visual design stories (Apr 9 at 5:53 AM)
+S426 Visual design audit of Mahjong Night game to identify UI/UX quality issues before Epic 9 design sprint (Apr 9 at 5:54 AM)
+1571 6:03a 🔵 Comprehensive visual design audit of Mahjong Night game completed
+S427 Finalize Sprint Change Proposal for Experience Quality based on visual audit findings and restructure Epic 9 approach (Apr 9 at 6:03 AM)
+1572 6:08a ✅ Sprint tracking updated to close Epic 7 and add Epic 9 experience quality sprint
+1573 6:09a ✅ Epic 9 Game Experience Quality added to sprint with two-phase structure
+1574 " ✅ Epic 9 Game Experience Quality added to planning artifacts with full story specifications
+1575 6:10a ⚖️ Sprint Change Proposal approved and documented for Epic 9 experience quality improvements
+S428 Formalize Epic 9 Game Experience Quality in sprint planning artifacts following visual audit findings (Apr 9 at 6:11 AM)
+**Investigated**: Visual audit results from Story 7.5 were analyzed to distinguish functional bugs from design quality gaps. Examined root causes of why game feels disconnected despite passing all tests: two P0 bugs (Table Talk Report form always visible, dev-solo ghost players rendering as reconnecting wireframes) and design quality gaps (opponent area sizing, landing page brand identity, tile touch targets, lobby player presence). Reviewed impact on existing epic sequence and determined Epic 8 should be placed on hold pending Epic 9 completion.
 
-**Learned**: Story 7.4 achieved full PASS on DoD validation. All quality gates green: 1,817 tests passing (678 shared + 763 client + 376 server), TypeScript compilation clean, 0 lint errors (166 pre-existing warnings). All 8 acceptance criteria verified with corresponding implementation and test coverage. No cross-task integration issues found. All critical implementation checks passed including the Task 5 fix (watcher uses `{ once: true }` without `immediate: true` to prevent self-destruct before lobbyState becomes non-null)
+**Learned**: Agent-driven development can verify component correctness and test passage but cannot evaluate experiential visual quality without live browser inspection. The gap between "technically correct" and "feels designed" requires explicit visual validation gates as story completion criteria. Story 7.5 live session successfully caught issues that automated testing could not detect. Two of the highest-priority visual problems are actually bugs rather than design work, which changes the remediation strategy. Component sizing optimized for developer monitors (40px avatars, 12px text, 36px tiles) falls short of 40-70+ target audience needs on iPads at arm's length (56px+ avatars, 14px+ text, 44px touch targets).
 
-**Completed**: Story status updated from "ready-for-dev" to "review" in implementation artifact. Sprint-status.yaml updated with story status "review" and last_updated timestamp. Story 7.4 is now ready for code review phase per project workflow
+**Completed**: Sprint planning artifacts fully updated to reflect Epic 9 addition: sprint-status.yaml shows Epic 7 done, Story 7.5 done, Epic 9 in-progress with Phase 0 bug fixes and Stories 9.1-9.3 in backlog, Epic 8 placed on hold. epics.md extended with complete Epic 9 definition including Phase 0 bug descriptions, three story specifications with detailed acceptance criteria, and live visual validation gate requirements. sprint-change-proposal-2026-04-09.md created as formal approved proposal documenting issue summary, impact analysis, recommended approach, detailed change plan with specific sizing values, critical process change mandating live browser checks, and success criteria for each milestone.
 
-**Next Steps**: Story awaits code review (workflow recommends different LLM than implementation agent). Once code review passes, story can transition to "done" status. Story 7.5 (Full Session Golden Path Validation) is already at "ready-for-dev" status and available for work
+**Next Steps**: Execute Phase 0 bug fixes as immediate targeted commits: Bug A fixes TableTalkReport component to gate behind button trigger instead of always-visible rendering covering discard pools; Bug B fixes DEV_SOLO ghost player initialization to connected status instead of reconnecting wireframe state. After bug fixes verified, create Story 9.1 file via gds-create-story for landing page brand identity work, followed by Stories 9.2 (game table visual quality with live browser check gate) and 9.3 (phase transitions and session cohesion).
 
 
-Access 608k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 409k tokens of past work via get_observations([IDs]) or mem-search skill.
 
 ---
 *Updated after last session. Use claude-mem's MCP search tools for more detailed queries.*

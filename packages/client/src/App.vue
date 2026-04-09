@@ -3,6 +3,8 @@ import { computed, watchEffect } from "vue";
 import { useMediaQuery } from "@vueuse/core";
 import { usePreferencesStore } from "./stores/preferences";
 import FirstVisitEntrance from "./components/shared/FirstVisitEntrance.vue";
+// Global SVG symbols for tile faces; Tile.vue resolves <use href="#id"> against the document.
+import TileSprite from "./components/tiles/TileSprite.vue";
 
 const prefsStore = usePreferencesStore();
 const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
@@ -17,5 +19,6 @@ watchEffect(() => {
 
 <template>
   <FirstVisitEntrance />
+  <TileSprite />
   <RouterView />
 </template>

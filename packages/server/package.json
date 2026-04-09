@@ -4,11 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "MAHJONG_DEV_SOLO_START=1 tsx watch src/index.ts",
+    "dev:standard": "tsx watch src/index.ts",
     "test": "vp test run",
     "lint": "vp lint src/"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^10.3.0",
     "@mahjong-game/shared": "workspace:*",
     "fastify": "^5.8.0",

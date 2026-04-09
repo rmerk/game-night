@@ -2,6 +2,7 @@
   "name": "mahjong-game",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter @mahjong-game/server --filter @mahjong-game/client --parallel run dev",
     "test": "pnpm -r test",
     "build": "tsc --build",
     "lint": "pnpm -r lint",
